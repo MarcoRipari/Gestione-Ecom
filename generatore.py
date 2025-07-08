@@ -46,22 +46,27 @@ def generate_descriptions(row):
 
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
-        if k.lower() not in ["description", "short_description"] and pd.notna(v)
+        if k.lower() not in ["description", "short_description", "Descrizione", "Descrizione Corta"] and pd.notna(v)
     ])
 
     prompt = f"""
-Scrivi DUE descrizioni per una calzatura da vendere online.
+Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile:
+- accattivante
+- caldo
+- professionale
+- user friendly
+- SEO friendly
 
-Formato:
-###DESCRIZIONE_LUNGA###
-[Inserisci qui una descrizione lunga di circa 60 parole]
-###DESCRIZIONE_CORTA###
-[Inserisci qui una descrizione breve di circa 20 parole]
+Scrivi solo un oggetto JSON con questo formato esatto (niente testo extra):
 
-Tono: accattivante, professionale, user friendly, SEO friendly.
+{{
+  "descrizione_lunga": "...",  // circa 60 parole
+  "descrizione_corta": "..."   // circa 20 parole
+}}
 
-Dati prodotto: {product_info}
+Dettagli del prodotto: {product_info}
 """
+
 
     try:
         response = client.chat.completions.create(
@@ -71,16 +76,12 @@ Dati prodotto: {product_info}
         )
         content = response.choices[0].message.content.strip()
 
-        # Parsing basato su marcatori ###
-        long_desc = short_desc = "Descrizione non trovata"
-        if "###DESCRIZIONE_LUNGA###" in content and "###DESCRIZIONE_CORTA###" in content:
-            parts = content.split("###DESCRIZIONE_CORTA###")
-            long_part = parts[0].replace("###DESCRIZIONE_LUNGA###", "").strip()
-            short_part = parts[1].strip()
-            long_desc = long_part if long_part else "Descrizione lunga non trovata"
-            short_desc = short_part if short_part else "Descrizione corta non trovata"
+        # Estrai dati dal JSON
+        data = json.loads(content)
+        long_desc = data.get("descrizione_lunga", "Descrizione lunga non trovata")
+        short_desc = data.get("descrizione_corta", "Descrizione corta non trovata")
 
-        return long_desc, short_desc
+        return long_desc.strip(), short_desc.strip()
 
     except Exception as e:
         return f"Errore: {e}", f"Errore: {e}"
