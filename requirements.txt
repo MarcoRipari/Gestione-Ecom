@@ -1,5 +1,6 @@
 streamlit
-pandas
 openai>=1.0.0
+pandas
 gspread
+oauth2client
 google-auth
