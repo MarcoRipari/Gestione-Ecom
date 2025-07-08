@@ -6,56 +6,43 @@ import random
 st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="centered")
 st.title("📝 Generatore di Descrizioni per Calzature")
 
-st.markdown("Carica un file CSV con i campi come `name`, `material`, `category`. Potrai anche scegliere dove inserire le descrizioni generate.")
+st.markdown("Carica un file CSV contenente informazioni sui prodotti. Le descrizioni verranno generate usando **tutte le colonne** disponibili nella riga.")
 
-# Blocchi coerenti con lo stile originale
-introduzioni = [
-    "Perfetta per completare ogni outfit",
-    "Pensata per uno stile moderno e dinamico",
-    "Design essenziale e sempre attuale",
-    "Look contemporaneo con dettagli ricercati",
-    "Ideale per un uso quotidiano con stile",
-    "Versatilità e carattere in un solo modello"
+# Blocchi di testo ispirati allo stile originale
+intro_frasi = [
+    "Un design contemporaneo pensato per distinguersi",
+    "Linee essenziali e stile intramontabile",
+    "Versatilità e comfort in un solo modello",
+    "Eleganza urbana con dettagli curati",
+    "Perfetta per ogni occasione quotidiana",
+    "Un modello che coniuga stile e funzionalità"
 ]
 
-dettagli_tomaia = [
-    "tomaia in {materiale} con {dettaglio}",
-    "realizzata in {materiale}, impreziosita da {dettaglio}",
-    "struttura in {materiale} con finiture {finitura}",
-    "tomaia {materiale} rifinita con {dettaglio}"
-]
-
-dettagli_suola = [
-    "suola in {suola} per massimo comfort",
-    "base in {suola} che assicura aderenza e stabilità",
-    "dotata di suola in {suola}, ideale per l'uso urbano",
-    "supporto in {suola} pensato per la quotidianità"
-]
-
-conclusioni = [
-    "Perfetta con jeans, pantaloni slim o gonne midi.",
-    "Si abbina facilmente ad ogni look del giorno.",
+finale_frasi = [
+    "Si abbina perfettamente a look casual o più ricercati.",
+    "Perfetta per completare ogni outfit con personalità.",
     "Un tocco di stile da mattina a sera.",
-    "Un alleato di stile in ogni stagione."
+    "Pensata per uno stile pratico e raffinato.",
+    "La scelta giusta per un look urbano e dinamico."
 ]
 
-usi = ['urbano', 'casual', 'giornaliero', 'versatile']
-dettagli = ['cuciture in rilievo', 'inserti a contrasto', 'linee pulite', 'dettagli tono su tono', 'cuciture visibili']
-finiture = ['lucide', 'opache', 'minimal', 'moderne']
-suole = ['gomma', 'poliuretano', 'TR']
+def generate_descriptions_from_row(row):
+    elementi = []
+    for col, val in row.items():
+        if pd.notna(val) and isinstance(val, str) and len(val.strip()) > 1:
+            elementi.append(str(val).strip())
 
-def generate_descriptions(row, name_col, material_col, category_col):
-    nome = row.get(name_col, 'Modello')
-    materiale = row.get(material_col, 'materiale tecnico')
-    categoria = row.get(category_col, '').capitalize()
+    intro = random.choice(intro_frasi)
+    finale = random.choice(finale_frasi)
 
-    intro = random.choice(introduzioni)
-    tomaia = random.choice(dettagli_tomaia).format(materiale=materiale, dettaglio=random.choice(dettagli), finitura=random.choice(finiture))
-    suola = random.choice(dettagli_suola).format(suola=random.choice(suole))
-    finale = random.choice(conclusioni)
+    descrizione_lunga = f"{intro}. " + ", ".join(elementi[:6]) + f". {finale}"
+    descrizione_breve = ", ".join(elementi[:3]) + "."
 
-    descrizione_lunga = f"{intro}. {nome} con {tomaia}, {suola}. {finale}"
-    descrizione_breve = f"{categoria} in {materiale} con {random.choice(dettagli)}. Suola in {random.choice(suole)}."
+    # Trim per rispettare le lunghezze approssimative
+    if len(descrizione_lunga.split()) > 66:
+        descrizione_lunga = " ".join(descrizione_lunga.split()[:66]) + "..."
+    if len(descrizione_breve.split()) > 22:
+        descrizione_breve = " ".join(descrizione_breve.split()[:22]) + "..."
 
     return pd.Series([descrizione_lunga, descrizione_breve])
 
@@ -63,17 +50,13 @@ uploaded_file = st.file_uploader("Carica il file CSV", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8-sig')
-    columns = df.columns.tolist()
-
-    name_col = st.selectbox("Colonna nome prodotto", options=columns, index=columns.index("name") if "name" in columns else 0)
-    material_col = st.selectbox("Colonna materiale", options=columns, index=columns.index("material") if "material" in columns else 0)
-    category_col = st.selectbox("Colonna categoria", options=columns, index=columns.index("category") if "category" in columns else 0)
+    st.markdown(f"**Colonne trovate:** {', '.join(df.columns)}")
 
     output_long = st.text_input("Nome colonna per la descrizione lunga", value="description")
     output_short = st.text_input("Nome colonna per la descrizione breve", value="short_description")
 
     if st.button("Genera Descrizioni"):
-        df[[output_long, output_short]] = df.apply(generate_descriptions, axis=1, args=(name_col, material_col, category_col))
+        df[[output_long, output_short]] = df.apply(generate_descriptions_from_row, axis=1)
         st.success("Descrizioni generate con successo!")
         st.dataframe(df.head())
 
@@ -81,6 +64,6 @@ if uploaded_file:
         st.download_button(
             label="📥 Scarica il CSV con le descrizioni",
             data=csv,
-            file_name='descrizioni_calzature.csv',
+            file_name='descrizioni_prodotti.csv',
             mime='text/csv'
         )
