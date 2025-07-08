@@ -6,9 +6,14 @@ from oauth2client.service_account import ServiceAccountCredentials
 import tempfile
 
 # === CONFIGURAZIONI ===
+
+# Inserisci qui la tua API key
 OPENAI_API_KEY = "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"
-"  # Inserisci qui la tua API key
-SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"  # Inserisci qui l'ID del Google Sheet
+
+# Inserisci qui l'ID del Google Sheet
+SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc" 
+
+# Inserisci qui le credenziali JSON
 CREDENTIALS_JSON = {
   "type": "service_account",
   "project_id": "generazione-descrizioni-marco",
