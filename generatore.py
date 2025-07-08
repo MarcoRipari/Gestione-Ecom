@@ -4,41 +4,52 @@ import pandas as pd
 import random
 
 st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="centered")
-st.title("📝 Generatore di Descrizioni per Calzature")
+st.title("🤖 Generatore Intelligente Descrizioni Calzature")
 
-st.markdown("Carica un file CSV contenente informazioni sui prodotti. Le descrizioni verranno generate usando **tutte le colonne** disponibili nella riga.")
+st.markdown("Carica un CSV: il sistema analizzerà automaticamente i dati, individuerà le informazioni più rilevanti e genererà descrizioni lunghe e brevi, ottimizzate per SEO.")
 
-# Blocchi di testo ispirati allo stile originale
-intro_frasi = [
-    "Un design contemporaneo pensato per distinguersi",
-    "Linee essenziali e stile intramontabile",
-    "Versatilità e comfort in un solo modello",
-    "Eleganza urbana con dettagli curati",
-    "Perfetta per ogni occasione quotidiana",
-    "Un modello che coniuga stile e funzionalità"
+# Frasi dinamiche per varietà testuale
+INTROS = [
+    "Scopri un design essenziale ma ricco di personalità",
+    "Una calzatura che fonde stile e comfort",
+    "Eleganza e praticità per accompagnarti ogni giorno",
+    "Un modello pensato per chi ama distinguersi",
+    "Stile versatile che valorizza ogni look"
 ]
 
-finale_frasi = [
-    "Si abbina perfettamente a look casual o più ricercati.",
-    "Perfetta per completare ogni outfit con personalità.",
-    "Un tocco di stile da mattina a sera.",
-    "Pensata per uno stile pratico e raffinato.",
-    "La scelta giusta per un look urbano e dinamico."
+FINALI = [
+    "Perfetta per outfit casual e smart.",
+    "Ideale per tutte le stagioni.",
+    "Un must-have per il guardaroba contemporaneo.",
+    "Pensata per chi non rinuncia al comfort con stile.",
+    "Accompagna ogni passo con personalità."
 ]
 
-def generate_descriptions_from_row(row):
+def pulisci_valore(val):
+    return str(val).replace("_", " ").replace("-", " ").strip().capitalize()
+
+def genera_descrizioni_intelligenti(row, colonne_rilevanti):
+    # Priorità: nome > categoria > materiale > colore > altri
+    pesi = {
+        "name": 5, "title": 5, "modello": 4, "categoria": 3, 
+        "category": 3, "materiale": 3, "material": 3,
+        "colore": 2, "color": 2
+    }
+
     elementi = []
-    for col, val in row.items():
+
+    for col in colonne_rilevanti:
+        val = row[col]
         if pd.notna(val) and isinstance(val, str) and len(val.strip()) > 1:
-            elementi.append(str(val).strip())
+            peso = max([pesi[k] for k in pesi if k in col.lower()] + [1])
+            elementi.extend([pulisci_valore(val)] * peso)
 
-    intro = random.choice(intro_frasi)
-    finale = random.choice(finale_frasi)
+    intro = random.choice(INTROS)
+    finale = random.choice(FINALI)
 
-    descrizione_lunga = f"{intro}. " + ", ".join(elementi[:6]) + f". {finale}"
-    descrizione_breve = ", ".join(elementi[:3]) + "."
+    descrizione_lunga = f"{intro}. " + ", ".join(elementi[:10]) + f". {finale}"
+    descrizione_breve = ", ".join(elementi[:4]) + "."
 
-    # Trim per rispettare le lunghezze approssimative
     if len(descrizione_lunga.split()) > 66:
         descrizione_lunga = " ".join(descrizione_lunga.split()[:66]) + "..."
     if len(descrizione_breve.split()) > 22:
@@ -46,24 +57,33 @@ def generate_descriptions_from_row(row):
 
     return pd.Series([descrizione_lunga, descrizione_breve])
 
-uploaded_file = st.file_uploader("Carica il file CSV", type=["csv"])
+uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8-sig')
-    st.markdown(f"**Colonne trovate:** {', '.join(df.columns)}")
 
-    output_long = st.text_input("Nome colonna per la descrizione lunga", value="description")
-    output_short = st.text_input("Nome colonna per la descrizione breve", value="short_description")
+    # Seleziona solo colonne testuali e rilevanti
+    colonne_testuali = [
+        col for col in df.columns
+        if df[col].dtype == object and not col.lower().startswith(("id", "sku", "ean"))
+    ]
 
-    if st.button("Genera Descrizioni"):
-        df[[output_long, output_short]] = df.apply(generate_descriptions_from_row, axis=1)
-        st.success("Descrizioni generate con successo!")
+    if not colonne_testuali:
+        st.error("❌ Nessuna colonna testuale trovata nel file.")
+    else:
+        st.markdown(f"**Colonne utilizzate per la generazione:** {', '.join(colonne_testuali)}")
+
+        df[["description", "short_description"]] = df.apply(
+            lambda row: genera_descrizioni_intelligenti(row, colonne_testuali), axis=1
+        )
+
+        st.success("✅ Descrizioni generate con successo!")
         st.dataframe(df.head())
 
         csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig')
         st.download_button(
-            label="📥 Scarica il CSV con le descrizioni",
+            label="📥 Scarica il CSV aggiornato",
             data=csv,
-            file_name='descrizioni_prodotti.csv',
+            file_name='prodotti_descritti.csv',
             mime='text/csv'
         )
