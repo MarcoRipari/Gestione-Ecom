@@ -97,6 +97,7 @@ if uploaded_file:
 
         # === SALVA SU GOOGLE SHEET ===
         try:
+            df = df.fillna("")  # 🔧 Rimuove i NaN prima del salvataggio
             sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
             worksheet = sheet.sheet1
             worksheet.clear()
