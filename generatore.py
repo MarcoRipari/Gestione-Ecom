@@ -16,7 +16,7 @@ def call_openrouter_mixtral(prompt, api_key):
         "Content-Type": "application/json"
     }
     data = {
-        "model": "mistralai/mixtral-8x7b-instruct",
+        "model": "openchat/openchat-3.5",
         "messages": [
             {"role": "system", "content": "Sei un copywriter esperto in e-commerce. Genera descrizioni accattivanti, SEO-friendly, diverse e professionali."},
             {"role": "user", "content": prompt}
