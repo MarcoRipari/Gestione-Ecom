@@ -24,15 +24,27 @@ Tono accattivante, caldo, professionale, user-friendly e SEO-friendly.
 Dettagli prodotto: {product_info}
 """
 
-    response = openai.ChatCompletion.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    output = response.choices[0].message.content.strip().split("\n")
-    long_desc = output[0].strip("1234567890.- ")
-    short_desc = output[1].strip("1234567890.- ") if len(output) > 1 else ""
-    used_tokens = response.usage.total_tokens
-    return long_desc, short_desc, used_tokens
+    try:
+        response = openai.ChatCompletion.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        output = response.choices[0].message.content.strip()
+
+        # Cerca di dividere il risultato
+        parts = [p.strip("1234567890.-: \n") for p in output.split("\n") if p.strip()]
+        if len(parts) < 2:
+            long_desc = parts[0]
+            short_desc = parts[0][:100]  # fallback breve
+        else:
+            long_desc = parts[0]
+            short_desc = parts[1]
+
+        used_tokens = response.usage.total_tokens if hasattr(response, "usage") else 0
+        return long_desc, short_desc, used_tokens
+
+    except Exception as e:
+        return "Errore generazione descrizione", "Errore breve", 0
 
 def connect_to_gsheet(credentials_file, sheet_id):
     creds = Credentials.from_service_account_file(credentials_file)
