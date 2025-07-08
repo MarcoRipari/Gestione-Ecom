@@ -57,6 +57,8 @@ Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile
 - professionale
 - user friendly
 - SEO friendly
+Indicazioni:
+- Evita di inserire nome del prodotto e marchio.
 
 Scrivi solo un oggetto JSON con questo formato esatto (niente testo extra):
 
