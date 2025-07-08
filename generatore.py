@@ -1,106 +1,90 @@
 import streamlit as st
 import pandas as pd
 import openai
-import io
+import tiktoken
 
-st.set_page_config(page_title="Generatore Descrizioni AI", layout="wide")
-st.title("📝 Generatore Descrizioni Prodotto con OpenAI")
+# Imposta la tua chiave OpenAI direttamente nel codice
+OPENAI_API_KEY = "sk-xxxTUA_CHIAVE_QUIxxx"
+openai.api_key = OPENAI_API_KEY
 
-# API Key
-if "api_key" not in st.session_state:
-    st.session_state.api_key = st.text_input("🔐 Inserisci la tua OpenAI API Key", type="password")
-else:
-    st.text_input("🔐 OpenAI API Key (già impostata)", value=st.session_state.api_key, type="password")
+st.title("📝 Generatore Descrizioni Prodotto (Calzature)")
 
-uploaded_file = st.file_uploader("📤 Carica un file CSV", type="csv")
+# Messaggio di conferma che l'API è attiva
+if OPENAI_API_KEY.startswith("sk-"):
+    st.success("✅ OpenAI API key impostata correttamente.")
 
-# Toni dinamici
-category_tone_map = {
-    "sneakers": "Tono sportivo e moderno. Enfatizza comfort e stile.",
-    "stivali": "Tono deciso. Sottolinea robustezza e protezione.",
-    "sandali": "Tono fresco ed estivo. Valorizza leggerezza e libertà.",
-    "bambino": "Tono giocoso e sicuro. Parla di comfort e protezione.",
-    "eleganti": "Tono raffinato. Metti in risalto stile e classe."
-}
+# Carica il file CSV
+uploaded_file = st.file_uploader("📁 Carica il file CSV dei prodotti", type=["csv"])
 
-# Funzione chiamata OpenAI
-def call_openai(prompt):
-    try:
-        openai.api_key = st.session_state.api_key
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Sei un copywriter esperto di e-commerce. Scrivi descrizioni efficaci, SEO friendly e uniche."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.8
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"Errore OpenAI: {e}"
+# Funzione per contare i token stimati
+def count_tokens(text: str) -> int:
+    # Stima approssimativa: 1 token ≈ 4 caratteri
+    return int(len(text) / 4)
 
-# Stima semplice dei token e costo
-def estimate_tokens_and_cost(df):
-    total_chars = 0
-    for _, row in df.iterrows():
-        product_data = ", ".join([f"{col}: {str(row[col])}" for col in df.columns if pd.notnull(row[col])])
-        total_chars += len(product_data)
-    total_tokens = int(total_chars / 4) + len(df) * 80  # output stimato 80 token/descrizione
-    cost = (total_tokens * 0.001)  # prompt+completion semplificato
-    return total_tokens, cost
+# Funzione per generare la descrizione
+def generate_description(row):
+    prompt = f"""
+Scrivi una descrizione lunga (60 parole) e una descrizione breve (20 parole) per una calzatura da vendere online.
+Usa un tono accattivante, caldo, professionale e SEO-friendly. Alterna lo stile tra i vari prodotti per evitare ripetizioni.
 
-if uploaded_file and st.session_state.api_key:
-    try:
-        df = pd.read_csv(uploaded_file)
-    except Exception as e:
-        st.error(f"Errore nel caricamento del file: {e}")
-        st.stop()
+Dati Prodotto:
+- Nome: {row.get("nome", "")}
+- Brand: {row.get("brand", "")}
+- Colore: {row.get("colore", "")}
+- Genere: {row.get("genere", "")}
+- Categoria: {row.get("categoria", "")}
+- Materiale: {row.get("materiale", "")}
+- Prezzo: {row.get("prezzo", "")}
 
-    st.success("✅ File caricato correttamente!")
-    st.write(df.head())
+Restituisci solo:
+DESCRIZIONE: ...
+SHORT: ...
+    """
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.9,
+    )
+
+    output = response.choices[0].message.content.strip()
+    descrizione = ""
+    breve = ""
+
+    for line in output.split("\n"):
+        if line.upper().startswith("DESCRIZIONE"):
+            descrizione = line.split(":", 1)[1].strip()
+        elif line.upper().startswith("SHORT"):
+            breve = line.split(":", 1)[1].strip()
+
+    return descrizione, breve, count_tokens(prompt)
+
+# Logica principale
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
 
     if "description" not in df.columns:
         df["description"] = ""
     if "short_description" not in df.columns:
         df["short_description"] = ""
 
-    total_tokens, estimated_cost = estimate_tokens_and_cost(df)
-    st.info(f"🔢 Token stimati: {total_tokens:,} — 💰 Costo stimato: ~${estimated_cost:.4f} (GPT-3.5)")
+    total_tokens = 0
+    st.info("🚀 Generazione in corso, attendi qualche secondo...")
+    progress = st.progress(0)
 
-    if st.button("✅ Genera descrizioni con OpenAI"):
-        progress = st.progress(0)
-        total = len(df)
+    for idx, row in df.iterrows():
+        descrizione, breve, tokens = generate_description(row)
+        df.at[idx, "description"] = descrizione
+        df.at[idx, "short_description"] = breve
+        total_tokens += tokens
+        progress.progress((idx + 1) / len(df))
 
-        for i, row in df.iterrows():
-            try:
-                product_data = ", ".join([f"{col}: {str(row[col])}" for col in df.columns if pd.notnull(row[col])])
-                category_text = " ".join([str(row[col]).lower() for col in df.columns if "categoria" in col.lower()])
-                tone = ""
-                for key in category_tone_map:
-                    if key in category_text:
-                        tone = category_tone_map[key]
-                        break
+    costo_usd = (total_tokens / 1000) * 0.001
+    st.success(f"✅ Completato! Token totali: {total_tokens} | Costo stimato: ${costo_usd:.4f}")
 
-                prompt = (
-                    f"Genera una descrizione lunga (circa 60 parole) e una breve (circa 20 parole) per questo prodotto:\n"
-                    f"{product_data}\n\n"
-                    f"{tone} Rispondi nel formato: DESCRIZIONE LUNGA ||| DESCRIZIONE BREVE"
-                )
-
-                output = call_openai(prompt)
-                if "|||" in output:
-                    long_desc, short_desc = output.split("|||")
-                    df.at[i, "description"] = long_desc.strip()
-                    df.at[i, "short_description"] = short_desc.strip()
-                else:
-                    df.at[i, "description"] = output.strip()
-                    df.at[i, "short_description"] = ""
-
-            except Exception as e:
-                st.error(f"Errore alla riga {i}: {e}")
-            progress.progress((i + 1) / total)
-
-        st.success("✅ Descrizioni generate!")
-        csv = io.StringIO()
-        df.to_csv(csv, index=False)
-        st.download_button("📥 Scarica CSV aggiornato", csv.getvalue(), "output.csv", "text/csv")
+    st.download_button(
+        label="💾 Scarica il file con descrizioni",
+        data=df.to_csv(index=False).encode("utf-8"),
+        file_name="prodotti_descrizioni.csv",
+        mime="text/csv"
+    )
