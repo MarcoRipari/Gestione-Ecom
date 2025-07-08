@@ -4,6 +4,7 @@ from openai import OpenAI
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import tempfile
+import json
 
 # === CONFIGURAZIONI ===
 
@@ -28,15 +29,12 @@ CREDENTIALS_JSON = {
   "universe_domain": "googleapis.com"
 }
 
-# === SETUP STREAMLIT ===
-st.set_page_config(page_title="Generatore Descrizioni", layout="centered")
-st.title("📝 Generatore Descrizioni Prodotto")
 
-# === CARICA CREDENZIALI GOOGLE ===
+# === FUNZIONI ===
+
 def connect_to_gsheet(credentials_dict, sheet_id):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as temp:
-        import json
         json.dump(credentials_dict, temp)
         temp.flush()
         creds = ServiceAccountCredentials.from_json_keyfile_name(temp.name, scope)
@@ -44,15 +42,31 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
-# === FUNZIONE PER GENERARE LE DESCRIZIONI ===
+def estimate_tokens_and_cost(df, model="gpt-3.5-turbo"):
+    prompt_template = """
+Scrivi due descrizioni per una calzatura da vendere online:
+1. Una descrizione lunga di circa 60 parole.
+2. Una descrizione breve di circa 20 parole.
+Usa un tono accattivante, caldo, professionale, user friendly e SEO friendly.
+Dettagli del prodotto: {}
+"""
+    total_chars = 0
+    for _, row in df.iterrows():
+        details = ", ".join([f"{k}: {v}" for k, v in row.items() if k.lower() not in ["description", "short_description"] and pd.notna(v)])
+        prompt = prompt_template.format(details)
+        total_chars += len(prompt)
+
+    estimated_tokens = total_chars // 4
+    cost_per_1k = 0.0015  # gpt-3.5-turbo input
+    total_cost = (estimated_tokens / 1000) * cost_per_1k
+    return estimated_tokens, round(total_cost, 4)
+
 def generate_descriptions(row):
     client = OpenAI(api_key=OPENAI_API_KEY)
-
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
         if k.lower() not in ["description", "short_description"] and pd.notna(v)
     ])
-
     prompt = f"""
 Scrivi due descrizioni per una calzatura da vendere online:
 1. Una descrizione lunga di circa 60 parole.
@@ -60,7 +74,6 @@ Scrivi due descrizioni per una calzatura da vendere online:
 Usa un tono accattivante, caldo, professionale, user friendly e SEO friendly.
 Dettagli del prodotto: {product_info}
     """
-
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -75,41 +88,52 @@ Dettagli del prodotto: {product_info}
     except Exception as e:
         return f"Errore: {e}", f"Errore: {e}"
 
-# === UPLOAD FILE ===
+# === STREAMLIT APP ===
+
+st.set_page_config(page_title="Generatore Descrizioni", layout="centered")
+st.title("📝 Generatore Descrizioni Prodotto")
+
 uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
-    if "description" not in df.columns:
-        df["description"] = ""
-    if "short_description" not in df.columns:
-        df["short_description"] = ""
 
-    st.info(f"✅ File caricato: {len(df)} righe trovate.")
+    if "SKU" not in df.columns:
+        st.warning("⚠️ Colonna 'SKU' mancante. Necessaria per identificare il prodotto.")
+    else:
+        if "description" not in df.columns:
+            df["description"] = ""
+        if "short_description" not in df.columns:
+            df["short_description"] = ""
 
-    if st.button("🚀 Genera Descrizioni"):
-        progress = st.progress(0)
-        for idx, row in df.iterrows():
-            long_desc, short_desc = generate_descriptions(row)
-            df.at[idx, "description"] = long_desc
-            df.at[idx, "short_description"] = short_desc
-            progress.progress((idx + 1) / len(df))
+        st.info(f"✅ File caricato: {len(df)} righe trovate.")
+        st.dataframe(df.head())
 
-        # === SALVA SU GOOGLE SHEET ===
-        try:
-            df = df.fillna("")  # 🔧 Rimuove i NaN prima del salvataggio
-            sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-            worksheet = sheet.sheet1
-            worksheet.clear()
-            worksheet.update([df.columns.values.tolist()] + df.values.tolist())
-            st.success("✅ Descrizioni generate e salvate su Google Sheets!")
-        except Exception as e:
-            st.error(f"Errore salvataggio su Google Sheets: {e}")
+        if st.button("📊 Stima costo"):
+            estimated_tokens, total_cost = estimate_tokens_and_cost(df)
+            st.success(f"🔢 Token stimati: {estimated_tokens} | 💰 Costo stimato: ${total_cost}")
+            if st.button("✅ Conferma e genera"):
+                progress = st.progress(0)
+                for idx, row in df.iterrows():
+                    long_desc, short_desc = generate_descriptions(row)
+                    df.at[idx, "description"] = long_desc
+                    df.at[idx, "short_description"] = short_desc
+                    progress.progress((idx + 1) / len(df))
 
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="📥 Scarica il CSV",
-            data=csv,
-            file_name="prodotti_descrizioni.csv",
-            mime="text/csv"
-        )
+                try:
+                    df_output = df[["SKU", "description", "short_description"]].fillna("")
+                    sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+                    worksheet = sheet.sheet1
+                    worksheet.clear()
+                    worksheet.update([df_output.columns.tolist()] + df_output.values.tolist())
+                    st.success("✅ Descrizioni generate e salvate su Google Sheets!")
+                except Exception as e:
+                    st.error(f"❌ Errore salvataggio su Google Sheets: {e}")
+
+                csv = df_output.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="📥 Scarica il CSV",
+                    data=csv,
+                    file_name="prodotti_descrizioni.csv",
+                    mime="text/csv"
+                )
