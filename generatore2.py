@@ -4,16 +4,12 @@ from openai import OpenAI
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import tempfile
+import json
 
 # === CONFIGURAZIONI ===
-
-# Inserisci qui la tua API key
 OPENAI_API_KEY = "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"
+SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"
 
-# Inserisci qui l'ID del Google Sheet
-SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc" 
-
-# Inserisci qui le credenziali JSON
 CREDENTIALS_JSON = {
   "type": "service_account",
   "project_id": "generazione-descrizioni-marco",
@@ -28,15 +24,15 @@ CREDENTIALS_JSON = {
   "universe_domain": "googleapis.com"
 }
 
-# === SETUP STREAMLIT ===
+
+# === STREAMLIT ===
 st.set_page_config(page_title="Generatore Descrizioni", layout="centered")
 st.title("📝 Generatore Descrizioni Prodotto")
 
-# === CARICA CREDENZIALI GOOGLE ===
+# === FUNZIONI ===
 def connect_to_gsheet(credentials_dict, sheet_id):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as temp:
-        import json
         json.dump(credentials_dict, temp)
         temp.flush()
         creds = ServiceAccountCredentials.from_json_keyfile_name(temp.name, scope)
@@ -44,7 +40,6 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
-# === FUNZIONE PER GENERARE LE DESCRIZIONI ===
 def generate_descriptions(row):
     client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -75,7 +70,7 @@ Dettagli del prodotto: {product_info}
     except Exception as e:
         return f"Errore: {e}", f"Errore: {e}"
 
-# === UPLOAD FILE ===
+# === UPLOAD CSV ===
 uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
 
 if uploaded_file:
@@ -85,31 +80,41 @@ if uploaded_file:
     if "short_description" not in df.columns:
         df["short_description"] = ""
 
-    st.info(f"✅ File caricato: {len(df)} righe trovate.")
+    st.session_state["df"] = df
+    st.dataframe(df.head())
+    st.success(f"✅ File caricato: {len(df)} righe trovate.")
 
-    if st.button("🚀 Genera Descrizioni"):
-        progress = st.progress(0)
-        for idx, row in df.iterrows():
-            long_desc, short_desc = generate_descriptions(row)
-            df.at[idx, "description"] = long_desc
-            df.at[idx, "short_description"] = short_desc
-            progress.progress((idx + 1) / len(df))
+    tokens = len(df) * 250
+    cost = tokens / 1000 * 0.001
+    st.markdown(f"💡 **Token stimati:** {tokens}")
+    st.markdown(f"💰 **Costo stimato:** ${cost:.4f}")
 
-        # === SALVA SU GOOGLE SHEET ===
-        try:
-            df = df.fillna("")  # 🔧 Rimuove i NaN prima del salvataggio
-            sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-            worksheet = sheet.sheet1
-            worksheet.clear()
-            worksheet.update([df.columns.values.tolist()] + df.values.tolist())
-            st.success("✅ Descrizioni generate e salvate su Google Sheets!")
-        except Exception as e:
-            st.error(f"Errore salvataggio su Google Sheets: {e}")
+    if st.button("Conferma e genera"):
+        st.session_state["confirmed"] = True
 
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="📥 Scarica il CSV",
-            data=csv,
-            file_name="prodotti_descrizioni.csv",
-            mime="text/csv"
-        )
+# === GENERAZIONE ===
+if st.session_state.get("confirmed") and "df" in st.session_state:
+    df = st.session_state["df"]
+    progress = st.progress(0)
+
+    for idx, row in df.iterrows():
+        long_desc, short_desc = generate_descriptions(row)
+        df.at[idx, "description"] = long_desc
+        df.at[idx, "short_description"] = short_desc
+        progress.progress((idx + 1) / len(df))
+
+    try:
+        df = df.fillna("")
+        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+        worksheet = sheet.sheet1
+        worksheet.clear()
+        worksheet.update([df.columns.values.tolist()] + df.values.tolist())
+        st.success("✅ Descrizioni generate e salvate su Google Sheets!")
+    except Exception as e:
+        st.error(f"Errore salvataggio su Google Sheets: {e}")
+
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button("📥 Scarica il CSV", data=csv, file_name="prodotti_descrizioni.csv", mime="text/csv")
+
+    # Reset conferma
+    st.session_state["confirmed"] = False
