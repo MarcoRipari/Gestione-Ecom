@@ -2,26 +2,33 @@ import streamlit as st
 import pandas as pd
 import openai
 import io
+from datetime import datetime
 
+# Configurazione della pagina
 st.set_page_config(page_title="Generatore Descrizioni AI", layout="wide")
 st.title("📝 Generatore Descrizioni Prodotto con OpenAI")
 
-api_key = st.text_input("🔐 Inserisci la tua OpenAI API Key", type="password")
+# Inserimento chiave API (salvata in sessione)
+if "api_key" not in st.session_state:
+    st.session_state.api_key = st.text_input("🔐 Inserisci la tua OpenAI API Key", type="password")
+else:
+    st.text_input("🔐 OpenAI API Key (già impostata)", value=st.session_state.api_key, type="password")
+
+# Upload file
 uploaded_file = st.file_uploader("📤 Carica un file CSV con i prodotti", type=["csv"])
 
-# Mappa toni descrittivi in base alla categoria
+# Tono per categoria
 category_tone_map = {
     "sneakers": "Tono sportivo, moderno. Enfatizza comodità e stile.",
     "stivali": "Tono solido, protettivo. Sottolinea robustezza e materiali resistenti.",
     "sandali": "Tono fresco ed estivo. Parla di leggerezza e traspirabilità.",
     "bambino": "Tono allegro e rassicurante. Parla di sicurezza e comfort.",
     "eleganti": "Tono sofisticato ed elegante. Valorizza lo stile e la raffinatezza."
-    # Puoi espandere questa mappa con altre categorie
 }
 
-def call_openai_gpt(prompt, api_key):
-    openai.api_key = api_key
+def call_openai_gpt(prompt):
     try:
+        openai.api_key = st.session_state.api_key
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -34,7 +41,7 @@ def call_openai_gpt(prompt, api_key):
     except Exception as e:
         return f"Errore OpenAI: {e}"
 
-if uploaded_file and api_key:
+if uploaded_file and st.session_state.api_key:
     try:
         df = pd.read_csv(uploaded_file)
     except Exception as e:
@@ -77,7 +84,7 @@ if uploaded_file and api_key:
                 "Restituisci prima la descrizione lunga, poi quella breve, separate da |||."
             )
 
-            result = call_openai_gpt(prompt, api_key)
+            result = call_openai_gpt(prompt)
             if "|||" in result:
                 long_desc, short_desc = result.split("|||", 1)
             else:
