@@ -42,11 +42,10 @@ def connect_to_gsheet(credentials_dict, sheet_id):
 
 # === FUNZIONE OPENAI ===
 def generate_descriptions(row):
-    client = OpenAI(api_key=OPENAI_API_KEY)
-
+    # Costruisci prompt dinamico
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
-        if k.lower() not in ["description", "short_description", "Descrizione", "Descrizione Corta"] and pd.notna(v)
+        if k.lower() not in ["description", "short_description", "descrizione", "descrizione corta"] and pd.notna(v)
     ])
 
     prompt = f"""
@@ -67,22 +66,25 @@ Scrivi solo un oggetto JSON con questo formato esatto (niente testo extra):
 Dettagli del prodotto: {product_info}
 """
 
-
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
+
         content = response.choices[0].message.content.strip()
 
-        # Estrai dati dal JSON
-        data = json.loads(content)
-        long_desc = data.get("descrizione_lunga", "Descrizione lunga non trovata")
-        short_desc = data.get("descrizione_corta", "Descrizione corta non trovata")
+        # Prova a caricare il JSON
+        result = json.loads(content)
 
-        return long_desc.strip(), short_desc.strip()
+        long_desc = result.get("descrizione_lunga", "Descrizione lunga non trovata")
+        short_desc = result.get("descrizione_corta", long_desc[:100])
 
+        return long_desc, short_desc
+
+    except json.JSONDecodeError:
+        return "Errore nel parsing JSON", "Errore nel parsing JSON"
     except Exception as e:
         return f"Errore: {e}", f"Errore: {e}"
 
