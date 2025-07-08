@@ -1,40 +1,43 @@
 import streamlit as st
 import pandas as pd
-import requests
+import openai
 import io
 
 st.set_page_config(page_title="Generatore Descrizioni AI", layout="wide")
-st.title("📝 Generatore Descrizioni Prodotto con Mixtral AI")
+st.title("📝 Generatore Descrizioni Prodotto con OpenAI")
 
-api_key = st.text_input("🔐 Inserisci la tua API Key di OpenRouter", type="password")
-uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
+# Inserimento chiave API OpenAI
+api_key = st.text_input("🔐 Inserisci la tua OpenAI API Key", type="password")
+uploaded_file = st.file_uploader("📤 Carica un file CSV con i prodotti", type=["csv"])
 
-def call_openrouter_mixtral(prompt, api_key):
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "openchat/openchat-3.5",
-        "messages": [
-            {"role": "system", "content": "Sei un copywriter esperto in e-commerce. Genera descrizioni accattivanti, SEO-friendly, diverse e professionali."},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.9
-    }
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 200:
-        return response.json()["choices"][0]["message"]["content"]
-    else:
-        return f"Errore API: {response.status_code} - {response.text}"
+# Funzione per chiamare OpenAI GPT
+def call_openai_gpt(prompt, api_key):
+    openai.api_key = api_key
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Sei un copywriter esperto in e-commerce. Genera descrizioni accattivanti, SEO-friendly, varie e professionali per le schede prodotto."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.9
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Errore OpenAI: {e}"
 
+# Quando file e chiave sono caricati
 if uploaded_file and api_key:
-    df = pd.read_csv(uploaded_file)
+    try:
+        df = pd.read_csv(uploaded_file)
+    except Exception as e:
+        st.error(f"❌ Errore nella lettura del file: {e}")
+        st.stop()
 
-    st.success("✅ File caricato correttamente.")
+    st.success("✅ File caricato correttamente!")
     st.write("Anteprima del file:", df.head())
 
+    # Nomi colonne da creare o aggiornare
     desc_col = "description"
     short_col = "short_description"
 
@@ -46,30 +49,43 @@ if uploaded_file and api_key:
     total = len(df)
     if total == 0:
         st.warning("⚠️ Il file non contiene righe.")
-    else:
-        progress = st.progress(0)
+        st.stop()
+    progress = st.progress(0)
 
     for idx, row in df.iterrows():
-        product_info = ", ".join([f"{col}: {row[col]}" for col in df.columns if pd.notnull(row[col])])
-        prompt = (
-            f"Genera una descrizione lunga di 60 parole (+/-10%) per il seguente prodotto:\n{product_info}\n\n"
-            "Poi genera anche una descrizione breve di circa 20 parole (+/-10%). "
-            "Lo stile deve essere accattivante, SEO-friendly, coerente ma vario tra i prodotti. "
-            "Restituisci prima la descrizione lunga, poi quella breve separate da |||"
-        )
-        result = call_openrouter_mixtral(prompt, api_key)
-        if "|||" in result:
-            long_desc, short_desc = result.split("|||", 1)
-        else:
-            long_desc, short_desc = result, ""
+        try:
+            # Costruzione prompt con tutte le info disponibili
+            product_info = ", ".join(
+                [f"{col}: {row[col]}" for col in df.columns if pd.notnull(row[col]) and str(row[col]).strip() != ""]
+            )
+            prompt = (
+                f"Genera una descrizione lunga di circa 60 parole (+/-10%) per il seguente prodotto:\n{product_info}\n\n"
+                "Poi genera una descrizione breve di circa 20 parole (+/-10%). "
+                "Usa uno stile accattivante, SEO-friendly, ma varia i termini tra i prodotti. "
+                "Restituisci prima la descrizione lunga, poi quella breve, separate da |||"
+            )
 
-        df.at[idx, desc_col] = long_desc.strip()
-        df.at[idx, short_col] = short_desc.strip()
-        if total > 0:
-            progress.progress((idx + 1) / total)
+            result = call_openai_gpt(prompt, api_key)
+            if "|||" in result:
+                long_desc, short_desc = result.split("|||", 1)
+            else:
+                long_desc, short_desc = result, ""
+
+            df.at[idx, desc_col] = long_desc.strip()
+            df.at[idx, short_col] = short_desc.strip()
+
+        except Exception as e:
+            st.error(f"❌ Errore alla riga {idx}: {e}")
+        progress.progress((idx + 1) / total)
 
     st.success("✅ Descrizioni generate con successo!")
-    
+
+    # Esportazione del file aggiornato
     csv_buffer = io.StringIO()
     df.to_csv(csv_buffer, index=False)
-    st.download_button("📥 Scarica il file con descrizioni", csv_buffer.getvalue(), file_name="prodotti_con_descrizioni.csv", mime="text/csv")
+    st.download_button(
+        label="📥 Scarica il CSV con le descrizioni",
+        data=csv_buffer.getvalue(),
+        file_name="prodotti_con_descrizioni.csv",
+        mime="text/csv"
+    )
