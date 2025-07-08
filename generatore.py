@@ -1,65 +1,71 @@
 import streamlit as st
 import pandas as pd
-from sentence_transformers import SentenceTransformer, util
-import torch
-import random
+import requests
+import json
 
-st.set_page_config(page_title="Descrizioni Calzature - Transformers", layout="centered")
-st.title("🤖 Generatore Descrizioni con AI (BERT semantico)")
+st.set_page_config(page_title="Generatore Descrizioni AI - Mistral", layout="centered")
+st.title("🧠 Generatore Descrizioni Prodotto")
+st.markdown("Usa **Mistral-7B** via OpenRouter per creare descrizioni SEO-friendly e accattivanti.")
 
-@st.cache_resource
-def load_model():
-    return SentenceTransformer('all-MiniLM-L6-v2')
+# Inserimento chiave API OpenRouter
+api_key = st.text_input("🔑 Inserisci la tua API Key OpenRouter", type="password")
 
-model = load_model()
+uploaded_file = st.file_uploader("📤 Carica il file CSV con i prodotti", type="csv")
 
-KEY_TERMS = ["model", "title", "material", "color", "style", "name", "type", "gender", "category"]
+if uploaded_file and api_key:
+    df = pd.read_csv(uploaded_file)
+    df.fillna("", inplace=True)
 
-def colonne_rilevanti(colonne):
-    chiavi = model.encode(KEY_TERMS, convert_to_tensor=True)
-    col_embed = model.encode(colonne, convert_to_tensor=True)
-    sim = util.cos_sim(col_embed, chiavi).max(dim=1).values
-    return [col for col, s in zip(colonne, sim) if s > 0.5]
+    # Colonne output
+    df["description"] = ""
+    df["short_description"] = ""
 
-def pulisci_valore(val):
-    return str(val).replace("_", " ").replace("-", " ").strip().capitalize()
+    st.info("Generazione in corso. Potrebbero volerci alcuni secondi...")
+    progress = st.progress(0)
+    total = len(df)
 
-def genera_descrizioni(row, colonne_rilevanti):
-    intro = random.choice([
-        "Pensata per chi cerca stile e funzionalità",
-        "Un equilibrio perfetto tra design e comfort",
-        "Una calzatura per distinguersi ogni giorno",
-    ])
-    finale = random.choice([
-        "Perfetta per qualsiasi occasione.",
-        "Un must-have nel guardaroba di stagione.",
-        "Ideale per outfit dinamici e casual.",
-    ])
+    for idx, row in df.iterrows():
+        # Crea prompt dinamico per descrizione
+        row_data = " | ".join([f"{col}: {str(row[col])}" for col in df.columns if str(row[col]).strip()])
+        prompt = f"""
+Agisci come un copywriter professionista di un e-commerce di calzature.
+Genera due descrizioni per una scheda prodotto basandoti sulle informazioni seguenti:
+{row_data}
 
-    elementi = []
-    for col in colonne_rilevanti:
-        val = row[col]
-        if pd.notna(val):
-            elementi.append(pulisci_valore(val))
+1. Descrizione lunga (60 parole circa, tono caldo, professionale, SEO e user-friendly):
+2. Descrizione breve (20 parole circa, diretta e accattivante):
+""".strip()
 
-    descrizione_lunga = f"{intro}. " + ", ".join(elementi[:8]) + f". {finale}"
-    descrizione_breve = ", ".join(elementi[:4]) + "."
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "mistral/mistral-7b-instruct",
+            "messages": [
+                {"role": "system", "content": "Sei un esperto di copywriting e scrittura SEO per schede prodotto."},
+                {"role": "user", "content": prompt}
+            ]
+        }
 
-    return pd.Series([descrizione_lunga[:450], descrizione_breve[:150]])
+        try:
+            response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
+            result = response.json()
+            output = result["choices"][0]["message"]["content"]
 
-uploaded_file = st.file_uploader("📤 Carica il tuo file CSV", type=["csv"])
+            # Parsing output
+            parts = output.split("2. ")
+            desc_lunga = parts[0].replace("1. ", "").strip()
+            desc_breve = parts[1].strip() if len(parts) > 1 else ""
 
-if uploaded_file:
-    df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8-sig')
-    colonne_testuali = [col for col in df.columns if df[col].dtype == object]
-    col_ril = colonne_rilevanti(colonne_testuali)
+            df.at[idx, "description"] = desc_lunga
+            df.at[idx, "short_description"] = desc_breve
 
-    if not col_ril:
-        st.warning("Nessuna colonna rilevante trovata.")
-    else:
-        st.markdown(f"✅ Colonne utilizzate: {', '.join(col_ril)}")
-        df[["description", "short_description"]] = df.apply(lambda r: genera_descrizioni(r, col_ril), axis=1)
-        st.dataframe(df.head())
+        except Exception as e:
+            st.error(f"Errore alla riga {idx}: {e}")
+            continue
 
-        csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig')
-        st.download_button("📥 Scarica CSV con descrizioni", data=csv, file_name="output_transformers.csv", mime="text/csv")
+        progress.progress((idx + 1) / total)
+
+    st.success("✅ Descrizioni generate con successo!")
+    st.download_button("📥 Scarica CSV con descrizioni", data=df.to_csv(index=False), file_name="prodotti_con_descrizioni.csv", mime="text/csv")
