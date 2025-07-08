@@ -8,7 +8,7 @@ import json
 
 # === CONFIGURAZIONI ===
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "sk-proj-..."  # Inserisci la tua chiave
 SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"
 
 CREDENTIALS_JSON = {
@@ -23,13 +23,13 @@ CREDENTIALS_JSON = {
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/marcoripari%40generazione-descrizioni-marco.iam.gserviceaccount.com",
   "universe_domain": "googleapis.com"
-}
+}  
 
-# === STREAMLIT SETUP ===
-st.set_page_config(page_title="📝 Generatore Descrizioni", layout="centered")
+# === SETUP STREAMLIT ===
+st.set_page_config(page_title="Generatore Descrizioni", layout="centered")
 st.title("📝 Generatore Descrizioni Prodotto")
 
-# === FUNZIONI GOOGLE SHEET ===
+# === CONNESSIONE A GOOGLE SHEET ===
 def connect_to_gsheet(credentials_dict, sheet_id):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as temp:
@@ -40,13 +40,12 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
-# === FUNZIONE OPENAI ===
+# === GENERAZIONE DESCRIZIONI ===
 def generate_descriptions(row):
     client = OpenAI(api_key=OPENAI_API_KEY)
-
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
-        if k.lower() not in ["description", "short_description"] and pd.notna(v)
+        if k.lower() not in ["descrizione", "descrizione corta"] and pd.notna(v)
     ])
 
     prompt = f"""
@@ -71,7 +70,7 @@ Dettagli del prodotto: {product_info}
     except Exception as e:
         return f"Errore: {e}", f"Errore: {e}"
 
-# === CARICAMENTO FILE CSV ===
+# === UPLOAD CSV ===
 uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
 
 if uploaded_file:
@@ -79,42 +78,61 @@ if uploaded_file:
     st.subheader("📋 Anteprima dati")
     st.dataframe(df_original.head())
 
-    if "description" not in df_original.columns:
-        df_original["description"] = ""
-    if "short_description" not in df_original.columns:
-        df_original["short_description"] = ""
+    # === STIMA COSTO ===
+    st.markdown("### 💰 Stima del costo")
 
-    if st.button("🚀 Conferma e genera descrizioni"):
-        progress = st.progress(0)
-        for idx, row in df_original.iterrows():
-            long_desc, short_desc = generate_descriptions(row)
-            df_original.at[idx, "description"] = long_desc
-            df_original.at[idx, "short_description"] = short_desc
-            progress.progress((idx + 1) / len(df_original))
+    num_rows = len(df_original)
+    avg_tokens_per_prompt = 200
+    total_tokens = num_rows * avg_tokens_per_prompt
+    cost_per_1k = 0.0015
+    estimated_cost = (total_tokens / 1000) * cost_per_1k
 
-        # === COSTRUISCI OUTPUT FINALE ===
-        output_df = pd.DataFrame({
-            "SKU": df_original["SKU"] if "SKU" in df_original.columns else [f"ID_{i}" for i in range(len(df_original))],
-            "Descrizione": df_original["description"],
-            "Descrizione Corta": df_original["short_description"]
-        })
+    st.info(f"🧮 Stima token totali: {total_tokens} — 💵 Costo stimato: **~${estimated_cost:.4f}**")
 
-        # === SALVA SU GOOGLE SHEET ===
-        try:
-            output_df = output_df.fillna("")
-            sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-            worksheet = sheet.sheet1
-            worksheet.clear()
-            worksheet.update([output_df.columns.values.tolist()] + output_df.values.tolist())
-            st.success("✅ Descrizioni salvate su Google Sheets!")
-        except Exception as e:
-            st.error(f"❌ Errore salvataggio Google Sheets: {e}")
+    if st.button("✅ Conferma e genera descrizioni"):
+        df = df_original.copy()
 
-        # === DOWNLOAD CSV ===
-        csv = output_df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="📥 Scarica il CSV",
-            data=csv,
-            file_name="descrizioni_prodotti.csv",
-            mime="text/csv"
-        )
+        # Rinomina colonne
+        if "description" not in df.columns:
+            df["Descrizione"] = ""
+        if "short_description" not in df.columns:
+            df["Descrizione Corta"] = ""
+
+        # Trova SKU
+        sku_column = None
+        for col in df.columns:
+            if col.strip().lower() in ["sku", "codice", "product code"]:
+                sku_column = col
+                break
+
+        if sku_column is None:
+            st.error("❌ Colonna SKU non trovata. Assicurati che il file contenga una colonna chiamata SKU.")
+        else:
+            df_result = pd.DataFrame(columns=["SKU", "Descrizione", "Descrizione Corta"])
+
+            progress = st.progress(0)
+            for idx, row in df.iterrows():
+                long_desc, short_desc = generate_descriptions(row)
+                sku = row[sku_column]
+                df_result.loc[len(df_result)] = [sku, long_desc, short_desc]
+                progress.progress((idx + 1) / len(df))
+
+            # SALVA SU GOOGLE SHEET
+            try:
+                df_result = df_result.fillna("")
+                sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+                worksheet = sheet.sheet1
+                worksheet.clear()
+                worksheet.update([df_result.columns.values.tolist()] + df_result.values.tolist())
+                st.success("✅ Descrizioni generate e salvate su Google Sheets!")
+            except Exception as e:
+                st.error(f"Errore salvataggio su Google Sheets: {e}")
+
+            # Download CSV
+            csv = df_result.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="📥 Scarica il CSV",
+                data=csv,
+                file_name="descrizioni_generate.csv",
+                mime="text/csv"
+            )
