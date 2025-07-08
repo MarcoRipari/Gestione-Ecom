@@ -1,28 +1,28 @@
 import streamlit as st
 import pandas as pd
-from io import StringIO
 from openai import OpenAI
 import os
 
 # --- CONFIGURAZIONE ---
 st.set_page_config(page_title="Generatore Descrizioni", layout="centered")
 
-# --- INSERISCI LA TUA CHIAVE API QUI (o lasciala vuota per inserimento manuale) ---
-API_KEY = ""  # es: "sk-..."
+# Inserisci direttamente la tua API key qui, oppure lascia vuoto per input manuale
+API_KEY = ""  # esempio: "sk-..."
 
-st.title("📝 Generatore Descrizioni Prodotto (OpenAI GPT-3.5)")
-st.write("Carica un file CSV contenente i tuoi prodotti. Verranno generate le colonne `description` e `short_description`.")
+st.title("📝 Generatore Descrizioni Prodotto")
+st.write("Carica un file CSV. Verranno generate automaticamente le colonne `description` e `short_description`.")
 
-# Inserimento API se non è nel codice
+# Input per API key se non è nel codice
 if not API_KEY:
-    API_KEY = st.text_input("Inserisci la tua API Key OpenAI", type="password")
+    API_KEY = st.text_input("🔐 Inserisci la tua OpenAI API Key", type="password")
 
 if API_KEY:
-    st.success("✅ API Key inserita correttamente")
+    st.success("✅ API Key inserita correttamente.")
 
-# --- Caricamento File ---
-uploaded_file = st.file_uploader("Carica il tuo file CSV", type=["csv"])
+# Upload file CSV
+uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
 
+# Funzione per generare le descrizioni
 def generate_descriptions(row, api_key):
     client = OpenAI(api_key=api_key)
 
@@ -42,7 +42,9 @@ Dettagli del prodotto: {product_info}
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
             temperature=0.7,
         )
 
@@ -55,7 +57,7 @@ Dettagli del prodotto: {product_info}
     except Exception as e:
         return f"Errore: {e}", f"Errore: {e}"
 
-# --- Elaborazione file ---
+# Quando il file viene caricato
 if uploaded_file and API_KEY:
     df = pd.read_csv(uploaded_file)
 
@@ -64,7 +66,7 @@ if uploaded_file and API_KEY:
     if "short_description" not in df.columns:
         df["short_description"] = ""
 
-    st.info(f"🔍 File caricato correttamente con {len(df)} righe.")
+    st.info(f"📄 File caricato correttamente con {len(df)} righe.")
 
     if st.button("🚀 Genera Descrizioni"):
         progress = st.progress(0)
@@ -73,12 +75,12 @@ if uploaded_file and API_KEY:
             df.at[idx, "description"] = long_desc
             df.at[idx, "short_description"] = short_desc
             progress.progress((idx + 1) / len(df))
-        st.success("✅ Descrizioni generate con successo!")
+        st.success("✅ Descrizioni generate!")
 
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button(
-            label="📥 Scarica il file con le descrizioni",
+            label="📥 Scarica il CSV con le descrizioni",
             data=csv,
-            file_name="prodotti_con_descrizioni.csv",
+            file_name="prodotti_descrizioni.csv",
             mime="text/csv",
         )
