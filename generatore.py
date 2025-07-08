@@ -61,9 +61,13 @@ def connect_to_gsheet(json_file, sheet_id):
 # Corpo principale
 if credentials_file and sheet_id and csv_file:
     try:
-        df = pd.read_csv(csv_file)
-        st.success("✅ File CSV caricato correttamente!")
+        if "df" not in st.session_state:
+            df = pd.read_csv(csv_file)
+            st.session_state.df = df
+        else:
+            df = st.session_state.df
 
+        st.success("✅ File CSV caricato correttamente!")
         st.subheader("🔍 Anteprima dati")
         st.dataframe(df.head())
 
@@ -78,33 +82,37 @@ Tono accattivante, caldo, professionale, user-friendly e SEO-friendly. Dettagli 
                 total_tokens += count_tokens_approx(prompt)
 
             cost = (total_tokens / 1000) * 0.001  # GPT-3.5 input token cost
+            st.session_state.token_stima = total_tokens
+            st.session_state.costo_stimato = cost
+            st.success("✅ Stima completata.")
             st.info(f"🔢 Token stimati: {total_tokens}")
             st.warning(f"💲 Costo stimato: circa ${cost:.4f}")
 
-            if st.button("🚀 Conferma e Genera descrizioni"):
-                long_descs = []
-                short_descs = []
-                token_used = []
+        if "token_stima" in st.session_state and st.button("🚀 Conferma e Genera descrizioni"):
+            long_descs = []
+            short_descs = []
+            token_used = []
 
-                with st.spinner("Generazione in corso..."):
-                    for idx, row in df.iterrows():
-                        long, short, tokens = generate_descriptions(row)
-                        long_descs.append(long)
-                        short_descs.append(short)
-                        token_used.append(tokens)
+            with st.spinner("Generazione in corso..."):
+                for idx, row in df.iterrows():
+                    long, short, tokens = generate_descriptions(row)
+                    long_descs.append(long)
+                    short_descs.append(short)
+                    token_used.append(tokens)
 
-                df["description"] = long_descs
-                df["short_description"] = short_descs
-                df["tokens"] = token_used
+            df["description"] = long_descs
+            df["short_description"] = short_descs
+            df["tokens"] = token_used
 
-                st.success("✅ Descrizioni generate con successo!")
-                st.dataframe(df[["description", "short_description"]].head())
+            st.session_state.df = df
+            st.success("✅ Descrizioni generate con successo!")
+            st.dataframe(df[["description", "short_description"]].head())
 
-                if st.button("📤 Salva su Google Sheets"):
-                    sheet = connect_to_gsheet(credentials_file, sheet_id)
-                    sheet.clear()
-                    sheet.update([df.columns.values.tolist()] + df.values.tolist())
-                    st.success("✅ Dati salvati su Google Sheets!")
+        if "description" in df.columns and st.button("📤 Salva su Google Sheets"):
+            sheet = connect_to_gsheet(credentials_file, sheet_id)
+            sheet.clear()
+            sheet.update([df.columns.values.tolist()] + df.values.tolist())
+            st.success("✅ Dati salvati su Google Sheets!")
 
     except Exception as e:
         st.error(f"❌ Errore: {e}")
