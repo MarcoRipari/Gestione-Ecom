@@ -46,16 +46,22 @@ def generate_descriptions(row):
 
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
-        if k.lower() not in ["descrizione", "descrizione corta"] and pd.notna(v)
+        if k.lower() not in ["description", "short_description"] and pd.notna(v)
     ])
 
     prompt = f"""
-Scrivi due descrizioni per una calzatura da vendere online:
-1. Una descrizione lunga di circa 60 parole.
-2. Una descrizione breve di circa 20 parole.
-Usa un tono accattivante, caldo, professionale, user friendly e SEO friendly.
-Dettagli del prodotto: {product_info}
-    """
+Scrivi DUE descrizioni per una calzatura da vendere online.
+
+Formato:
+###DESCRIZIONE_LUNGA###
+[Inserisci qui una descrizione lunga di circa 60 parole]
+###DESCRIZIONE_CORTA###
+[Inserisci qui una descrizione breve di circa 20 parole]
+
+Tono: accattivante, professionale, user friendly, SEO friendly.
+
+Dati prodotto: {product_info}
+"""
 
     try:
         response = client.chat.completions.create(
@@ -65,13 +71,17 @@ Dettagli del prodotto: {product_info}
         )
         content = response.choices[0].message.content.strip()
 
-        long_match = re.search(r"1\D+(Descrizione lunga:)?(.+?)(?=2\.|Descrizione breve:|$)", content, re.DOTALL | re.IGNORECASE)
-        short_match = re.search(r"2\D+(Descrizione breve:)?(.+)", content, re.DOTALL | re.IGNORECASE)
-
-        long_desc = long_match.group(2).strip() if long_match else "Descrizione lunga non trovata"
-        short_desc = short_match.group(2).strip() if short_match else long_desc[:100]
+        # Parsing basato su marcatori ###
+        long_desc = short_desc = "Descrizione non trovata"
+        if "###DESCRIZIONE_LUNGA###" in content and "###DESCRIZIONE_CORTA###" in content:
+            parts = content.split("###DESCRIZIONE_CORTA###")
+            long_part = parts[0].replace("###DESCRIZIONE_LUNGA###", "").strip()
+            short_part = parts[1].strip()
+            long_desc = long_part if long_part else "Descrizione lunga non trovata"
+            short_desc = short_part if short_part else "Descrizione corta non trovata"
 
         return long_desc, short_desc
+
     except Exception as e:
         return f"Errore: {e}", f"Errore: {e}"
 
