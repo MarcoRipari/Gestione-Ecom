@@ -4,7 +4,7 @@ import openai
 import tiktoken
 
 # Imposta la tua chiave OpenAI direttamente nel codice
-OPENAI_API_KEY = "sk-xxxTUA_CHIAVE_QUIxxx"
+OPENAI_API_KEY = "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"
 openai.api_key = OPENAI_API_KEY
 
 st.title("📝 Generatore Descrizioni Prodotto (Calzature)")
