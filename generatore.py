@@ -1,15 +1,15 @@
 import streamlit as st
 import pandas as pd
+import re
 from openai import OpenAI
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import tempfile
 import json
 
-# === CONFIGURAZIONI ===
-
+# === CONFIG ===
 OPENAI_API_KEY = "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"
-SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"
+SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"  # il tuo ID Google Sheet
 
 CREDENTIALS_JSON = {
   "type": "service_account",
@@ -23,13 +23,13 @@ CREDENTIALS_JSON = {
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/marcoripari%40generazione-descrizioni-marco.iam.gserviceaccount.com",
   "universe_domain": "googleapis.com"
-}  
+}
 
-# === SETUP STREAMLIT ===
+# === SETUP ===
 st.set_page_config(page_title="Generatore Descrizioni", layout="centered")
 st.title("📝 Generatore Descrizioni Prodotto")
 
-# === CONNESSIONE A GOOGLE SHEET ===
+# === GOOGLE SHEET ===
 def connect_to_gsheet(credentials_dict, sheet_id):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as temp:
@@ -40,9 +40,10 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
-# === GENERAZIONE DESCRIZIONI ===
+# === FUNZIONE OPENAI ===
 def generate_descriptions(row):
     client = OpenAI(api_key=OPENAI_API_KEY)
+
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
         if k.lower() not in ["descrizione", "descrizione corta"] and pd.notna(v)
@@ -62,74 +63,75 @@ Dettagli del prodotto: {product_info}
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
-        result = response.choices[0].message.content.strip()
-        parts = [p.strip("1234567890.-: \n") for p in result.split("\n") if p.strip()]
-        long_desc = parts[0] if len(parts) > 0 else "Descrizione non trovata"
-        short_desc = parts[1] if len(parts) > 1 else long_desc[:100]
+        content = response.choices[0].message.content.strip()
+
+        long_match = re.search(r"1\D+(Descrizione lunga:)?(.+?)(?=2\.|Descrizione breve:|$)", content, re.DOTALL | re.IGNORECASE)
+        short_match = re.search(r"2\D+(Descrizione breve:)?(.+)", content, re.DOTALL | re.IGNORECASE)
+
+        long_desc = long_match.group(2).strip() if long_match else "Descrizione lunga non trovata"
+        short_desc = short_match.group(2).strip() if short_match else long_desc[:100]
+
         return long_desc, short_desc
     except Exception as e:
         return f"Errore: {e}", f"Errore: {e}"
 
-# === UPLOAD CSV ===
+# === FILE UPLOAD ===
 uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
 
 if uploaded_file:
-    df_original = pd.read_csv(uploaded_file)
-    st.subheader("📋 Anteprima dati")
-    st.dataframe(df_original.head())
+    df = pd.read_csv(uploaded_file)
 
-    # === STIMA COSTO ===
-    st.markdown("### 💰 Stima del costo")
+    if "SKU" not in df.columns:
+        st.error("❌ Il file deve contenere una colonna chiamata 'SKU'")
+    else:
+        st.dataframe(df.head())
 
-    num_rows = len(df_original)
-    avg_tokens_per_prompt = 200
-    total_tokens = num_rows * avg_tokens_per_prompt
-    cost_per_1k = 0.0015
-    estimated_cost = (total_tokens / 1000) * cost_per_1k
+        st.markdown("---")
 
-    st.info(f"🧮 Stima token totali: {total_tokens} — 💵 Costo stimato: **~${estimated_cost:.4f}**")
+        if st.button("📊 Stima costo descrizioni"):
+            num_prodotti = len(df)
+            tokens_per_desc = 150  # media stimata per 2 descrizioni
+            total_tokens = num_prodotti * tokens_per_desc
+            cost = (total_tokens / 1000) * 0.0015  # prezzo stimato gpt-3.5
 
-    if st.button("✅ Conferma e genera descrizioni"):
-        df = df_original.copy()
+            st.info(f"🧮 Totale prodotti: {num_prodotti}")
+            st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
 
-        # Rinomina colonne
-        if "description" not in df.columns:
-            df["Descrizione"] = ""
-        if "short_description" not in df.columns:
-            df["Descrizione Corta"] = ""
-
-        # Trova SKU
-        sku_column = None
-        for col in df.columns:
-            if col.strip().lower() in ["sku", "codice", "product code"]:
-                sku_column = col
-                break
-
-        if sku_column is None:
-            st.error("❌ Colonna SKU non trovata. Assicurati che il file contenga una colonna chiamata SKU.")
-        else:
-            df_result = pd.DataFrame(columns=["SKU", "Descrizione", "Descrizione Corta"])
-
+        if st.button("🚀 Conferma e genera"):
+            st.info("🔄 Generazione in corso...")
             progress = st.progress(0)
+
+            generated = []
             for idx, row in df.iterrows():
                 long_desc, short_desc = generate_descriptions(row)
-                sku = row[sku_column]
-                df_result.loc[len(df_result)] = [sku, long_desc, short_desc]
+                generated.append({
+                    "SKU": row["SKU"],
+                    "Descrizione": long_desc,
+                    "Descrizione Corta": short_desc
+                })
                 progress.progress((idx + 1) / len(df))
 
-            # SALVA SU GOOGLE SHEET
+            result_df = pd.DataFrame(generated)
+
+            # SALVA SU GOOGLE SHEETS
             try:
-                df_result = df_result.fillna("")
                 sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
                 worksheet = sheet.sheet1
-                worksheet.clear()
-                worksheet.update([df_result.columns.values.tolist()] + df_result.values.tolist())
-                st.success("✅ Descrizioni generate e salvate su Google Sheets!")
+
+                existing_data = worksheet.get_all_values()
+                if not existing_data:
+                    # Foglio vuoto → intestazione + righe
+                    worksheet.append_rows([result_df.columns.values.tolist()] + result_df.values.tolist())
+                else:
+                    # Foglio ha già dati → aggiungi solo nuove righe
+                    worksheet.append_rows(result_df.values.tolist())
+
+                st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
             except Exception as e:
                 st.error(f"Errore salvataggio su Google Sheets: {e}")
 
-            # Download CSV
-            csv = df_result.to_csv(index=False).encode("utf-8")
+            # CSV DOWNLOAD
+            csv = result_df.to_csv(index=False).encode("utf-8")
             st.download_button(
                 label="📥 Scarica il CSV",
                 data=csv,
