@@ -43,8 +43,11 @@ if uploaded_file and api_key:
     if short_col not in df.columns:
         df[short_col] = ""
 
-    progress = st.progress(0)
     total = len(df)
+    if total == 0:
+        st.warning("⚠️ Il file non contiene righe.")
+    else:
+        progress = st.progress(0)
 
     for idx, row in df.iterrows():
         product_info = ", ".join([f"{col}: {row[col]}" for col in df.columns if pd.notnull(row[col])])
@@ -62,7 +65,8 @@ if uploaded_file and api_key:
 
         df.at[idx, desc_col] = long_desc.strip()
         df.at[idx, short_col] = short_desc.strip()
-        progress.progress((idx + 1) / total)
+        if total > 0:
+            progress.progress((idx + 1) / total)
 
     st.success("✅ Descrizioni generate con successo!")
     
