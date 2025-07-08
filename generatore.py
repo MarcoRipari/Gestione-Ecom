@@ -1,45 +1,39 @@
 import streamlit as st
 import pandas as pd
-import spacy
+from sentence_transformers import SentenceTransformer, util
+import torch
 import random
 
-st.set_page_config(page_title="Generatore Descrizioni - spaCy", layout="centered")
-st.title("👟 Generatore Descrizioni Calzature (AI leggera - spaCy)")
-
-st.markdown("Carica un file CSV: useremo NLP per selezionare solo le colonne utili e generare descrizioni complete e SEO-friendly.")
+st.set_page_config(page_title="Descrizioni Calzature - Transformers", layout="centered")
+st.title("🤖 Generatore Descrizioni con AI (BERT semantico)")
 
 @st.cache_resource
-def load_nlp():
-    return spacy.load("en_core_web_sm")
+def load_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
 
-nlp = load_nlp()
+model = load_model()
 
-KEY_TERMS = ["model", "name", "title", "style", "material", "color", "shape", "category", "gender", "type"]
+KEY_TERMS = ["model", "title", "material", "color", "style", "name", "type", "gender", "category"]
 
 def colonne_rilevanti(colonne):
-    soglia = 0.65
-    col_rilevanti = []
-    for col in colonne:
-        col_doc = nlp(col.lower())
-        max_sim = max(nlp(term).similarity(col_doc) for term in KEY_TERMS)
-        if max_sim > soglia:
-            col_rilevanti.append(col)
-    return col_rilevanti
+    chiavi = model.encode(KEY_TERMS, convert_to_tensor=True)
+    col_embed = model.encode(colonne, convert_to_tensor=True)
+    sim = util.cos_sim(col_embed, chiavi).max(dim=1).values
+    return [col for col, s in zip(colonne, sim) if s > 0.5]
 
 def pulisci_valore(val):
     return str(val).replace("_", " ").replace("-", " ").strip().capitalize()
 
 def genera_descrizioni(row, colonne_rilevanti):
     intro = random.choice([
-        "Stile, praticità e comfort",
-        "Un mix perfetto tra eleganza e funzionalità",
-        "Un modello pensato per ogni occasione",
-        "Perfette per accompagnarti tutto il giorno"
+        "Pensata per chi cerca stile e funzionalità",
+        "Un equilibrio perfetto tra design e comfort",
+        "Una calzatura per distinguersi ogni giorno",
     ])
     finale = random.choice([
-        "Ideali per un look dinamico e moderno.",
-        "Perfette per look casual e raffinati.",
-        "Immancabili nel guardaroba di stagione."
+        "Perfetta per qualsiasi occasione.",
+        "Un must-have nel guardaroba di stagione.",
+        "Ideale per outfit dinamici e casual.",
     ])
 
     elementi = []
@@ -53,7 +47,7 @@ def genera_descrizioni(row, colonne_rilevanti):
 
     return pd.Series([descrizione_lunga[:450], descrizione_breve[:150]])
 
-uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
+uploaded_file = st.file_uploader("📤 Carica il tuo file CSV", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8-sig')
@@ -68,4 +62,4 @@ if uploaded_file:
         st.dataframe(df.head())
 
         csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig')
-        st.download_button("📥 Scarica CSV aggiornato", data=csv, file_name="output_spacy.csv", mime="text/csv")
+        st.download_button("📥 Scarica CSV con descrizioni", data=csv, file_name="output_transformers.csv", mime="text/csv")
