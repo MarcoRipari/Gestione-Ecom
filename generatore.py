@@ -41,6 +41,8 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     return sheet
 
 # === FUNZIONE OPENAI ===
+client = OpenAI(api_key=OPENAI_API_KEY)
+
 def generate_descriptions(row):
     # Costruisci prompt dinamico
     product_info = ", ".join([
