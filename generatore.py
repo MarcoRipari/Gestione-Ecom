@@ -7,6 +7,7 @@ import tempfile
 import json
 
 # === CONFIGURAZIONI ===
+
 OPENAI_API_KEY = "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"
 SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"
 
@@ -24,12 +25,11 @@ CREDENTIALS_JSON = {
   "universe_domain": "googleapis.com"
 }
 
-
-# === STREAMLIT ===
-st.set_page_config(page_title="Generatore Descrizioni", layout="centered")
+# === STREAMLIT SETUP ===
+st.set_page_config(page_title="📝 Generatore Descrizioni", layout="centered")
 st.title("📝 Generatore Descrizioni Prodotto")
 
-# === FUNZIONI ===
+# === FUNZIONI GOOGLE SHEET ===
 def connect_to_gsheet(credentials_dict, sheet_id):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as temp:
@@ -40,6 +40,7 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
+# === FUNZIONE OPENAI ===
 def generate_descriptions(row):
     client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -70,51 +71,50 @@ Dettagli del prodotto: {product_info}
     except Exception as e:
         return f"Errore: {e}", f"Errore: {e}"
 
-# === UPLOAD CSV ===
+# === CARICAMENTO FILE CSV ===
 uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
 
 if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    if "description" not in df.columns:
-        df["description"] = ""
-    if "short_description" not in df.columns:
-        df["short_description"] = ""
+    df_original = pd.read_csv(uploaded_file)
+    st.subheader("📋 Anteprima dati")
+    st.dataframe(df_original.head())
 
-    st.session_state["df"] = df
-    st.dataframe(df.head())
-    st.success(f"✅ File caricato: {len(df)} righe trovate.")
+    if "description" not in df_original.columns:
+        df_original["description"] = ""
+    if "short_description" not in df_original.columns:
+        df_original["short_description"] = ""
 
-    tokens = len(df) * 250
-    cost = tokens / 1000 * 0.001
-    st.markdown(f"💡 **Token stimati:** {tokens}")
-    st.markdown(f"💰 **Costo stimato:** ${cost:.4f}")
+    if st.button("🚀 Conferma e genera descrizioni"):
+        progress = st.progress(0)
+        for idx, row in df_original.iterrows():
+            long_desc, short_desc = generate_descriptions(row)
+            df_original.at[idx, "description"] = long_desc
+            df_original.at[idx, "short_description"] = short_desc
+            progress.progress((idx + 1) / len(df_original))
 
-    if st.button("Conferma e genera"):
-        st.session_state["confirmed"] = True
+        # === COSTRUISCI OUTPUT FINALE ===
+        output_df = pd.DataFrame({
+            "SKU": df_original["SKU"] if "SKU" in df_original.columns else [f"ID_{i}" for i in range(len(df_original))],
+            "Descrizione": df_original["description"],
+            "Descrizione Corta": df_original["short_description"]
+        })
 
-# === GENERAZIONE ===
-if st.session_state.get("confirmed") and "df" in st.session_state:
-    df = st.session_state["df"]
-    progress = st.progress(0)
+        # === SALVA SU GOOGLE SHEET ===
+        try:
+            output_df = output_df.fillna("")
+            sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+            worksheet = sheet.sheet1
+            worksheet.clear()
+            worksheet.update([output_df.columns.values.tolist()] + output_df.values.tolist())
+            st.success("✅ Descrizioni salvate su Google Sheets!")
+        except Exception as e:
+            st.error(f"❌ Errore salvataggio Google Sheets: {e}")
 
-    for idx, row in df.iterrows():
-        long_desc, short_desc = generate_descriptions(row)
-        df.at[idx, "description"] = long_desc
-        df.at[idx, "short_description"] = short_desc
-        progress.progress((idx + 1) / len(df))
-
-    try:
-        df = df.fillna("")
-        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-        worksheet = sheet.sheet1
-        worksheet.clear()
-        worksheet.update([df.columns.values.tolist()] + df.values.tolist())
-        st.success("✅ Descrizioni generate e salvate su Google Sheets!")
-    except Exception as e:
-        st.error(f"Errore salvataggio su Google Sheets: {e}")
-
-    csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button("📥 Scarica il CSV", data=csv, file_name="prodotti_descrizioni.csv", mime="text/csv")
-
-    # Reset conferma
-    st.session_state["confirmed"] = False
+        # === DOWNLOAD CSV ===
+        csv = output_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="📥 Scarica il CSV",
+            data=csv,
+            file_name="descrizioni_prodotti.csv",
+            mime="text/csv"
+        )
