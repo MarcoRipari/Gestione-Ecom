@@ -67,9 +67,13 @@ vectorizer = TfidfVectorizer()
 
 @st.cache_data(show_spinner=False)
 def load_gsheet_cache():
-    sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-    data = sheet.sheet1.get_all_records()
-    return pd.DataFrame(data)
+    try:
+        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+        data = sheet.sheet1.get_all_records()
+        return pd.DataFrame(data)
+    except Exception as e:
+        st.warning(f"⚠️ Errore nel caricamento da Google Sheet: {e}")
+        return pd.DataFrame()  # meglio che None
 
 cached_data = load_gsheet_cache()
 
