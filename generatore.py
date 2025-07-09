@@ -195,6 +195,7 @@ if uploaded_file:
             progress = st.progress(0)
             results = []
             sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+          
             for idx, row in df.iterrows():
                 sku = str(row.get("SKU", ""))
                 if cached_data is not None and "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
