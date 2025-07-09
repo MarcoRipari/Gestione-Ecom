@@ -6,12 +6,11 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import tempfile
 import json
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import hashlib
 
 # === CONFIG ===
 OPENAI_API_KEY = "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"
-SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"  # il tuo ID Google Sheet
+SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"
 
 CREDENTIALS_JSON = {
   "type": "service_account",
@@ -42,42 +41,29 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
-# === RECUPERA STORICO ===
-def load_historical_data(sheet):
+def load_existing_cache(sheet):
     worksheet = sheet.sheet1
     data = worksheet.get_all_records()
-    return pd.DataFrame(data)
+    cache = {}
+    for row in data:
+        key = row.get("hash")
+        if key:
+            cache[key] = row
+    return cache
 
-# === TROVA SIMILITÀ ===
-def find_similar_description(df_storico, new_row):
-    if df_storico.empty:
-        return ""
+def hash_row(row):
+    relevant_data = {k: v for k, v in row.items() if k.lower() not in ["descrizione", "descrizione corta"] and pd.notna(v)}
+    row_string = json.dumps(relevant_data, sort_keys=True)
+    return hashlib.md5(row_string.encode('utf-8')).hexdigest()
 
-    storico_testi = df_storico.apply(lambda r: " ".join([str(v) for v in r.values if pd.notna(v)]), axis=1)
-    nuovo_testo = " ".join([f"{k}: {v}" for k, v in new_row.items() if pd.notna(v)])
-
-    corpus = storico_testi.tolist() + [nuovo_testo]
-
-    vectorizer = TfidfVectorizer().fit_transform(corpus)
-    similarities = cosine_similarity(vectorizer[-1], vectorizer[:-1])
-
-    idx_max = similarities.argmax()
-    max_score = similarities[0, idx_max]
-
-    if max_score > 0.3:
-        return df_storico.iloc[idx_max]["Descrizione"]
-    return ""
-
-# === FUNZIONE OPENAI ===
+# === OPENAI ===
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-def generate_descriptions(row, similar_desc=""):
+def generate_descriptions(row):
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
         if k.lower() not in ["description", "short_description", "descrizione", "descrizione corta"] and pd.notna(v)
     ])
-
-    context = f"Esempio descrizione simile:\n{similar_desc}" if similar_desc else ""
 
     prompt = f"""
 Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile:
@@ -88,12 +74,14 @@ Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile
 - SEO friendly
 Indicazioni:
 - Evita di inserire nome del prodotto e marchio.
-{context}
+
 Scrivi solo un oggetto JSON con questo formato esatto (niente testo extra):
+
 {{
   "descrizione_lunga": "...",  // circa 60 parole
   "descrizione_corta": "..."   // circa 20 parole
 }}
+
 Dettagli del prodotto: {product_info}
 """
     try:
@@ -102,15 +90,11 @@ Dettagli del prodotto: {product_info}
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
-
         content = response.choices[0].message.content.strip()
         result = json.loads(content)
-
         long_desc = result.get("descrizione_lunga", "Descrizione lunga non trovata")
         short_desc = result.get("descrizione_corta", long_desc[:100])
-
         return long_desc, short_desc
-
     except json.JSONDecodeError:
         return "Errore nel parsing JSON", "Errore nel parsing JSON"
     except Exception as e:
@@ -126,7 +110,6 @@ if uploaded_file:
         st.error("❌ Il file deve contenere una colonna chiamata 'SKU'")
     else:
         st.dataframe(df.head())
-
         st.markdown("---")
 
         if st.button("📊 Stima costo descrizioni"):
@@ -134,7 +117,6 @@ if uploaded_file:
             tokens_per_desc = 150
             total_tokens = num_prodotti * tokens_per_desc
             cost = (total_tokens / 1000) * 0.0015
-
             st.info(f"🧮 Totale prodotti: {num_prodotti}")
             st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
 
@@ -142,36 +124,41 @@ if uploaded_file:
             st.info("🔄 Generazione in corso...")
             progress = st.progress(0)
 
-            try:
-                sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-                storico_df = load_historical_data(sheet)
-            except Exception as e:
-                st.error(f"Errore nel caricamento dello storico: {e}")
-                storico_df = pd.DataFrame()
+            sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+            cache = load_existing_cache(sheet)
 
-            generated = []
+            results = []
+            new_rows = []
             for idx, row in df.iterrows():
-                similar = find_similar_description(storico_df, row)
-                long_desc, short_desc = generate_descriptions(row, similar_desc=similar)
-                row_dict = row.to_dict()
-                row_dict["Descrizione"] = long_desc
-                row_dict["Descrizione Corta"] = short_desc
-                generated.append(row_dict)
+                h = hash_row(row)
+                if h in cache:
+                    long_desc = cache[h].get("Descrizione", "Descrizione lunga non trovata")
+                    short_desc = cache[h].get("Descrizione Corta", "Descrizione corta non trovata")
+                else:
+                    long_desc, short_desc = generate_descriptions(row)
+                    new_rows.append({"hash": h, "SKU": row["SKU"], **row.to_dict(), "Descrizione": long_desc, "Descrizione Corta": short_desc})
+
+                enriched_row = row.to_dict()
+                enriched_row["Descrizione"] = long_desc
+                enriched_row["Descrizione Corta"] = short_desc
+                results.append(enriched_row)
                 progress.progress((idx + 1) / len(df))
 
-            result_df = pd.DataFrame(generated)
+            result_df = pd.DataFrame(results)
 
+            # Google Sheets append
             try:
-                worksheet = sheet.sheet1
-                existing_data = worksheet.get_all_values()
-                if not existing_data:
-                    worksheet.append_rows([result_df.columns.values.tolist()] + result_df.values.tolist())
-                else:
-                    worksheet.append_rows(result_df.values.tolist())
-                st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
+                if new_rows:
+                    worksheet = sheet.sheet1
+                    headers = worksheet.row_values(1)
+                    for r in new_rows:
+                        row_out = [r.get(col, "") for col in headers]
+                        worksheet.append_row(row_out)
+                st.success("✅ Descrizioni aggiornate con caching su Google Sheets!")
             except Exception as e:
                 st.error(f"Errore salvataggio su Google Sheets: {e}")
 
+            # CSV DOWNLOAD
             csv = result_df.to_csv(index=False).encode("utf-8")
             st.download_button(
                 label="📥 Scarica il CSV",
