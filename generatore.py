@@ -76,6 +76,11 @@ def load_gsheet_cache():
         return pd.DataFrame()  # meglio che None
 
 cached_data = load_gsheet_cache()
+if cached_data.empty or "SKU" not in cached_data.columns:
+    st.warning("⚠️ Il foglio Google Sheet è vuoto o non contiene la colonna 'SKU'.")
+else:
+    st.write("✅ Colonne disponibili:", cached_data.columns.tolist())
+
 
 # === COSTRUISCI FAISS-LIKE INDEX ===
 def build_similarity_index(df):
