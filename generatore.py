@@ -188,7 +188,7 @@ if uploaded_file:
 
             for idx, row in df.iterrows():
                 sku = str(row.get("SKU", ""))
-                if "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
+                if cached_data is not None and "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
                     long_desc = cached_data[cached_data["SKU"] == sku]["description"].values[0]
                     short_desc = cached_data[cached_data["SKU"] == sku]["short_description"].values[0]
                 else:
