@@ -193,6 +193,11 @@ if uploaded_file:
                     short_desc = cached_data[cached_data["SKU"] == sku]["short_description"].values[0]
                 else:
                     long_desc, short_desc = generate_descriptions(row)
+                    if long_desc == "Errore":
+                      log_audit(sheet, action="generate", sku=sku, status="failed", message="Errore durante generazione")
+                    else:
+                      log_audit(sheet, action="generate", sku=sku, status="success", message="Descrizione generata")
+
                 new_row = row.copy()
                 new_row["description"] = long_desc
                 new_row["short_description"] = short_desc
@@ -213,10 +218,10 @@ if uploaded_file:
                     if new_rows:
                         worksheet.append_rows([list(row.values) for row in new_rows])
                       
-                log_audit(sheet, "Generazione completata", "ALL", "Success", f"{len(result_df)} descrizioni generate")
+                log_audit(sheet, action="save_to_sheet", sku="BATCH", status="success", message="Descrizioni salvate su Google Sheets")      
                 st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
             except Exception as e:
-                log_audit(sheet, "Errore salvataggio", "ALL", "Fail", str(e))
+                log_audit(sheet, action="save_to_sheet", sku="BATCH", status="failed", message=str(e))
                 st.error(f"Errore salvataggio su Google Sheets: {e}")
 
             csv = result_df.to_csv(index=False).encode("utf-8")
