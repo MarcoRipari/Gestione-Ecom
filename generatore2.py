@@ -44,7 +44,6 @@ def connect_to_gsheet(credentials_dict, sheet_id):
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 def generate_descriptions(row):
-    # Costruisci prompt dinamico
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
         if k.lower() not in ["description", "short_description", "descrizione", "descrizione corta"] and pd.notna(v)
@@ -78,19 +77,21 @@ Dettagli del prodotto: {product_info}
         )
 
         content = response.choices[0].message.content.strip()
-
-        # Prova a caricare il JSON
         result = json.loads(content)
 
-        long_desc = result.get("descrizione_lunga", "Descrizione lunga non trovata")
-        short_desc = result.get("descrizione_corta", long_desc[:100])
+        row["Descrizione"] = result.get("descrizione_lunga", "Descrizione lunga non trovata")
+        row["Descrizione Corta"] = result.get("descrizione_corta", "Descrizione corta non trovata")
 
-        return long_desc, short_desc
+        return row
 
     except json.JSONDecodeError:
-        return "Errore nel parsing JSON", "Errore nel parsing JSON"
+        row["Descrizione"] = "Errore nel parsing JSON"
+        row["Descrizione Corta"] = "Errore nel parsing JSON"
+        return row
     except Exception as e:
-        return f"Errore: {e}", f"Errore: {e}"
+        row["Descrizione"] = f"Errore: {e}"
+        row["Descrizione Corta"] = f"Errore: {e}"
+        return row
 
 # === FILE UPLOAD ===
 uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
@@ -102,15 +103,13 @@ if uploaded_file:
         st.error("❌ Il file deve contenere una colonna chiamata 'SKU'")
     else:
         st.dataframe(df.head())
-
         st.markdown("---")
 
         if st.button("📊 Stima costo descrizioni"):
             num_prodotti = len(df)
-            tokens_per_desc = 150  # media stimata per 2 descrizioni
+            tokens_per_desc = 150
             total_tokens = num_prodotti * tokens_per_desc
-            cost = (total_tokens / 1000) * 0.0015  # prezzo stimato gpt-3.5
-
+            cost = (total_tokens / 1000) * 0.0015
             st.info(f"🧮 Totale prodotti: {num_prodotti}")
             st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
 
@@ -118,37 +117,34 @@ if uploaded_file:
             st.info("🔄 Generazione in corso...")
             progress = st.progress(0)
 
-            generated = []
+            df_output = df.copy()
+            df_output["Descrizione"] = ""
+            df_output["Descrizione Corta"] = ""
+
+            results = []
             for idx, row in df.iterrows():
-                long_desc, short_desc = generate_descriptions(row)
-                generated.append({
-                    "SKU": row["SKU"],
-                    "Descrizione": long_desc,
-                    "Descrizione Corta": short_desc
-                })
+                new_row = generate_descriptions(row)
+                results.append(new_row)
                 progress.progress((idx + 1) / len(df))
 
-            result_df = pd.DataFrame(generated)
+            final_df = pd.DataFrame(results)
 
             # SALVA SU GOOGLE SHEETS
             try:
                 sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
                 worksheet = sheet.sheet1
-
                 existing_data = worksheet.get_all_values()
+
                 if not existing_data:
-                    # Foglio vuoto → intestazione + righe
-                    worksheet.append_rows([result_df.columns.values.tolist()] + result_df.values.tolist())
+                    worksheet.append_rows([final_df.columns.values.tolist()] + final_df.values.tolist())
                 else:
-                    # Foglio ha già dati → aggiungi solo nuove righe
-                    worksheet.append_rows(result_df.values.tolist())
+                    worksheet.append_rows(final_df.values.tolist())
 
                 st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
             except Exception as e:
                 st.error(f"Errore salvataggio su Google Sheets: {e}")
 
-            # CSV DOWNLOAD
-            csv = result_df.to_csv(index=False).encode("utf-8")
+            csv = final_df.to_csv(index=False).encode("utf-8")
             st.download_button(
                 label="📥 Scarica il CSV",
                 data=csv,
