@@ -4,5 +4,7 @@ pandas
 gspread
 oauth2client
 google-auth
+faiss-cpu
 scikit-learn
 numpy
+tqdm
