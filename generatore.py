@@ -30,6 +30,8 @@ CREDENTIALS_JSON = {
   "universe_domain": "googleapis.com"
 }
 
+LINGUE_TARGET = ["it", "en", "fr", "de"]  # Italiano, Inglese, Francese, Tedesco
+
 # === SETUP ===
 st.set_page_config(page_title="Generatore Descrizioni", layout="centered")
 st.title("📝 Generatore Descrizioni Prodotto")
@@ -141,6 +143,8 @@ Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile
 - SEO friendly
 Indicazioni:
 - Evita di inserire nome del prodotto e marchio.
+- Evita di inserire il colore
+- Usa questi esempi per apprendere tono/stile
 
 Esempi:
 {context}
@@ -169,82 +173,120 @@ Dettagli del prodotto: {product_info}
     except:
         return "Errore", "Errore"
 
-# === FILE UPLOAD ===
-uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
+# === FUNZIONE TRADUZIONE ===
 
+def translate_descriptions(long_desc, short_desc, target_lang):
+    prompt = f"""
+Traduci il seguente oggetto JSON in lingua '{target_lang}' mantenendo uno stile:
+- accattivante
+- caldo
+- professionale
+- user friendly
+- SEO friendly
+
+JSON:
+{{
+  "description": "...",
+  "short_description": "..."
+}}
+
+Rispondi solo con l'oggetto JSON tradotto, senza testo extra.
+"""
+  
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
+        content = response.choices[0].message.content.strip()
+        result = json.loads(content)
+        return result.get("description", ""), result.get("short_description", "")
+    except:
+        return "Errore traduzione", "Errore traduzione"
+
+# === APP STREAMLIT ===
+
+st.title("📝 Generatore descrizioni calzature")
+
+uploaded_file = st.file_uploader("📤 Carica il file CSV con colonna 'SKU'", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
     if "SKU" not in df.columns:
-        st.error("❌ Il file deve contenere una colonna chiamata 'SKU'")
+        st.error("❌ Il file CSV deve contenere una colonna 'SKU'.")
     else:
-        st.dataframe(df.head())
+        progress = st.progress(0)
+        results_per_lang = defaultdict(list)
+        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
 
-        st.markdown("---")
+        # Caching foglio Google
+        try:
+            existing_sheet = sheet.worksheet("IT")
+            cached_data = pd.DataFrame(existing_sheet.get_all_records())
+        except:
+            cached_data = None
 
-        if st.button("📊 Stima costo descrizioni"):
-            num_prodotti = len(df)
-            tokens_per_desc = 150
-            total_tokens = num_prodotti * tokens_per_desc
-            cost = (total_tokens / 1000) * 0.0015
-            st.info(f"🧮 Totale prodotti: {num_prodotti}")
-            st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
-
-        if st.button("🚀 Conferma e genera"):
-            st.info("🔄 Generazione in corso...")
-            progress = st.progress(0)
-            results = []
-            sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-          
-            for idx, row in df.iterrows():
-                sku = str(row.get("SKU", ""))
-                if cached_data is not None and "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
-                    long_desc = cached_data[cached_data["SKU"] == sku]["description"].values[0]
-                    short_desc = cached_data[cached_data["SKU"] == sku]["short_description"].values[0]
+        for idx, row in df.iterrows():
+            sku = str(row.get("SKU", ""))
+            if cached_data is not None and "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
+                long_desc = cached_data[cached_data["SKU"] == sku]["description"].values[0]
+                short_desc = cached_data[cached_data["SKU"] == sku]["short_description"].values[0]
+            else:
+                long_desc, short_desc = generate_descriptions(row)
+                if long_desc == "Errore":
+                    log_audit(sheet, action="generate", sku=sku, status="failed", message="Errore durante generazione")
                 else:
-                    long_desc, short_desc = generate_descriptions(row)
-                    if long_desc == "Errore":
-                      log_audit(sheet, action="generate", sku=sku, status="failed", message="Errore durante generazione")
-                    else:
-                      log_audit(sheet, action="generate", sku=sku, status="success", message="Descrizione generata")
+                    log_audit(sheet, action="generate", sku=sku, status="success", message="Descrizione generata")
+
+            for lang in LINGUE_TARGET:
+                if lang == "it":
+                    desc, short = long_desc, short_desc
+                else:
+                    desc, short = translate_descriptions(long_desc, short_desc, lang)
 
                 new_row = row.copy()
-                new_row["description"] = long_desc
-                new_row["short_description"] = short_desc
-                results.append(new_row)
-                progress.progress((idx + 1) / len(df))
+                new_row["description"] = desc
+                new_row["short_description"] = short
+                results_per_lang[lang].append(new_row)
 
-            result_df = pd.DataFrame(results).replace({np.nan: None})
+            progress.progress((idx + 1) / len(df))
+
+        # === SALVATAGGIO SU GOOGLE SHEETS E DOWNLOAD MULTILINGUA ===
+        for lang, rows in results_per_lang.items():
+            lang_df = pd.DataFrame(rows).replace({np.nan: None})
+            lang_sheet_name = lang.upper()
 
             try:
-                sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-                worksheet = sheet.sheet1
-                cached_data = pd.DataFrame(worksheet.get_all_records())  # 🔁 aggiornamento cache
+                worksheet = None
+                try:
+                    worksheet = sheet.worksheet(lang_sheet_name)
+                except gspread.exceptions.WorksheetNotFound:
+                    worksheet = sheet.add_worksheet(title=lang_sheet_name, rows="100", cols="20")
+                    worksheet.append_row(lang_df.columns.tolist())
 
                 existing = worksheet.get_all_values()
-                header = existing[0] if existing else []
                 existing_skus = set(row[0] for row in existing[1:]) if len(existing) > 1 else set()
-
                 new_rows = []
 
-                for _, row in result_df.iterrows():
+                for _, row in lang_df.iterrows():
                     sku = str(row["SKU"])
                     if sku not in existing_skus:
-                        new_rows.append(row)
-                        log_audit(sheet, "Generazione", sku, "Successo", "Descrizione generata e salvata")
+                        new_rows.append(list(row.values))
+                        log_audit(sheet, "Generazione", sku, "Successo", f"Aggiunto a {lang_sheet_name}")
                     else:
-                        log_audit(sheet, "Generazione", sku, "Ignorato", "SKU già presente in Google Sheets")
+                        log_audit(sheet, "Generazione", sku, "Ignorato", f"SKU già presente in {lang_sheet_name}")
 
                 if new_rows:
-                    worksheet.append_rows([list(r.values) for r in new_rows])
-                    st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
-                else:
-                    st.info("ℹ️ Nessuna nuova riga da aggiungere (tutti gli SKU erano già presenti).")
+                    worksheet.append_rows(new_rows)
 
             except Exception as e:
-                st.error(f"Errore salvataggio su Google Sheets: {e}")
-                for row in result_df.itertuples():
-                    log_audit(sheet, "Generazione", getattr(row, "SKU", "N/A"), "Errore", str(e))
+                st.error(f"❌ Errore salvataggio per lingua {lang}: {e}")
 
-            csv = result_df.to_csv(index=False).encode("utf-8")
-            st.download_button("📥 Scarica il CSV", data=csv, file_name="descrizioni_generate.csv", mime="text/csv")
+            csv = lang_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                f"📥 Scarica CSV in {lang.upper()}",
+                data=csv,
+                file_name=f"descrizioni_{lang}.csv",
+                mime="text/csv"
+            )
