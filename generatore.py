@@ -1,16 +1,16 @@
 import streamlit as st
 import pandas as pd
+import re
 from openai import OpenAI
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import tempfile
 import json
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 # === CONFIG ===
 OPENAI_API_KEY = "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"
-SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"
+SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"  # il tuo ID Google Sheet
+
 CREDENTIALS_JSON = {
   "type": "service_account",
   "project_id": "generazione-descrizioni-marco",
@@ -25,92 +25,129 @@ CREDENTIALS_JSON = {
   "universe_domain": "googleapis.com"
 }
 
+# === SETUP ===
+st.set_page_config(page_title="Generatore Descrizioni", layout="centered")
+st.title("📝 Generatore Descrizioni Prodotto")
+
+# === GOOGLE SHEET ===
+def connect_to_gsheet(credentials_dict, sheet_id):
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as temp:
+        json.dump(credentials_dict, temp)
+        temp.flush()
+        creds = ServiceAccountCredentials.from_json_keyfile_name(temp.name, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_key(sheet_id)
+    return sheet
+
+# === FUNZIONE OPENAI ===
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# === GOOGLE SHEET HELPER ===
-def connect_to_gsheet(creds, sheet_id):
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as tmp:
-        json.dump(creds, tmp); tmp.flush()
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(tmp.name, scope)
-    gc = gspread.authorize(credentials)
-    return gc.open_by_key(sheet_id).sheet1
+def generate_descriptions(row):
+    product_info = ", ".join([
+        f"{k}: {v}" for k, v in row.items()
+        if k.lower() not in ["description", "short_description", "descrizione", "descrizione corta"] and pd.notna(v)
+    ])
 
-# === RAG: trova esempi simili ===
-def get_similar(df_hist, row, k=2):
-    if df_hist.empty: return []
-    df_hist = df_hist.dropna(subset=["description", "short_description"])
-    df_hist["txt"] = df_hist.apply(lambda r: " ".join(str(r[c]) for c in df_hist.columns if c not in ["description","short_description"]), axis=1)
-    query_txt = " ".join(str(v) for k,v in row.items() if pd.notna(v) and k not in ["description","short_description"])
-    vect = TfidfVectorizer().fit(df_hist["txt"].tolist() + [query_txt])
-    qv = vect.transform([query_txt])
-    cv = vect.transform(df_hist["txt"])
-    sims = cosine_similarity(qv, cv).flatten()
-    ix = sims.argsort()[-k:][::-1]
-    return df_hist.iloc[ix][["description", "short_description"]].values.tolist()
-
-# === FUNZIONE GENERAZIONE JSON + RAG ===
-def generate_with_rag(row, examples):
-    prod = ", ".join(f"{k}: {v}" for k,v in row.items() if pd.notna(v) and k not in ["description","short_description"])
-    exs = "\n".join(f'  "{i+1}": {{"descrizione_lunga": "{ex[0]}", "descrizione_corta": "{ex[1]}"}}'
-                    for i,ex in enumerate(examples))
     prompt = f"""
-Fornisci output **solo in JSON**:
+Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile:
+- accattivante
+- caldo
+- professionale
+- user friendly
+- SEO friendly
+Indicazioni:
+- Evita di inserire nome del prodotto e marchio.
+
+Scrivi solo un oggetto JSON con questo formato esatto (niente testo extra):
 
 {{
-  "examples": {{
-{exs}
-  }},
-  "new": {{
-    "product_info": "{prod}"
-  }}
+  "descrizione_lunga": "...",  // circa 60 parole
+  "descrizione_corta": "..."   // circa 20 parole
 }}
 
-Dopo i \"examples\" genera:
-{{"descrizione_lunga": "...", "descrizione_corta": "..."}}
+Dettagli del prodotto: {product_info}
 """
-    resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role":"user","content":prompt}], temperature=0.7)
-    txt = resp.choices[0].message.content.strip()
+
     try:
-        j = json.loads(txt)
-        nd = j.get("descrizione_lunga","") or "Descrizione lunga non trovata"
-        ns = j.get("descrizione_corta","") or "Descrizione corta non trovata"
-    except:
-        nd, ns = "Errore parsing JSON", "Errore parsing JSON"
-    return nd, ns
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
 
-# === UPLOAD FILE ===
-uploaded = st.file_uploader("📤 Carica CSV", type="csv")
-if not uploaded:
-    st.stop()
+        content = response.choices[0].message.content.strip()
+        result = json.loads(content)
 
-df = pd.read_csv(uploaded)
-st.dataframe(df.head())
+        row["Descrizione"] = result.get("descrizione_lunga", "Descrizione lunga non trovata")
+        row["Descrizione Corta"] = result.get("descrizione_corta", "Descrizione corta non trovata")
 
-# Column setup
-if "description" not in df: df["description"] = ""
-if "short_description" not in df: df["short_description"] = ""
+        return row
 
-# Stima costo/token
-n = len(df)
-tok = sum(len(str(r))//4 for _,r in df.iterrows())
-cost = tok/1000 * 0.0015
-st.info(f"🔢 Token stimati: {tok} | 💰 Costo stimato: ${cost:.4f}")
+    except json.JSONDecodeError:
+        row["Descrizione"] = "Errore nel parsing JSON"
+        row["Descrizione Corta"] = "Errore nel parsing JSON"
+        return row
+    except Exception as e:
+        row["Descrizione"] = f"Errore: {e}"
+        row["Descrizione Corta"] = f"Errore: {e}"
+        return row
 
-if st.button("🚀 Genera con RAG & JSON"):
-    sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-    hist = pd.DataFrame(sheet.get_all_records())
-    rows = []
-    progress = st.progress(0)
-    for i, row in df.iterrows():
-        exs = get_similar(hist, row, k=2)
-        ld, sd = generate_with_rag(row, exs)
-        r = row.to_dict()
-        r["description"] = ld
-        r["short_description"] = sd
-        rows.append(r)
-        progress.progress((i+1)/n)
-    df2 = pd.DataFrame(rows)
-    sheet.append_rows(df2.values.tolist())  # append
-    st.success("✅ Descrizioni generate e aggiunte allo sheet!")
-    st.download_button("📥 Scarica CSV", df2.to_csv(index=False).encode(), "out.csv", "text/csv")
+# === FILE UPLOAD ===
+uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+
+    if "SKU" not in df.columns:
+        st.error("❌ Il file deve contenere una colonna chiamata 'SKU'")
+    else:
+        st.dataframe(df.head())
+        st.markdown("---")
+
+        if st.button("📊 Stima costo descrizioni"):
+            num_prodotti = len(df)
+            tokens_per_desc = 150
+            total_tokens = num_prodotti * tokens_per_desc
+            cost = (total_tokens / 1000) * 0.0015
+            st.info(f"🧮 Totale prodotti: {num_prodotti}")
+            st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
+
+        if st.button("🚀 Conferma e genera"):
+            st.info("🔄 Generazione in corso...")
+            progress = st.progress(0)
+
+            df_output = df.copy()
+            df_output["Descrizione"] = ""
+            df_output["Descrizione Corta"] = ""
+
+            results = []
+            for idx, row in df.iterrows():
+                new_row = generate_descriptions(row)
+                results.append(new_row)
+                progress.progress((idx + 1) / len(df))
+
+            final_df = pd.DataFrame(results)
+
+            # SALVA SU GOOGLE SHEETS
+            try:
+                sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+                worksheet = sheet.sheet1
+                existing_data = worksheet.get_all_values()
+
+                if not existing_data:
+                    worksheet.append_rows([final_df.columns.values.tolist()] + final_df.values.tolist())
+                else:
+                    worksheet.append_rows(final_df.values.tolist())
+
+                st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
+            except Exception as e:
+                st.error(f"Errore salvataggio su Google Sheets: {e}")
+
+            csv = final_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="📥 Scarica il CSV",
+                data=csv,
+                file_name="descrizioni_generate.csv",
+                mime="text/csv"
+            )
