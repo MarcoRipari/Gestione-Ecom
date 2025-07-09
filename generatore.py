@@ -48,9 +48,9 @@ def connect_to_gsheet(credentials_dict, sheet_id):
 def log_audit(sheet, action, sku, status, message):
     try:
         try:
-            worksheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID).worksheet("AuditTrail")
+            worksheet = sheet.worksheet("AuditTrail")
         except gspread.exceptions.WorksheetNotFound:
-            worksheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID).add_worksheet(title="AuditTrail", rows="100", cols="5")
+            worksheet = sheet.add_worksheet(title="AuditTrail", rows="100", cols="5")
             worksheet.append_row(["Timestamp", "Azione", "SKU", "Stato", "Dettagli"])
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -194,7 +194,7 @@ if uploaded_file:
             st.info("🔄 Generazione in corso...")
             progress = st.progress(0)
             results = []
-
+            sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
             for idx, row in df.iterrows():
                 sku = str(row.get("SKU", ""))
                 if cached_data is not None and "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
