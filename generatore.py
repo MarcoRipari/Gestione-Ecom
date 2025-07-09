@@ -121,48 +121,71 @@ if uploaded_file:
             st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
 
         if st.button("🚀 Conferma e genera"):
-            st.info("🔄 Generazione in corso...")
-            progress = st.progress(0)
+    st.info("🔄 Generazione in corso...")
+    progress = st.progress(0)
 
-            sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-            cache = load_existing_cache(sheet)
+    generated = []
 
-            results = []
-            new_rows = []
-            for idx, row in df.iterrows():
-                h = hash_row(row)
-                if h in cache:
-                    long_desc = cache[h].get("Descrizione", "Descrizione lunga non trovata")
-                    short_desc = cache[h].get("Descrizione Corta", "Descrizione corta non trovata")
-                else:
-                    long_desc, short_desc = generate_descriptions(row)
-                    new_rows.append({"hash": h, "SKU": row["SKU"], **row.to_dict(), "Descrizione": long_desc, "Descrizione Corta": short_desc})
+    # Scarica cache da Google Sheets
+    try:
+        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+        worksheet = sheet.sheet1
+        existing_rows = worksheet.get_all_records()
+        cache_df = pd.DataFrame(existing_rows)
 
-                enriched_row = row.to_dict()
-                enriched_row["Descrizione"] = long_desc
-                enriched_row["Descrizione Corta"] = short_desc
-                results.append(enriched_row)
-                progress.progress((idx + 1) / len(df))
+        # Calcola hash delle righe già presenti
+        def row_hash(row):
+            return hash(json.dumps({k: v for k, v in row.items() if k not in ["Descrizione", "Descrizione Corta"]}, sort_keys=True))
 
-            result_df = pd.DataFrame(results)
+        cache_df["row_hash"] = cache_df.apply(row_hash, axis=1)
+        cache_dict = dict(zip(cache_df["row_hash"], zip(cache_df["Descrizione"], cache_df["Descrizione Corta"])))
 
-            # Google Sheets append
-            try:
-                if new_rows:
-                    worksheet = sheet.sheet1
-                    headers = worksheet.row_values(1)
-                    for r in new_rows:
-                        row_out = [r.get(col, "") for col in headers]
-                        worksheet.append_row(row_out)
-                st.success("✅ Descrizioni aggiornate con caching su Google Sheets!")
-            except Exception as e:
-                st.error(f"Errore salvataggio su Google Sheets: {e}")
+    except Exception as e:
+        st.warning(f"⚠️ Impossibile leggere cache da Google Sheets: {e}")
+        cache_dict = {}
 
-            # CSV DOWNLOAD
-            csv = result_df.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                label="📥 Scarica il CSV",
-                data=csv,
-                file_name="descrizioni_generate.csv",
-                mime="text/csv"
-            )
+    # Genera descrizioni con caching
+    for idx, row in df.iterrows():
+        sku = row["SKU"]
+        base_data = {k: row[k] for k in df.columns if k not in ["Descrizione", "Descrizione Corta"]}
+
+        row_key = hash(json.dumps(base_data, sort_keys=True))
+
+        if row_key in cache_dict:
+            long_desc, short_desc = cache_dict[row_key]
+        else:
+            long_desc, short_desc = generate_descriptions(row)
+
+        full_row = row.to_dict()
+        full_row["Descrizione"] = long_desc
+        full_row["Descrizione Corta"] = short_desc
+        generated.append(full_row)
+
+        progress.progress((idx + 1) / len(df))
+
+    result_df = pd.DataFrame(generated)
+
+    # === SALVA SU GOOGLE SHEETS ===
+    try:
+        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+        worksheet = sheet.sheet1
+
+        existing_data = worksheet.get_all_values()
+        if not existing_data:
+            worksheet.append_rows([result_df.columns.values.tolist()] + result_df.values.tolist())
+        else:
+            worksheet.append_rows(result_df.values.tolist())
+
+        st.success("✅ Descrizioni aggiunte a Google Sheets!")
+
+    except Exception as e:
+        st.error(f"❌ Errore salvataggio su Google Sheets: {e}")
+
+    # === CSV DOWNLOAD ===
+    csv = result_df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="📥 Scarica il CSV",
+        data=csv,
+        file_name="descrizioni_generate.csv",
+        mime="text/csv"
+    )
