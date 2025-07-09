@@ -44,6 +44,21 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
+def log_audit(sheet, action, sku, status, message):
+    try:
+        try:
+            worksheet = sheet.worksheet("AuditTrail")
+        except gspread.exceptions.WorksheetNotFound:
+            worksheet = sheet.add_worksheet(title="AuditTrail", rows="100", cols="5")
+            worksheet.append_row(["Timestamp", "Azione", "SKU", "Stato", "Dettagli"])
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        row = [timestamp, action, sku, status, message]
+        worksheet.append_row(row)
+
+    except Exception as e:
+        st.warning(f"⚠️ Impossibile scrivere nell'AuditTrail: {e}")
+
 # === CACHING & RAG BASE ===
 cached_data = None
 similarity_index = None
@@ -196,8 +211,11 @@ if uploaded_file:
                     new_rows = [row for _, row in result_df.iterrows() if str(row["SKU"]) not in existing_skus]
                     if new_rows:
                         worksheet.append_rows([list(row.values) for row in new_rows])
+                      
+                log_audit(sheet, "Generazione completata", "ALL", "Success", f"{len(result_df)} descrizioni generate")
                 st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
             except Exception as e:
+                log_audit(sheet, "Errore salvataggio", "ALL", "Fail", str(e))
                 st.error(f"Errore salvataggio su Google Sheets: {e}")
 
             csv = result_df.to_csv(index=False).encode("utf-8")
