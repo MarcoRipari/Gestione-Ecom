@@ -131,24 +131,21 @@ if uploaded_file:
         sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
         worksheet = sheet.sheet1
         existing_rows = worksheet.get_all_records()
+
         cache_df = pd.DataFrame(existing_rows)
 
-        # Calcola hash delle righe già presenti
         def row_hash(row):
             return hash(json.dumps({k: v for k, v in row.items() if k not in ["Descrizione", "Descrizione Corta"]}, sort_keys=True))
 
         cache_df["row_hash"] = cache_df.apply(row_hash, axis=1)
         cache_dict = dict(zip(cache_df["row_hash"], zip(cache_df["Descrizione"], cache_df["Descrizione Corta"])))
-
     except Exception as e:
-        st.warning(f"⚠️ Impossibile leggere cache da Google Sheets: {e}")
+        st.warning(f"⚠️ Impossibile accedere alla cache su Google Sheets: {e}")
         cache_dict = {}
 
-    # Genera descrizioni con caching
+    # Ciclo di generazione (con caching)
     for idx, row in df.iterrows():
-        sku = row["SKU"]
-        base_data = {k: row[k] for k in df.columns if k not in ["Descrizione", "Descrizione Corta"]}
-
+        base_data = {k: row[k] for k in df.columns if k not in ["Descrizione", "Descrizione Corta"] and pd.notna(row[k])}
         row_key = hash(json.dumps(base_data, sort_keys=True))
 
         if row_key in cache_dict:
@@ -156,11 +153,11 @@ if uploaded_file:
         else:
             long_desc, short_desc = generate_descriptions(row)
 
-        full_row = row.to_dict()
-        full_row["Descrizione"] = long_desc
-        full_row["Descrizione Corta"] = short_desc
-        generated.append(full_row)
+        new_row = row.to_dict()
+        new_row["Descrizione"] = long_desc
+        new_row["Descrizione Corta"] = short_desc
 
+        generated.append(new_row)
         progress.progress((idx + 1) / len(df))
 
     result_df = pd.DataFrame(generated)
@@ -172,12 +169,11 @@ if uploaded_file:
 
         existing_data = worksheet.get_all_values()
         if not existing_data:
-            worksheet.append_rows([result_df.columns.values.tolist()] + result_df.values.tolist())
+            worksheet.append_rows([result_df.columns.tolist()] + result_df.values.tolist())
         else:
             worksheet.append_rows(result_df.values.tolist())
 
         st.success("✅ Descrizioni aggiunte a Google Sheets!")
-
     except Exception as e:
         st.error(f"❌ Errore salvataggio su Google Sheets: {e}")
 
