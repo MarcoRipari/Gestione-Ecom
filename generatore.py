@@ -48,9 +48,9 @@ def connect_to_gsheet(credentials_dict, sheet_id):
 def log_audit(sheet, action, sku, status, message):
     try:
         try:
-            worksheet = sheet.worksheet("AuditTrail")
+            worksheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID).worksheet("AuditTrail")
         except gspread.exceptions.WorksheetNotFound:
-            worksheet = sheet.add_worksheet(title="AuditTrail", rows="100", cols="5")
+            worksheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID).add_worksheet(title="AuditTrail", rows="100", cols="5")
             worksheet.append_row(["Timestamp", "Azione", "SKU", "Stato", "Dettagli"])
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
