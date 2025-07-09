@@ -208,6 +208,7 @@ if uploaded_file:
 
             try:
                 sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+                cached_data = pd.DataFrame(sheet.sheet1.get_all_records())  # 🔄 aggiorna cache
                 worksheet = sheet.sheet1
                 existing = worksheet.get_all_values()
                 if not existing:
