@@ -214,7 +214,7 @@ if uploaded_file:
                 results.append(new_row)
                 progress.progress((idx + 1) / len(df))
 
-            result_df = pd.DataFrame(results)
+            result_df = pd.DataFrame(results).where(pd.notnull(df), None)
 
             try:
                 sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
