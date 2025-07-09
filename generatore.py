@@ -6,6 +6,8 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import tempfile
 import json
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # === CONFIG ===
 OPENAI_API_KEY = "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"
@@ -40,14 +42,42 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
+# === RECUPERA STORICO ===
+def load_historical_data(sheet):
+    worksheet = sheet.sheet1
+    data = worksheet.get_all_records()
+    return pd.DataFrame(data)
+
+# === TROVA SIMILITÀ ===
+def find_similar_description(df_storico, new_row):
+    if df_storico.empty:
+        return ""
+
+    storico_testi = df_storico.apply(lambda r: " ".join([str(v) for v in r.values if pd.notna(v)]), axis=1)
+    nuovo_testo = " ".join([f"{k}: {v}" for k, v in new_row.items() if pd.notna(v)])
+
+    corpus = storico_testi.tolist() + [nuovo_testo]
+
+    vectorizer = TfidfVectorizer().fit_transform(corpus)
+    similarities = cosine_similarity(vectorizer[-1], vectorizer[:-1])
+
+    idx_max = similarities.argmax()
+    max_score = similarities[0, idx_max]
+
+    if max_score > 0.3:
+        return df_storico.iloc[idx_max]["Descrizione"]
+    return ""
+
 # === FUNZIONE OPENAI ===
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-def generate_descriptions(row):
+def generate_descriptions(row, similar_desc=""):
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
         if k.lower() not in ["description", "short_description", "descrizione", "descrizione corta"] and pd.notna(v)
     ])
+
+    context = f"Esempio descrizione simile:\n{similar_desc}" if similar_desc else ""
 
     prompt = f"""
 Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile:
@@ -58,17 +88,14 @@ Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile
 - SEO friendly
 Indicazioni:
 - Evita di inserire nome del prodotto e marchio.
-
+{context}
 Scrivi solo un oggetto JSON con questo formato esatto (niente testo extra):
-
 {{
   "descrizione_lunga": "...",  // circa 60 parole
   "descrizione_corta": "..."   // circa 20 parole
 }}
-
 Dettagli del prodotto: {product_info}
 """
-
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -79,19 +106,15 @@ Dettagli del prodotto: {product_info}
         content = response.choices[0].message.content.strip()
         result = json.loads(content)
 
-        row["Descrizione"] = result.get("descrizione_lunga", "Descrizione lunga non trovata")
-        row["Descrizione Corta"] = result.get("descrizione_corta", "Descrizione corta non trovata")
+        long_desc = result.get("descrizione_lunga", "Descrizione lunga non trovata")
+        short_desc = result.get("descrizione_corta", long_desc[:100])
 
-        return row
+        return long_desc, short_desc
 
     except json.JSONDecodeError:
-        row["Descrizione"] = "Errore nel parsing JSON"
-        row["Descrizione Corta"] = "Errore nel parsing JSON"
-        return row
+        return "Errore nel parsing JSON", "Errore nel parsing JSON"
     except Exception as e:
-        row["Descrizione"] = f"Errore: {e}"
-        row["Descrizione Corta"] = f"Errore: {e}"
-        return row
+        return f"Errore: {e}", f"Errore: {e}"
 
 # === FILE UPLOAD ===
 uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
@@ -103,6 +126,7 @@ if uploaded_file:
         st.error("❌ Il file deve contenere una colonna chiamata 'SKU'")
     else:
         st.dataframe(df.head())
+
         st.markdown("---")
 
         if st.button("📊 Stima costo descrizioni"):
@@ -110,6 +134,7 @@ if uploaded_file:
             tokens_per_desc = 150
             total_tokens = num_prodotti * tokens_per_desc
             cost = (total_tokens / 1000) * 0.0015
+
             st.info(f"🧮 Totale prodotti: {num_prodotti}")
             st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
 
@@ -117,34 +142,37 @@ if uploaded_file:
             st.info("🔄 Generazione in corso...")
             progress = st.progress(0)
 
-            df_output = df.copy()
-            df_output["Descrizione"] = ""
-            df_output["Descrizione Corta"] = ""
-
-            results = []
-            for idx, row in df.iterrows():
-                new_row = generate_descriptions(row)
-                results.append(new_row)
-                progress.progress((idx + 1) / len(df))
-
-            final_df = pd.DataFrame(results)
-
-            # SALVA SU GOOGLE SHEETS
             try:
                 sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+                storico_df = load_historical_data(sheet)
+            except Exception as e:
+                st.error(f"Errore nel caricamento dello storico: {e}")
+                storico_df = pd.DataFrame()
+
+            generated = []
+            for idx, row in df.iterrows():
+                similar = find_similar_description(storico_df, row)
+                long_desc, short_desc = generate_descriptions(row, similar_desc=similar)
+                row_dict = row.to_dict()
+                row_dict["Descrizione"] = long_desc
+                row_dict["Descrizione Corta"] = short_desc
+                generated.append(row_dict)
+                progress.progress((idx + 1) / len(df))
+
+            result_df = pd.DataFrame(generated)
+
+            try:
                 worksheet = sheet.sheet1
                 existing_data = worksheet.get_all_values()
-
                 if not existing_data:
-                    worksheet.append_rows([final_df.columns.values.tolist()] + final_df.values.tolist())
+                    worksheet.append_rows([result_df.columns.values.tolist()] + result_df.values.tolist())
                 else:
-                    worksheet.append_rows(final_df.values.tolist())
-
+                    worksheet.append_rows(result_df.values.tolist())
                 st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
             except Exception as e:
                 st.error(f"Errore salvataggio su Google Sheets: {e}")
 
-            csv = final_df.to_csv(index=False).encode("utf-8")
+            csv = result_df.to_csv(index=False).encode("utf-8")
             st.download_button(
                 label="📥 Scarica il CSV",
                 data=csv,
