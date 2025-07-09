@@ -6,7 +6,9 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import tempfile
 import json
-import hashlib
+import faiss
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # === CONFIG ===
 OPENAI_API_KEY = "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"
@@ -41,28 +43,26 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
-def load_existing_cache(sheet):
-    worksheet = sheet.sheet1
-    data = worksheet.get_all_records()
-    cache = {}
-    for row in data:
-        key = row.get("hash")
-        if key:
-            cache[key] = row
-    return cache
-
-def hash_row(row):
-    relevant_data = {k: v for k, v in row.items() if k.lower() not in ["descrizione", "descrizione corta"] and pd.notna(v)}
-    row_string = json.dumps(relevant_data, sort_keys=True)
-    return hashlib.md5(row_string.encode('utf-8')).hexdigest()
-
-# === OPENAI ===
+# === OPENAI CLIENT ===
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+# === CACHE ===
+sheet_cache = set()
+
+def load_gsheet_cache(sheet):
+    try:
+        worksheet = sheet.sheet1
+        data = worksheet.get_all_records()
+        return set(row["SKU"] for row in data if "SKU" in row)
+    except Exception as e:
+        st.warning(f"Impossibile accedere alla cache su Google Sheets: {e}")
+        return set()
+
+# === GENERA DESCRIZIONI ===
 def generate_descriptions(row):
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
-        if k.lower() not in ["description", "short_description", "descrizione", "descrizione corta"] and pd.notna(v)
+        if k.lower() not in ["description", "short_description"] and pd.notna(v)
     ])
 
     prompt = f"""
@@ -84,17 +84,22 @@ Scrivi solo un oggetto JSON con questo formato esatto (niente testo extra):
 
 Dettagli del prodotto: {product_info}
 """
+
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
+
         content = response.choices[0].message.content.strip()
         result = json.loads(content)
+
         long_desc = result.get("descrizione_lunga", "Descrizione lunga non trovata")
         short_desc = result.get("descrizione_corta", long_desc[:100])
+
         return long_desc, short_desc
+
     except json.JSONDecodeError:
         return "Errore nel parsing JSON", "Errore nel parsing JSON"
     except Exception as e:
@@ -110,78 +115,54 @@ if uploaded_file:
         st.error("❌ Il file deve contenere una colonna chiamata 'SKU'")
     else:
         st.dataframe(df.head())
+
         st.markdown("---")
 
-    if st.button("📊 Stima costo descrizioni"):
-        num_prodotti = len(df)
-        tokens_per_desc = 150
-        total_tokens = num_prodotti * tokens_per_desc
-        cost = (total_tokens / 1000) * 0.0015
-        st.info(f"🧮 Totale prodotti: {num_prodotti}")
-        st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
+        if st.button("📊 Stima costo descrizioni"):
+            num_prodotti = len(df)
+            tokens_per_desc = 150
+            total_tokens = num_prodotti * tokens_per_desc
+            cost = (total_tokens / 1000) * 0.0015
+            st.info(f"🧮 Totale prodotti: {num_prodotti}")
+            st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
 
-    if st.button("🚀 Conferma e genera"):
-      st.info("🔄 Generazione in corso...")
-      progress = st.progress(0)
+        if st.button("🚀 Conferma e genera"):
+            st.info("🔄 Generazione in corso...")
+            progress = st.progress(0)
 
-    generated = []
+            sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+            worksheet = sheet.sheet1
+            sheet_cache = load_gsheet_cache(sheet)
 
-    # Scarica cache da Google Sheets
-    try:
-        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-        worksheet = sheet.sheet1
-        existing_rows = worksheet.get_all_records()
+            generated = []
+            for idx, row in df.iterrows():
+                sku = str(row["SKU"])
+                if sku in sheet_cache:
+                    continue
 
-        cache_df = pd.DataFrame(existing_rows)
+                long_desc, short_desc = generate_descriptions(row)
+                row["description"] = long_desc
+                row["short_description"] = short_desc
 
-        def row_hash(row):
-            return hash(json.dumps({k: v for k, v in row.items() if k not in ["Descrizione", "Descrizione Corta"]}, sort_keys=True))
+                generated.append(row)
+                sheet_cache.add(sku)
+                progress.progress((idx + 1) / len(df))
 
-        cache_df["row_hash"] = cache_df.apply(row_hash, axis=1)
-        cache_dict = dict(zip(cache_df["row_hash"], zip(cache_df["Descrizione"], cache_df["Descrizione Corta"])))
-    except Exception as e:
-        st.warning(f"⚠️ Impossibile accedere alla cache su Google Sheets: {e}")
-        cache_dict = {}
+            result_df = pd.DataFrame(generated)
 
-    # Ciclo di generazione (con caching)
-    for idx, row in df.iterrows():
-        base_data = {k: row[k] for k in df.columns if k not in ["Descrizione", "Descrizione Corta"] and pd.notna(row[k])}
-        row_key = hash(json.dumps(base_data, sort_keys=True))
+            try:
+                if not result_df.empty:
+                    worksheet.append_rows(result_df.astype(str).values.tolist())
+                    st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
+                else:
+                    st.info("ℹ️ Nessuna nuova riga da aggiungere: tutti gli SKU erano già presenti.")
+            except Exception as e:
+                st.error(f"Errore salvataggio su Google Sheets: {e}")
 
-        if row_key in cache_dict:
-            long_desc, short_desc = cache_dict[row_key]
-        else:
-            long_desc, short_desc = generate_descriptions(row)
-
-        new_row = row.to_dict()
-        new_row["Descrizione"] = long_desc
-        new_row["Descrizione Corta"] = short_desc
-
-        generated.append(new_row)
-        progress.progress((idx + 1) / len(df))
-
-    result_df = pd.DataFrame(generated)
-
-    # === SALVA SU GOOGLE SHEETS ===
-    try:
-        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-        worksheet = sheet.sheet1
-
-        existing_data = worksheet.get_all_values()
-        if not existing_data:
-            worksheet.append_rows([result_df.columns.tolist()] + result_df.values.tolist())
-        else:
-            worksheet.append_rows(result_df.values.tolist())
-
-        st.success("✅ Descrizioni aggiunte a Google Sheets!")
-    except Exception as e:
-        st.error(f"❌ Errore salvataggio su Google Sheets: {e}")
-
-    # === CSV DOWNLOAD ===
-    csv = result_df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label="📥 Scarica il CSV",
-        data=csv,
-        file_name="descrizioni_generate.csv",
-        mime="text/csv"
-    )
+            csv = result_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="📥 Scarica il CSV",
+                data=csv,
+                file_name="descrizioni_generate.csv",
+                mime="text/csv"
+            )
