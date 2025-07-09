@@ -208,22 +208,33 @@ if uploaded_file:
 
             try:
                 sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-                cached_data = pd.DataFrame(sheet.sheet1.get_all_records())  # 🔄 aggiorna cache
                 worksheet = sheet.sheet1
+                cached_data = pd.DataFrame(worksheet.get_all_records())  # 🔁 aggiornamento cache
+
                 existing = worksheet.get_all_values()
-                if not existing:
-                    worksheet.append_rows([result_df.columns.values.tolist()] + result_df.values.tolist())
+                header = existing[0] if existing else []
+                existing_skus = set(row[0] for row in existing[1:]) if len(existing) > 1 else set()
+
+                new_rows = []
+
+                for _, row in result_df.iterrows():
+                    sku = str(row["SKU"])
+                    if sku not in existing_skus:
+                        new_rows.append(row)
+                        log_audit(sheet, "Generazione", sku, "Successo", "Descrizione generata e salvata")
+                    else:
+                        log_audit(sheet, "Generazione", sku, "Ignorato", "SKU già presente in Google Sheets")
+
+                if new_rows:
+                    worksheet.append_rows([list(r.values) for r in new_rows])
+                    st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
                 else:
-                    existing_skus = set(row[0] for row in existing[1:])
-                    new_rows = [row for _, row in result_df.iterrows() if str(row["SKU"]) not in existing_skus]
-                    if new_rows:
-                        worksheet.append_rows([list(row.values) for row in new_rows])
-                      
-                log_audit(sheet, action="save_to_sheet", sku="BATCH", status="success", message="Descrizioni salvate su Google Sheets")      
-                st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
+                    st.info("ℹ️ Nessuna nuova riga da aggiungere (tutti gli SKU erano già presenti).")
+
             except Exception as e:
-                log_audit(sheet, action="save_to_sheet", sku="BATCH", status="failed", message=str(e))
                 st.error(f"Errore salvataggio su Google Sheets: {e}")
+                for row in result_df.itertuples():
+                    log_audit(sheet, "Generazione", getattr(row, "SKU", "N/A"), "Errore", str(e))
 
             csv = result_df.to_csv(index=False).encode("utf-8")
             st.download_button("📥 Scarica il CSV", data=csv, file_name="descrizioni_generate.csv", mime="text/csv")
