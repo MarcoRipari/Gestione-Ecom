@@ -1,15 +1,20 @@
 import streamlit as st
 import pandas as pd
 import re
+import json
+import tempfile
 from openai import OpenAI
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import tempfile
-import json
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+from collections import defaultdict
+from datetime import datetime
 
 # === CONFIG ===
 OPENAI_API_KEY = "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"
-SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"  # il tuo ID Google Sheet
+SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"
 
 CREDENTIALS_JSON = {
   "type": "service_account",
@@ -40,15 +45,93 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
+def log_audit(sheet, action, sku, status, message):
+    try:
+        try:
+            worksheet = sheet.worksheet("AuditTrail")
+        except gspread.exceptions.WorksheetNotFound:
+            worksheet = sheet.add_worksheet(title="AuditTrail", rows="100", cols="5")
+            worksheet.append_row(["Timestamp", "Azione", "SKU", "Stato", "Dettagli"])
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        row = [timestamp, action, sku, status, message]
+        worksheet.append_row(row)
+
+    except Exception as e:
+        st.warning(f"⚠️ Impossibile scrivere nell'AuditTrail: {e}")
+
+# === CACHING & RAG BASE ===
+cached_data = None
+similarity_index = None
+vectorizer = TfidfVectorizer()
+
+@st.cache_data(show_spinner=False)
+def load_gsheet_cache():
+    try:
+        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+        data = sheet.sheet1.get_all_records()
+        return pd.DataFrame(data)
+    except Exception as e:
+        st.warning(f"⚠️ Errore nel caricamento da Google Sheet: {e}")
+        return pd.DataFrame()  # meglio che None
+
+cached_data = load_gsheet_cache()
+if cached_data.empty or "SKU" not in cached_data.columns:
+    st.warning("⚠️ Il foglio Google Sheet è vuoto o non contiene la colonna 'SKU'.")
+else:
+    st.write("✅ Colonne disponibili:", cached_data.columns.tolist())
+
+
+# === COSTRUISCI FAISS-LIKE INDEX ===
+def build_similarity_index(df):
+    if df.empty:
+        return None, None
+    corpus = []
+    skus = []
+    for _, row in df.iterrows():
+        sku = str(row.get("SKU", ""))[:7]  # modello base
+        text = " ".join([str(v) for k, v in row.items() if k.lower() not in ["description", "short_description"]])
+        corpus.append(text)
+        skus.append(sku)
+    X = vectorizer.fit_transform(corpus)
+    return X, skus
+
+X_cache, skus_cache = build_similarity_index(cached_data)
+
 # === FUNZIONE OPENAI ===
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 def generate_descriptions(row):
+    sku_prefix = str(row.get("SKU", ""))[:7]
     product_info = ", ".join([
         f"{k}: {v}" for k, v in row.items()
-        if k.lower() not in ["description", "short_description", "descrizione", "descrizione corta"] and pd.notna(v)
+        if k.lower() not in ["description", "short_description"] and pd.notna(v)
     ])
 
+    # === RAG MULTI-LIVELLO ===
+    examples = []
+    if cached_data is not None and not cached_data.empty:
+        matches = cached_data[cached_data["SKU"].astype(str).str.startswith(sku_prefix)]
+
+        # Livello 2: Similarità semantica
+        if X_cache is not None:
+            row_text = " ".join([str(v) for k, v in row.items() if k.lower() not in ["description", "short_description"]])
+            X_row = vectorizer.transform([row_text])
+            sims = cosine_similarity(X_row, X_cache)[0]
+            top_indices = sims.argsort()[-3:][::-1]  # top 3 simili
+            similar_rows = cached_data.iloc[top_indices]
+            matches = pd.concat([matches, similar_rows]).drop_duplicates(subset="SKU")
+
+        # Livello 3: Matching per categoria
+        if "Categoria" in row and "Categoria" in cached_data.columns:
+            matches = pd.concat([matches, cached_data[cached_data["Categoria"] == row["Categoria"]]])
+            matches = matches.drop_duplicates(subset="SKU")
+
+        for _, ex in matches.iterrows():
+            examples.append(f"- {ex.get('description', '')}\n  ➜ {ex.get('short_description', '')}")
+
+    # === Costruzione Prompt ===
+    context = "\n".join(examples[:5]) if examples else ""
     prompt = f"""
 Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile:
 - accattivante
@@ -59,11 +142,14 @@ Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile
 Indicazioni:
 - Evita di inserire nome del prodotto e marchio.
 
+Esempi:
+{context}
+
 Scrivi solo un oggetto JSON con questo formato esatto (niente testo extra):
 
 {{
-  "descrizione_lunga": "...",  // circa 60 parole
-  "descrizione_corta": "..."   // circa 20 parole
+  "description": "...",  // circa 60 parole
+  "short_description": "..."   // circa 20 parole
 }}
 
 Dettagli del prodotto: {product_info}
@@ -75,23 +161,13 @@ Dettagli del prodotto: {product_info}
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
-
         content = response.choices[0].message.content.strip()
         result = json.loads(content)
-
-        row["Descrizione"] = result.get("descrizione_lunga", "Descrizione lunga non trovata")
-        row["Descrizione Corta"] = result.get("descrizione_corta", "Descrizione corta non trovata")
-
-        return row
-
-    except json.JSONDecodeError:
-        row["Descrizione"] = "Errore nel parsing JSON"
-        row["Descrizione Corta"] = "Errore nel parsing JSON"
-        return row
-    except Exception as e:
-        row["Descrizione"] = f"Errore: {e}"
-        row["Descrizione Corta"] = f"Errore: {e}"
-        return row
+        long_desc = result.get("description", "Descrizione lunga non trovata")
+        short_desc = result.get("short_description", long_desc[:100])
+        return long_desc, short_desc
+    except:
+        return "Errore", "Errore"
 
 # === FILE UPLOAD ===
 uploaded_file = st.file_uploader("📤 Carica un file CSV", type=["csv"])
@@ -103,6 +179,7 @@ if uploaded_file:
         st.error("❌ Il file deve contenere una colonna chiamata 'SKU'")
     else:
         st.dataframe(df.head())
+
         st.markdown("---")
 
         if st.button("📊 Stima costo descrizioni"):
@@ -116,38 +193,58 @@ if uploaded_file:
         if st.button("🚀 Conferma e genera"):
             st.info("🔄 Generazione in corso...")
             progress = st.progress(0)
-
-            df_output = df.copy()
-            df_output["Descrizione"] = ""
-            df_output["Descrizione Corta"] = ""
-
             results = []
+            sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+          
             for idx, row in df.iterrows():
-                new_row = generate_descriptions(row)
+                sku = str(row.get("SKU", ""))
+                if cached_data is not None and "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
+                    long_desc = cached_data[cached_data["SKU"] == sku]["description"].values[0]
+                    short_desc = cached_data[cached_data["SKU"] == sku]["short_description"].values[0]
+                else:
+                    long_desc, short_desc = generate_descriptions(row)
+                    if long_desc == "Errore":
+                      log_audit(sheet, action="generate", sku=sku, status="failed", message="Errore durante generazione")
+                    else:
+                      log_audit(sheet, action="generate", sku=sku, status="success", message="Descrizione generata")
+
+                new_row = row.copy()
+                new_row["description"] = long_desc
+                new_row["short_description"] = short_desc
                 results.append(new_row)
                 progress.progress((idx + 1) / len(df))
 
-            final_df = pd.DataFrame(results)
+            result_df = pd.DataFrame(results).replace({np.nan: None})
 
-            # SALVA SU GOOGLE SHEETS
             try:
                 sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
                 worksheet = sheet.sheet1
-                existing_data = worksheet.get_all_values()
+                cached_data = pd.DataFrame(worksheet.get_all_records())  # 🔁 aggiornamento cache
 
-                if not existing_data:
-                    worksheet.append_rows([final_df.columns.values.tolist()] + final_df.values.tolist())
+                existing = worksheet.get_all_values()
+                header = existing[0] if existing else []
+                existing_skus = set(row[0] for row in existing[1:]) if len(existing) > 1 else set()
+
+                new_rows = []
+
+                for _, row in result_df.iterrows():
+                    sku = str(row["SKU"])
+                    if sku not in existing_skus:
+                        new_rows.append(row)
+                        log_audit(sheet, "Generazione", sku, "Successo", "Descrizione generata e salvata")
+                    else:
+                        log_audit(sheet, "Generazione", sku, "Ignorato", "SKU già presente in Google Sheets")
+
+                if new_rows:
+                    worksheet.append_rows([list(r.values) for r in new_rows])
+                    st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
                 else:
-                    worksheet.append_rows(final_df.values.tolist())
+                    st.info("ℹ️ Nessuna nuova riga da aggiungere (tutti gli SKU erano già presenti).")
 
-                st.success("✅ Descrizioni generate e aggiunte a Google Sheets!")
             except Exception as e:
                 st.error(f"Errore salvataggio su Google Sheets: {e}")
+                for row in result_df.itertuples():
+                    log_audit(sheet, "Generazione", getattr(row, "SKU", "N/A"), "Errore", str(e))
 
-            csv = final_df.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                label="📥 Scarica il CSV",
-                data=csv,
-                file_name="descrizioni_generate.csv",
-                mime="text/csv"
-            )
+            csv = result_df.to_csv(index=False).encode("utf-8")
+            st.download_button("📥 Scarica il CSV", data=csv, file_name="descrizioni_generate.csv", mime="text/csv")
