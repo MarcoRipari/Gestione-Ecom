@@ -112,17 +112,17 @@ if uploaded_file:
         st.dataframe(df.head())
         st.markdown("---")
 
-        if st.button("📊 Stima costo descrizioni"):
-            num_prodotti = len(df)
-            tokens_per_desc = 150
-            total_tokens = num_prodotti * tokens_per_desc
-            cost = (total_tokens / 1000) * 0.0015
-            st.info(f"🧮 Totale prodotti: {num_prodotti}")
-            st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
+    if st.button("📊 Stima costo descrizioni"):
+        num_prodotti = len(df)
+        tokens_per_desc = 150
+        total_tokens = num_prodotti * tokens_per_desc
+        cost = (total_tokens / 1000) * 0.0015
+        st.info(f"🧮 Totale prodotti: {num_prodotti}")
+        st.info(f"💰 Costo stimato: ~{cost:.4f} USD")
 
-        if st.button("🚀 Conferma e genera"):
-    st.info("🔄 Generazione in corso...")
-    progress = st.progress(0)
+    if st.button("🚀 Conferma e genera"):
+      st.info("🔄 Generazione in corso...")
+      progress = st.progress(0)
 
     generated = []
 
