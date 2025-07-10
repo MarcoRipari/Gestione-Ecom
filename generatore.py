@@ -1,226 +1,211 @@
+# generatore.py
+
 import streamlit as st
 import pandas as pd
 import openai
 import faiss
-import os
+import numpy as np
 import time
-import json
-import asyncio
-from typing import List, Dict
-from io import BytesIO
-from zipfile import ZipFile
-from collections import defaultdict
-from hashlib import md5
-
+import os
+from typing import List, Dict, Any
 from google.oauth2 import service_account
 import gspread
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
-from langchain.docstore.document import Document
+from googleapiclient.discovery import build
+from io import BytesIO
+import zipfile
 
-# --- CONFIGURAZIONI BASE ---
-DEFAULT_LANGUAGES = ["it"]
-ALL_LANGUAGES = ["it", "en", "fr", "de"]
-MODEL = "gpt-3.5-turbo"
-WORDS_LONG = 60
-WORDS_SHORT = 20
-THROTTLE_SECONDS = 1  # ritardo tra chiamate API
-FAISS_DIR = "faiss_cache"
-
-# --- CREDENZIALI ---
+# ---------------------------
+# 🔐 Setup API keys and credentials
+# ---------------------------
 openai.api_key = st.secrets["OPENAI_API_KEY"]
-gs_credentials = service_account.Credentials.from_service_account_info(
+
+credentials = service_account.Credentials.from_service_account_info(
     st.secrets["GCP_SERVICE_ACCOUNT"],
-    scopes=["https://www.googleapis.com/auth/spreadsheets"],
+    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 )
-gs_client = gspread.authorize(gs_credentials)
+gsheet_client = gspread.authorize(credentials)
 
-# --- INIZIALIZZAZIONE CACHE SESSIONE ---
-if "faiss_index" not in st.session_state:
-    st.session_state.faiss_index = None
-if "history_df" not in st.session_state:
-    st.session_state.history_df = pd.DataFrame()
-if not os.path.exists(FAISS_DIR):
-    os.makedirs(FAISS_DIR)
-
-# --- FUNZIONI DI SUPPORTO ---
-
-def get_gsheet_data(spreadsheet_id: str, worksheet: str) -> pd.DataFrame:
-    """Legge i dati da un tab di Google Sheets"""
+def get_sheet(sheet_id, tab):
     try:
-        sheet = gs_client.open_by_key(spreadsheet_id)
-        ws = sheet.worksheet(worksheet)
-        return pd.DataFrame(ws.get_all_records())
-    except Exception:
-        return pd.DataFrame()
-
-def save_to_gsheet(spreadsheet_id: str, worksheet: str, df: pd.DataFrame):
-    """Salva un DataFrame su un foglio Google Sheets"""
-    sheet = gs_client.open_by_key(spreadsheet_id)
-    try:
-        ws = sheet.worksheet(worksheet)
-        ws.clear()
+        return gsheet_client.open_by_key(sheet_id).worksheet(tab)
     except:
-        ws = sheet.add_worksheet(title=worksheet, rows=1000, cols=30)
-    ws.update([df.columns.values.tolist()] + df.values.tolist())
+        return gsheet_client.open_by_key(sheet_id).add_worksheet(title=tab, rows="10000", cols="50")
 
-def append_log(spreadsheet_id: str, log: Dict):
-    """Aggiunge una riga al log (tab logs)"""
-    logs_df = get_gsheet_data(spreadsheet_id, "logs")
-    logs_df = pd.concat([logs_df, pd.DataFrame([log])], ignore_index=True)
-    save_to_gsheet(spreadsheet_id, "logs", logs_df)
+# ---------------------------
+# 📦 Embedding & FAISS Setup
+# ---------------------------
+def embed_texts(texts: List[str], model="text-embedding-3-small") -> List[List[float]]:
+    response = openai.embeddings.create(input=texts, model=model)
+    return [d.embedding for d in response.data]
 
-def generate_prompt(row: Dict, examples: List[Dict]) -> str:
-    """Costruisce il prompt da inviare a OpenAI"""
-    input_desc = "\n".join([f"{k}: {v}" for k, v in row.items() if v])
-    examples_text = "\n\n".join([
-        f"Esempio:\n{json.dumps(ex, ensure_ascii=False)}" for ex in examples
-    ])
-    return (
-        f"{examples_text}\n\n"
-        f"Genera due descrizioni di scarpe: una lunga ({WORDS_LONG} parole) e una corta ({WORDS_SHORT} parole).\n"
-        f"Dati prodotto:\n{input_desc}"
+def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_path="faiss_cache.index"):
+    if os.path.exists(cache_path):
+        index = faiss.read_index(cache_path)
+        return index, df
+
+    texts = []
+    for _, row in df.iterrows():
+        text = " ".join([f"{col}: {row[col]}" * int(col_weights.get(col, 1)) for col in df.columns if pd.notna(row[col])])
+        texts.append(text)
+
+    vectors = embed_texts(texts)
+    index = faiss.IndexFlatL2(len(vectors[0]))
+    index.add(np.array(vectors).astype("float32"))
+
+    faiss.write_index(index, cache_path)
+    return index, df
+
+def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_weights: Dict[str, float] = {}):
+    query_text = " ".join([f"{col}: {query_row[col]}" * int(col_weights.get(col, 1)) for col in df.columns if pd.notna(query_row[col])])
+    query_vector = embed_texts([query_text])[0]
+    D, I = index.search(np.array([query_vector]).astype("float32"), k)
+    return df.iloc[I[0]]
+
+# ---------------------------
+# 🧠 Prompting e Generazione
+# ---------------------------
+def build_prompt(row, examples):
+    example_section = "\n".join([f"Esempio: {r['description']}" for _, r in examples.iterrows()])
+    prompt = f"""
+Sei un copywriter. Scrivi una descrizione lunga (60 parole) e una breve (20 parole) per una scarpa da vendere online.
+
+Informazioni prodotto:
+{row.to_json()}
+
+Esempi simili:
+{example_section}
+
+Descrizione lunga:
+Descrizione breve:
+"""
+    return prompt
+
+def generate_descriptions(prompt):
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7
     )
+    return response.choices[0].message.content
 
-def embed_rows(rows: pd.DataFrame, weights: Dict) -> List[str]:
-    """Genera testi pesati per embedding FAISS"""
-    return [
-        " ".join([str(row[col]) * int(weights.get(col, 1)) for col in rows.columns if pd.notnull(row[col])])
-        for _, row in rows.iterrows()
-    ]
+# ---------------------------
+# 🌍 Traduzione
+# ---------------------------
+def translate_text(text, target_lang="en"):
+    prompt = f"Traduci il seguente testo in {target_lang}:\n{text}"
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
 
-def faiss_cache_filename(spreadsheet_id: str, weights: Dict) -> str:
-    """Genera nome univoco per cache FAISS"""
-    key = spreadsheet_id + json.dumps(weights, sort_keys=True)
-    return os.path.join(FAISS_DIR, md5(key.encode()).hexdigest() + ".faiss")
+# ---------------------------
+# 📊 Audit Trail & Google Sheets
+# ---------------------------
+def append_log(sheet_id, log_data):
+    sheet = get_sheet(sheet_id, "logs")
+    sheet.append_row(list(log_data.values()), value_input_option="RAW")
 
-def build_faiss(history_df: pd.DataFrame, weights: Dict, cache_key: str):
-    """Crea (o carica) un FAISS index con cache su disco"""
-    cache_file = faiss_cache_filename(cache_key, weights)
-    if os.path.exists(cache_file):
-        try:
-            return FAISS.load_local(cache_file, OpenAIEmbeddings()), cache_file
-        except:
-            pass
-    if history_df.empty:
-        return None, None
-    texts = embed_rows(history_df, weights)
-    docs = [Document(page_content=row) for row in texts]
-    db = FAISS.from_documents(docs, OpenAIEmbeddings())
-    db.save_local(cache_file)
-    return db, cache_file
+def save_to_sheet(sheet_id, tab, df):
+    sheet = get_sheet(sheet_id, tab)
+    sheet.clear()
+    sheet.update([df.columns.values.tolist()] + df.values.tolist())
 
-def search_similar(row: Dict, db: FAISS, k: int, weights: Dict) -> List[Dict]:
-    """Ricerca simili nel FAISS index"""
-    if not db:
-        return []
-    query_text = " ".join([str(row[col]) * int(weights.get(col, 1)) for col in row if row[col]])
-    docs = db.similarity_search(query_text, k=k)
-    return [{"text": doc.page_content} for doc in docs]
+# ---------------------------
+# 📦 Streamlit UI
+# ---------------------------
+st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
+st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
-async def call_openai(prompt: str) -> str:
-    """Chiamata API OpenAI con throttling"""
-    await asyncio.sleep(THROTTLE_SECONDS)
-    try:
-        response = openai.ChatCompletion.create(
-            model=MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-        )
-        return response['choices'][0]['message']['content']
-    except Exception as e:
-        return f"ERROR: {e}"
+sheet_id = st.text_input("Google Sheet ID dello storico", key="sheet")
+selected_langs = st.multiselect("Seleziona lingue di output", ["it", "en", "fr", "de"], default=["it"])
+uploaded = st.file_uploader("Carica il CSV dei prodotti", type="csv")
 
-async def generate_descriptions(rows: List[Dict], db: FAISS, weights: Dict) -> List[Dict]:
-    """Genera descrizioni per tutte le righe"""
-    outputs = []
-    for row in rows:
-        similar = search_similar(row, db, k=3, weights=weights)
-        prompt = generate_prompt(row, similar)
-        result = await call_openai(prompt)
-        outputs.append({
-            **row,
-            "description": result.split("\n")[0].strip(),
-            "description2": result.split("\n")[1].strip() if "\n" in result else "",
-            "prompt_used": prompt,
-        })
-    return outputs
-
-def estimate_token_cost(num_rows: int, num_langs: int) -> float:
-    """Stima token e costo totale"""
-    tokens_per_prompt = 500
-    total_tokens = tokens_per_prompt * num_rows * num_langs
-    return total_tokens, total_tokens / 1000 * 0.001
-
-def translate_text(text: str, lang: str) -> str:
-    """Traduzione dummy (può essere sostituita)"""
-    return f"[{lang.upper()}] {text}"
-
-def translate_outputs(df: pd.DataFrame, lang: str) -> pd.DataFrame:
-    """Traduce le descrizioni per una lingua specifica"""
-    df_translated = df.copy()
-    df_translated["description"] = df_translated["description"].apply(lambda x: translate_text(x, lang))
-    df_translated["description2"] = df_translated["description2"].apply(lambda x: translate_text(x, lang))
-    return df_translated
-
-# --- UI STREAMLIT ---
-st.title("🥿 Generatore Descrizioni Scarpe Multilingua")
-
-spreadsheet_id = st.text_input("Google Sheet ID per storico", key="sheet_id")
-languages = st.multiselect("Lingue desiderate", ALL_LANGUAGES, default=DEFAULT_LANGUAGES)
-
-uploaded_file = st.file_uploader("Carica il CSV", type="csv")
-if uploaded_file:
-    input_df = pd.read_csv(uploaded_file)
-    st.write(f"🔍 Trovate {len(input_df)} righe nel file caricato.")
-
-    # --- CONFIGURAZIONE PESI ---
-    st.subheader("⚖️ Pesi colonne per RAG")
+# Configurazione pesi colonne per RAG
+if uploaded:
+    df_input = pd.read_csv(uploaded)
     col_weights = {}
-    for col in input_df.columns:
+    st.markdown("### ⚙️ Configura i pesi delle colonne (importanza nella similarità)")
+    for col in df_input.columns:
         if col not in ["description", "description2"]:
-            col_weights[col] = st.slider(f"PESO per '{col}'", 0, 5, 1)
+            col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 1)
 
-    # --- SETUP RAG ---
-    if st.button("🔄 Carica storico e costruisci FAISS"):
-        history_df = get_gsheet_data(spreadsheet_id, "it")
-        st.session_state.history_df = history_df
-        db, cache_file = build_faiss(history_df, col_weights, spreadsheet_id)
-        st.session_state.faiss_index = db
-        if db:
-            st.success(f"✅ FAISS creato con {len(history_df)} righe (cache: {cache_file})")
-        else:
-            st.warning("⚠️ Nessun dato storico disponibile, si procederà senza RAG")
+    if st.button("Stima costi"):
+        est_tokens = len(df_input) * 250 * len(selected_langs)
+        est_cost = est_tokens / 1000 * 0.001  # gpt-3.5-turbo
+        st.info(f"Token stimati: {est_tokens} | Costo stimato: ${est_cost:.4f}")
 
-    # --- STIMA COSTO ---
-    if st.button("💰 Stima token e costo OpenAI"):
-        tokens, cost = estimate_token_cost(len(input_df), len(languages))
-        st.info(f"Stima: {tokens} token - Costo: ${cost:.4f} (GPT-3.5)")
+    if st.button("Genera Descrizioni"):
+        index_df = None
+        if sheet_id:
+            try:
+                data_sheet = get_sheet(sheet_id, "it")
+                df_storico = pd.DataFrame(data_sheet.get_all_records())
+                index, index_df = build_faiss_index(df_storico, col_weights)
+            except:
+                index = None
 
-    # --- GENERAZIONE E SALVATAGGIO ---
-    if st.button("⚙️ Genera descrizioni e salva"):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        results = loop.run_until_complete(generate_descriptions(input_df.to_dict(orient="records"), st.session_state.faiss_index, col_weights))
-        df_base = pd.DataFrame(results)
+        all_outputs = {lang: [] for lang in selected_langs}
+        logs = []
 
-        zip_buffer = BytesIO()
-        with ZipFile(zip_buffer, "w") as zipf:
-            for lang in languages:
-                df_lang = translate_outputs(df_base, lang) if lang != "it" else df_base
-                save_to_gsheet(spreadsheet_id, lang, df_lang)
+        for _, row in df_input.iterrows():
+            try:
+                if index_df is not None:
+                    simili = retrieve_similar(row, index_df, index, k=3, col_weights=col_weights)
+                else:
+                    simili = pd.DataFrame([])
 
-                # Audit log
-                for _, row in df_lang.iterrows():
-                    append_log(spreadsheet_id, {
-                        "sku": row.get("SKU", ""),
-                        "lang": lang,
-                        "success": not row['description'].startswith("ERROR"),
-                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "prompt": row.get("prompt_used", ""),
-                        "output": row.get("description", "")
-                    })
+                prompt = build_prompt(row, simili)
+                gen_output = generate_descriptions(prompt)
 
-                zipf.writestr(f"{lang}.csv", df_lang.to_csv(index=False))
+                descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
+                base = {
+                    **row.to_dict(),
+                    "description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
+                    "description2": descr_breve.strip()
+                }
 
-        st.download_button("📥 Scarica risultati (ZIP)", zip_buffer.getvalue(), "descrizioni.zip", mime="application/zip")
+                for lang in selected_langs:
+                    if lang == "it":
+                        all_outputs[lang].append(base)
+                    else:
+                        trad_lunga = translate_text(base["description"], target_lang=lang)
+                        trad_breve = translate_text(base["description2"], target_lang=lang)
+                        trad = base.copy()
+                        trad["description"] = trad_lunga
+                        trad["description2"] = trad_breve
+                        all_outputs[lang].append(trad)
+
+                logs.append({
+                    "sku": row.get("SKU", ""),
+                    "status": "OK",
+                    "prompt": prompt,
+                    "output": gen_output,
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                })
+            except Exception as e:
+                logs.append({
+                    "sku": row.get("SKU", ""),
+                    "status": f"Errore: {str(e)}",
+                    "prompt": prompt,
+                    "output": "",
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                })
+
+        # Salvataggio su Google Sheets
+        for lang in selected_langs:
+            df_out = pd.DataFrame(all_outputs[lang])
+            save_to_sheet(sheet_id, lang, df_out)
+
+        for log in logs:
+            append_log(sheet_id, log)
+
+        # Preparazione ZIP
+        mem_zip = BytesIO()
+        with zipfile.ZipFile(mem_zip, "w") as zf:
+            for lang in selected_langs:
+                df_out = pd.DataFrame(all_outputs[lang])
+                csv_bytes = df_out.to_csv(index=False).encode("utf-8")
+                zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
+        mem_zip.seek(0)
+        st.download_button("📥 Scarica CSV (ZIP)", mem_zip, file_name="descrizioni.zip")
