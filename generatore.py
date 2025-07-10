@@ -66,7 +66,7 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
 # 🧠 Prompting e Generazione
 # ---------------------------
 def build_prompt(row, examples):
-    example_section = "\n".join([f"Esempio: {r['description']}" for _, r in examples.iterrows()])
+    example_section = "\n".join([f"Esempio: {r['Description']}" for _, r in examples.iterrows()])
     prompt = f"""
 Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile:
 - accattivante
@@ -159,7 +159,7 @@ if uploaded:
     col_weights = {}
     st.markdown("### ⚙️ Configura i pesi delle colonne (importanza nella similarità)")
     for col in df_input.columns:
-        if col not in ["description", "description2"]:
+        if col not in ["Description", "Description2"]:
             col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 1)
 
     if st.button("Stima costi"):
@@ -236,21 +236,21 @@ if uploaded:
                     
                 base = {
                     **row.to_dict(),
-                    #"description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
-                    #"description2": descr_breve.strip()
-                    "description": descr_lunga,
-                    "description2": descr_breve
+                    #"Description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
+                    #"Description2": descr_breve.strip()
+                    "Description": descr_lunga,
+                    "Description2": descr_breve
                 }
 
                 for lang in selected_langs:
                     if lang == "it":
                         all_outputs[lang].append(base)
                     else:
-                        trad_lunga = translate_text(base["description"], target_lang=lang)
-                        trad_breve = translate_text(base["description2"], target_lang=lang)
+                        trad_lunga = translate_text(base["Description"], target_lang=lang)
+                        trad_breve = translate_text(base["Description2"], target_lang=lang)
                         trad = base.copy()
-                        trad["description"] = trad_lunga
-                        trad["description2"] = trad_breve
+                        trad["Description"] = trad_lunga
+                        trad["Description2"] = trad_breve
                         all_outputs[lang].append(trad)
 
                 logs.append({
@@ -286,8 +286,8 @@ if uploaded:
                 # Riorganizza e rinomina le colonne
                 df_export = pd.DataFrame()
                 df_export["SKU"] = df_out.get("SKU", "")
-                df_export["Descrizione lunga"] = df_out.get("description", "")
-                df_export["Descrizione corta"] = df_out.get("description2", "")
+                df_export["Descrizione lunga"] = df_out.get("Description", "")
+                df_export["Descrizione corta"] = df_out.get("Description2", "")
 
                 csv_bytes = df_export.to_csv(index=False).encode("utf-8")
                 zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
