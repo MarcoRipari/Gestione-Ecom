@@ -174,7 +174,6 @@ if uploaded_file:
         total_tokens = estimate_tokens(df, lang_selection)
         total_cost = total_tokens / 1000 * 0.001  # costo gpt-3.5-turbo
         st.info(f"Token stimati: {total_tokens} | Costo stimato: ${total_cost:.4f}")
-
         num_prodotti = len(df)
         lingue_extra = [lang for lang in lang_selection if lang != "it"]
         cost = (total_tokens / 1000) * 0.0015
