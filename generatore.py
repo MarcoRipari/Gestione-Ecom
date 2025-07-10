@@ -58,7 +58,10 @@ def authenticate_google():
 
 def read_sheet(sheet_name: str):
     client = authenticate_google()
-    sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(sheet_name)
+    try:
+        sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(sheet_name)
+    except
+        sheet = client.open_by_key(GOOGLE_SHEET_ID).add_worksheet(sheet_name, rows=100000, cols=108)
     data = sheet.get_all_records()
     return pd.DataFrame(data)
 
