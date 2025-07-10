@@ -149,9 +149,37 @@ if uploaded:
             col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 1)
 
     if st.button("Stima costi"):
-        est_tokens = len(df_input) * 250 * len(selected_langs)
-        est_cost = est_tokens / 1000 * 0.001  # gpt-3.5-turbo
-        st.info(f"Token stimati: {est_tokens} | Costo stimato: ${est_cost:.4f}")
+        # Calcolo prompt medio sui primi 3 record
+        prompts = []
+        for _, row in df_input.iterrows():
+            simili = pd.DataFrame([])  # niente RAG per la stima
+            prompt = build_prompt(row, simili)
+            prompts.append(prompt)
+            if len(prompts) >= 3:
+                break
+
+        # Stimiamo i token: 1 token ≈ 4 caratteri
+        avg_prompt_len_chars = sum(len(p) for p in prompts) / len(prompts)
+        avg_prompt_tokens = avg_prompt_len_chars / 4
+
+        # Output: descrizione lunga + breve (stima in token)
+        output_tokens_per_row = 60 + 20  # circa 80 token per lingua
+
+        # Calcolo finale
+        num_rows = len(df_input)
+        num_langs = len(selected_langs)
+        total_input_tokens = num_rows * avg_prompt_tokens
+        total_output_tokens = num_rows * output_tokens_per_row * num_langs
+        total_tokens = total_input_tokens + total_output_tokens
+
+        est_cost = total_tokens / 1000 * 0.001  # gpt-3.5-turbo
+
+        st.info(f"""
+        Prompt medio: ~{avg_prompt_tokens:.0f} token  
+        Output stimato per riga: {output_tokens_per_row} token × {num_langs} lingue  
+        Token totali stimati: ~{int(total_tokens)}  
+        **Costo stimato: ${est_cost:.4f}**
+        """)
 
     if st.button("Genera Descrizioni"):
         index_df = None
