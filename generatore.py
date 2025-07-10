@@ -13,6 +13,7 @@ import gspread
 from googleapiclient.discovery import build
 from io import BytesIO
 import zipfile
+import chardet
 
 # ---------------------------
 # 🔐 Setup API keys and credentials
@@ -128,25 +129,31 @@ def save_to_sheet(sheet_id, tab, df):
 
     # ✅ Scrittura nel foglio Google Sheets
     sheet.update(data)
-
+    
+# ---------------------------
+# Funzioni varie
+# ---------------------------
+def read_csv_auto_encoding(uploaded_file):
+    raw_data = uploaded_file.read()
+    result = chardet.detect(raw_data)
+    encoding = result['encoding'] or 'utf-8'
+    uploaded_file.seek(0)  # Rewind after read
+    return pd.read_csv(uploaded_file, encoding=encoding)
+    
 # ---------------------------
 # 📦 Streamlit UI
 # ---------------------------
 st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
-sheet_id = st.text_input("Google Sheet ID dello storico", key="sheet")
+# sheet_id = st.text_input("Google Sheet ID dello storico", key="sheet")
+sheet_id = st.secrets["GSHEET_ID"]
 selected_langs = st.multiselect("Seleziona lingue di output", ["it", "en", "fr", "de"], default=["it"])
 uploaded = st.file_uploader("Carica il CSV dei prodotti", type="csv")
 
 # Configurazione pesi colonne per RAG
 if uploaded:
-    df_input = pd.read_csv(uploaded, encoding="utf-8")
-    try:
-        df_input = pd.read_csv(uploaded, encoding="utf-8")
-    except UnicodeDecodeError:
-        df_input = pd.read_csv(uploaded, encoding="latin1")  # fallback
-        
+    df_input = read_csv_auto_encoding(uploaded)        
     col_weights = {}
     st.markdown("### ⚙️ Configura i pesi delle colonne (importanza nella similarità)")
     for col in df_input.columns:
