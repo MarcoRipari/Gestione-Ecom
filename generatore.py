@@ -302,10 +302,27 @@ if uploaded_file:
             except Exception as e:
                 st.error(f"❌ Errore salvataggio per lingua {lang}: {e}")
 
-            csv = lang_df.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                f"📥 Scarica CSV in {lang.upper()}",
-                data=csv,
-                file_name=f"descrizioni_{lang}.csv",
-                mime="text/csv"
-            )
+        # Creiamo uno zip in memoria
+        zip_buffer = io.BytesIO()
+
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+          for lang, rows in results_per_lang.items():
+            lang_sheet_name = lang.upper()
+            lang_df = pd.DataFrame(rows)
+
+          # Converti in CSV (come facevi prima)
+          csv = lang_df.to_csv(index=False).encode("utf-8")
+
+          # Scrivi il CSV dentro lo ZIP
+          zip_file.writestr(f"descrizioni_{lang_sheet_name}.csv", csv)
+
+        # Rimetti il puntatore all'inizio per lo stream
+        zip_buffer.seek(0)
+
+        # Bottone per scaricare lo ZIP
+        st.download_button(
+          label="⬇️ Scarica tutti i CSV in ZIP",
+          data=zip_buffer,
+          file_name="descrizioni_multilingua.zip",
+          mime="application/zip"
+        )
