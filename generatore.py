@@ -50,16 +50,16 @@ def connect_to_gsheet(credentials_dict, sheet_id):
     sheet = client.open_by_key(sheet_id)
     return sheet
 
-def log_audit(sheet, action, sku, status, message):
+def log_audit(sheet, action, sku, status, message, prompt=None):
     try:
         try:
             worksheet = sheet.worksheet("AuditTrail")
         except gspread.exceptions.WorksheetNotFound:
             worksheet = sheet.add_worksheet(title="AuditTrail", rows="100", cols="5")
-            worksheet.append_row(["Timestamp", "Azione", "SKU", "Stato", "Dettagli"])
+            worksheet.append_row(["Timestamp", "Azione", "SKU", "Stato", "Dettagli", "Prompt"])
 
         timestamp = datetime.now(pytz.timezone("Europe/Rome")).strftime("%Y-%m-%d %H:%M:%S")
-        row = [timestamp, action, sku, status, message]
+        row = [timestamp, action, sku, status, message, prompt or ""]
         worksheet.append_row(row)
 
     except Exception as e:
@@ -173,7 +173,7 @@ Dettagli del prodotto: {product_info}
         result = json.loads(content)
         long_desc = result.get("description", "Descrizione lunga non trovata")
         short_desc = result.get("short_description", long_desc[:100])
-        return long_desc, short_desc
+        return long_desc, short_desc, prompt
     except:
         return "Errore", "Errore"
 
@@ -256,11 +256,11 @@ if uploaded_file:
                     long_desc = cached_data[cached_data["SKU"] == sku]["description"].values[0]
                     short_desc = cached_data[cached_data["SKU"] == sku]["short_description"].values[0]
                 else:
-                    long_desc, short_desc = generate_descriptions(row)
+                    long_desc, short_desc, prompt = generate_descriptions(row)
                     if long_desc == "Errore":
-                        log_audit(sheet, action="generate", sku=sku, status="failed", message="Errore durante generazione")
+                        log_audit(sheet, action="generate", sku=sku, status="failed", message="Errore durante generazione", prompt=prompt)
                     else:
-                        log_audit(sheet, action="generate", sku=sku, status="success", message="Descrizione generata")
+                        log_audit(sheet, action="generate", sku=sku, status="success", message="Descrizione generata", prompt=prompt)
 
                 for lang in LINGUE_TARGET:
                     if lang == "it":
@@ -275,44 +275,44 @@ if uploaded_file:
 
                 progress.progress((idx + 1) / len(df))
 
-                # === SALVATAGGIO SU GOOGLE SHEETS E ZIP ===
-                zip_buffer = io.BytesIO()
+            # === SALVATAGGIO SU GOOGLE SHEETS E ZIP ===
+            zip_buffer = io.BytesIO()
                 
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for lang, rows in results_per_lang.items():
-                        lang_df = pd.DataFrame(rows).replace({np.nan: None})  # ✅ include tutte le righe
-                        lang_sheet_name = lang.upper()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for lang, rows in results_per_lang.items():
+                    lang_df = pd.DataFrame(rows).replace({np.nan: None})  # ✅ include tutte le righe
+                    lang_sheet_name = lang.upper()
                 
+                    try:
+                        worksheet = None
                         try:
-                            worksheet = None
-                            try:
-                                worksheet = sheet.worksheet(lang_sheet_name)
-                            except gspread.exceptions.WorksheetNotFound:
-                                worksheet = sheet.add_worksheet(title=lang_sheet_name, rows="100", cols="20")
-                                worksheet.append_row(lang_df.columns.tolist())
+                            worksheet = sheet.worksheet(lang_sheet_name)
+                        except gspread.exceptions.WorksheetNotFound:
+                            worksheet = sheet.add_worksheet(title=lang_sheet_name, rows="100", cols="20")
+                            worksheet.append_row(lang_df.columns.tolist())
                 
-                            # 🔍 Controllo per evitare duplicati su Google Sheets
-                            existing = worksheet.get_all_values()
-                            existing_skus = set(row[0] for row in existing[1:]) if len(existing) > 1 else set()
-                            new_rows = []
+                        # 🔍 Controllo per evitare duplicati su Google Sheets
+                        existing = worksheet.get_all_values()
+                        existing_skus = set(row[0] for row in existing[1:]) if len(existing) > 1 else set()
+                        new_rows = []
                 
-                            for _, row in lang_df.iterrows():
-                                sku = str(row["SKU"])
-                                if sku not in existing_skus:
-                                    new_rows.append([row[col] for col in lang_df.columns])  # ✅ mantiene ordine colonne
-                                    log_audit(sheet, "Generazione", sku, "Successo", f"Aggiunto a {lang_sheet_name}")
-                                else:
-                                    log_audit(sheet, "Generazione", sku, "Ignorato", f"SKU già presente in {lang_sheet_name}")
+                        for _, row in lang_df.iterrows():
+                            sku = str(row["SKU"])
+                            if sku not in existing_skus:
+                                new_rows.append([row[col] for col in lang_df.columns])  # ✅ mantiene ordine colonne
+                                log_audit(sheet, "Generazione", sku, "Successo", f"Aggiunto a {lang_sheet_name}")
+                            else:
+                                log_audit(sheet, "Generazione", sku, "Ignorato", f"SKU già presente in {lang_sheet_name}")
                 
-                            if new_rows:
-                                worksheet.append_rows(new_rows)
+                        if new_rows:
+                            worksheet.append_rows(new_rows)
                 
-                        except Exception as e:
-                            st.error(f"❌ Errore salvataggio per lingua {lang}: {e}")
+                    except Exception as e:
+                        st.error(f"❌ Errore salvataggio per lingua {lang}: {e}")
                 
-                        # ✅ Scrivi sempre tutte le righe nello ZIP
-                        csv_bytes = lang_df.to_csv(index=False).encode("utf-8")
-                        zip_file.writestr(f"descrizioni_{lang_sheet_name}.csv", csv_bytes)
+                    # ✅ Scrivi sempre tutte le righe nello ZIP
+                    csv_bytes = lang_df.to_csv(index=False).encode("utf-8")
+                    zip_file.writestr(f"descrizioni_{lang_sheet_name}.csv", csv_bytes)
                 
                 zip_buffer.seek(0)
 
