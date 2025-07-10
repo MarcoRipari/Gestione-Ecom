@@ -61,7 +61,7 @@ def read_sheet(sheet_name: str):
     try:
         sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(sheet_name)
     except:
-        sheet = client.open_by_key(GOOGLE_SHEET_ID).add_worksheet(sheet_name, rows=100000, cols=108)
+        sheet = client.open_by_key(GOOGLE_SHEET_ID).add_worksheet(sheet_name, rows=10000, cols=108)
     data = sheet.get_all_records()
     return pd.DataFrame(data)
 
@@ -71,7 +71,7 @@ def append_to_sheet(sheet_name: str, df: pd.DataFrame):
     try:
         ws = sheet.worksheet(sheet_name)
     except:
-        ws = sheet.add_worksheet(title=sheet_name, rows=10000, cols=50)
+        ws = sheet.add_worksheet(title=sheet_name, rows=10000, cols=108)
     ws.append_rows(df.values.tolist(), value_input_option='RAW')
 
 def build_prompt(row: pd.Series, examples: List[str]) -> str:
