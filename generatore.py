@@ -84,7 +84,8 @@ cached_data = load_gsheet_cache()
 if cached_data.empty or "SKU" not in cached_data.columns:
     st.warning("⚠️ Il foglio Google Sheet è vuoto o non contiene la colonna 'SKU'.")
 else:
-    st.write("✅ Colonne disponibili:", cached_data.columns.tolist())
+    #st.write("✅ Colonne disponibili:", cached_data.columns.tolist())
+    st.write("✅ Foglio google caricato!")
 
 
 # === COSTRUISCI FAISS-LIKE INDEX ===
