@@ -109,7 +109,15 @@ def append_log(sheet_id, log_data):
 def save_to_sheet(sheet_id, tab, df):
     sheet = get_sheet(sheet_id, tab)
     sheet.clear()
-    sheet.update([df.columns.values.tolist()] + df.values.tolist())
+
+    # ✅ Sostituisci NaN con stringa vuota e converti tutto in stringa (safe per JSON)
+    df = df.fillna("").astype(str)
+
+    # ✅ Prepara i dati: intestazione + righe
+    data = [df.columns.tolist()] + df.values.tolist()
+
+    # ✅ Scrittura nel foglio Google Sheets
+    sheet.update(data)
 
 # ---------------------------
 # 📦 Streamlit UI
