@@ -142,6 +142,11 @@ uploaded = st.file_uploader("Carica il CSV dei prodotti", type="csv")
 # Configurazione pesi colonne per RAG
 if uploaded:
     df_input = pd.read_csv(uploaded, encoding="utf-8")
+    try:
+        df_input = pd.read_csv(uploaded, encoding="utf-8")
+    except UnicodeDecodeError:
+        df_input = pd.read_csv(uploaded, encoding="latin1")  # fallback
+        
     col_weights = {}
     st.markdown("### ⚙️ Configura i pesi delle colonne (importanza nella similarità)")
     for col in df_input.columns:
