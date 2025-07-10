@@ -169,7 +169,42 @@ if uploaded:
     for col in df_input.columns:
         if col not in ["Description", "Description2"]:
             col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 1)
+    st.markdown("### 🔍 Anteprima descrizione per una riga")
+    row_index = st.number_input("Indice della riga da testare (0-based)", min_value=0, max_value=len(df_input)-1, value=0)
+    
+    if st.button("Genera anteprima descrizione"):
+        try:
+            test_row = df_input.iloc[row_index]
+            simili = pd.DataFrame([])
 
+            if sheet_id:
+                try:
+                    data_sheet = get_sheet(sheet_id, "it")
+                    df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    index, index_df = build_faiss_index(df_storico, col_weights)
+                    simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
+                except Exception as e:
+                    st.warning(f"⚠️ Impossibile usare RAG: {e}")
+            
+            prompt = build_prompt(test_row, simili)
+            output = generate_descriptions(prompt)
+
+            if "Descrizione breve:" in output:
+                descr_lunga, descr_breve = output.split("Descrizione breve:")
+                descr_lunga = descr_lunga.replace("Descrizione lunga:", "").strip()
+                descr_breve = descr_breve.strip()
+            else:
+                descr_lunga = output.strip()
+                descr_breve = ""
+
+            st.subheader("📝 Descrizione lunga")
+            st.write(descr_lunga)
+            st.subheader("📝 Descrizione breve")
+            st.write(descr_breve)
+
+        except Exception as e:
+            st.error(f"Errore durante la generazione: {e}")
+            
     if st.button("Stima costi"):
         # Calcolo prompt medio sui primi 3 record
         prompts = []
