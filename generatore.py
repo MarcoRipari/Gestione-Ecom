@@ -1,5 +1,3 @@
-# generatore.py
-
 import streamlit as st
 import pandas as pd
 import openai
@@ -14,6 +12,8 @@ from googleapiclient.discovery import build
 from io import BytesIO
 import zipfile
 import chardet
+import hashlib
+import pickle
 
 # ---------------------------
 # 🔐 Setup API keys and credentials
@@ -39,7 +39,16 @@ def embed_texts(texts: List[str], model="text-embedding-3-small") -> List[List[f
     response = openai.embeddings.create(input=texts, model=model)
     return [d.embedding for d in response.data]
 
-def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_path="faiss_cache.index"):
+def hash_dataframe_and_weights(df: pd.DataFrame, col_weights: Dict[str, float]) -> str:
+    df_bytes = pickle.dumps((df.fillna("").astype(str), col_weights))
+    return hashlib.md5(df_bytes).hexdigest()
+    
+def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_dir="faiss_cache"):
+
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_key = hash_dataframe_and_weights(df, col_weights)
+    cache_path = os.path.join(cache_dir, f"{cache_key}.index")
+
     if os.path.exists(cache_path):
         index = faiss.read_index(cache_path)
         return index, df
@@ -52,7 +61,6 @@ def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_pat
     vectors = embed_texts(texts)
     index = faiss.IndexFlatL2(len(vectors[0]))
     index.add(np.array(vectors).astype("float32"))
-
     faiss.write_index(index, cache_path)
     return index, df
 
