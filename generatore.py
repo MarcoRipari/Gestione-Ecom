@@ -317,11 +317,11 @@ if uploaded_file:
                 zip_buffer.seek(0)
 
     
-                # ✅ Mostra solo dopo la generazione
-                st.download_button(
-                  label="⬇️ Scarica tutti i CSV in ZIP",
-                  data=zip_buffer,
-                  file_name="descrizioni_multilingua.zip",
-                  mime="application/zip",
-                  key="download_zip"  # 👈 chiave unica
-                )
+              # ✅ Mostra solo dopo la generazione
+              st.download_button(
+                label="⬇️ Scarica tutti i CSV in ZIP",
+                data=zip_buffer,
+                file_name="descrizioni_multilingua.zip",
+                mime="application/zip",
+                key="download_zip"  # 👈 chiave unica
+              )
