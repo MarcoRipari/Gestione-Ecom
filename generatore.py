@@ -244,78 +244,79 @@ if uploaded_file:
           st.success(f"💰 Costo stimato: ~{cost:.4f} USD")
 
         if st.button("🚀 Conferma e genera"):
-          st.info("🔄 Generazione in corso...")
-          progress = st.progress(0)
-          results = []
-          
-          for idx, row in df.iterrows():
-            sku = str(row.get("SKU", ""))
-            if cached_data is not None and "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
-                long_desc = cached_data[cached_data["SKU"] == sku]["description"].values[0]
-                short_desc = cached_data[cached_data["SKU"] == sku]["short_description"].values[0]
-            else:
-                long_desc, short_desc = generate_descriptions(row)
-                if long_desc == "Errore":
-                    log_audit(sheet, action="generate", sku=sku, status="failed", message="Errore durante generazione")
+            st.info("🔄 Generazione in corso...")
+            progress = st.progress(0)
+            results = []
+
+            for idx, row in df.iterrows():
+                sku = str(row.get("SKU", ""))
+                if cached_data is not None and "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
+                    long_desc = cached_data[cached_data["SKU"] == sku]["description"].values[0]
+                    short_desc = cached_data[cached_data["SKU"] == sku]["short_description"].values[0]
                 else:
-                    log_audit(sheet, action="generate", sku=sku, status="success", message="Descrizione generata")
+                    long_desc, short_desc = generate_descriptions(row)
+                    if long_desc == "Errore":
+                        log_audit(sheet, action="generate", sku=sku, status="failed", message="Errore durante generazione")
+                    else:
+                        log_audit(sheet, action="generate", sku=sku, status="success", message="Descrizione generata")
 
-            for lang in LINGUE_TARGET:
-                if lang == "it":
-                    desc, short = long_desc, short_desc
-                else:
-                    desc, short = translate_descriptions(long_desc, short_desc, lang)
+                for lang in LINGUE_TARGET:
+                    if lang == "it":
+                        desc, short = long_desc, short_desc
+                    else:
+                        desc, short = translate_descriptions(long_desc, short_desc, lang)
 
-                new_row = row.copy()
-                new_row["description"] = desc
-                new_row["short_description"] = short
-                results_per_lang[lang].append(new_row)
+                    new_row = row.copy()
+                    new_row["description"] = desc
+                    new_row["short_description"] = short
+                    results_per_lang[lang].append(new_row)
 
-            progress.progress((idx + 1) / len(df))
+                progress.progress((idx + 1) / len(df))
 
-        # === SALVATAGGIO SU GOOGLE SHEETS E DOWNLOAD MULTILINGUA + ZIP ===
-        zip_buffer = io.BytesIO()
+            # === SALVATAGGIO SU GOOGLE SHEETS E ZIP ===
+            zip_buffer = io.BytesIO()
 
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            for lang, rows in results_per_lang.items():
-                lang_df = pd.DataFrame(rows).replace({np.nan: None})
-                lang_sheet_name = lang.upper()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for lang, rows in results_per_lang.items():
+                    lang_df = pd.DataFrame(rows).replace({np.nan: None})
+                    lang_sheet_name = lang.upper()
 
-                try:
-                    worksheet = None
                     try:
-                        worksheet = sheet.worksheet(lang_sheet_name)
-                    except gspread.exceptions.WorksheetNotFound:
-                        worksheet = sheet.add_worksheet(title=lang_sheet_name, rows="100", cols="20")
-                        worksheet.append_row(lang_df.columns.tolist())
+                        worksheet = None
+                        try:
+                            worksheet = sheet.worksheet(lang_sheet_name)
+                        except gspread.exceptions.WorksheetNotFound:
+                            worksheet = sheet.add_worksheet(title=lang_sheet_name, rows="100", cols="20")
+                            worksheet.append_row(lang_df.columns.tolist())
 
-                    existing = worksheet.get_all_values()
-                    existing_skus = set(row[0] for row in existing[1:]) if len(existing) > 1 else set()
-                    new_rows = []
+                        existing = worksheet.get_all_values()
+                        existing_skus = set(row[0] for row in existing[1:]) if len(existing) > 1 else set()
+                        new_rows = []
 
-                    for _, row in lang_df.iterrows():
-                        sku = str(row["SKU"])
-                        if sku not in existing_skus:
-                            new_rows.append(list(row.values))
-                            log_audit(sheet, "Generazione", sku, "Successo", f"Aggiunto a {lang_sheet_name}")
-                        else:
-                            log_audit(sheet, "Generazione", sku, "Ignorato", f"SKU già presente in {lang_sheet_name}")
+                        for _, row in lang_df.iterrows():
+                            sku = str(row["SKU"])
+                            if sku not in existing_skus:
+                                new_rows.append(list(row.values))
+                                log_audit(sheet, "Generazione", sku, "Successo", f"Aggiunto a {lang_sheet_name}")
+                            else:
+                                log_audit(sheet, "Generazione", sku, "Ignorato", f"SKU già presente in {lang_sheet_name}")
 
-                    if new_rows:
-                        worksheet.append_rows(new_rows)
+                        if new_rows:
+                            worksheet.append_rows(new_rows)
 
-                except Exception as e:
-                    st.error(f"❌ Errore salvataggio per lingua {lang}: {e}")
+                    except Exception as e:
+                        st.error(f"❌ Errore salvataggio per lingua {lang}: {e}")
 
-                # Aggiungi CSV al file ZIP
-                csv_bytes = lang_df.to_csv(index=False).encode("utf-8")
-                zip_file.writestr(f"descrizioni_{lang_sheet_name}.csv", csv_bytes)
+                    # Scrivi CSV nello ZIP
+                    csv_bytes = lang_df.to_csv(index=False).encode("utf-8")
+                    zip_file.writestr(f"descrizioni_{lang_sheet_name}.csv", csv_bytes)
 
-        zip_buffer.seek(0)
+            zip_buffer.seek(0)
 
-        st.download_button(
-            label="⬇️ Scarica tutti i CSV in ZIP",
-            data=zip_buffer,
-            file_name="descrizioni_multilingua.zip",
-            mime="application/zip"
-        )
+            # ✅ Mostra solo dopo la generazione
+            st.download_button(
+                label="⬇️ Scarica tutti i CSV in ZIP",
+                data=zip_buffer,
+                file_name="descrizioni_multilingua.zip",
+                mime="application/zip"
+            )
