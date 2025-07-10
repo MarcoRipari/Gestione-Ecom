@@ -231,5 +231,4 @@ if uploaded:
                 zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
         mem_zip.seek(0)
         st.success("✅ Generazione completata con successo!")
-        st.ballons()
         st.download_button("📥 Scarica CSV (ZIP)", mem_zip, file_name="descrizioni.zip")
