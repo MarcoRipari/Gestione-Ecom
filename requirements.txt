@@ -1,5 +1,6 @@
 # Web app
 streamlit
+chardet
 
 # AI generation
 openai>=1.30.1
