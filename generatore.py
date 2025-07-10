@@ -273,50 +273,50 @@ if uploaded_file:
 
                 progress.progress((idx + 1) / len(df))
 
-            # === SALVATAGGIO SU GOOGLE SHEETS E ZIP ===
-            zip_buffer = io.BytesIO()
-
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                for lang, rows in results_per_lang.items():
-                    lang_df = pd.DataFrame(rows).replace({np.nan: None})
-                    lang_sheet_name = lang.upper()
-
-                    try:
-                        worksheet = None
+                # === SALVATAGGIO SU GOOGLE SHEETS E ZIP ===
+                zip_buffer = io.BytesIO()
+    
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    for lang, rows in results_per_lang.items():
+                        lang_df = pd.DataFrame(rows).replace({np.nan: None})
+                        lang_sheet_name = lang.upper()
+    
                         try:
-                            worksheet = sheet.worksheet(lang_sheet_name)
-                        except gspread.exceptions.WorksheetNotFound:
-                            worksheet = sheet.add_worksheet(title=lang_sheet_name, rows="100", cols="20")
-                            worksheet.append_row(lang_df.columns.tolist())
-
-                        existing = worksheet.get_all_values()
-                        existing_skus = set(row[0] for row in existing[1:]) if len(existing) > 1 else set()
-                        new_rows = []
-
-                        for _, row in lang_df.iterrows():
-                            sku = str(row["SKU"])
-                            if sku not in existing_skus:
-                                new_rows.append(list(row.values))
-                                log_audit(sheet, "Generazione", sku, "Successo", f"Aggiunto a {lang_sheet_name}")
-                            else:
-                                log_audit(sheet, "Generazione", sku, "Ignorato", f"SKU già presente in {lang_sheet_name}")
-
-                        if new_rows:
-                            worksheet.append_rows(new_rows)
-
-                    except Exception as e:
-                        st.error(f"❌ Errore salvataggio per lingua {lang}: {e}")
-
-                    # Scrivi CSV nello ZIP
-                    csv_bytes = lang_df.to_csv(index=False).encode("utf-8")
-                    zip_file.writestr(f"descrizioni_{lang_sheet_name}.csv", csv_bytes)
-
-            zip_buffer.seek(0)
-
-            # ✅ Mostra solo dopo la generazione
-            st.download_button(
-                label="⬇️ Scarica tutti i CSV in ZIP",
-                data=zip_buffer,
-                file_name="descrizioni_multilingua.zip",
-                mime="application/zip"
-            )
+                            worksheet = None
+                            try:
+                                worksheet = sheet.worksheet(lang_sheet_name)
+                            except gspread.exceptions.WorksheetNotFound:
+                                worksheet = sheet.add_worksheet(title=lang_sheet_name, rows="100", cols="20")
+                                worksheet.append_row(lang_df.columns.tolist())
+    
+                            existing = worksheet.get_all_values()
+                            existing_skus = set(row[0] for row in existing[1:]) if len(existing) > 1 else set()
+                            new_rows = []
+    
+                            for _, row in lang_df.iterrows():
+                                sku = str(row["SKU"])
+                                if sku not in existing_skus:
+                                    new_rows.append(list(row.values))
+                                    log_audit(sheet, "Generazione", sku, "Successo", f"Aggiunto a {lang_sheet_name}")
+                                else:
+                                    log_audit(sheet, "Generazione", sku, "Ignorato", f"SKU già presente in {lang_sheet_name}")
+    
+                            if new_rows:
+                                worksheet.append_rows(new_rows)
+    
+                        except Exception as e:
+                            st.error(f"❌ Errore salvataggio per lingua {lang}: {e}")
+    
+                        # Scrivi CSV nello ZIP
+                        csv_bytes = lang_df.to_csv(index=False).encode("utf-8")
+                        zip_file.writestr(f"descrizioni_{lang_sheet_name}.csv", csv_bytes)
+    
+                zip_buffer.seek(0)
+    
+                # ✅ Mostra solo dopo la generazione
+                st.download_button(
+                    label="⬇️ Scarica tutti i CSV in ZIP",
+                    data=zip_buffer,
+                    file_name="descrizioni_multilingua.zip",
+                    mime="application/zip"
+                )
