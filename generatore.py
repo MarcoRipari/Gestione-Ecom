@@ -216,7 +216,6 @@ if uploaded_file:
     if "SKU" not in df.columns:
         st.error("❌ Il file CSV deve contenere una colonna 'SKU'.")
     else:
-        progress = st.progress(0)
         results_per_lang = defaultdict(list)
         sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
 
