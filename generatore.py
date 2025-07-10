@@ -67,14 +67,24 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
 def build_prompt(row, examples):
     example_section = "\n".join([f"Esempio: {r['description']}" for _, r in examples.iterrows()])
     prompt = f"""
-Sei un copywriter. Scrivi una descrizione lunga (60 parole) e una breve (20 parole) per una scarpa da vendere online.
-
-Informazioni prodotto:
-{row.to_json()}
+Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile:
+- accattivante
+- caldo
+- professionale
+- user friendly
+- SEO friendly
+Indicazioni:
+- Evita di inserire nome del prodotto e marchio.
+- Evita di inserire il colore
+- Usa questi esempi per apprendere tono/stile
 
 Esempi simili:
 {example_section}
 
+Informazioni prodotto:
+{row.to_json()}
+
+Usa questo output
 Descrizione lunga:
 Descrizione breve:
 """
@@ -173,11 +183,21 @@ if uploaded:
                 prompt = build_prompt(row, simili)
                 gen_output = generate_descriptions(prompt)
 
-                descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
+                if "Descrizione breve:" in gen_output:
+                    descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
+                    descr_lunga = descr_lunga.replace("Descrizione lunga:", "").strip()
+                    descr_breve = descr_breve.strip()
+                else:
+                    # fallback se il modello non segue il formato atteso
+                    descr_lunga = gen_output.strip()
+                    descr_breve = ""
+                    
                 base = {
                     **row.to_dict(),
-                    "description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
-                    "description2": descr_breve.strip()
+                    #"description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
+                    #"description2": descr_breve.strip()
+                    "description": descr_lunga,
+                    "description2": descr_breve
                 }
 
                 for lang in selected_langs:
