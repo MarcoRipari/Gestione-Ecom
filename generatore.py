@@ -174,13 +174,6 @@ if uploaded_file:
         total_tokens = estimate_tokens(df, lang_selection)
         total_cost = total_tokens / 1000 * 0.001  # costo gpt-3.5-turbo
         st.info(f"Token stimati: {total_tokens} | Costo stimato: ${total_cost:.4f}")
-        num_prodotti = len(df)
-        lingue_extra = [lang for lang in lang_selection if lang != "it"]
-        cost = (total_tokens / 1000) * 0.0015
-        st.info(f"🧮 Totale prodotti: {num_prodotti}")
-        st.info(f"🌍 Traduzioni attive: {', '.join(lingue_extra) if lingue_extra else 'nessuna'}")
-        st.info(f"🔢 Token stimati: ~{total_tokens}")
-        st.success(f"💰 Costo stimato: ~{cost:.4f} USD")
 
     if st.button("Genera descrizioni"):
         st.write("Caricamento storico...")
