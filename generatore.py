@@ -13,6 +13,7 @@ from collections import defaultdict
 from datetime import datetime
 import io
 import zipfile
+import pytz
 
 # === CONFIG ===
 OPENAI_API_KEY = "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"
@@ -57,7 +58,7 @@ def log_audit(sheet, action, sku, status, message):
             worksheet = sheet.add_worksheet(title="AuditTrail", rows="100", cols="5")
             worksheet.append_row(["Timestamp", "Azione", "SKU", "Stato", "Dettagli"])
 
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now(pytz.timezone("Europe/Rome")).strftime("%Y-%m-%d %H:%M:%S")
         row = [timestamp, action, sku, status, message]
         worksheet.append_row(row)
 
