@@ -227,7 +227,27 @@ if uploaded_file:
         except:
             cached_data = None
 
-        for idx, row in df.iterrows():
+        # Stima costi prima della generazione
+        if st.button("📊 Stima costo descrizioni"):
+          num_prodotti = len(df)
+          tokens_per_desc = 150  # stima base: descrizione lunga + corta
+          lingue_extra = [lang for lang in LINGUE_TARGET if lang != "it"]
+          tokens_per_traduzione = 120  # stima per ciascuna traduzione
+
+          total_tokens = num_prodotti * (tokens_per_desc + len(lingue_extra) * tokens_per_traduzione)
+          cost = (total_tokens / 1000) * 0.0015
+
+          st.info(f"🧮 Totale prodotti: {num_prodotti}")
+          st.info(f"🌍 Traduzioni attive: {', '.join(lingue_extra) if lingue_extra else 'nessuna'}")
+          st.info(f"🔢 Token stimati: ~{total_tokens}")
+          st.success(f"💰 Costo stimato: ~{cost:.4f} USD")
+
+        if st.button("🚀 Conferma e genera"):
+          st.info("🔄 Generazione in corso...")
+          progress = st.progress(0)
+          results = []
+          
+          for idx, row in df.iterrows():
             sku = str(row.get("SKU", ""))
             if cached_data is not None and "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
                 long_desc = cached_data[cached_data["SKU"] == sku]["description"].values[0]
