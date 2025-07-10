@@ -218,7 +218,14 @@ if uploaded:
         with zipfile.ZipFile(mem_zip, "w") as zf:
             for lang in selected_langs:
                 df_out = pd.DataFrame(all_outputs[lang])
-                csv_bytes = df_out.to_csv(index=False).encode("utf-8")
+
+                # Riorganizza e rinomina le colonne
+                df_export = pd.DataFrame()
+                df_export["SKU"] = df_out.get("SKU", "")
+                df_export["Descrizione lunga"] = df_out.get("description", "")
+                df_export["Descrizione corta"] = df_out.get("description2", "")
+
+                csv_bytes = df_export.to_csv(index=False).encode("utf-8")
                 zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
         mem_zip.seek(0)
         st.success("✅ Generazione completata con successo!")
