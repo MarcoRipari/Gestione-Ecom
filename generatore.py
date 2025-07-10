@@ -159,9 +159,9 @@ if uploaded:
         progress_bar = st.progress(0)
         total = len(df_input)
 
-        for i, (_, row) in enumerate(df_input.iterrows()):
-            progress_bar.progress((i + 1) / total)
-            #  for _, row in df_input.iterrows():
+        #for i, (_, row) in enumerate(df_input.iterrows()):
+        #    progress_bar.progress((i + 1) / total)
+        for _, row in df_input.iterrows():
             try:
                 if index_df is not None:
                     simili = retrieve_similar(row, index_df, index, k=3, col_weights=col_weights)
