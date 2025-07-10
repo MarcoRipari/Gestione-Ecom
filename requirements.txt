@@ -3,8 +3,6 @@ streamlit
 
 # AI generation
 openai>=1.30.1
-langchain
-python-dotenv
 
 # Google Sheets API
 gspread
