@@ -72,9 +72,24 @@ def append_to_sheet(sheet_name: str, df: pd.DataFrame):
     ws.append_rows(df.values.tolist(), value_input_option='RAW')
 
 def build_prompt(row: pd.Series, examples: List[str]) -> str:
-    base = "Scrivi due descrizioni per un prodotto calzatura:\n"
+    base = "Scrivi due descrizioni per un prodotto calzatura da vendere online:\n"
     base += "- Descrizione lunga (~60 parole)\n"
     base += "- Descrizione corta (~20 parole)\n\n"
+    base += "Mantieni questo stile:\n"
+    base += "- accattivante\n"
+    base += "- caldo\n"
+    base += "- professionale\n"
+    base += "- user friendly\n"
+    base += "- SEO friendly\n\n"
+    base += "Questi sono i campi più rilevanti:\n"
+    base += "- 'Subtitle' = tipo di modello\n"
+    base += "- 'Concept' = Concetto usabilità\n"
+    base += "- 'Sp.feature' = qualità/pregi\n"
+    base += "- 'Sexe' = sesso\n"
+    base += "- 'Saison' = stagione\n"
+    base += "- 'sole_material_zalando' = soletta interna\n"
+    base += "- 'shoe_fastener_zalando' = tipo di chiusura\n"
+    base += "- 'futter_zalando' = fodera\n\n"
     base += "Esempi simili:\n"
     base += "\n\n".join(examples[:3])
     base += f"\n\nDati prodotto:\n"
