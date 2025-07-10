@@ -1,25 +1,23 @@
 import streamlit as st
 import pandas as pd
-import re
-import json
-import tempfile
-from openai import OpenAI
+import openai
+import zipfile
+import io
+from datetime import datetime
+from sentence_transformers import SentenceTransformer
+from sklearn.preprocessing import normalize
+import numpy as np
+import faiss
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-from collections import defaultdict
-from datetime import datetime
-import io
-import zipfile
-import pytz
+import time
+from typing import List, Dict
 
-# === CONFIG ===
-OPENAI_API_KEY = "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"
-SHEET_ID = "1R9diynXeS4zTzKnjz1Kp1Uk7MNJX8mlHgV82NBvjXZc"
-
-CREDENTIALS_JSON = {
+# CONFIGURAZIONI ------------------------
+openai.api_key = "YOUR_OPENAI_KEY"
+GOOGLE_SHEET_ID = "YOUR_SHEET_ID"
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+GOOGLE_CREDENTIALS = {
   "type": "service_account",
   "project_id": "generazione-descrizioni-marco",
   "private_key_id": "e28bf7469e35b80d166c6fad3a691d0fd879ed85",
@@ -33,295 +31,190 @@ CREDENTIALS_JSON = {
   "universe_domain": "googleapis.com"
 }
 
-LINGUE_TARGET = ["it", "en", "fr", "de"]  # Italiano, Inglese, Francese, Tedesco
+LANGUAGES = ["it", "en", "fr", "de"]
+DEFAULT_LANG = "it"
+COLUMN_WEIGHTS = {
+    "SKU famille": 1.0,
+    "Subtitle": 0.8, # Tipo di modello
+    "Concept": 0.7, # Concetto usabilità
+    "Sp.feature": 0.6, # Features
+    "Sexe": 0.5, # Sesso
+    "Saison": 0.4, # Stagione
+    "sole_material_zalando": 0.4, # Soletta interna
+    "shoe_fastener_zalando": 0.2, # Chiusura
+    "futter_zalando": 0.5 # Fodera
+    # aggiungi altre colonne qui
+}
 
-# === SETUP ===
-st.set_page_config(page_title="Generatore Descrizioni", layout="centered")
-st.title("📝 Generatore Descrizioni Prodotto")
+# Funzioni ---------------------------------
 
-# === GOOGLE SHEET ===
-def connect_to_gsheet(credentials_dict, sheet_id):
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as temp:
-        json.dump(credentials_dict, temp)
-        temp.flush()
-        creds = ServiceAccountCredentials.from_json_keyfile_name(temp.name, scope)
-    client = gspread.authorize(creds)
-    sheet = client.open_by_key(sheet_id)
-    return sheet
+@st.cache_resource
+def load_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
 
-def log_audit(sheet, action, sku, status, message, prompt=None):
+def authenticate_google():
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(GOOGLE_CREDENTIALS, SCOPES)
+    return gspread.authorize(creds)
+
+def read_sheet(sheet_name: str):
+    client = authenticate_google()
+    sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(sheet_name)
+    data = sheet.get_all_records()
+    return pd.DataFrame(data)
+
+def append_to_sheet(sheet_name: str, df: pd.DataFrame):
+    client = authenticate_google()
+    sheet = client.open_by_key(GOOGLE_SHEET_ID)
     try:
-        try:
-            worksheet = sheet.worksheet("AuditTrail")
-        except gspread.exceptions.WorksheetNotFound:
-            worksheet = sheet.add_worksheet(title="AuditTrail", rows="100", cols="5")
-            worksheet.append_row(["Timestamp", "Azione", "SKU", "Stato", "Dettagli", "Prompt"])
+        ws = sheet.worksheet(sheet_name)
+    except:
+        ws = sheet.add_worksheet(title=sheet_name, rows=10000, cols=50)
+    ws.append_rows(df.values.tolist(), value_input_option='RAW')
 
-        timestamp = datetime.now(pytz.timezone("Europe/Rome")).strftime("%Y-%m-%d %H:%M:%S")
-        row = [timestamp, action, sku, status, message, prompt or ""]
-        worksheet.append_row(row)
+def build_prompt(row: pd.Series, examples: List[str]) -> str:
+    base = "Scrivi due descrizioni per un prodotto calzatura:\n"
+    base += "- Descrizione lunga (~60 parole)\n"
+    base += "- Descrizione corta (~20 parole)\n\n"
+    base += "Esempi simili:\n"
+    base += "\n\n".join(examples[:3])
+    base += f"\n\nDati prodotto:\n"
+    for col, val in row.items():
+        base += f"{col}: {val}\n"
+    base += "\nOutput:"
+    return base
 
-    except Exception as e:
-        st.warning(f"⚠️ Impossibile scrivere nell'AuditTrail: {e}")
-
-# === CACHING & RAG BASE ===
-cached_data = None
-similarity_index = None
-vectorizer = TfidfVectorizer()
-
-@st.cache_data(show_spinner=False)
-def load_gsheet_cache():
+def generate_with_openai(prompt: str) -> Dict[str, str]:
     try:
-        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
-        data = sheet.worksheet("IT").get_all_records()
-        return pd.DataFrame(data)
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
+        text = response.choices[0].message.content
+        lines = text.strip().split("\n")
+        long_desc = next((l for l in lines if len(l.split()) > 8), "")
+        short_desc = next((l for l in lines if 3 < len(l.split()) <= 15), "")
+        return {"description": long_desc, "description2": short_desc, "raw": text}
     except Exception as e:
-        st.warning(f"⚠️ Errore nel caricamento da Google Sheet: {e}")
-        return pd.DataFrame()  # meglio che None
+        return {"error": str(e)}
 
-cached_data = load_gsheet_cache()
-if cached_data.empty or "SKU" not in cached_data.columns:
-    st.warning("⚠️ Il foglio Google Sheet è vuoto o non contiene la colonna 'SKU'.")
-else:
-    #st.write("✅ Colonne disponibili:", cached_data.columns.tolist())
-    st.success("✅ Foglio google caricato!")
-
-
-# === COSTRUISCI FAISS-LIKE INDEX ===
-def build_similarity_index(df):
-    if df.empty:
-        return None, None
-    corpus = []
-    skus = []
+def build_faiss_index(df: pd.DataFrame, model) -> faiss.IndexFlatIP:
+    vectors = []
     for _, row in df.iterrows():
-        sku = str(row.get("SKU", ""))[:7]  # modello base
-        text = " ".join([str(v) for k, v in row.items() if k.lower() not in ["description", "short_description"]])
-        corpus.append(text)
-        skus.append(sku)
-    X = vectorizer.fit_transform(corpus)
-    return X, skus
+        text = " ".join(str(row[col]) * int(COLUMN_WEIGHTS.get(col, 1) * 10) for col in df.columns)
+        emb = model.encode([text])[0]
+        vectors.append(emb)
+    matrix = np.vstack(vectors)
+    matrix = normalize(matrix, axis=1)
+    index = faiss.IndexFlatIP(matrix.shape[1])
+    index.add(matrix)
+    return index, vectors
 
-X_cache, skus_cache = build_similarity_index(cached_data)
+def retrieve_similar(row, df, index, vectors, model, k=3):
+    text = " ".join(str(row[col]) * int(COLUMN_WEIGHTS.get(col, 1) * 10) for col in df.columns)
+    query = model.encode([text])[0]
+    query = normalize([query])[0]
+    D, I = index.search(np.array([query]), k)
+    return [f"- {df.iloc[i]['description']}\n- {df.iloc[i]['description2']}" for i in I[0] if 'description' in df.columns]
 
-# === FUNZIONE OPENAI ===
-client = OpenAI(api_key=OPENAI_API_KEY)
-
-def generate_descriptions(row):
-    sku_prefix = str(row.get("SKU", ""))[:7]
-    product_info = ", ".join([
-        f"{k}: {v}" for k, v in row.items()
-        if k.lower() not in ["description", "short_description"] and pd.notna(v)
-    ])
-
-    # === RAG MULTI-LIVELLO ===
-    examples = []
-    if cached_data is not None and not cached_data.empty:
-        matches = cached_data[cached_data["SKU"].astype(str).str.startswith(sku_prefix)]
-
-        # Livello 2: Similarità semantica
-        if X_cache is not None:
-            row_text = " ".join([str(v) for k, v in row.items() if k.lower() not in ["description", "short_description"]])
-            X_row = vectorizer.transform([row_text])
-            sims = cosine_similarity(X_row, X_cache)[0]
-            top_indices = sims.argsort()[-3:][::-1]  # top 3 simili
-            similar_rows = cached_data.iloc[top_indices]
-            matches = pd.concat([matches, similar_rows]).drop_duplicates(subset="SKU")
-
-        # Livello 3: Matching per categoria
-        if "Categoria" in row and "Categoria" in cached_data.columns:
-            matches = pd.concat([matches, cached_data[cached_data["Categoria"] == row["Categoria"]]])
-            matches = matches.drop_duplicates(subset="SKU")
-
-        for _, ex in matches.iterrows():
-            examples.append(f"- {ex.get('description', '')}\n  ➜ {ex.get('short_description', '')}")
-
-    # === Costruzione Prompt ===
-    context = "\n".join(examples[:5]) if examples else ""
-    prompt = f"""
-Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile:
-- accattivante
-- caldo
-- professionale
-- user friendly
-- SEO friendly
-Indicazioni:
-- Evita di inserire nome del prodotto e marchio.
-- Evita di inserire il colore
-- Usa questi esempi per apprendere tono/stile
-
-Esempi:
-{context}
-
-Scrivi solo un oggetto JSON con questo formato esatto (niente testo extra):
-
-{{
-  "description": "...",  // circa 60 parole
-  "short_description": "..."   // circa 20 parole
-}}
-
-Dettagli del prodotto: {product_info}
-"""
-
+def translate(text: str, target_lang: str) -> str:
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
+            messages=[{
+                "role": "user",
+                "content": f"Traduci in {target_lang.upper()} mantenendo la lunghezza e lo stile:\n{text}"
+            }]
         )
-        content = response.choices[0].message.content.strip()
-        result = json.loads(content)
-        long_desc = result.get("description", "Descrizione lunga non trovata")
-        short_desc = result.get("short_description", long_desc[:100])
-        return long_desc, short_desc, prompt
-    except:
-        return "Errore", "Errore"
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"[Errore traduzione: {e}]"
 
-# === FUNZIONE TRADUZIONE ===
+def estimate_tokens(df: pd.DataFrame, lang_list: List[str]) -> int:
+    avg_prompt_length = 250  # token stimati per prompt
+    multiplier = len(lang_list)
+    return int(len(df) * avg_prompt_length * multiplier)
 
-def translate_descriptions(long_desc, short_desc, target_lang):
-    prompt = f"""
-Traduci il seguente oggetto JSON in lingua '{target_lang}' mantenendo uno stile:
-- accattivante
-- caldo
-- professionale
-- user friendly
-- SEO friendly
+# UI ---------------------------------
 
-JSON:
-{{
-  "description": "...",
-  "short_description": "..."
-}}
+st.title("🧠 Generatore Descrizioni Scarpe (Multilingua)")
 
-Rispondi solo con l'oggetto JSON tradotto, senza testo extra.
-"""
-  
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
-        )
-        content = response.choices[0].message.content.strip()
-        result = json.loads(content)
-        return result.get("description", ""), result.get("short_description", "")
-    except:
-        return "Errore traduzione", "Errore traduzione"
+lang_selection = st.multiselect("Seleziona le lingue", LANGUAGES, default=[DEFAULT_LANG])
 
-# === APP STREAMLIT ===
+uploaded_file = st.file_uploader("Carica CSV", type="csv")
 
-st.title("📝 Generatore descrizioni calzature")
-
-uploaded_file = st.file_uploader("📤 Carica il file CSV con colonna 'SKU'", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
+    df_out = df.copy()
+    df_out["description"] = ""
+    df_out["description2"] = ""
 
-    if "SKU" not in df.columns:
-        st.error("❌ Il file CSV deve contenere una colonna 'SKU'.")
-    else:
-        results_per_lang = defaultdict(list)
-        sheet = connect_to_gsheet(CREDENTIALS_JSON, SHEET_ID)
+    st.write("Anteprima:")
+    st.dataframe(df.head())
 
-        # Caching foglio Google
-        try:
-            existing_sheet = sheet.worksheet("IT")
-            cached_data = pd.DataFrame(existing_sheet.get_all_records())
-        except:
-            cached_data = None
+    if st.button("Stima costo"):
+        total_tokens = estimate_tokens(df, lang_selection)
+        total_cost = total_tokens / 1000 * 0.001  # costo gpt-3.5-turbo
+        st.info(f"Token stimati: {total_tokens} | Costo stimato: ${total_cost:.4f}")
 
-        # Stima costi prima della generazione
-        if st.button("📊 Stima costo descrizioni"):
-          num_prodotti = len(df)
-          tokens_per_desc = 150  # stima base: descrizione lunga + corta
-          lingue_extra = [lang for lang in LINGUE_TARGET if lang != "it"]
-          tokens_per_traduzione = 120  # stima per ciascuna traduzione
+    if st.button("Genera descrizioni"):
+        st.write("Caricamento storico...")
+        storico_df = read_sheet(DEFAULT_LANG)
+        model = load_model()
+        index, vecs = build_faiss_index(storico_df, model)
 
-          total_tokens = num_prodotti * (tokens_per_desc + len(lingue_extra) * tokens_per_traduzione)
-          cost = (total_tokens / 1000) * 0.0015
+        results = []
+        logs = []
 
-          st.info(f"🧮 Totale prodotti: {num_prodotti}")
-          st.info(f"🌍 Traduzioni attive: {', '.join(lingue_extra) if lingue_extra else 'nessuna'}")
-          st.info(f"🔢 Token stimati: ~{total_tokens}")
-          st.success(f"💰 Costo stimato: ~{cost:.4f} USD")
+        for i, row in df.iterrows():
+            try:
+                examples = retrieve_similar(row, storico_df, index, vecs, model)
+                prompt = build_prompt(row, examples)
+                result = generate_with_openai(prompt)
+                if "error" in result:
+                    raise Exception(result["error"])
+                row_out = row.to_dict()
+                row_out.update({
+                    "description": result["description"],
+                    "description2": result["description2"]
+                })
 
-        if st.button("🚀 Conferma e genera"):
-            st.info("🔄 Generazione in corso...")
-            progress = st.progress(0)
-            results = []
+                for lang in lang_selection:
+                    if lang != DEFAULT_LANG:
+                        row_out[f"description_{lang}"] = translate(result["description"], lang)
+                        row_out[f"description2_{lang}"] = translate(result["description2"], lang)
 
-            for idx, row in df.iterrows():
-                sku = str(row.get("SKU", ""))
-                if cached_data is not None and "SKU" in cached_data.columns and sku in cached_data["SKU"].astype(str).values:
-                    long_desc = cached_data[cached_data["SKU"] == sku]["description"].values[0]
-                    short_desc = cached_data[cached_data["SKU"] == sku]["short_description"].values[0]
-                else:
-                    long_desc, short_desc, prompt = generate_descriptions(row)
-                    if long_desc == "Errore":
-                        log_audit(sheet, action="generate", sku=sku, status="failed", message="Errore durante generazione", prompt=prompt)
-                    else:
-                        log_audit(sheet, action="generate", sku=sku, status="success", message="Descrizione generata", prompt=prompt)
+                df_out.loc[i, "description"] = result["description"]
+                df_out.loc[i, "description2"] = result["description2"]
 
-                for lang in LINGUE_TARGET:
-                    if lang == "it":
-                        desc, short = long_desc, short_desc
-                    else:
-                        desc, short = translate_descriptions(long_desc, short_desc, lang)
+                for lang in lang_selection:
+                    if lang != DEFAULT_LANG:
+                        df_out.loc[i, f"description_{lang}"] = row_out[f"description_{lang}"]
+                        df_out.loc[i, f"description2_{lang}"] = row_out[f"description2_{lang}"]
 
-                    new_row = row.copy()
-                    new_row["description"] = desc
-                    new_row["short_description"] = short
-                    results_per_lang[lang].append(new_row)
+                logs.append([datetime.now().isoformat(), row["SKU"], "SUCCESS", prompt, result["raw"]])
+                results.append(row_out)
 
-                progress.progress((idx + 1) / len(df))
+            except Exception as e:
+                logs.append([datetime.now().isoformat(), row["SKU"], "ERROR", str(e), ""])
 
-            # === SALVATAGGIO SU GOOGLE SHEETS E ZIP ===
-            zip_buffer = io.BytesIO()
-                
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                for lang, rows in results_per_lang.items():
-                    lang_df = pd.DataFrame(rows).replace({np.nan: None})  # ✅ include tutte le righe
-                    lang_sheet_name = lang.upper()
-                
-                    try:
-                        worksheet = None
-                        try:
-                            worksheet = sheet.worksheet(lang_sheet_name)
-                        except gspread.exceptions.WorksheetNotFound:
-                            worksheet = sheet.add_worksheet(title=lang_sheet_name, rows="100", cols="20")
-                            worksheet.append_row(lang_df.columns.tolist())
-                
-                        # 🔍 Controllo per evitare duplicati su Google Sheets
-                        existing = worksheet.get_all_values()
-                        existing_skus = set(row[0] for row in existing[1:]) if len(existing) > 1 else set()
-                        new_rows = []
-                
-                        for _, row in lang_df.iterrows():
-                            sku = str(row["SKU"])
-                            if sku not in existing_skus:
-                                new_rows.append([row[col] for col in lang_df.columns])  # ✅ mantiene ordine colonne
-                                log_audit(sheet, "Generazione", sku, "Successo", f"Aggiunto a {lang_sheet_name}")
-                            else:
-                                log_audit(sheet, "Generazione", sku, "Ignorato", f"SKU già presente in {lang_sheet_name}")
-                
-                        if new_rows:
-                            worksheet.append_rows(new_rows)
-                
-                    except Exception as e:
-                        st.error(f"❌ Errore salvataggio per lingua {lang}: {e}")
-                
-                    # ✅ Scrivi sempre tutte le righe nello ZIP
-                    csv_bytes = lang_df.to_csv(index=False).encode("utf-8")
-                    zip_file.writestr(f"descrizioni_{lang_sheet_name}.csv", csv_bytes)
-                
-            zip_buffer.seek(0)
+        # Salvataggio
+        for lang in lang_selection:
+            lang_df = df_out[["SKU", f"description_{lang}" if lang != "it" else "description",
+                              f"description2_{lang}" if lang != "it" else "description2"]].copy()
+            append_to_sheet(lang, lang_df)
 
-    
-            # ✅ Mostra solo dopo la generazione
-            st.download_button(
-              label="⬇️ Scarica tutti i CSV in ZIP",
-              data=zip_buffer,
-              file_name="descrizioni_multilingua.zip",
-              mime="application/zip",
-              key="download_zip"  # 👈 chiave unica
-            )
+        # Log
+        log_df = pd.DataFrame(logs, columns=["timestamp", "SKU", "status", "prompt", "output"])
+        append_to_sheet("logs", log_df)
+
+        # Zip
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+            for lang in lang_selection:
+                lang_df = df_out[["SKU", f"description_{lang}" if lang != "it" else "description",
+                                  f"description2_{lang}" if lang != "it" else "description2"]]
+                csv_bytes = lang_df.to_csv(index=False).encode("utf-8")
+                zip_file.writestr(f"descrizioni_{lang}.csv", csv_bytes)
+
+        st.download_button("📥 Scarica CSV ZIP", zip_buffer.getvalue(), "descrizioni.zip", mime="application/zip")
