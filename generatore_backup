@@ -13,6 +13,7 @@ import gspread
 from googleapiclient.discovery import build
 from io import BytesIO
 import zipfile
+import chardet
 
 # ---------------------------
 # 🔐 Setup API keys and credentials
@@ -65,7 +66,7 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
 # 🧠 Prompting e Generazione
 # ---------------------------
 def build_prompt(row, examples):
-    example_section = "\n".join([f"Esempio: {r['description']}" for _, r in examples.iterrows()])
+    example_section = "\n".join([f"Esempio: {r['Description']}" for _, r in examples.iterrows()])
     prompt = f"""
 Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile:
 - accattivante
@@ -128,30 +129,71 @@ def save_to_sheet(sheet_id, tab, df):
 
     # ✅ Scrittura nel foglio Google Sheets
     sheet.update(data)
-
+    
+# ---------------------------
+# Funzioni varie
+# ---------------------------
+def read_csv_auto_encoding(uploaded_file):
+    raw_data = uploaded_file.read()
+    result = chardet.detect(raw_data)
+    encoding = result['encoding'] or 'utf-8'
+    uploaded_file.seek(0)  # Rewind after read
+    return pd.read_csv(uploaded_file, encoding=encoding)
+    
 # ---------------------------
 # 📦 Streamlit UI
 # ---------------------------
 st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
-sheet_id = st.text_input("Google Sheet ID dello storico", key="sheet")
+# sheet_id = st.text_input("Google Sheet ID dello storico", key="sheet")
+sheet_id = st.secrets["GSHEET_ID"]
 selected_langs = st.multiselect("Seleziona lingue di output", ["it", "en", "fr", "de"], default=["it"])
 uploaded = st.file_uploader("Carica il CSV dei prodotti", type="csv")
 
 # Configurazione pesi colonne per RAG
 if uploaded:
+    #df_input = read_csv_auto_encoding(uploaded)
     df_input = pd.read_csv(uploaded)
+    st.dataframe(df_input.head())
     col_weights = {}
     st.markdown("### ⚙️ Configura i pesi delle colonne (importanza nella similarità)")
     for col in df_input.columns:
-        if col not in ["description", "description2"]:
+        if col not in ["Description", "Description2"]:
             col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 1)
 
     if st.button("Stima costi"):
-        est_tokens = len(df_input) * 250 * len(selected_langs)
-        est_cost = est_tokens / 1000 * 0.001  # gpt-3.5-turbo
-        st.info(f"Token stimati: {est_tokens} | Costo stimato: ${est_cost:.4f}")
+        # Calcolo prompt medio sui primi 3 record
+        prompts = []
+        for _, row in df_input.iterrows():
+            simili = pd.DataFrame([])  # niente RAG per la stima
+            prompt = build_prompt(row, simili)
+            prompts.append(prompt)
+            if len(prompts) >= 3:
+                break
+
+        # Stimiamo i token: 1 token ≈ 4 caratteri
+        avg_prompt_len_chars = sum(len(p) for p in prompts) / len(prompts)
+        avg_prompt_tokens = avg_prompt_len_chars / 4
+
+        # Output: descrizione lunga + breve (stima in token)
+        output_tokens_per_row = 60 + 20  # circa 80 token per lingua
+
+        # Calcolo finale
+        num_rows = len(df_input)
+        num_langs = len(selected_langs)
+        total_input_tokens = num_rows * avg_prompt_tokens
+        total_output_tokens = num_rows * output_tokens_per_row * num_langs
+        total_tokens = total_input_tokens + total_output_tokens
+
+        est_cost = total_tokens / 1000 * 0.001  # gpt-3.5-turbo
+
+        st.info(f"""
+        Prompt medio: ~{avg_prompt_tokens:.0f} token  
+        Output stimato per riga: {output_tokens_per_row} token × {num_langs} lingue  
+        Token totali stimati: ~{int(total_tokens)}  
+        **Costo stimato: ${est_cost:.4f}**
+        """)
 
     if st.button("Genera Descrizioni"):
         index_df = None
@@ -194,21 +236,21 @@ if uploaded:
                     
                 base = {
                     **row.to_dict(),
-                    #"description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
-                    #"description2": descr_breve.strip()
-                    "description": descr_lunga,
-                    "description2": descr_breve
+                    #"Description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
+                    #"Description2": descr_breve.strip()
+                    "Description": descr_lunga,
+                    "Description2": descr_breve
                 }
 
                 for lang in selected_langs:
                     if lang == "it":
                         all_outputs[lang].append(base)
                     else:
-                        trad_lunga = translate_text(base["description"], target_lang=lang)
-                        trad_breve = translate_text(base["description2"], target_lang=lang)
+                        trad_lunga = translate_text(base["Description"], target_lang=lang)
+                        trad_breve = translate_text(base["Description2"], target_lang=lang)
                         trad = base.copy()
-                        trad["description"] = trad_lunga
-                        trad["description2"] = trad_breve
+                        trad["Description"] = trad_lunga
+                        trad["Description2"] = trad_breve
                         all_outputs[lang].append(trad)
 
                 logs.append({
@@ -244,8 +286,8 @@ if uploaded:
                 # Riorganizza e rinomina le colonne
                 df_export = pd.DataFrame()
                 df_export["SKU"] = df_out.get("SKU", "")
-                df_export["Descrizione lunga"] = df_out.get("description", "")
-                df_export["Descrizione corta"] = df_out.get("description2", "")
+                df_export["Descrizione lunga"] = df_out.get("Description", "")
+                df_export["Descrizione corta"] = df_out.get("Description2", "")
 
                 csv_bytes = df_export.to_csv(index=False).encode("utf-8")
                 zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
