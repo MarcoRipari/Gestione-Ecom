@@ -21,9 +21,6 @@ scikit-learn
 numpy
 requests
 
-# File handling
-python-magic-bin==0.4.14
-
 
 #streamlit
 #openai>=1.30.1
