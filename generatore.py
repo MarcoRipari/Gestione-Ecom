@@ -204,7 +204,9 @@ if uploaded:
                 index, index_df = build_faiss_index(df_storico, col_weights)
             except:
                 index = None
-
+        D, I = index.search(np.array([query_vector]), k=5)
+        st.warning(D)
+        st.warning(I)
         all_outputs = {lang: [] for lang in selected_langs}
         logs = []
 
