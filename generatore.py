@@ -156,7 +156,12 @@ if uploaded:
         all_outputs = {lang: [] for lang in selected_langs}
         logs = []
 
-        for _, row in df_input.iterrows():
+        progress_bar = st.progress(0)
+        total = len(df_input)
+
+        for i, (_, row) in enumerate(df_input.iterrows()):
+            progress_bar.progress((i + 1) / total)
+            #  for _, row in df_input.iterrows():
             try:
                 if index_df is not None:
                     simili = retrieve_similar(row, index_df, index, k=3, col_weights=col_weights)
@@ -216,4 +221,6 @@ if uploaded:
                 csv_bytes = df_out.to_csv(index=False).encode("utf-8")
                 zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
         mem_zip.seek(0)
+        st.success("✅ Generazione completata con successo!")
+        st.ballons()
         st.download_button("📥 Scarica CSV (ZIP)", mem_zip, file_name="descrizioni.zip")
