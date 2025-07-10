@@ -1,10 +1,37 @@
+# Web app
 streamlit
+
+# AI generation
 openai>=1.30.1
-pandas
+
+# Google Sheets API
 gspread
 oauth2client
 google-auth
+google-api-python-client
+google-auth-oauthlib
+
+# Embeddings + RAG
 faiss-cpu
+sentence-transformers
+
+# Core
+pandas
 scikit-learn
 numpy
-tqdm
+requests
+
+# File handling
+python-magic-bin
+
+
+#streamlit
+#openai>=1.30.1
+#pandas
+#gspread
+#oauth2client
+#google-auth
+#faiss-cpu
+#scikit-learn
+#numpy
+#tqdm
