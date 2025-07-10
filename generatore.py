@@ -60,7 +60,7 @@ def read_sheet(sheet_name: str):
     client = authenticate_google()
     try:
         sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(sheet_name)
-    except
+    except:
         sheet = client.open_by_key(GOOGLE_SHEET_ID).add_worksheet(sheet_name, rows=100000, cols=108)
     data = sheet.get_all_records()
     return pd.DataFrame(data)
@@ -170,10 +170,17 @@ if uploaded_file:
     st.write("Anteprima:")
     st.dataframe(df.head())
 
-    if st.button("Stima costo"):
+    if st.button("📊 Stima costo descrizioni"):
+        num_prodotti = len(df)
+        lingue_extra = [lang for lang in lang_selection if lang != "it"]
         total_tokens = estimate_tokens(df, lang_selection)
         total_cost = total_tokens / 1000 * 0.001  # costo gpt-3.5-turbo
         st.info(f"Token stimati: {total_tokens} | Costo stimato: ${total_cost:.4f}")
+
+        st.info(f"🧮 Totale prodotti: {num_prodotti}")
+        st.info(f"🌍 Traduzioni attive: {', '.join(lingue_extra) if lingue_extra else 'nessuna'}")
+        st.info(f"🔢 Token stimati: ~{total_tokens}")
+        st.success(f"💰 Costo stimato: ~{cost:.4f} USD")
 
     if st.button("Genera descrizioni"):
         st.write("Caricamento storico...")
