@@ -14,6 +14,7 @@ import zipfile
 import chardet
 import hashlib
 import pickle
+from sentence_transformers import SentenceTransformer
 
 # ---------------------------
 # 🔐 Setup API keys and credentials
@@ -35,16 +36,16 @@ def get_sheet(sheet_id, tab):
 # ---------------------------
 # 📦 Embedding & FAISS Setup
 # ---------------------------
-def embed_texts(texts: List[str], model="text-embedding-3-small") -> List[List[float]]:
-    response = openai.embeddings.create(input=texts, model=model)
-    return [d.embedding for d in response.data]
+model = SentenceTransformer("all-MiniLM-L6-v2")  # leggero e veloce
+
+def embed_texts(texts: List[str]) -> List[List[float]]:
+    return model.encode(texts, show_progress_bar=False).tolist()
 
 def hash_dataframe_and_weights(df: pd.DataFrame, col_weights: Dict[str, float]) -> str:
     df_bytes = pickle.dumps((df.fillna("").astype(str), col_weights))
     return hashlib.md5(df_bytes).hexdigest()
-    
-def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_dir="faiss_cache"):
 
+def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_dir="faiss_cache"):
     os.makedirs(cache_dir, exist_ok=True)
     cache_key = hash_dataframe_and_weights(df, col_weights)
     cache_path = os.path.join(cache_dir, f"{cache_key}.index")
@@ -55,20 +56,55 @@ def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_dir
 
     texts = []
     for _, row in df.iterrows():
-        text = " ".join([f"{col}: {row[col]}" * int(col_weights.get(col, 1)) for col in df.columns if pd.notna(row[col])])
-        texts.append(text)
+        parts = []
+        for col in df.columns:
+            if pd.notna(row[col]):
+                weight = col_weights.get(col, 1)
+                if weight > 0:
+                    parts.append((f"{col}: {row[col]} ") * int(weight))
+        texts.append(" ".join(parts))
 
     vectors = embed_texts(texts)
     index = faiss.IndexFlatL2(len(vectors[0]))
     index.add(np.array(vectors).astype("float32"))
     faiss.write_index(index, cache_path)
+
     return index, df
 
 def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_weights: Dict[str, float] = {}):
-    query_text = " ".join([f"{col}: {query_row[col]}" * int(col_weights.get(col, 1)) for col in df.columns if pd.notna(query_row[col])])
+    parts = []
+    for col in df.columns:
+        if pd.notna(query_row[col]):
+            weight = col_weights.get(col, 1)
+            if weight > 0:
+                parts.append((f"{col}: {query_row[col]} ") * int(weight))
+    query_text = " ".join(parts)
+
     query_vector = embed_texts([query_text])[0]
     D, I = index.search(np.array([query_vector]).astype("float32"), k)
     return df.iloc[I[0]]
+
+def estimate_embedding_time(df: pd.DataFrame, col_weights: Dict[str, float], sample_size: int = 10) -> float:
+    """
+    Stima il tempo totale per embeddare tutti i testi del dataframe.
+    """
+    texts = []
+    for _, row in df.head(sample_size).iterrows():
+        parts = []
+        for col in df.columns:
+            if pd.notna(row[col]):
+                weight = col_weights.get(col, 1)
+                if weight > 0:
+                    parts.append((f"{col}: {row[col]} ") * int(weight))
+        texts.append(" ".join(parts))
+
+    start = time.time()
+    _ = embed_texts(texts)
+    elapsed = time.time() - start
+    avg_time_per_row = elapsed / sample_size
+    total_estimated_time = avg_time_per_row * len(df)
+
+    return total_estimated_time
 
 # ---------------------------
 # 🧠 Prompting e Generazione
@@ -194,6 +230,9 @@ if uploaded:
                 # Carica storico ed esegui FAISS
                 data_sheet = get_sheet(sheet_id, "it")
                 df_storico = pd.DataFrame(data_sheet.get_all_records())
+                with st.spinner("Stima del tempo per generare gli embedding..."):
+                    est_time = estimate_embedding_time(df_storico, col_weights)
+                    st.info(f"⏱ Tempo stimato per l'indicizzazione: **{est_time:.2f} secondi**")
                 index, index_df = build_faiss_index(df_storico, col_weights)
                 simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
             else:
