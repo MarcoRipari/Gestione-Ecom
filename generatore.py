@@ -188,30 +188,22 @@ if uploaded:
 
     # Stimo il costo del token con RAG
     if st.button("📄 Stima costi con RAG"):
+        # Recupera esempi se RAG è attivo
         try:
-            # Recupera esempi se RAG è attivo
             if sheet_id:
                 data_sheet = get_sheet(sheet_id, "it")
                 df_storico = pd.DataFrame(data_sheet.get_all_records())
                 index, index_df = build_faiss_index(df_storico, col_weights)
-                simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
-
-            # Visualizza simili
-            with st.expander("📋 Simili recuperati"):
-                st.code(simili)
-                
-            # Costruzione prompt
-            #prompt = build_prompt(riga, simili)
-    
-            # Stima token e costo
-            #est_tokens, est_cost = estimate_cost(prompt, model="gpt-3.5-turbo")
-            #st.info(f"🧠 Prompt stimato: {est_tokens} token — Costo previsto: ${est_cost:.4f}")
-    
-            # Visualizza prompt (facoltativo)
-            #with st.expander("📋 Prompt generato"):
-            #    st.code(prompt)
+                simili = retrieve_similar(test_row, index_df, index, k=1, col_weights=col_weights)
         except Exception as e:
-            st.warning(f"Errore: {e}")
+            st.warning(f"Errore simili: {e}")
+
+        # Visualizza simili
+        with st.expander("📋 FAISS generato"):
+            st.code(index)
+            st.code(index_df)
+        with st.expander("📋 Simili recuperati"):
+            st.code(simili)
 
     if st.button("Genera anteprima descrizione"):
         try:
@@ -223,7 +215,7 @@ if uploaded:
                     data_sheet = get_sheet(sheet_id, "it")
                     df_storico = pd.DataFrame(data_sheet.get_all_records())
                     index, index_df = build_faiss_index(df_storico, col_weights)
-                    simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
+                    simili = retrieve_similar(test_row, index_df, index, k=1, col_weights=col_weights)
                 except Exception as e:
                     st.warning(f"⚠️ Impossibile usare RAG: {e}")
             
@@ -302,7 +294,7 @@ if uploaded:
             progress_bar.progress((i + 1) / total)
             try:
                 if index_df is not None:
-                    simili = retrieve_similar(row, index_df, index, k=3, col_weights=col_weights)
+                    simili = retrieve_similar(row, index_df, index, k=1, col_weights=col_weights)
                 else:
                     simili = pd.DataFrame([])
 
