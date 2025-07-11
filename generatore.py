@@ -285,11 +285,10 @@ if uploaded:
                 df_storico = pd.DataFrame(data_sheet.get_all_records())
                 df_storico = df_storico.tail(500)
                 st.write("📦 Righe nello storico:", len(df_storico))
+                st.write("📌 Test row:", test_row.to_dict())
                 index, index_df = build_faiss_index(df_storico, col_weights)
-    
-            st.write("📌 Test row:", test_row.to_dict())
-            st.write("🧠 FAISS index size:", index.ntotal)
-    
+                st.write("🧠 FAISS index size:", index.ntotal)
+
             simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
             st.markdown("🔍 **Righe simili trovate:**")
             st.dataframe(simili)
