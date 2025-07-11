@@ -223,24 +223,27 @@ if uploaded:
 
     # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
-        test_row = 1
-        try:
-            if sheet_id:
-                # Carica storico ed esegui FAISS
-                data_sheet = get_sheet(sheet_id, "it")
-                df_storico = pd.DataFrame(data_sheet.get_all_records())
-                index, index_df = build_faiss_index(df_storico, col_weights)
-                simili = retrieve_similar(test_row, index_df, index, k=1, col_weights=col_weights)
-            else:
-                simili = pd.DataFrame([])
-    
-            prompt_preview = build_prompt(test_row, simili)
-            prompt_tokens = len(prompt_preview) / 4  # stima token
-            st.caption(f"🔢 Token stimati: {int(prompt_tokens)}")
-            st.text_area("🧠 Prompt generato", prompt_preview, height=600)
-    
-        except Exception as e:
-            st.error(f"Errore nella generazione del prompt: {str(e)}")
+        with st.spinner("Genero il prompt..."):
+            test_row = 1
+            try:
+                if sheet_id:
+                    # Carica storico ed esegui FAISS
+                    data_sheet = get_sheet(sheet_id, "it")
+                    df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    index, index_df = build_faiss_index(df_storico, col_weights)
+                    simili = retrieve_similar(test_row, index_df, index, k=1, col_weights=col_weights)
+                else:
+                    simili = pd.DataFrame([])
+        
+                prompt_preview = build_prompt(test_row, simili)
+                prompt_tokens = len(prompt_preview) / 4  # stima token
+                #st.caption(f"🔢 Token stimati: {int(prompt_tokens)}")
+                #st.text_area("🧠 Prompt generato", prompt_preview, height=600)
+                with st.expander("📄 Anteprima prompt generato"):
+                    st.code(prompt_preview, language="markdown")
+        
+            except Exception as e:
+                st.error(f"Errore nella generazione del prompt: {str(e)}")
             
     if st.button("Stima costi"):
         # Calcolo prompt medio sui primi 3 record
