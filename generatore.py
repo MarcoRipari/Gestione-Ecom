@@ -38,8 +38,8 @@ def get_sheet(sheet_id, tab):
 # ---------------------------
 model = SentenceTransformer("all-MiniLM-L6-v2")  # leggero e veloce
 
-def embed_texts(texts: List[str]) -> List[List[float]]:
-    return model.encode(texts, show_progress_bar=False).tolist()
+def embed_texts(texts: List[str], batch_size=32) -> List[List[float]]:
+    return model.encode(texts, show_progress_bar=False, batch_size=batch_size).tolist()
 
 def hash_dataframe_and_weights(df: pd.DataFrame, col_weights: Dict[str, float]) -> str:
     df_bytes = pickle.dumps((df.fillna("").astype(str), col_weights))
@@ -109,25 +109,26 @@ def estimate_embedding_time(df: pd.DataFrame, col_weights: Dict[str, float], sam
 # ---------------------------
 # 🧠 Prompting e Generazione
 # ---------------------------
-def build_prompt(row, examples=None):
+def build_prompt(row, examples=None, col_display_names=None):
     fields = []
     for col in row.index:
         if pd.notna(row[col]) and col.lower() not in ["sku", "description", "description2"]:
-            fields.append(f"{col}: {row[col]}")
+            label = col_display_names.get(col, col) if col_display_names else col
+            fields.append(f"{label}: {row[col]}")
     
     product_info = "; ".join(fields)
 
     example_section = ""
     if examples is not None and not examples.empty:
-        for _, ex in examples.head(2).iterrows():
-            example_section += f"- {ex['Description']}\n"
+        ex = examples.iloc[0]
+        example_section = f"- {ex['Description']}"
 
     prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
 
 Tono richiesto: professionale, user friendly, accattivante, SEO-friendly.
 Evita nome prodotto, colore e marchio.
 
-Esempi:
+Esempio:
 {example_section.strip()}
 
 Scheda tecnica: {product_info}
@@ -217,10 +218,16 @@ if uploaded:
     df_input = read_csv_auto_encoding(uploaded)
     st.dataframe(df_input.head())
     col_weights = {}
-    st.markdown("### ⚙️ Configura i pesi delle colonne (importanza nella similarità)")
+    col_display_names = {}
+    st.markdown("### ⚙️ Configura i pesi e i nomi delle colonne")
+    
     for col in df_input.columns:
         if col not in ["Description", "Description2"]:
-            col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 1)
+            cols = st.columns([2, 3])
+            with cols[0]:
+                col_weights[col] = st.slider(f"Peso: {col}", 0, 5, 1, key=f"peso_{col}")
+            with cols[1]:
+                col_display_names[col] = st.text_input(f"Etichetta: {col}", value=col, key=f"label_{col}")
 
 
     # Stimo il costo del token con RAG
@@ -232,12 +239,13 @@ if uploaded:
                     # Carica storico ed esegui FAISS
                     data_sheet = get_sheet(sheet_id, "it")
                     df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
                     index, index_df = build_faiss_index(df_storico, col_weights)
                     simili = retrieve_similar(test_row, index_df, index, k=1, col_weights=col_weights)
                 else:
                     simili = pd.DataFrame([])
         
-                prompt_preview = build_prompt(test_row, simili)
+                prompt = build_prompt(row, simili, col_display_names)
                 prompt_tokens = len(prompt_preview) / 4  # stima token
                 #st.caption(f"🔢 Token stimati: {int(prompt_tokens)}")
                 #st.text_area("🧠 Prompt generato", prompt_preview, height=600)
@@ -252,7 +260,7 @@ if uploaded:
         prompts = []
         for _, row in df_input.iterrows():
             simili = pd.DataFrame([])  # niente RAG per la stima
-            prompt = build_prompt(row, simili)
+            prompt = build_prompt(row, simili, col_display_names)
             prompts.append(prompt)
             if len(prompts) >= 3:
                 break
@@ -285,7 +293,10 @@ if uploaded:
         if sheet_id:
             try:
                 data_sheet = get_sheet(sheet_id, "it")
+                #df_storico = pd.DataFrame(data_sheet.get_all_records())
+                data_sheet = get_sheet(sheet_id, "it")
                 df_storico = pd.DataFrame(data_sheet.get_all_records())
+                df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
                 index, index_df = build_faiss_index(df_storico, col_weights)
             except:
                 index = None
@@ -307,7 +318,7 @@ if uploaded:
                 else:
                     simili = pd.DataFrame([])
 
-                prompt = build_prompt(row, simili)
+                prompt = build_prompt(row, simili, col_display_names)
                 gen_output = generate_descriptions(prompt)
 
                 if "Descrizione breve:" in gen_output:
