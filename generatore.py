@@ -147,6 +147,20 @@ def read_csv_auto_encoding(uploaded_file):
     encoding = result['encoding'] or 'utf-8'
     uploaded_file.seek(0)  # Rewind after read
     return pd.read_csv(uploaded_file, encoding=encoding)
+
+def estimate_cost(prompt, model="gpt-3.5-turbo"):
+    # Conversione caratteri → token (media approssimata: 1 token ≈ 4 caratteri)
+    num_chars = len(prompt)
+    est_tokens = num_chars // 4
+
+    # Costi approssimativi per 1K token (puoi adattare)
+    cost_per_1k = {
+        "gpt-3.5-turbo": 0.001,         # input + output stimato
+        "gpt-4": 0.03                   # solo input (semplificato)
+    }
+
+    cost = (est_tokens / 1000) * cost_per_1k.get(model, 0.001)
+    return est_tokens, cost
     
 # ---------------------------
 # 📦 Streamlit UI
@@ -171,7 +185,27 @@ if uploaded:
             col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 1)
     st.markdown("### 🔍 Anteprima descrizione per una riga")
     row_index = st.number_input("Indice della riga da testare (0-based)", min_value=0, max_value=len(df_input)-1, value=0)
+
+    # Stimo il costo del token con RAG
+    if st.button("📄 Stima costi con RAG"):
+        try:
+            # Recupera esempi se RAG è attivo
+            if index_df is not None:
+                simili = retrieve_similar(riga, index_df, index, k=2, col_weights=col_weights)
+            else:
+                simili = pd.DataFrame([])
     
+            # Costruzione prompt
+            prompt = build_prompt(riga, simili)
+    
+            # Stima token e costo
+            est_tokens, est_cost = estimate_cost(prompt, model="gpt-3.5-turbo")
+            st.info(f"🧠 Prompt stimato: {est_tokens} token — Costo previsto: ${est_cost:.4f}")
+    
+            # Visualizza prompt (facoltativo)
+            with st.expander("📋 Prompt generato"):
+                st.code(prompt)
+            
     if st.button("Genera anteprima descrizione"):
         try:
             test_row = df_input.iloc[row_index]
