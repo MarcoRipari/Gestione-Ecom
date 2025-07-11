@@ -182,7 +182,7 @@ if uploaded:
     st.markdown("### ⚙️ Configura i pesi delle colonne (importanza nella similarità)")
     for col in df_input.columns:
         if col not in ["Description", "Description2"]:
-            col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 0.1)
+            col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 1)
     st.markdown("### 🔍 Anteprima descrizione per una riga")
     row_index = st.number_input("Indice della riga da testare (0-based)", min_value=0, max_value=len(df_input)-1, value=0)
 
