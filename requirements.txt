@@ -1,6 +1,7 @@
 # Web app
 streamlit
 chardet
+torch
 
 # AI generation
 openai>=1.30.1
