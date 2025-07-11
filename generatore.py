@@ -272,6 +272,9 @@ if uploaded:
                 col_display_names[col] = st.text_input(f"Etichetta: {col}", value=col, key=f"label_{col}")
 
 
+    row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input)-1, 0)
+    test_row = df_input.iloc[row_index]
+
     if st.button("Test FAISS"):
         try:
             if uploaded is None:
@@ -300,8 +303,6 @@ if uploaded:
         benchmark_faiss(df_input, col_weights)
 
     # Stimo il costo del token con RAG
-    row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input)-1, 0)
-    test_row = df_input.iloc[row_index]
     if st.button("💬 Mostra Prompt di Anteprima"):
         with st.spinner("Genero il prompt..."):
 
