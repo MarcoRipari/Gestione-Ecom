@@ -272,7 +272,7 @@ if uploaded:
                 col_display_names[col] = st.text_input(f"Etichetta: {col}", value=col, key=f"label_{col}")
 
 
-    if st.button("Test FAISS")
+    if st.button("Test FAISS"):
         test_row = df_input.iloc[0]
         test_row = df_input.iloc[0]
         simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
