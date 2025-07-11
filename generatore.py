@@ -300,9 +300,11 @@ if uploaded:
         benchmark_faiss(df_input, col_weights)
 
     # Stimo il costo del token con RAG
+    row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input)-1, 0)
+    test_row = df_input.iloc[row_index]
     if st.button("💬 Mostra Prompt di Anteprima"):
         with st.spinner("Genero il prompt..."):
-            test_row = df_input.iloc[1]
+
             try:
                 if sheet_id:
                     # Carica storico ed esegui FAISS
@@ -313,14 +315,13 @@ if uploaded:
                     simili = retrieve_similar(test_row, index_df, index, k=1, col_weights=col_weights)
                 else:
                     simili = pd.DataFrame([])
-        
-                prompt_preview = build_prompt(row, simili, col_display_names)
+    
+                prompt_preview = build_prompt(test_row, simili, col_display_names)  # 🔧 fix qui
                 prompt_tokens = len(prompt_preview) / 4  # stima token
-                #st.caption(f"🔢 Token stimati: {int(prompt_tokens)}")
-                #st.text_area("🧠 Prompt generato", prompt_preview, height=600)
+    
                 with st.expander("📄 Anteprima prompt generato"):
                     st.code(prompt_preview, language="markdown")
-        
+    
             except Exception as e:
                 st.error(f"Errore nella generazione del prompt: {str(e)}")
             
