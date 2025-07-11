@@ -205,8 +205,8 @@ if uploaded:
             # Visualizza prompt (facoltativo)
             with st.expander("📋 Prompt generato"):
                 st.code(prompt)
-        except:
-            st.warning(f"Errore")
+        except Exception as e:
+            st.warning(f"Errore: {e}")
 
     if st.button("Genera anteprima descrizione"):
         try:
