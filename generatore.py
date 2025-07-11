@@ -223,6 +223,7 @@ if uploaded:
 
     # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
+        test_row = 0
         try:
             if sheet_id:
                 # Carica storico ed esegui FAISS
