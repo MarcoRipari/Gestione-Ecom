@@ -204,39 +204,6 @@ if uploaded:
             st.code(index_df)
         with st.expander("📋 Simili recuperati"):
             st.code(simili)
-
-    if st.button("Genera anteprima descrizione"):
-        try:
-            test_row = df_input.iloc[row_index]
-            simili = pd.DataFrame([])
-
-            if sheet_id:
-                try:
-                    data_sheet = get_sheet(sheet_id, "it")
-                    df_storico = pd.DataFrame(data_sheet.get_all_records())
-                    index, index_df = build_faiss_index(df_storico, col_weights)
-                    simili = retrieve_similar(test_row, index_df, index, k=1, col_weights=col_weights)
-                except Exception as e:
-                    st.warning(f"⚠️ Impossibile usare RAG: {e}")
-            
-            prompt = build_prompt(test_row, simili)
-            output = generate_descriptions(prompt)
-
-            if "Descrizione breve:" in output:
-                descr_lunga, descr_breve = output.split("Descrizione breve:")
-                descr_lunga = descr_lunga.replace("Descrizione lunga:", "").strip()
-                descr_breve = descr_breve.strip()
-            else:
-                descr_lunga = output.strip()
-                descr_breve = ""
-
-            st.subheader("📝 Descrizione lunga")
-            st.write(descr_lunga)
-            st.subheader("📝 Descrizione breve")
-            st.write(descr_breve)
-
-        except Exception as e:
-            st.error(f"Errore durante la generazione: {e}")
             
     if st.button("Stima costi"):
         # Calcolo prompt medio sui primi 3 record
