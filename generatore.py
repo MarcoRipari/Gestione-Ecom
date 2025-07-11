@@ -106,6 +106,48 @@ def estimate_embedding_time(df: pd.DataFrame, col_weights: Dict[str, float], sam
 
     return total_estimated_time
 
+def benchmark_faiss(df, col_weights, query_sample_size=10):
+    import os
+
+    st.markdown("### ⏱️ Benchmark FAISS + Embedding")
+
+    start_embed = time.time()
+    texts = []
+    for _, row in df.iterrows():
+        parts = [f"{col}: {row[col]}" * int(col_weights.get(col, 1))
+                 for col in df.columns if pd.notna(row[col])]
+        texts.append(" ".join(parts))
+    vectors = embed_texts(texts)
+    embed_time = time.time() - start_embed
+
+    start_faiss = time.time()
+    index = faiss.IndexFlatL2(len(vectors[0]))
+    index.add(np.array(vectors).astype("float32"))
+    faiss.write_index(index, "tmp_benchmark.index")
+    index_time = time.time() - start_faiss
+
+    index_size = os.path.getsize("tmp_benchmark.index")
+
+    # Test query
+    query_times = []
+    for i in range(min(query_sample_size, len(df))):
+        qtext = texts[i]
+        start_q = time.time()
+        _ = index.search(np.array([vectors[i]]).astype("float32"), 5)
+        query_times.append(time.time() - start_q)
+
+    avg_query_time = sum(query_times) / len(query_times)
+
+    st.write({
+        "🚀 Tempo embedding totale (s)": round(embed_time, 2),
+        "📄 Tempo medio per riga (ms)": round(embed_time / len(df) * 1000, 2),
+        "🏗️ Tempo costruzione FAISS (s)": round(index_time, 2),
+        "💾 Dimensione index (KB)": round(index_size / 1024, 1),
+        "🔍 Tempo medio query (ms)": round(avg_query_time * 1000, 2),
+    })
+
+    os.remove("tmp_benchmark.index")
+    
 # ---------------------------
 # 🧠 Prompting e Generazione
 # ---------------------------
@@ -235,6 +277,9 @@ if uploaded:
         test_row = df_input.iloc[0]
         simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
         st.write("🔍 Simili trovati:", simili)
+
+    if st.button("Esegui Benchmark FAISS"):
+        benchmark_faiss(df_input, col_weights)
 
     # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
