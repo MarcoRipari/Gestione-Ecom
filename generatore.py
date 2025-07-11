@@ -447,7 +447,7 @@ if uploaded:
         # Salvataggio su Google Sheets
         for lang in selected_langs:
             df_out = pd.DataFrame(all_outputs[lang])
-            save_to_sheet(sheet_id, lang, df_out)
+            # save_to_sheet(sheet_id, lang, df_out)
             append_to_sheet(sheet_id, lang, df_out)
 
         for log in logs:
