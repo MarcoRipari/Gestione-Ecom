@@ -184,27 +184,28 @@ if uploaded:
         if col not in ["Description", "Description2"]:
             col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 1)
     st.markdown("### 🔍 Anteprima descrizione per una riga")
+    
     row_index = st.number_input("Indice della riga da testare (0-based)", min_value=0, max_value=len(df_input)-1, value=0)
 
     # Stimo il costo del token con RAG
-    if st.button("📄 Stima costi con RAG"):
-        # Recupera esempi se RAG è attivo
+    if st.button("💬 Mostra Prompt di Anteprima"):
         try:
             if sheet_id:
-                test_row = 0
+                # Carica storico ed esegui FAISS
                 data_sheet = get_sheet(sheet_id, "it")
                 df_storico = pd.DataFrame(data_sheet.get_all_records())
                 index, index_df = build_faiss_index(df_storico, col_weights)
-                simili = retrieve_similar(test_row, index_df, index, k=1, col_weights=col_weights)
+                simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
+            else:
+                simili = pd.DataFrame([])
+    
+            prompt_preview = build_prompt(test_row, simili)
+            prompt_tokens = len(prompt_preview) / 4  # stima token
+            st.caption(f"🔢 Token stimati: {int(prompt_tokens)}")
+            st.text_area("🧠 Prompt generato", prompt_preview, height=600)
+    
         except Exception as e:
-            st.warning(f"Errore simili: {e}")
-
-        # Visualizza simili
-        with st.expander("📋 FAISS generato"):
-            st.code(index)
-            st.code(index_df)
-        with st.expander("📋 Simili recuperati"):
-            st.code(simili)
+            st.error(f"Errore nella generazione del prompt: {str(e)}")
             
     if st.button("Stima costi"):
         # Calcolo prompt medio sui primi 3 record
