@@ -15,6 +15,7 @@ import chardet
 import hashlib
 import pickle
 from sentence_transformers import SentenceTransformer
+import torch
 
 # ---------------------------
 # 🔐 Setup API keys and credentials
