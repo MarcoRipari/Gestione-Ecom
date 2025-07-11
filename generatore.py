@@ -273,10 +273,22 @@ if uploaded:
 
 
     if st.button("Test FAISS"):
-        test_row = df_input.iloc[0]
-        test_row = df_input.iloc[0]
-        simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
-        st.write("🔍 Simili trovati:", simili)
+        try:
+            test_row = df_input.iloc[0]
+    
+            if 'index_df' not in locals() or index_df is None or index is None:
+                # Ricostruisce l'indice se non esiste
+                data_sheet = get_sheet(sheet_id, "it")
+                df_storico = pd.DataFrame(data_sheet.get_all_records())
+                df_storico = df_storico.tail(500)
+                index, index_df = build_faiss_index(df_storico, col_weights)
+    
+            simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
+            st.markdown("🔍 **Righe simili trovate:**")
+            st.dataframe(simili)
+    
+        except Exception as e:
+            st.error(f"Errore durante il test FAISS: {str(e)}")
 
     if st.button("Esegui Benchmark FAISS"):
         benchmark_faiss(df_input, col_weights)
