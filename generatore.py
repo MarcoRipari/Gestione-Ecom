@@ -230,6 +230,12 @@ if uploaded:
                 col_display_names[col] = st.text_input(f"Etichetta: {col}", value=col, key=f"label_{col}")
 
 
+    if st.button("Test FAISS")
+        test_row = df_input.iloc[0]
+        test_row = df_input.iloc[0]
+        simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
+        st.write("🔍 Simili trovati:", simili)
+
     # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
         with st.spinner("Genero il prompt..."):
@@ -245,7 +251,7 @@ if uploaded:
                 else:
                     simili = pd.DataFrame([])
         
-                prompt = build_prompt(row, simili, col_display_names)
+                prompt_preview = build_prompt(row, simili, col_display_names)
                 prompt_tokens = len(prompt_preview) / 4  # stima token
                 #st.caption(f"🔢 Token stimati: {int(prompt_tokens)}")
                 #st.text_area("🧠 Prompt generato", prompt_preview, height=600)
