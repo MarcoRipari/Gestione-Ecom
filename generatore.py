@@ -278,7 +278,7 @@ if uploaded:
                 st.warning("⚠️ Carica un CSV prima di testare FAISS.")
                 st.stop()
     
-            test_row = df_input.iloc[0]
+            test_row = df_input.iloc[1]
     
             if 'index_df' not in locals() or index_df is None or index is None:
                 data_sheet = get_sheet(sheet_id, "it")
