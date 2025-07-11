@@ -219,6 +219,13 @@ def save_to_sheet(sheet_id, tab, df):
 
     # ✅ Scrittura nel foglio Google Sheets
     sheet.update(data)
+
+def append_to_sheet(sheet_id, tab, df):
+    sheet = get_sheet(sheet_id, tab)
+    df = df.fillna("").astype(str)
+    values = df.values.tolist()
+    for row in values:
+        sheet.append_row(row, value_input_option="RAW")
     
 # ---------------------------
 # Funzioni varie
@@ -441,6 +448,7 @@ if uploaded:
         for lang in selected_langs:
             df_out = pd.DataFrame(all_outputs[lang])
             save_to_sheet(sheet_id, lang, df_out)
+            append_to_sheet(sheet_id, lang, df_out)
 
         for log in logs:
             append_log(sheet_id, log)
