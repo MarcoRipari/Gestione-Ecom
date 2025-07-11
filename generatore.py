@@ -109,30 +109,32 @@ def estimate_embedding_time(df: pd.DataFrame, col_weights: Dict[str, float], sam
 # ---------------------------
 # 🧠 Prompting e Generazione
 # ---------------------------
-def build_prompt(row, examples):
-    example_section = "\n".join([f"Esempio: {r['Description']}" for _, r in examples.iterrows()])
-    prompt = f"""
-Scrivi DUE descrizioni per una calzatura da vendere online, mantenendo uno stile:
-- accattivante
-- caldo
-- professionale
-- user friendly
-- SEO friendly
-Indicazioni:
-- Evita di inserire nome del prodotto e marchio.
-- Evita di inserire il colore
-- Usa questi esempi per apprendere tono/stile
+def build_prompt(row, examples=None):
+    fields = []
+    for col in row.index:
+        if pd.notna(row[col]) and col.lower() not in ["sku", "description", "description2"]:
+            fields.append(f"{col}: {row[col]}")
+    
+    product_info = "; ".join(fields)
 
-Esempi simili:
-{example_section}
+    example_section = ""
+    if examples is not None and not examples.empty:
+        for _, ex in examples.head(2).iterrows():
+            example_section += f"- {ex['Description']}\n"
 
-Informazioni prodotto:
-{row.to_json()}
+    prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
 
-Usa questo output
+Tono richiesto: professionale, user friendly, accattivante, SEO-friendly.
+Evita nome prodotto, colore e marchio.
+
+Esempi:
+{example_section.strip()}
+
+Scheda tecnica: {product_info}
+
+Rispondi con:
 Descrizione lunga:
-Descrizione breve:
-"""
+Descrizione breve:"""
     return prompt
 
 def generate_descriptions(prompt):
@@ -211,8 +213,8 @@ uploaded = st.file_uploader("Carica il CSV dei prodotti", type="csv")
 
 # Configurazione pesi colonne per RAG
 if uploaded:
-    #df_input = read_csv_auto_encoding(uploaded)
-    df_input = pd.read_csv(uploaded)
+    #df_input = pd.read_csv(uploaded)
+    df_input = read_csv_auto_encoding(uploaded)
     st.dataframe(df_input.head())
     col_weights = {}
     st.markdown("### ⚙️ Configura i pesi delle colonne (importanza nella similarità)")
@@ -224,7 +226,7 @@ if uploaded:
     # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
         with st.spinner("Genero il prompt..."):
-            test_row = 1
+            test_row = df_input.iloc[1]
             try:
                 if sheet_id:
                     # Carica storico ed esegui FAISS
