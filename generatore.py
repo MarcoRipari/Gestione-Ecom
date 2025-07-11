@@ -182,12 +182,13 @@ if uploaded:
     st.markdown("### ⚙️ Configura i pesi delle colonne (importanza nella similarità)")
     for col in df_input.columns:
         if col not in ["Description", "Description2"]:
-            col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 1)
+            col_weights[col] = st.slider(f"Peso colonna: {col}", 0, 5, 0.1)
     st.markdown("### 🔍 Anteprima descrizione per una riga")
     row_index = st.number_input("Indice della riga da testare (0-based)", min_value=0, max_value=len(df_input)-1, value=0)
 
     # Stimo il costo del token con RAG
     if st.button("📄 Stima costi con RAG"):
+        progress2 = st.progress(0)
         try:
             # Recupera esempi se RAG è attivo
             if sheet_id:
@@ -195,17 +196,21 @@ if uploaded:
                 df_storico = pd.DataFrame(data_sheet.get_all_records())
                 index, index_df = build_faiss_index(df_storico, col_weights)
                 simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
+                progress2.progress(20)
 
+            
             # Costruzione prompt
             prompt = build_prompt(riga, simili)
-    
+            progress2.progress(40)
             # Stima token e costo
             est_tokens, est_cost = estimate_cost(prompt, model="gpt-3.5-turbo")
             st.info(f"🧠 Prompt stimato: {est_tokens} token — Costo previsto: ${est_cost:.4f}")
-    
+            progress2.progress(60)
+            
             # Visualizza prompt (facoltativo)
             with st.expander("📋 Prompt generato"):
                 st.code(prompt)
+                progress2.progress(100)
         except Exception as e:
             st.warning(f"Errore: {e}")
 
