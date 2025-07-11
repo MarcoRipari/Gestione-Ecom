@@ -188,31 +188,16 @@ if uploaded:
 
     # Stimo il costo del token con RAG
     if st.button("📄 Stima costi con RAG"):
-        progress2 = st.progress(0)
-        try:
-            # Recupera esempi se RAG è attivo
-            if sheet_id:
-                data_sheet = get_sheet(sheet_id, "it")
-                df_storico = pd.DataFrame(data_sheet.get_all_records())
-                index, index_df = build_faiss_index(df_storico, col_weights)
-                simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
-                progress2.progress(20)
+        if sheet_id:
+                try:
+                    data_sheet = get_sheet(sheet_id, "it")
+                    df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    index, index_df = build_faiss_index(df_storico, col_weights)
+                    simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
+                except Exception as e:
+                    st.warning(f"⚠️ Impossibile usare RAG: {e}")
 
-            
-            # Costruzione prompt
-            prompt = build_prompt(riga, simili)
-            progress2.progress(40)
-            # Stima token e costo
-            est_tokens, est_cost = estimate_cost(prompt, model="gpt-3.5-turbo")
-            st.info(f"🧠 Prompt stimato: {est_tokens} token — Costo previsto: ${est_cost:.4f}")
-            progress2.progress(60)
-            
-            # Visualizza prompt (facoltativo)
-            with st.expander("📋 Prompt generato"):
-                st.code(prompt)
-                progress2.progress(100)
-        except Exception as e:
-            st.warning(f"Errore: {e}")
+        st.info(simili)
 
     if st.button("Genera anteprima descrizione"):
         try:
