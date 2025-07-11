@@ -190,14 +190,12 @@ if uploaded:
     if st.button("📄 Stima costi con RAG"):
         try:
             # Recupera esempi se RAG è attivo
-            if index_df is not None:
+            if sheet_id:
                 data_sheet = get_sheet(sheet_id, "it")
                 df_storico = pd.DataFrame(data_sheet.get_all_records())
                 index, index_df = build_faiss_index(df_storico, col_weights)
                 simili = retrieve_similar(test_row, index_df, index, k=3, col_weights=col_weights)
-            else:
-                simili = pd.DataFrame([])
-    
+
             # Costruzione prompt
             prompt = build_prompt(riga, simili)
     
