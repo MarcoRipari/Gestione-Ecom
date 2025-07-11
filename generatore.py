@@ -205,7 +205,9 @@ if uploaded:
             # Visualizza prompt (facoltativo)
             with st.expander("📋 Prompt generato"):
                 st.code(prompt)
-            
+        except:
+            st.warning(f"Errore")
+
     if st.button("Genera anteprima descrizione"):
         try:
             test_row = df_input.iloc[row_index]
