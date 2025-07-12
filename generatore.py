@@ -284,12 +284,11 @@ if uploaded:
     col_display_names = {}
 
     selected_langs = st.multiselect("Seleziona lingue di output", ["it", "en", "fr", "de"], default=["it"])
-    k_simili = st.slider("Numero di righe simili da usare (RAG)", 0, 3, 1)
 
     spacer1, col1, col2, col3, spacer2 = st.columns([1, 2, 2, 2, 1])
 
     with col1:
-        numero = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
+        k_simili = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
         
     with col2:
         if st.button("Stima costi"):
@@ -297,7 +296,7 @@ if uploaded:
             prompts = []
             for _, row in df_input.iterrows():
                 simili = pd.DataFrame([])  # niente RAG per la stima
-                prompt = build_prompt(row, simili, col_display_names)
+                prompt = build_prompt(row, simili, st.session_state.col_display_names)
                 prompts.append(prompt)
                 if len(prompts) >= 3:
                     break
@@ -334,7 +333,7 @@ if uploaded:
                     #df_storico = pd.DataFrame(data_sheet.get_all_records())
                     df_storico = pd.DataFrame(data_sheet.get_all_records())
                     df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                    index, index_df = build_faiss_index(df_storico, col_weights)
+                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                 except:
                     index = None
     
@@ -351,11 +350,11 @@ if uploaded:
                 progress_bar.progress((i + 1) / total)
                 try:
                     if index_df is not None:
-                        simili = retrieve_similar(row, index_df, index, k=1, col_weights=col_weights)
+                        simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
                     else:
                         simili = pd.DataFrame([])
     
-                    prompt = build_prompt(row, simili, col_display_names)
+                    prompt = build_prompt(row, simili, st.session_state.col_display_names)
                     gen_output = generate_descriptions(prompt)
     
                     if "Descrizione breve:" in gen_output:
@@ -433,26 +432,46 @@ if uploaded:
     
     st.markdown("### 🧩 Seleziona colonne da includere nel prompt")
 
+    # 🧠 Init solo una volta (evita ricreazioni continue)
+    if "col_weights" not in st.session_state:
+        st.session_state.col_weights = {}
+    if "col_display_names" not in st.session_state:
+        st.session_state.col_display_names = {}
+    
+    # 📋 Lista colonne da configurare
     available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
+    
+    # 👀 Colonne selezionate per il prompt
     include_cols = st.multiselect(
         "Colonne da includere nel prompt",
         options=available_cols,
-        default=available_cols
+        default=available_cols,
+        key="included_columns"
     )
     
-    col_weights = {}
-    col_display_names = {}
+    st.markdown("### ⚙️ Pesi e etichette (solo per colonne selezionate)")
     
+    # 🔄 Solo per le colonne visibili
     for col in available_cols:
-        if col in include_cols:
+        if col in st.session_state.included_columns:
+            # inizializzazione se non presente
+            if col not in st.session_state.col_weights:
+                st.session_state.col_weights[col] = 1
+            if col not in st.session_state.col_display_names:
+                st.session_state.col_display_names[col] = col
+    
             cols = st.columns([2, 3])
             with cols[0]:
-                col_weights[col] = st.slider(f"Peso: {col}", 0, 5, 1, key=f"peso_{col}")
+                st.session_state.col_weights[col] = st.slider(
+                    f"Peso: {col}", 0, 5, st.session_state.col_weights[col], key=f"peso_{col}"
+                )
             with cols[1]:
-                col_display_names[col] = st.text_input(f"Etichetta: {col}", value=col, key=f"label_{col}")
+                st.session_state.col_display_names[col] = st.text_input(
+                    f"Etichetta: {col}", value=st.session_state.col_display_names[col], key=f"label_{col}"
+                )
         else:
-            # Imposta peso 0 automaticamente per escluderlo dal prompt e FAISS
-            col_weights[col] = 0
+            # Se esclusa → imposta peso 0
+            st.session_state.col_weights[col] = 0
 
 
     row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input)-1, 0)
@@ -470,12 +489,12 @@ if uploaded:
                     data_sheet = get_sheet(sheet_id, "it")
                     df_storico = pd.DataFrame(data_sheet.get_all_records())
                     df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                    index, index_df = build_faiss_index(df_storico, col_weights)
-                    simili = retrieve_similar(test_row, index_df, index, k=1, col_weights=col_weights)
+                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                    simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
                 else:
                     simili = pd.DataFrame([])
     
-                prompt_preview = build_prompt(test_row, simili, col_display_names)  # 🔧 fix qui
+                prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names)
                 prompt_tokens = len(prompt_preview) / 4  # stima token
     
                 with st.expander("📄 Anteprima prompt generato"):
