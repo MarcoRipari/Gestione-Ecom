@@ -83,6 +83,12 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
 
     query_vector = embed_texts([query_text])[0]
     D, I = index.search(np.array([query_vector]).astype("float32"), k)
+
+    # 🔍 DEBUG
+    print("QUERY TEXT:", query_text[:300], "...")
+    print("INDICI trovati:", I[0])
+    print("Distanze:", D[0])
+    
     return df.iloc[I[0]]
 
 def estimate_embedding_time(df: pd.DataFrame, col_weights: Dict[str, float], sample_size: int = 10) -> float:
