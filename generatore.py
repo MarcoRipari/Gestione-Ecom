@@ -83,6 +83,23 @@ def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_dir
 @st.cache_data(show_spinner="🔄 Costruzione indice FAISS in corso...")
 def build_faiss_index_cached(df: pd.DataFrame, col_weights: Dict[str, float]) -> tuple:
     return build_faiss_index(df, col_weights)
+
+@st.cache_data(show_spinner="📥 Caricamento FAISS + storico descrizioni...")
+def load_faiss_index(sheet_id: str, col_weights: Dict[str, float], tab_name: str = "it", last_n: int = 500):
+    """
+    Carica il foglio storico e costruisce l'indice FAISS.
+    Caching abilitato per evitare rielaborazione.
+    """
+    try:
+        data_sheet = get_sheet(sheet_id, tab_name)
+        df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(last_n)
+
+        index, index_df = build_faiss_index_cached(df_storico, col_weights)
+        return index, index_df
+    except Exception as e:
+        st.error("❌ Errore nel caricamento del foglio Google Sheet o nella costruzione dell'indice FAISS.")
+        st.exception(e)
+        return None, None
     
 def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_weights: Dict[str, float] = {}):
     parts = []
@@ -95,11 +112,6 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
 
     query_vector = embed_texts([query_text])[0]
     D, I = index.search(np.array([query_vector]).astype("float32"), k)
-
-    # 🔍 DEBUG
-    st.debug(f"QUERY TEXT: {query_text[:300]} ...")
-    st.debug(f"INDICI trovati: {I[0]}")
-    st.debug(f"Distanze: {D[0]}")
     
     return df.iloc[I[0]]
 
@@ -359,10 +371,8 @@ if uploaded:
             if sheet_id:
                 with st.spinner("📥 Caricamento storico descrizioni..."):
                     try:
-                        data_sheet = get_sheet(sheet_id, "it")
-                        df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
                         col_weights, _ = get_active_columns_config()
-                        index, index_df = build_faiss_index_cached(df_storico, col_weights)
+                        index, index_df = load_faiss_index(sheet_id, col_weights)
                     except Exception as e:
                         st.error("❌ Errore nel caricamento del Google Sheet o nella creazione dell'indice.")
                         st.exception(e)
@@ -513,10 +523,6 @@ if uploaded:
 
     row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input)-1, 0)
     test_row = df_input.iloc[row_index]
-
-    if st.button("Esegui Benchmark FAISS"):
-        col_weights, _ = get_active_columns_config()
-        benchmark_faiss(df_input, col_weights)
 
     # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
