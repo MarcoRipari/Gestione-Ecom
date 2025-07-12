@@ -273,7 +273,6 @@ st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
 # sheet_id = st.text_input("Google Sheet ID dello storico", key="sheet")
 sheet_id = st.secrets["GSHEET_ID"]
-selected_langs = st.multiselect("Seleziona lingue di output", ["it", "en", "fr", "de"], default=["it"])
 uploaded = st.file_uploader("Carica il CSV dei prodotti", type="csv")
 
 # Configurazione pesi colonne per RAG
@@ -283,15 +282,166 @@ if uploaded:
     st.dataframe(df_input.head())
     col_weights = {}
     col_display_names = {}
+
+    selected_langs = st.multiselect("Seleziona lingue di output", ["it", "en", "fr", "de"], default=["it"])
+    k_simili = st.slider("Numero di righe simili da usare (RAG)", 0, 3, 1)
+
+    btn1, btn2 = st.columns(2)
+    with btn1:
+        if st.button("Stima costi"):
+            # Calcolo prompt medio sui primi 3 record
+            prompts = []
+            for _, row in df_input.iterrows():
+                simili = pd.DataFrame([])  # niente RAG per la stima
+                prompt = build_prompt(row, simili, col_display_names)
+                prompts.append(prompt)
+                if len(prompts) >= 3:
+                    break
+    
+            # Stimiamo i token: 1 token ≈ 4 caratteri
+            avg_prompt_len_chars = sum(len(p) for p in prompts) / len(prompts)
+            avg_prompt_tokens = avg_prompt_len_chars / 4
+    
+            # Output: descrizione lunga + breve (stima in token)
+            output_tokens_per_row = 60 + 20  # circa 80 token per lingua
+    
+            # Calcolo finale
+            num_rows = len(df_input)
+            num_langs = len(selected_langs)
+            total_input_tokens = num_rows * avg_prompt_tokens
+            total_output_tokens = num_rows * output_tokens_per_row * num_langs
+            total_tokens = total_input_tokens + total_output_tokens
+    
+            est_cost = total_tokens / 1000 * 0.001  # gpt-3.5-turbo
+    
+            st.info(f"""
+            Prompt medio: ~{avg_prompt_tokens:.0f} token  
+            Output stimato per riga: {output_tokens_per_row} token × {num_langs} lingue  
+            Token totali stimati: ~{int(total_tokens)}  
+            **Costo stimato: ${est_cost:.4f}**
+            """)
+    with btn2:
+        if st.button("Genera Descrizioni"):
+            index_df = None
+            if sheet_id:
+                try:
+                    data_sheet = get_sheet(sheet_id, "it")
+                    #df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
+                    index, index_df = build_faiss_index(df_storico, col_weights)
+                except:
+                    index = None
+    
+            all_outputs = {lang: [] for lang in selected_langs}
+            logs = []
+    
+            prompt = ""  # <- inizializza la variabile fuori dal try
+            
+            progress_bar = st.progress(0)
+            total = len(df_input)
+            
+            #for _, row in df_input.iterrows():
+            for i, (_, row) in enumerate(df_input.iterrows()):
+                progress_bar.progress((i + 1) / total)
+                try:
+                    if index_df is not None:
+                        simili = retrieve_similar(row, index_df, index, k=1, col_weights=col_weights)
+                    else:
+                        simili = pd.DataFrame([])
+    
+                    prompt = build_prompt(row, simili, col_display_names)
+                    gen_output = generate_descriptions(prompt)
+    
+                    if "Descrizione breve:" in gen_output:
+                        descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
+                        descr_lunga = descr_lunga.replace("Descrizione lunga:", "").strip()
+                        descr_breve = descr_breve.strip()
+                    else:
+                        # fallback se il modello non segue il formato atteso
+                        descr_lunga = gen_output.strip()
+                        descr_breve = ""
+                        
+                    base = {
+                        **row.to_dict(),
+                        #"Description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
+                        #"Description2": descr_breve.strip()
+                        "Description": descr_lunga,
+                        "Description2": descr_breve
+                    }
+    
+                    for lang in selected_langs:
+                        if lang == "it":
+                            all_outputs[lang].append(base)
+                        else:
+                            trad_lunga = translate_text(base["Description"], target_lang=lang)
+                            trad_breve = translate_text(base["Description2"], target_lang=lang)
+                            trad = base.copy()
+                            trad["Description"] = trad_lunga
+                            trad["Description2"] = trad_breve
+                            all_outputs[lang].append(trad)
+    
+                    logs.append({
+                        "sku": row.get("SKU", ""),
+                        "status": "OK",
+                        "prompt": prompt,
+                        "output": gen_output,
+                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                    })
+                except Exception as e:
+                    logs.append({
+                        "sku": row.get("SKU", ""),
+                        "status": f"Errore: {str(e)}",
+                        "prompt": prompt,
+                        "output": "",
+                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                    })
+    
+            # Salvataggio su Google Sheets
+            for lang in selected_langs:
+                df_out = pd.DataFrame(all_outputs[lang])
+                # overwrite_sheet(sheet_id, lang, df_out)
+                append_to_sheet(sheet_id, lang, df_out)
+    
+            for log in logs:
+                append_log(sheet_id, log)
+    
+            # Preparazione ZIP
+            mem_zip = BytesIO()
+            with zipfile.ZipFile(mem_zip, "w") as zf:
+                for lang in selected_langs:
+                    df_out = pd.DataFrame(all_outputs[lang])
+    
+                    # Riorganizza e rinomina le colonne
+                    df_export = pd.DataFrame()
+                    df_export["SKU"] = df_out.get("SKU", "")
+                    df_export["Descrizione lunga"] = df_out.get("Description", "")
+                    df_export["Descrizione corta"] = df_out.get("Description2", "")
+    
+                    csv_bytes = df_export.to_csv(index=False).encode("utf-8")
+                    zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
+            mem_zip.seek(0)
+            st.success("✅ Generazione completata con successo!")
+            st.download_button("📥 Scarica CSV (ZIP)", mem_zip, file_name="descrizioni.zip")
+        
     st.markdown("### ⚙️ Configura i pesi e i nomi delle colonne")
     
+    st.markdown("### 🧩 Seleziona colonne da includere nel prompt")
+
+    include_cols = st.multiselect(
+        "Colonne da includere nel prompt",
+        [col for col in df_input.columns if col not in ["Description", "Description2"]],
+        default=[col for col in df_input.columns if col not in ["Description", "Description2"]]
+    )
     for col in df_input.columns:
-        if col not in ["Description", "Description2"]:
+        if col in include_cols:
             cols = st.columns([2, 3])
             with cols[0]:
                 col_weights[col] = st.slider(f"Peso: {col}", 0, 5, 1, key=f"peso_{col}")
             with cols[1]:
                 col_display_names[col] = st.text_input(f"Etichetta: {col}", value=col, key=f"label_{col}")
+        else:
+            col_weights[col] = 0  # <-- Escludi dal prompt
 
 
     row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input)-1, 0)
@@ -303,7 +453,6 @@ if uploaded:
     # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
         with st.spinner("Genero il prompt..."):
-
             try:
                 if sheet_id:
                     # Carica storico ed esegui FAISS
@@ -323,139 +472,3 @@ if uploaded:
     
             except Exception as e:
                 st.error(f"Errore nella generazione del prompt: {str(e)}")
-            
-    if st.button("Stima costi"):
-        # Calcolo prompt medio sui primi 3 record
-        prompts = []
-        for _, row in df_input.iterrows():
-            simili = pd.DataFrame([])  # niente RAG per la stima
-            prompt = build_prompt(row, simili, col_display_names)
-            prompts.append(prompt)
-            if len(prompts) >= 3:
-                break
-
-        # Stimiamo i token: 1 token ≈ 4 caratteri
-        avg_prompt_len_chars = sum(len(p) for p in prompts) / len(prompts)
-        avg_prompt_tokens = avg_prompt_len_chars / 4
-
-        # Output: descrizione lunga + breve (stima in token)
-        output_tokens_per_row = 60 + 20  # circa 80 token per lingua
-
-        # Calcolo finale
-        num_rows = len(df_input)
-        num_langs = len(selected_langs)
-        total_input_tokens = num_rows * avg_prompt_tokens
-        total_output_tokens = num_rows * output_tokens_per_row * num_langs
-        total_tokens = total_input_tokens + total_output_tokens
-
-        est_cost = total_tokens / 1000 * 0.001  # gpt-3.5-turbo
-
-        st.info(f"""
-        Prompt medio: ~{avg_prompt_tokens:.0f} token  
-        Output stimato per riga: {output_tokens_per_row} token × {num_langs} lingue  
-        Token totali stimati: ~{int(total_tokens)}  
-        **Costo stimato: ${est_cost:.4f}**
-        """)
-
-    if st.button("Genera Descrizioni"):
-        index_df = None
-        if sheet_id:
-            try:
-                data_sheet = get_sheet(sheet_id, "it")
-                #df_storico = pd.DataFrame(data_sheet.get_all_records())
-                df_storico = pd.DataFrame(data_sheet.get_all_records())
-                df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                index, index_df = build_faiss_index(df_storico, col_weights)
-            except:
-                index = None
-
-        all_outputs = {lang: [] for lang in selected_langs}
-        logs = []
-
-        prompt = ""  # <- inizializza la variabile fuori dal try
-        
-        progress_bar = st.progress(0)
-        total = len(df_input)
-        
-        #for _, row in df_input.iterrows():
-        for i, (_, row) in enumerate(df_input.iterrows()):
-            progress_bar.progress((i + 1) / total)
-            try:
-                if index_df is not None:
-                    simili = retrieve_similar(row, index_df, index, k=1, col_weights=col_weights)
-                else:
-                    simili = pd.DataFrame([])
-
-                prompt = build_prompt(row, simili, col_display_names)
-                gen_output = generate_descriptions(prompt)
-
-                if "Descrizione breve:" in gen_output:
-                    descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
-                    descr_lunga = descr_lunga.replace("Descrizione lunga:", "").strip()
-                    descr_breve = descr_breve.strip()
-                else:
-                    # fallback se il modello non segue il formato atteso
-                    descr_lunga = gen_output.strip()
-                    descr_breve = ""
-                    
-                base = {
-                    **row.to_dict(),
-                    #"Description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
-                    #"Description2": descr_breve.strip()
-                    "Description": descr_lunga,
-                    "Description2": descr_breve
-                }
-
-                for lang in selected_langs:
-                    if lang == "it":
-                        all_outputs[lang].append(base)
-                    else:
-                        trad_lunga = translate_text(base["Description"], target_lang=lang)
-                        trad_breve = translate_text(base["Description2"], target_lang=lang)
-                        trad = base.copy()
-                        trad["Description"] = trad_lunga
-                        trad["Description2"] = trad_breve
-                        all_outputs[lang].append(trad)
-
-                logs.append({
-                    "sku": row.get("SKU", ""),
-                    "status": "OK",
-                    "prompt": prompt,
-                    "output": gen_output,
-                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                })
-            except Exception as e:
-                logs.append({
-                    "sku": row.get("SKU", ""),
-                    "status": f"Errore: {str(e)}",
-                    "prompt": prompt,
-                    "output": "",
-                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                })
-
-        # Salvataggio su Google Sheets
-        for lang in selected_langs:
-            df_out = pd.DataFrame(all_outputs[lang])
-            # overwrite_sheet(sheet_id, lang, df_out)
-            append_to_sheet(sheet_id, lang, df_out)
-
-        for log in logs:
-            append_log(sheet_id, log)
-
-        # Preparazione ZIP
-        mem_zip = BytesIO()
-        with zipfile.ZipFile(mem_zip, "w") as zf:
-            for lang in selected_langs:
-                df_out = pd.DataFrame(all_outputs[lang])
-
-                # Riorganizza e rinomina le colonne
-                df_export = pd.DataFrame()
-                df_export["SKU"] = df_out.get("SKU", "")
-                df_export["Descrizione lunga"] = df_out.get("Description", "")
-                df_export["Descrizione corta"] = df_out.get("Description2", "")
-
-                csv_bytes = df_export.to_csv(index=False).encode("utf-8")
-                zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
-        mem_zip.seek(0)
-        st.success("✅ Generazione completata con successo!")
-        st.download_button("📥 Scarica CSV (ZIP)", mem_zip, file_name="descrizioni.zip")
