@@ -428,33 +428,38 @@ if uploaded:
             st.success("✅ Generazione completata con successo!")
             st.download_button("📥 Scarica CSV (ZIP)", mem_zip, file_name="descrizioni.zip")
         
-    st.markdown("### ⚙️ Configura i pesi e i nomi delle colonne")
-    
     st.markdown("### 🧩 Seleziona colonne da includere nel prompt")
-
-    # 🧠 Init solo una volta (evita ricreazioni continue)
-    if "col_weights" not in st.session_state:
-        st.session_state.col_weights = {}
-    if "col_display_names" not in st.session_state:
-        st.session_state.col_display_names = {}
     
-    # 📋 Lista colonne da configurare
+    # 📋 Lista colonne disponibili
     available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
     
-    # 👀 Colonne selezionate per il prompt
-    include_cols = st.multiselect(
-        "Colonne da includere nel prompt",
-        options=available_cols,
-        default=available_cols,
-        key="included_columns"
+    # 🧠 Stato iniziale
+    if "selected_cols" not in st.session_state:
+        st.session_state.selected_cols = []
+    if "config_ready" not in st.session_state:
+        st.session_state.config_ready = False
+    
+    # 🔘 Step 1 – Selezione colonne
+    st.session_state.selected_cols = st.multiselect(
+        "Colonne da includere", options=available_cols, default=[]
     )
     
-    st.markdown("### ⚙️ Pesi e etichette (solo per colonne selezionate)")
+    # 👇 Mostra bottone per procedere con configurazione
+    if st.session_state.selected_cols:
+        if st.button("▶️ Procedi alla configurazione colonne"):
+            st.session_state.config_ready = True
     
-    # 🔄 Solo per le colonne visibili
-    for col in available_cols:
-        if col in st.session_state.included_columns:
-            # inizializzazione se non presente
+    # ⚙️ Step 2 – Configurazione colonne scelte
+    if st.session_state.config_ready:
+        st.markdown("### ⚙️ Configura pesi e nomi colonne")
+    
+        if "col_weights" not in st.session_state:
+            st.session_state.col_weights = {}
+        if "col_display_names" not in st.session_state:
+            st.session_state.col_display_names = {}
+    
+        for col in st.session_state.selected_cols:
+            # Init se non già presente
             if col not in st.session_state.col_weights:
                 st.session_state.col_weights[col] = 1
             if col not in st.session_state.col_display_names:
@@ -469,9 +474,6 @@ if uploaded:
                 st.session_state.col_display_names[col] = st.text_input(
                     f"Etichetta: {col}", value=st.session_state.col_display_names[col], key=f"label_{col}"
                 )
-        else:
-            # Se esclusa → imposta peso 0
-            st.session_state.col_weights[col] = 0
 
 
     row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input)-1, 0)
