@@ -88,9 +88,9 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
     D, I = index.search(np.array([query_vector]).astype("float32"), k)
 
     # 🔍 DEBUG
-    logging.info("QUERY TEXT:", query_text[:300], "...")
-    logging.info("INDICI trovati:", I[0])
-    logging.info("Distanze:", D[0])
+    logging.info(f"QUERY TEXT: {query_text[:300]} ...")
+    logging.info(f"INDICI trovati: {I[0]}")
+    logging.info(f"Distanze: {D[0]}")
     
     return df.iloc[I[0]]
 
@@ -188,13 +188,18 @@ Scheda tecnica: {product_info}
 Rispondi con:
 Descrizione lunga:
 Descrizione breve:"""
+
+    if len(prompt) > 12000:
+        st.warning("⚠️ Il prompt generato supera i limiti raccomandati di lunghezza.")
+    
     return prompt
 
 def generate_descriptions(prompt):
     response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
+        temperature=0.7,
+        max_tokens=3000
     )
     return response.choices[0].message.content
 
@@ -216,7 +221,7 @@ def append_log(sheet_id, log_data):
     sheet = get_sheet(sheet_id, "logs")
     sheet.append_row(list(log_data.values()), value_input_option="RAW")
 
-def save_to_sheet(sheet_id, tab, df):
+def overwrite_sheet(sheet_id, tab, df):
     sheet = get_sheet(sheet_id, tab)
     sheet.clear()
 
@@ -358,7 +363,6 @@ if uploaded:
             try:
                 data_sheet = get_sheet(sheet_id, "it")
                 #df_storico = pd.DataFrame(data_sheet.get_all_records())
-                data_sheet = get_sheet(sheet_id, "it")
                 df_storico = pd.DataFrame(data_sheet.get_all_records())
                 df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
                 index, index_df = build_faiss_index(df_storico, col_weights)
@@ -432,7 +436,7 @@ if uploaded:
         # Salvataggio su Google Sheets
         for lang in selected_langs:
             df_out = pd.DataFrame(all_outputs[lang])
-            # save_to_sheet(sheet_id, lang, df_out)
+            # overwrite_sheet(sheet_id, lang, df_out)
             append_to_sheet(sheet_id, lang, df_out)
 
         for log in logs:
