@@ -40,7 +40,12 @@ def get_sheet(sheet_id, tab):
 # ---------------------------
 # 📦 Embedding & FAISS Setup
 # ---------------------------
-model = SentenceTransformer("all-MiniLM-L6-v2", use_auth_token=st.secrets["HF_TOKEN"])
+@st.cache_resource
+def load_model():
+    hf_token = st.secrets.get("HF_TOKEN", None)
+    return SentenceTransformer("all-MiniLM-L6-v2", use_auth_token=hf_token)
+
+model = load_model()
 
 def embed_texts(texts: List[str], batch_size=32) -> List[List[float]]:
     return model.encode(texts, show_progress_bar=False, batch_size=batch_size).tolist()
@@ -75,6 +80,10 @@ def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_dir
 
     return index, df
 
+@st.cache_data(show_spinner="🔄 Costruzione indice FAISS in corso...")
+def build_faiss_index_cached(df: pd.DataFrame, col_weights: Dict[str, float]) -> tuple:
+    return build_faiss_index(df, col_weights)
+    
 def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_weights: Dict[str, float] = {}):
     parts = []
     for col in df.columns:
@@ -88,9 +97,9 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
     D, I = index.search(np.array([query_vector]).astype("float32"), k)
 
     # 🔍 DEBUG
-    logging.info(f"QUERY TEXT: {query_text[:300]} ...")
-    logging.info(f"INDICI trovati: {I[0]}")
-    logging.info(f"Distanze: {D[0]}")
+    st.debug(f"QUERY TEXT: {query_text[:300]} ...")
+    st.debug(f"INDICI trovati: {I[0]}")
+    st.debug(f"Distanze: {D[0]}")
     
     return df.iloc[I[0]]
 
@@ -264,6 +273,22 @@ def estimate_cost(prompt, model="gpt-3.5-turbo"):
 
     cost = (est_tokens / 1000) * cost_per_1k.get(model, 0.001)
     return est_tokens, cost
+
+def get_active_columns_config() -> tuple[Dict[str, float], Dict[str, str]]:
+    """
+    Restituisce solo i pesi e nomi delle colonne attualmente selezionate.
+    Evita di usare tutto `session_state.col_weights`/`col_display_names`.
+    """
+    selected = st.session_state.get("selected_cols", [])
+    weights = {
+        col: st.session_state.col_weights.get(col, 1)
+        for col in selected
+    }
+    labels = {
+        col: st.session_state.col_display_names.get(col, col)
+        for col in selected
+    }
+    return weights, labels
     
 # ---------------------------
 # 📦 Streamlit UI
@@ -297,7 +322,9 @@ if uploaded:
             prompts = []
             for _, row in df_input.iterrows():
                 simili = pd.DataFrame([])  # niente RAG per la stima
-                prompt = build_prompt(row, simili, st.session_state.col_display_names)
+                #prompt = build_prompt(row, simili, st.session_state.col_display_names)
+                col_weights, col_display_names = get_active_columns_config()
+                prompt = build_prompt(row, simili, col_display_names)
                 prompts.append(prompt)
                 if len(prompts) >= 3:
                     break
@@ -334,7 +361,8 @@ if uploaded:
                     #df_storico = pd.DataFrame(data_sheet.get_all_records())
                     df_storico = pd.DataFrame(data_sheet.get_all_records())
                     df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                    col_weights, _ = get_active_columns_config()
+                    index, index_df = build_faiss_index_cached(df_storico, col_weights)
                 except:
                     index = None
     
@@ -351,11 +379,14 @@ if uploaded:
                 progress_bar.progress((i + 1) / total)
                 try:
                     if index_df is not None:
-                        simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+                        col_weights, _ = get_active_columns_config()
+                        simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=col_weights)
                     else:
                         simili = pd.DataFrame([])
     
-                    prompt = build_prompt(row, simili, st.session_state.col_display_names)
+                    # prompt = build_prompt(row, simili, st.session_state.col_display_names)
+                    col_weights, col_display_names = get_active_columns_config()
+                    prompt = build_prompt(row, simili, col_display_names)
                     gen_output = generate_descriptions(prompt)
     
                     if "Descrizione breve:" in gen_output:
@@ -481,23 +512,25 @@ if uploaded:
     test_row = df_input.iloc[row_index]
 
     if st.button("Esegui Benchmark FAISS"):
+        col_weights, _ = get_active_columns_config()
         benchmark_faiss(df_input, col_weights)
 
     # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
         with st.spinner("Genero il prompt..."):
+            col_weights, col_display_names = get_active_columns_config()
             try:
                 if sheet_id:
                     # Carica storico ed esegui FAISS
                     data_sheet = get_sheet(sheet_id, "it")
                     df_storico = pd.DataFrame(data_sheet.get_all_records())
                     df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
-                    simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+                    index, index_df = build_faiss_index(df_storico, col_weights)
+                    simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=col_weights)
                 else:
                     simili = pd.DataFrame([])
     
-                prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names)
+                prompt_preview = build_prompt(test_row, simili, col_display_names)
                 prompt_tokens = len(prompt_preview) / 4  # stima token
     
                 with st.expander("📄 Anteprima prompt generato"):
