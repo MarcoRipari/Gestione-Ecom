@@ -358,8 +358,8 @@ if uploaded:
             if sheet_id:
                 try:
                     data_sheet = get_sheet(sheet_id, "it")
-                    #df_storico = pd.DataFrame(data_sheet.get_all_records())
-                    df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    with st.spinner("📥 Caricamento storico descrizioni..."):
+                        df_storico = pd.DataFrame(data_sheet.get_all_records())
                     df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
                     col_weights, _ = get_active_columns_config()
                     index, index_df = build_faiss_index_cached(df_storico, col_weights)
@@ -523,9 +523,10 @@ if uploaded:
                 if sheet_id:
                     # Carica storico ed esegui FAISS
                     data_sheet = get_sheet(sheet_id, "it")
-                    df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    with st.spinner("📥 Caricamento storico descrizioni..."):
+                        df_storico = pd.DataFrame(data_sheet.get_all_records())
                     df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                    index, index_df = build_faiss_index(df_storico, col_weights)
+                    index, index_df = build_faiss_index_cached(df_storico, col_weights)
                     simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=col_weights)
                 else:
                     simili = pd.DataFrame([])
