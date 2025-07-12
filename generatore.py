@@ -247,8 +247,9 @@ def append_to_sheet(sheet_id, tab, df):
     sheet = get_sheet(sheet_id, tab)
     df = df.fillna("").astype(str)
     values = df.values.tolist()
-    for row in values:
-        sheet.append_row(row, value_input_option="RAW")
+    sheet.append_rows(values, value_input_option="RAW")
+#    for row in values:
+#        sheet.append_row(row, value_input_option="RAW")
     
 # ---------------------------
 # Funzioni varie
@@ -359,10 +360,16 @@ if uploaded:
                 try:
                     data_sheet = get_sheet(sheet_id, "it")
                     with st.spinner("📥 Caricamento storico descrizioni..."):
-                        df_storico = pd.DataFrame(data_sheet.get_all_records())
-                    df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                    col_weights, _ = get_active_columns_config()
-                    index, index_df = build_faiss_index_cached(df_storico, col_weights)
+                        try:
+                            data_sheet = get_sheet(sheet_id, "it")
+                            df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
+                            col_weights, _ = get_active_columns_config()
+                            index, index_df = build_faiss_index_cached(df_storico, col_weights)
+                            except Exception as e:
+                                st.error("❌ Errore nel caricamento del Google Sheet o nella creazione dell'indice.")
+                                st.exception(e)
+                                index = None
+                                index_df = None
                 except:
                     index = None
     
@@ -518,16 +525,22 @@ if uploaded:
     # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
         with st.spinner("Genero il prompt..."):
-            col_weights, col_display_names = get_active_columns_config()
             try:
                 if sheet_id:
                     # Carica storico ed esegui FAISS
                     data_sheet = get_sheet(sheet_id, "it")
                     with st.spinner("📥 Caricamento storico descrizioni..."):
-                        df_storico = pd.DataFrame(data_sheet.get_all_records())
-                    df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                    index, index_df = build_faiss_index_cached(df_storico, col_weights)
-                    simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=col_weights)
+                        try:
+                            data_sheet = get_sheet(sheet_id, "it")
+                            df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
+                            col_weights, _ = get_active_columns_config()
+                            index, index_df = build_faiss_index_cached(df_storico, col_weights)
+                            simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=col_weights)
+                        except Exception as e:
+                            st.error("❌ Errore nel caricamento del Google Sheet o nella creazione dell'indice.")
+                            st.exception(e)
+                            index = None
+                            index_df = None
                 else:
                     simili = pd.DataFrame([])
     
