@@ -15,7 +15,6 @@ import chardet
 import hashlib
 import pickle
 from sentence_transformers import SentenceTransformer
-from huggingface_hub import login
 import torch
 import logging
 
@@ -41,8 +40,7 @@ def get_sheet(sheet_id, tab):
 # ---------------------------
 # 📦 Embedding & FAISS Setup
 # ---------------------------
-login(token=st.secrets["HF_TOKEN"])
-model = SentenceTransformer("all-MiniLM-L6-v2")  # leggero e veloce
+model = SentenceTransformer("all-MiniLM-L6-v2", use_auth_token=st.secrets["HF_TOKEN"])
 
 def embed_texts(texts: List[str], batch_size=32) -> List[List[float]]:
     return model.encode(texts, show_progress_bar=False, batch_size=batch_size).tolist()
