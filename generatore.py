@@ -288,7 +288,8 @@ if uploaded:
     spacer1, col1, col2, col3, spacer2 = st.columns([1, 2, 2, 2, 1])
 
     with col1:
-        k_simili = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
+        #k_simili = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
+        k_simili = st.selectbox("N° Simili", options=[1, 2, 3], index=0)
         
     with col2:
         if st.button("Stima costi"):
