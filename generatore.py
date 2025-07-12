@@ -286,8 +286,12 @@ if uploaded:
     selected_langs = st.multiselect("Seleziona lingue di output", ["it", "en", "fr", "de"], default=["it"])
     k_simili = st.slider("Numero di righe simili da usare (RAG)", 0, 3, 1)
 
-    btn1, btn2 = st.columns(2)
-    with btn1:
+    spacer1, col1, col2, col3, spacer2 = st.columns([1, 2, 2, 2, 1])
+
+    with col1:
+        numero = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
+        
+    with col2:
         if st.button("Stima costi"):
             # Calcolo prompt medio sui primi 3 record
             prompts = []
@@ -320,7 +324,8 @@ if uploaded:
             Token totali stimati: ~{int(total_tokens)}  
             **Costo stimato: ${est_cost:.4f}**
             """)
-    with btn2:
+            
+    with col3:
         if st.button("Genera Descrizioni"):
             index_df = None
             if sheet_id:
@@ -428,12 +433,17 @@ if uploaded:
     
     st.markdown("### 🧩 Seleziona colonne da includere nel prompt")
 
+    available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
     include_cols = st.multiselect(
         "Colonne da includere nel prompt",
-        [col for col in df_input.columns if col not in ["Description", "Description2"]],
-        default=[col for col in df_input.columns if col not in ["Description", "Description2"]]
+        options=available_cols,
+        default=available_cols
     )
-    for col in df_input.columns:
+    
+    col_weights = {}
+    col_display_names = {}
+    
+    for col in available_cols:
         if col in include_cols:
             cols = st.columns([2, 3])
             with cols[0]:
@@ -441,7 +451,8 @@ if uploaded:
             with cols[1]:
                 col_display_names[col] = st.text_input(f"Etichetta: {col}", value=col, key=f"label_{col}")
         else:
-            col_weights[col] = 0  # <-- Escludi dal prompt
+            # Imposta peso 0 automaticamente per escluderlo dal prompt e FAISS
+            col_weights[col] = 0
 
 
     row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input)-1, 0)
