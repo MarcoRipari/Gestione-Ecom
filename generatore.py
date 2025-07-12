@@ -16,6 +16,9 @@ import hashlib
 import pickle
 from sentence_transformers import SentenceTransformer
 import torch
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 # ---------------------------
 # 🔐 Setup API keys and credentials
@@ -85,9 +88,9 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
     D, I = index.search(np.array([query_vector]).astype("float32"), k)
 
     # 🔍 DEBUG
-    print("QUERY TEXT:", query_text[:300], "...")
-    print("INDICI trovati:", I[0])
-    print("Distanze:", D[0])
+    logging.info("QUERY TEXT:", query_text[:300], "...")
+    logging.info("INDICI trovati:", I[0])
+    logging.info("Distanze:", D[0])
     
     return df.iloc[I[0]]
 
