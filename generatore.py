@@ -357,21 +357,17 @@ if uploaded:
         if st.button("Genera Descrizioni"):
             index_df = None
             if sheet_id:
-                try:
-                    data_sheet = get_sheet(sheet_id, "it")
-                    with st.spinner("📥 Caricamento storico descrizioni..."):
-                        try:
-                            data_sheet = get_sheet(sheet_id, "it")
-                            df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
-                            col_weights, _ = get_active_columns_config()
-                            index, index_df = build_faiss_index_cached(df_storico, col_weights)
-                            except Exception as e:
-                                st.error("❌ Errore nel caricamento del Google Sheet o nella creazione dell'indice.")
-                                st.exception(e)
-                                index = None
-                                index_df = None
-                except:
-                    index = None
+                with st.spinner("📥 Caricamento storico descrizioni..."):
+                    try:
+                        data_sheet = get_sheet(sheet_id, "it")
+                        df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
+                        col_weights, _ = get_active_columns_config()
+                        index, index_df = build_faiss_index_cached(df_storico, col_weights)
+                    except Exception as e:
+                        st.error("❌ Errore nel caricamento del Google Sheet o nella creazione dell'indice.")
+                        st.exception(e)
+                        index = None
+                        index_df = None
     
             all_outputs = {lang: [] for lang in selected_langs}
             logs = []
@@ -543,7 +539,8 @@ if uploaded:
                             index_df = None
                 else:
                     simili = pd.DataFrame([])
-    
+
+                col_weights, col_display_names = get_active_columns_config()
                 prompt_preview = build_prompt(test_row, simili, col_display_names)
                 prompt_tokens = len(prompt_preview) / 4  # stima token
     
