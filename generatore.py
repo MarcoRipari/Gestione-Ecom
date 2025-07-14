@@ -313,8 +313,18 @@ if uploaded:
     #df_input = pd.read_csv(uploaded)
     df_input = read_csv_auto_encoding(uploaded)
     st.dataframe(df_input.head())
-    col_weights = {}
-    col_display_names = {}
+    
+    if "col_weights" not in st.session_state:
+        st.session_state.col_weights = {}
+
+    if "col_display_names" not in st.session_state:
+        st.session_state.col_display_names = {}
+    
+    if "selected_cols" not in st.session_state:
+        st.session_state.selected_cols = []
+    
+    if "config_ready" not in st.session_state:
+        st.session_state.config_ready = False
 
     settings_spacer1, settings_col1, settings_col2, settings_spacer2 = st.columns([1, 2, 2, 1])
 
