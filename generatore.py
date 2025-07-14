@@ -603,9 +603,9 @@ if "df_input" in st.session_state:
             st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
             st.session_state["generate"] = False
 
-    except Exception as e:
-        st.error(f"Errore durante la generazione: {str(e)}")
-        st.text(traceback.format_exc())
+        except Exception as e:
+            st.error(f"Errore durante la generazione: {str(e)}")
+            st.text(traceback.format_exc())
 
     # 🔍 Prompt Preview & Benchmark
     with st.expander("🔍 Strumenti di debug & Anteprima"):
