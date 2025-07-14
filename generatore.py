@@ -104,7 +104,7 @@ def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_dir
 
     return index, df
 
-def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_weights: Dict[str, float] = {}):
+def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=2, col_weights: Dict[str, float] = {}):
     parts = []
     for col in df.columns:
         if pd.notna(query_row[col]):
@@ -371,7 +371,7 @@ if uploaded:
         selected_langs = [LANG_LABELS[label] for label in selected_labels]
 
     with settings_col2:
-        k_simili = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
+        k_simili = st.number_input("Numero", min_value=1, max_value=2, value=1, step=1)
         
     spacer1, col1, col2, spacer2 = st.columns([1, 2, 2, 1])
 
