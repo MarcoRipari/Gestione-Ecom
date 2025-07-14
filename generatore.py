@@ -209,7 +209,7 @@ def get_blip_caption(image_url: str) -> str:
         caption = processor.decode(output[0], skip_special_tokens=True)
         return caption.strip()
     except Exception as e:
-        st.warning(f"⚠️ Errore nel captioning: {str(e)}")
+        # st.warning(f"⚠️ Errore nel captioning: {str(e)}")
         return ""
         
 # ---------------------------
@@ -398,7 +398,7 @@ if "df_input" in st.session_state:
 
     # 🌍 Lingue e parametri
     with st.expander("🌍 Selezione Lingue & Parametri"):
-        settings_col1, settings_col2 = st.columns(2)
+        settings_col1, settings_col2, settings col_3 = st.columns(3)
         with settings_col1:
             selected_labels = st.multiselect(
                 "Lingue di output",
@@ -410,6 +410,9 @@ if "df_input" in st.session_state:
         with settings_col2:
             use_simili = st.checkbox("Usa descrizioni simili (RAG)", value=True)
             k_simili = 2 if use_simili else 0
+            
+        with settings_col3:
+            use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
 
     # 💵 Stima costi
     if st.button("💰 Stima costi generazione"):
@@ -418,7 +421,10 @@ if "df_input" in st.session_state:
             for _, row in df_input.iterrows():
                 simili = pd.DataFrame([])
                 image_url = row.get("Image 1", "")
-                caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
+                if use_image:
+                    caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
+                else
+                    caption = None
                 prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
                 prompts.append(prompt)
                 if len(prompts) >= 3:
@@ -468,7 +474,10 @@ if "df_input" in st.session_state:
                             retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
                             if k_simili > 0 else pd.DataFrame([])
                         )
-                        caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
+                        if use_image:
+                            caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
+                        else
+                            caption = None
                         prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
                         gen_output = generate_descriptions(prompt)
 
@@ -529,6 +538,8 @@ if "df_input" in st.session_state:
 
             st.success("✅ Tutto fatto!")
             st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
+            
+            st.session_state["generate"] = False
 
         except Exception as e:
             st.error(f"Errore durante la generazione: {str(e)}")
@@ -558,7 +569,10 @@ if "df_input" in st.session_state:
                         simili = pd.DataFrame([])
 
                     image_url = test_row.get("Image 1", "")
-                    caption = get_blip_caption(image_url) if image_url else None
+                    if use_image:
+                        caption = get_blip_caption(image_url) if image_url else None
+                    else
+                        caption = None
                     prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names, caption)
                     st.expander("📄 Prompt generato").code(prompt_preview, language="markdown")
                 except Exception as e:
