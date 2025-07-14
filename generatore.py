@@ -123,16 +123,6 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
     
     return df.iloc[I[0]]
 
-@st.cache_data(show_spinner="📥 Caricamento storico descrizioni...")
-def load_storico_auto(sheet_id: str, tab_name="it", max_rows=500) -> pd.DataFrame:
-    try:
-        sheet = get_sheet(sheet_id, tab_name)
-        df = pd.DataFrame(sheet.get_all_records())
-        return df.tail(max_rows)
-    except Exception as e:
-        st.warning(f"⚠️ Errore nel caricamento dello storico: {e}")
-        return pd.DataFrame([])
-        
 def estimate_embedding_time(df: pd.DataFrame, col_weights: Dict[str, float], sample_size: int = 10) -> float:
     """
     Stima il tempo totale per embeddare tutti i testi del dataframe.
@@ -229,65 +219,45 @@ def build_prompt(row, examples=None, col_display_names=None, image_caption=None)
     fields = []
 
     if col_display_names is None:
+        # fallback per retrocompatibilità
         col_display_names = {col: col for col in row.index}
 
-    # Seleziona solo campi con valore e peso > 0
     for col in col_display_names:
         if col in row and pd.notna(row[col]):
             label = col_display_names[col]
-            value = str(row[col]).strip()
-            if value:
-                fields.append(f"{label}: {value}")
+            fields.append(f"{label}: {row[col]}")
 
-    if image_caption and len(image_caption.split()) >= 3:
-        fields.append(f"Aspetto visivo: {image_caption.strip()}")
+    
 
     product_info = "; ".join(fields)
 
-    # Sezione esempi
-    example_section = ""
-    if examples is not None and not examples.empty:
-        trimmed_examples = []
-        for i, (_, ex) in enumerate(examples.iterrows()):
-            descr = str(ex.get("Description", "")).strip()
-            descr2 = str(ex.get("Description2", "")).strip()
+    example_section = "\n\n".join(
+        f"""Esempio {i+1}:
+    Descrizione lunga: {ex['Description']}
+    Descrizione breve: {ex['Description2']}"""
+        for i, (_, ex) in enumerate(examples.iterrows())
+        if pd.notna(ex.get("Description")) and pd.notna(ex.get("Description2"))
+    )
 
-            if descr and descr2:
-                trimmed_examples.append(
-                    f"""Esempio {i+1}:
-Descrizione lunga: {descr}
-Descrizione breve: {descr2}"""
-                )
-            if len(trimmed_examples) >= 2:
-                break
+    prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
 
-        example_section = "\n\n".join(trimmed_examples)
+Tono richiesto: professionale, user friendly, accattivante, SEO-friendly.
+Evita nome prodotto, colore e marchio.
 
-    # Prompt finale
-    prompt = f"""Scrivi due descrizioni per una scheda prodotto di calzature destinata a uno shop online.
+Scheda tecnica: {product_info}
+Aspetto visivo: {image_caption}
 
-Tono: professionale, chiaro, accattivante, SEO-oriented.
-Evita di ripetere marca, nome o colore.
+Esempi:
+{example_section.strip()}
 
-Caratteristiche prodotto:
-{product_info}
 
-{"Esempi:\n" + example_section if example_section else ""}
-
-Vincoli:
-- Descrizione lunga: max 60 parole
-- Descrizione breve: max 20 parole
-
-Rispondi nel formato:
+Rispondi con:
 Descrizione lunga:
-...
-Descrizione breve:
-..."""
+Descrizione breve:"""
 
-    # Warning se troppo lungo
     if len(prompt) > 12000:
-        st.warning("⚠️ Il prompt generato è molto lungo.")
-
+        st.warning("⚠️ Il prompt generato supera i limiti raccomandati di lunghezza.")
+    
     return prompt
 
 def generate_descriptions(prompt):
@@ -370,9 +340,6 @@ st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
 # sheet_id = st.text_input("Google Sheet ID dello storico", key="sheet")
 sheet_id = st.secrets["GSHEET_ID"]
-
-df_storico = load_storico_auto(sheet_id, "it", 500)
-    
 uploaded = st.file_uploader("Carica il CSV dei prodotti", type="csv")
 
 # Configurazione pesi colonne per RAG
@@ -450,12 +417,19 @@ if uploaded:
                 index_df = None
                 if sheet_id:
                     with st.spinner("Caricolo lo storico..."):
-                        # Costruisce FAISS solo ora, con col_weights aggiornati
-                        if len(df_storico) > 0:
-                            index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
-                        else:
+                        try:
+                            data_sheet = get_sheet(sheet_id, "it")
+                            #df_storico = pd.DataFrame(data_sheet.get_all_records())
+                            df_storico = pd.DataFrame(data_sheet.get_all_records())
+                            df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
+                            #index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                            if "faiss_index" not in st.session_state:
+                                index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                                st.session_state["faiss_index"] = (index, index_df)
+                            else:
+                                index, index_df = st.session_state["faiss_index"]
+                        except:
                             index = None
-                            index_df = None
 
                 all_outputs = {lang: [] for lang in selected_langs}
                 logs = []
@@ -618,11 +592,15 @@ if uploaded:
             benchmark_faiss(df_input, col_weights)
 
     # Stimo il costo del token con RAG
-    if st.button("💬 Genera anteprima prompt"):
+    if st.button("💬 Mostra Prompt di Anteprima"):
         with st.spinner("Genero il prompt..."):
             try:
                 if sheet_id:
                     # Carica storico ed esegui FAISS
+                    data_sheet = get_sheet(sheet_id, "it")
+                    df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
+                    # index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                     if "faiss_index" not in st.session_state:
                         index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                         st.session_state["faiss_index"] = (index, index_df)
