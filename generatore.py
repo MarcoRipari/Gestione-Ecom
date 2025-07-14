@@ -360,69 +360,102 @@ async def generate_descriptions_parallel(prompts: List[str], concurrency: int = 
 # ---------------------------
 # 📦 Streamlit UI
 # ---------------------------
-st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
-st.title("👟 Generatore Descrizioni di Scarpe con RAG")
-
-# sheet_id = st.text_input("Google Sheet ID dello storico", key="sheet")
-sheet_id = st.secrets["GSHEET_ID"]
-uploaded = st.file_uploader("Carica il CSV dei prodotti", type="csv")
-
-# Configurazione pesi colonne per RAG
 if uploaded:
-    st.header("📤 1. Carica i dati")
     df_input = read_csv_auto_encoding(uploaded)
-    st.dataframe(df_input.head())
-    
-    if "col_weights" not in st.session_state:
-        st.session_state.col_weights = {}
-    if "col_display_names" not in st.session_state:
-        st.session_state.col_display_names = {}
-    if "selected_cols" not in st.session_state:
-        st.session_state.selected_cols = []
-    if "config_ready" not in st.session_state:
-        st.session_state.config_ready = False
-    
-    st.header("🌐 2. Lingue & Opzioni")
-    with st.expander("Lingue di output", expanded=True):
-        lang_cols = st.columns(2)
-        lang_options = list(LANG_LABELS.items())
-        selected_langs = []
-        for i, (lang_label, lang_code) in enumerate(lang_options):
-            with lang_cols[i % 2]:
-                if st.checkbox(f"🌍 {lang_label}", value=(lang_code == "IT"), key=f"lang_{lang_code}"):
-                    selected_langs.append(lang_code)
-    
-    use_similar = st.checkbox("📚 Usa descrizioni simili (RAG)", value=True)
-    k_simili = 2 if use_similar else 0
-    
-    st.header("⚙️ 3. Configura colonne")
+    st.subheader("📄 Anteprima CSV caricato")
+    st.dataframe(df_input.head(), use_container_width=True)
+
+    # ⬇️ Setup session state per configurazione colonne
+    for key in ["col_weights", "col_display_names", "selected_cols", "config_ready"]:
+        if key not in st.session_state:
+            st.session_state[key] = {} if "col" in key else False
+
+    st.divider()
+
+    st.subheader("🌍 Configura lingue di output")
+
+    lang_cols = st.columns(len(LANG_LABELS))
+    selected_langs = []
+    for idx, (label, lang_code) in enumerate(LANG_LABELS.items()):
+        with lang_cols[idx]:
+            if st.checkbox(label, value=(lang_code == "IT"), key=f"lang_{lang_code}"):
+                selected_langs.append(lang_code)
+
+    st.divider()
+
+    st.subheader("⚙️ Opzioni generazione")
+
+    col_opt1, col_opt2 = st.columns(2)
+
+    with col_opt1:
+        use_simili = st.checkbox("🔁 Usa descrizioni simili dallo storico (RAG)", value=True)
+
+    with col_opt2:
+        st.session_state["k_simili"] = 2 if use_simili else 0
+
+    st.markdown("### 🧩 Seleziona colonne da includere nel prompt")
+
     available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
-    
     st.session_state.selected_cols = st.multiselect(
-        "Colonne da includere nel prompt", options=available_cols, default=[]
+        "Colonne disponibili", options=available_cols, default=st.session_state.selected_cols
     )
-    
-    if st.session_state.selected_cols:
-        if st.button("▶️ Procedi alla configurazione colonne"):
-            st.session_state.config_ready = True
-    
+
+    if st.session_state.selected_cols and st.button("▶️ Procedi alla configurazione colonne"):
+        st.session_state.config_ready = True
+
     if st.session_state.config_ready:
-        st.markdown("### 🛠️ Configura pesi e nomi colonne")
+        st.markdown("### 🎛️ Configura pesi e nomi colonne")
         for col in st.session_state.selected_cols:
             if col not in st.session_state.col_weights:
-                st.session_state.col_weights[col] = 0
+                st.session_state.col_weights[col] = 1
             if col not in st.session_state.col_display_names:
                 st.session_state.col_display_names[col] = col
-    
-            cols = st.columns([2, 3])
-            with cols[0]:
+
+            col1, col2 = st.columns([2, 3])
+            with col1:
                 st.session_state.col_weights[col] = st.slider(
-                    f"Peso: {col}", 0, 5, st.session_state.col_weights[col], key=f"peso_{col}"
+                    f"Peso per {col}", 0, 5, st.session_state.col_weights[col], key=f"peso_{col}"
                 )
-            with cols[1]:
+            with col2:
                 st.session_state.col_display_names[col] = st.text_input(
-                    f"Etichetta: {col}", value=st.session_state.col_display_names[col], key=f"label_{col}"
+                    f"Etichetta per {col}", value=st.session_state.col_display_names[col], key=f"label_{col}"
                 )
-    
-    st.header("🤖 4. Genera descrizioni")
-    row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input) - 1, 0)
+
+    st.divider()
+    st.subheader("🧪 Strumenti")
+
+    test_row_index = st.number_input("Indice riga per anteprima", min_value=0, max_value=len(df_input)-1, value=0)
+    test_row = df_input.iloc[test_row_index]
+
+    if st.button("💬 Mostra Prompt di Anteprima"):
+        with st.spinner("Generazione prompt..."):
+            try:
+                simili = pd.DataFrame([])
+                if use_simili:
+                    data_sheet = get_sheet(sheet_id, "it")
+                    df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
+                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                    simili = retrieve_similar(test_row, index_df, index, k=2, col_weights=st.session_state.col_weights)
+
+                image_url = test_row.get("Image 1", "")
+                caption = get_blip_caption(image_url) if image_url else ""
+                prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names, caption)
+
+                with st.expander("📄 Anteprima Prompt"):
+                    st.code(prompt_preview)
+
+            except Exception as e:
+                st.error(f"Errore nella generazione del prompt: {str(e)}")
+
+    if st.button("⚙️ Esegui Benchmark FAISS"):
+        with st.spinner("Eseguo benchmark..."):
+            benchmark_faiss(df_input, st.session_state.col_weights)
+
+    if st.button("📊 Stima costi"):
+        # (Codice di stima già presente – lo puoi riusare)
+        pass
+
+    st.divider()
+    st.subheader("🚀 Avvia generazione descrizioni")
+
+    # (Codice già esistente per generazione → lasciato intatto)
