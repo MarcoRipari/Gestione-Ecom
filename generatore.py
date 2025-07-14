@@ -529,7 +529,7 @@ if "df_input" in st.session_state:
                     data_sheet = get_sheet(sheet_id, "it")
                     df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
                     if "faiss_index" not in st.session_state:
-                        index, index_df = build_faiss_index(df_storico, col_display_names)
+                        index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                         st.session_state["faiss_index"] = (index, index_df)
                     else:
                         index, index_df = st.session_state["faiss_index"]
