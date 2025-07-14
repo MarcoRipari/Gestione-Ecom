@@ -39,11 +39,21 @@ credentials = service_account.Credentials.from_service_account_info(
 )
 gsheet_client = gspread.authorize(credentials)
 
+#def get_sheet(sheet_id, tab):
+#    try:
+#        return gsheet_client.open_by_key(sheet_id).worksheet(tab)
+#    except:
+#        return gsheet_client.open_by_key(sheet_id).add_worksheet(title=tab, rows="10000", cols="50")
+
 def get_sheet(sheet_id, tab):
-    try:
-        return gsheet_client.open_by_key(sheet_id).worksheet(tab)
-    except:
-        return gsheet_client.open_by_key(sheet_id).add_worksheet(title=tab, rows="10000", cols="50")
+    spreadsheet = gsheet_client.open_by_key(sheet_id)
+    worksheets = spreadsheet.worksheets()
+    tab_names = [ws.title for ws in worksheets]
+
+    if tab in tab_names:
+        return spreadsheet.worksheet(tab)
+    else:
+        return spreadsheet.add_worksheet(title=tab, rows="10000", cols="50")
 
 # ---------------------------
 # 📦 Embedding & FAISS Setup
@@ -302,20 +312,22 @@ if uploaded:
     col_weights = {}
     col_display_names = {}
 
-    spacer1, col1, col2, col3, col4, spacer2 = st.columns([1, 2, 2, 2, 2, 1])
+    settings_spacer1, settings_col1, settings_col2, settings_spacer2: st.columns([1, 2, 2, 1])
 
-    with col1:
+    with settings_col1:
         selected_labels = st.multiselect(
             "Seleziona lingue di output",
             options=list(LANG_LABELS.keys()),
             default=["Italiano"]
         )
         selected_langs = [LANG_LABELS[label] for label in selected_labels]
-        
-    with col2:
+
+    with settings_col2:
         k_simili = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
         
-    with col3:
+    spacer1, col1, col2, col3, col4, spacer2 = st.columns([1, 2, 2, 1])
+
+    with col1:
         if st.button("Stima costi"):
             # Calcolo prompt medio sui primi 3 record
             prompts = []
@@ -349,116 +361,113 @@ if uploaded:
             **Costo stimato: ${est_cost:.4f}**
             """)
             
-    with col4:
+    with col2:
         try:
             if st.button("Genera Descrizioni"):
                 index_df = None
                 if sheet_id:
-                    try:
-                        data_sheet = get_sheet(sheet_id, "it")
-                        #df_storico = pd.DataFrame(data_sheet.get_all_records())
-                        df_storico = pd.DataFrame(data_sheet.get_all_records())
-                        df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                        index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
-                    except:
-                        index = None
-                
-                st.write("Storico caricato")
-                
+                    with st.spinner("Caricolo lo storico..."):
+                        try:
+                            data_sheet = get_sheet(sheet_id, "it")
+                            #df_storico = pd.DataFrame(data_sheet.get_all_records())
+                            df_storico = pd.DataFrame(data_sheet.get_all_records())
+                            df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
+                            index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                        except:
+                            index = None
+
                 all_outputs = {lang: [] for lang in selected_langs}
                 logs = []
             
                 prompt = ""  # <- inizializza la variabile fuori dal try
-                    
-                progress_bar = st.progress(0)
-                total = len(df_input)
-                    
-                #for _, row in df_input.iterrows():
-                st.write("Lingue selezionate:", selected_langs)
-                for i, (_, row) in enumerate(df_input.iterrows()):
-                    progress_bar.progress((i + 1) / total)
-                    try:
-                        if index_df is not None:
-                            simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
-                        else:
-                            simili = pd.DataFrame([])
-    
-                        st.write("Simili trovati.")
+
+                with st.spinner("Genero le descrizioni..."):
+                    progress_bar = st.progress(0)
+                    total = len(df_input)
                         
-                        prompt = build_prompt(row, simili, st.session_state.col_display_names)
-                        st.write("Prompt generato.")
-                        
-                        gen_output = generate_descriptions(prompt)
-                        st.write("Descrizioni generate.")
-            
-                        if "Descrizione breve:" in gen_output:
-                            descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
-                            descr_lunga = descr_lunga.replace("Descrizione lunga:", "").strip()
-                            descr_breve = descr_breve.strip()
-                        else:
-                            # fallback se il modello non segue il formato atteso
-                            descr_lunga = gen_output.strip()
-                            descr_breve = ""
-                                
-                        base = {
-                            **row.to_dict(),
-                            #"Description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
-                            #"Description2": descr_breve.strip()
-                            "Description": descr_lunga,
-                            "Description2": descr_breve
-                        }
-            
-                        for lang in selected_langs:
-                            if lang == "it":
-                                all_outputs[lang].append(base)
+                    #for _, row in df_input.iterrows():
+                    for i, (_, row) in enumerate(df_input.iterrows()):
+                        progress_bar.progress((i + 1) / total)
+                        try:
+                            if index_df is not None:
+                                simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
                             else:
-                                trad_lunga = translate_text(base["Description"], target_lang=lang)
-                                trad_breve = translate_text(base["Description2"], target_lang=lang)
-                                trad = base.copy()
-                                trad["Description"] = trad_lunga
-                                trad["Description2"] = trad_breve
-                                all_outputs[lang].append(trad)
-            
-                        logs.append({
-                            "sku": row.get("SKU", ""),
-                            "status": "OK",
-                            "prompt": prompt,
-                            "output": gen_output,
-                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                        })
-                    except Exception as e:
-                        logs.append({
-                            "sku": row.get("SKU", ""),
-                            "status": f"Errore: {str(e)}",
-                            "prompt": prompt,
-                            "output": "",
-                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                        })
-    
-                # Salvataggio su Google Sheets
-                for lang in selected_langs:
-                    df_out = pd.DataFrame(all_outputs[lang])
-                    # overwrite_sheet(sheet_id, lang, df_out)
-                    append_to_sheet(sheet_id, lang, df_out)
-            
-                for log in logs:
-                    append_log(sheet_id, log)
-    
-                # Preparazione ZIP
-                mem_zip = BytesIO()
-                with zipfile.ZipFile(mem_zip, "w") as zf:
+                                simili = pd.DataFrame([])
+
+                            prompt = build_prompt(row, simili, st.session_state.col_display_names)
+
+                            gen_output = generate_descriptions(prompt)
+
+                            if "Descrizione breve:" in gen_output:
+                                descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
+                                descr_lunga = descr_lunga.replace("Descrizione lunga:", "").strip()
+                                descr_breve = descr_breve.strip()
+                            else:
+                                # fallback se il modello non segue il formato atteso
+                                descr_lunga = gen_output.strip()
+                                descr_breve = ""
+                                    
+                            base = {
+                                **row.to_dict(),
+                                #"Description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
+                                #"Description2": descr_breve.strip()
+                                "Description": descr_lunga,
+                                "Description2": descr_breve
+                            }
+                
+                            for lang in selected_langs:
+                                if lang == "it":
+                                    all_outputs[lang].append(base)
+                                else:
+                                    trad_lunga = translate_text(base["Description"], target_lang=lang)
+                                    trad_breve = translate_text(base["Description2"], target_lang=lang)
+                                    trad = base.copy()
+                                    trad["Description"] = trad_lunga
+                                    trad["Description2"] = trad_breve
+                                    all_outputs[lang].append(trad)
+                
+                            logs.append({
+                                "sku": row.get("SKU", ""),
+                                "status": "OK",
+                                "prompt": prompt,
+                                "output": gen_output,
+                                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                            })
+                        except Exception as e:
+                            logs.append({
+                                "sku": row.get("SKU", ""),
+                                "status": f"Errore: {str(e)}",
+                                "prompt": prompt,
+                                "output": "",
+                                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                            })
+                with st.spinner("Salvo in Google Sheet..."):
+                    # Salvataggio su Google Sheets
                     for lang in selected_langs:
                         df_out = pd.DataFrame(all_outputs[lang])
-            
-                        # Riorganizza e rinomina le colonne
-                        df_export = pd.DataFrame()
-                        df_export["SKU"] = df_out.get("SKU", "")
-                        df_export["Descrizione lunga"] = df_out.get("Description", "")
-                        df_export["Descrizione corta"] = df_out.get("Description2", "")
-            
-                        csv_bytes = df_export.to_csv(index=False).encode("utf-8")
-                        zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
-                mem_zip.seek(0)
+                        # overwrite_sheet(sheet_id, lang, df_out)
+                        append_to_sheet(sheet_id, lang, df_out)
+                
+                    for log in logs:
+                        append_log(sheet_id, log)
+
+                # Preparazione ZIP
+                with st.spinner("Genero lo ZIP..."):
+                    mem_zip = BytesIO()
+                    with zipfile.ZipFile(mem_zip, "w") as zf:
+                        for lang in selected_langs:
+                            df_out = pd.DataFrame(all_outputs[lang])
+                
+                            # Riorganizza e rinomina le colonne
+                            df_export = pd.DataFrame()
+                            df_export["SKU"] = df_out.get("SKU", "")
+                            df_export["Descrizione lunga"] = df_out.get("Description", "")
+                            df_export["Descrizione corta"] = df_out.get("Description2", "")
+                
+                            csv_bytes = df_export.to_csv(index=False).encode("utf-8")
+                            zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
+                    mem_zip.seek(0)
+                    
                 st.success("✅ Generazione completata con successo!")
                 st.download_button("📥 Scarica CSV (ZIP)", mem_zip, file_name="descrizioni.zip")
 
