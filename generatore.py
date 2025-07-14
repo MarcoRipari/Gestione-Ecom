@@ -364,7 +364,9 @@ if uploaded:
                     index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                 except:
                     index = None
-        
+            
+            st.write("Storico caricato")
+            
             all_outputs = {lang: [] for lang in selected_langs}
             logs = []
         
@@ -374,6 +376,7 @@ if uploaded:
             total = len(df_input)
                 
             #for _, row in df_input.iterrows():
+            st.write("Lingue selezionate:", selected_langs)
             for i, (_, row) in enumerate(df_input.iterrows()):
                 progress_bar.progress((i + 1) / total)
                 try:
@@ -381,9 +384,14 @@ if uploaded:
                         simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
                     else:
                         simili = pd.DataFrame([])
-        
+
+                    st.write("Simili trovati.")
+                    
                     prompt = build_prompt(row, simili, st.session_state.col_display_names)
+                    st.write("Prompt generato.")
+                    
                     gen_output = generate_descriptions(prompt)
+                    st.write("Descrizioni generate.")
         
                     if "Descrizione breve:" in gen_output:
                         descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
