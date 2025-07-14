@@ -17,6 +17,7 @@ import pickle
 from sentence_transformers import SentenceTransformer
 import torch
 import logging
+import traceback
 
 logging.basicConfig(level=logging.INFO)
 
@@ -372,7 +373,12 @@ if uploaded:
                             #df_storico = pd.DataFrame(data_sheet.get_all_records())
                             df_storico = pd.DataFrame(data_sheet.get_all_records())
                             df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                            index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                            #index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                            if "faiss_index" not in st.session_state:
+                                index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                                st.session_state["faiss_index"] = (index, index_df)
+                            else:
+                                index, index_df = st.session_state["faiss_index"]
                         except:
                             index = None
 
@@ -473,7 +479,6 @@ if uploaded:
 
         except Exception as e:
             st.error(f"Errore durante la generazione: {str(e)}")
-            import traceback
             st.text(traceback.format_exc())
         
     st.markdown("### 🧩 Seleziona colonne da includere nel prompt")
@@ -540,7 +545,12 @@ if uploaded:
                     data_sheet = get_sheet(sheet_id, "it")
                     df_storico = pd.DataFrame(data_sheet.get_all_records())
                     df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                    # index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                    if "faiss_index" not in st.session_state:
+                        index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                        st.session_state["faiss_index"] = (index, index_df)
+                    else:
+                        index, index_df = st.session_state["faiss_index"]
                     simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
                 else:
                     simili = pd.DataFrame([])
