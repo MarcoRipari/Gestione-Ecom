@@ -8,6 +8,7 @@ import os
 from typing import List, Dict, Any
 from google.oauth2 import service_account
 import gspread
+from googleapiclient.discovery import build
 from io import BytesIO
 import zipfile
 import chardet
@@ -20,7 +21,6 @@ import traceback
 from transformers import BlipProcessor, BlipForConditionalGeneration
 from PIL import Image
 import requests
-import asyncio
 
 logging.basicConfig(level=logging.INFO)
 
@@ -104,7 +104,7 @@ def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_dir
 
     return index, df
 
-def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=2, col_weights: Dict[str, float] = {}):
+def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_weights: Dict[str, float] = {}):
     parts = []
     for col in df.columns:
         if pd.notna(query_row[col]):
@@ -331,131 +331,292 @@ def estimate_cost(prompt, model="gpt-3.5-turbo"):
 
     cost = (est_tokens / 1000) * cost_per_1k.get(model, 0.001)
     return est_tokens, cost
-
-# ---------------------------
-# Async Functions
-# ---------------------------
-async def generate_description_async(prompt: str) -> str:
-    try:
-        response = await openai.ChatCompletion.acreate(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=3000,
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"__ERROR__::{str(e)}"
-
-async def generate_descriptions_parallel(prompts: List[str], concurrency: int = 5) -> List[str]:
-    semaphore = asyncio.Semaphore(concurrency)
-
-    async def sem_task(prompt):
-        async with semaphore:
-            return await generate_description_async(prompt)
-
-    tasks = [sem_task(prompt) for prompt in prompts]
-    return await asyncio.gather(*tasks)
     
 # ---------------------------
 # 📦 Streamlit UI
 # ---------------------------
+st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
+st.title("👟 Generatore Descrizioni di Scarpe con RAG")
+
+# sheet_id = st.text_input("Google Sheet ID dello storico", key="sheet")
+sheet_id = st.secrets["GSHEET_ID"]
+uploaded = st.file_uploader("Carica il CSV dei prodotti", type="csv")
+
+# Configurazione pesi colonne per RAG
 if uploaded:
+    #df_input = pd.read_csv(uploaded)
     df_input = read_csv_auto_encoding(uploaded)
-    st.subheader("📄 Anteprima CSV caricato")
-    st.dataframe(df_input.head(), use_container_width=True)
+    st.dataframe(df_input.head())
+    
+    if "col_weights" not in st.session_state:
+        st.session_state.col_weights = {}
 
-    # ⬇️ Setup session state per configurazione colonne
-    for key in ["col_weights", "col_display_names", "selected_cols", "config_ready"]:
-        if key not in st.session_state:
-            st.session_state[key] = {} if "col" in key else False
+    if "col_display_names" not in st.session_state:
+        st.session_state.col_display_names = {}
+    
+    if "selected_cols" not in st.session_state:
+        st.session_state.selected_cols = []
+    
+    if "config_ready" not in st.session_state:
+        st.session_state.config_ready = False
 
-    st.divider()
+    settings_spacer1, settings_col1, settings_col2, settings_spacer2 = st.columns([1, 2, 2, 1])
 
-    st.subheader("🌍 Configura lingue di output")
+    with settings_col1:
+        selected_labels = st.multiselect(
+            "Seleziona lingue di output",
+            options=list(LANG_LABELS.keys()),
+            default=["Italiano"]
+        )
+        selected_langs = [LANG_LABELS[label] for label in selected_labels]
 
-    lang_cols = st.columns(len(LANG_LABELS))
-    selected_langs = []
-    for idx, (label, lang_code) in enumerate(LANG_LABELS.items()):
-        with lang_cols[idx]:
-            if st.checkbox(label, value=(lang_code == "IT"), key=f"lang_{lang_code}"):
-                selected_langs.append(lang_code)
+    with settings_col2:
+        k_simili = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
+        
+    spacer1, col1, col2, spacer2 = st.columns([1, 2, 2, 1])
 
-    st.divider()
+    with col1:
+        if st.button("Stima costi"):
+            # Calcolo prompt medio sui primi 3 record
+            prompts = []
+            for _, row in df_input.iterrows():
+                simili = pd.DataFrame([])  # niente RAG per la stima
+                image_url = row.get("Image 1", "")
+                caption = get_blip_caption(image_url) if image_url else None
+                prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
+                prompts.append(prompt)
+                if len(prompts) >= 3:
+                    break
+    
+            # Stimiamo i token: 1 token ≈ 4 caratteri
+            avg_prompt_len_chars = sum(len(p) for p in prompts) / len(prompts)
+            avg_prompt_tokens = avg_prompt_len_chars / 4
+    
+            # Output: descrizione lunga + breve (stima in token)
+            output_tokens_per_row = 60 + 20  # circa 80 token per lingua
+    
+            # Calcolo finale
+            num_rows = len(df_input)
+            num_langs = len(selected_langs)
+            total_input_tokens = num_rows * avg_prompt_tokens
+            total_output_tokens = num_rows * output_tokens_per_row * num_langs
+            total_tokens = total_input_tokens + total_output_tokens
+    
+            est_cost = total_tokens / 1000 * 0.001  # gpt-3.5-turbo
+    
+            st.info(f"""
+            Prompt medio: ~{avg_prompt_tokens:.0f} token  
+            Output stimato per riga: {output_tokens_per_row} token × {num_langs} lingue  
+            Token totali stimati: ~{int(total_tokens)}  
+            **Costo stimato: ${est_cost:.4f}**
+            """)
+            
+    with col2:
+        if st.button("Genera Descrizioni"):
+            try:
+                index_df = None
+                if sheet_id:
+                    with st.spinner("Caricolo lo storico..."):
+                        try:
+                            data_sheet = get_sheet(sheet_id, "it")
+                            #df_storico = pd.DataFrame(data_sheet.get_all_records())
+                            df_storico = pd.DataFrame(data_sheet.get_all_records())
+                            df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
+                            #index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                            if "faiss_index" not in st.session_state:
+                                index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                                st.session_state["faiss_index"] = (index, index_df)
+                            else:
+                                index, index_df = st.session_state["faiss_index"]
+                        except:
+                            index = None
 
-    st.subheader("⚙️ Opzioni generazione")
+                all_outputs = {lang: [] for lang in selected_langs}
+                logs = []
+            
+                prompt = ""  # <- inizializza la variabile fuori dal try
 
-    col_opt1, col_opt2 = st.columns(2)
+                with st.spinner("Genero le descrizioni..."):
+                    progress_bar = st.progress(0)
+                    total = len(df_input)
+                        
+                    #for _, row in df_input.iterrows():
+                    for i, (_, row) in enumerate(df_input.iterrows()):
+                        progress_bar.progress((i + 1) / total)
+                        try:
+                            if index_df is not None:
+                                simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+                            else:
+                                simili = pd.DataFrame([])
 
-    with col_opt1:
-        use_simili = st.checkbox("🔁 Usa descrizioni simili dallo storico (RAG)", value=True)
+                            image_url = row.get("Image 1", "")
+                            caption = get_blip_caption(image_url) if image_url else None
+                            prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
 
-    with col_opt2:
-        st.session_state["k_simili"] = 2 if use_simili else 0
+                            gen_output = generate_descriptions(prompt)
 
+                            if "Descrizione breve:" in gen_output:
+                                descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
+                                descr_lunga = descr_lunga.replace("Descrizione lunga:", "").strip()
+                                descr_breve = descr_breve.strip()
+                            else:
+                                # fallback se il modello non segue il formato atteso
+                                descr_lunga = gen_output.strip()
+                                descr_breve = ""
+                                    
+                            base = {
+                                **row.to_dict(),
+                                #"Description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
+                                #"Description2": descr_breve.strip()
+                                "Description": descr_lunga,
+                                "Description2": descr_breve
+                            }
+                
+                            for lang in selected_langs:
+                                if lang == "it":
+                                    all_outputs[lang].append(base)
+                                else:
+                                    trad_lunga = translate_text(base["Description"], target_lang=lang)
+                                    trad_breve = translate_text(base["Description2"], target_lang=lang)
+                                    trad = base.copy()
+                                    trad["Description"] = trad_lunga
+                                    trad["Description2"] = trad_breve
+                                    all_outputs[lang].append(trad)
+                
+                            logs.append({
+                                "sku": row.get("SKU", ""),
+                                "status": "OK",
+                                "prompt": prompt,
+                                "output": gen_output,
+                                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                            })
+                        except Exception as e:
+                            logs.append({
+                                "sku": row.get("SKU", ""),
+                                "status": f"Errore: {str(e)}",
+                                "prompt": prompt,
+                                "output": "",
+                                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                            })
+
+                        progress_bar.empty()
+                            
+                with st.spinner("Salvo in Google Sheet..."):
+                    # Salvataggio su Google Sheets
+                    for lang in selected_langs:
+                        df_out = pd.DataFrame(all_outputs[lang])
+                        # overwrite_sheet(sheet_id, lang, df_out)
+                        append_to_sheet(sheet_id, lang, df_out)
+                
+                    for log in logs:
+                        append_log(sheet_id, log)
+
+                # Preparazione ZIP
+                with st.spinner("Genero lo ZIP..."):
+                    mem_zip = BytesIO()
+                    with zipfile.ZipFile(mem_zip, "w") as zf:
+                        for lang in selected_langs:
+                            df_out = pd.DataFrame(all_outputs[lang])
+                
+                            # Riorganizza e rinomina le colonne
+                            df_export = pd.DataFrame()
+                            df_export["SKU"] = df_out.get("SKU", "")
+                            df_export["Descrizione lunga"] = df_out.get("Description", "")
+                            df_export["Descrizione corta"] = df_out.get("Description2", "")
+                
+                            csv_bytes = df_export.to_csv(index=False).encode("utf-8")
+                            zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
+                    mem_zip.seek(0)
+            except Exception as e:
+                st.error(f"Errore durante la generazione: {str(e)}")
+                st.text(traceback.format_exc())
+            
+            st.success("✅ Generazione completata con successo!")
+            st.download_button("📥 Scarica CSV (ZIP)", mem_zip, file_name="descrizioni.zip")
+
+        
+        
     st.markdown("### 🧩 Seleziona colonne da includere nel prompt")
-
+    
+    # 📋 Lista colonne disponibili
     available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
+    
+    # 🧠 Stato iniziale
+    if "selected_cols" not in st.session_state:
+        st.session_state.selected_cols = []
+    if "config_ready" not in st.session_state:
+        st.session_state.config_ready = False
+    
+    # 🔘 Step 1 – Selezione colonne
     st.session_state.selected_cols = st.multiselect(
-        "Colonne disponibili", options=available_cols, default=st.session_state.selected_cols
+        "Colonne da includere", options=available_cols, default=[]
     )
-
-    if st.session_state.selected_cols and st.button("▶️ Procedi alla configurazione colonne"):
-        st.session_state.config_ready = True
-
+    
+    # 👇 Mostra bottone per procedere con configurazione
+    if st.session_state.selected_cols:
+        if st.button("▶️ Procedi alla configurazione colonne"):
+            st.session_state.config_ready = True
+    
+    # ⚙️ Step 2 – Configurazione colonne scelte
     if st.session_state.config_ready:
-        st.markdown("### 🎛️ Configura pesi e nomi colonne")
+        st.markdown("### ⚙️ Configura pesi e nomi colonne")
+    
+        if "col_weights" not in st.session_state:
+            st.session_state.col_weights = {}
+        if "col_display_names" not in st.session_state:
+            st.session_state.col_display_names = {}
+    
         for col in st.session_state.selected_cols:
+            # Init se non già presente
             if col not in st.session_state.col_weights:
-                st.session_state.col_weights[col] = 1
+                st.session_state.col_weights[col] = 0
             if col not in st.session_state.col_display_names:
                 st.session_state.col_display_names[col] = col
-
-            col1, col2 = st.columns([2, 3])
-            with col1:
+    
+            cols = st.columns([2, 3])
+            with cols[0]:
                 st.session_state.col_weights[col] = st.slider(
-                    f"Peso per {col}", 0, 5, st.session_state.col_weights[col], key=f"peso_{col}"
+                    f"Peso: {col}", 0, 5, st.session_state.col_weights[col], key=f"peso_{col}"
                 )
-            with col2:
+            with cols[1]:
                 st.session_state.col_display_names[col] = st.text_input(
-                    f"Etichetta per {col}", value=st.session_state.col_display_names[col], key=f"label_{col}"
+                    f"Etichetta: {col}", value=st.session_state.col_display_names[col], key=f"label_{col}"
                 )
 
-    st.divider()
-    st.subheader("🧪 Strumenti")
 
-    test_row_index = st.number_input("Indice riga per anteprima", min_value=0, max_value=len(df_input)-1, value=0)
-    test_row = df_input.iloc[test_row_index]
+    row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input)-1, 0)
+    test_row = df_input.iloc[row_index]
 
+    if st.button("Esegui Benchmark FAISS"):
+        with st.spinner("Eseguo benchmark..."):
+            benchmark_faiss(df_input, col_weights)
+
+    # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
-        with st.spinner("Generazione prompt..."):
+        with st.spinner("Genero il prompt..."):
             try:
-                simili = pd.DataFrame([])
-                if use_simili:
+                if sheet_id:
+                    # Carica storico ed esegui FAISS
                     data_sheet = get_sheet(sheet_id, "it")
-                    df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
-                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
-                    simili = retrieve_similar(test_row, index_df, index, k=2, col_weights=st.session_state.col_weights)
+                    df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
+                    # index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                    if "faiss_index" not in st.session_state:
+                        index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                        st.session_state["faiss_index"] = (index, index_df)
+                    else:
+                        index, index_df = st.session_state["faiss_index"]
+                    simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+                else:
+                    simili = pd.DataFrame([])
 
                 image_url = test_row.get("Image 1", "")
-                caption = get_blip_caption(image_url) if image_url else ""
+                caption = get_blip_caption(image_url) if image_url else None
                 prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names, caption)
-
-                with st.expander("📄 Anteprima Prompt"):
-                    st.code(prompt_preview)
-
+                prompt_tokens = len(prompt_preview) / 4  # stima token
+    
+                with st.expander("📄 Anteprima prompt generato"):
+                    st.code(prompt_preview, language="markdown")
+    
             except Exception as e:
                 st.error(f"Errore nella generazione del prompt: {str(e)}")
-
-    if st.button("⚙️ Esegui Benchmark FAISS"):
-        with st.spinner("Eseguo benchmark..."):
-            benchmark_faiss(df_input, st.session_state.col_weights)
-
-    if st.button("📊 Stima costi"):
-        # (Codice di stima già presente – lo puoi riusare)
-        pass
-
-    st.divider()
-    st.subheader("🚀 Avvia generazione descrizioni")
-
-    # (Codice già esistente per generazione → lasciato intatto)
