@@ -251,9 +251,9 @@ Tono richiesto: professionale, user friendly, accattivante, SEO-friendly.
 Evita nome prodotto, colore e marchio.
 
 Scheda tecnica: {product_info}
-Aspetto visivo: {image_caption if image_caption else 'N/A'}
 """
-
+    if image_caption:
+        prompt += f"\nAspetto visivo: {image_caption}"
     if example_section:
         prompt += f"\n\nEsempi:\n{example_section}"
 
@@ -418,7 +418,7 @@ if "df_input" in st.session_state:
             for _, row in df_input.iterrows():
                 simili = pd.DataFrame([])
                 image_url = row.get("Image 1", "")
-                caption = get_blip_caption(image_url) if image_url else None
+                caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
                 prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
                 prompts.append(prompt)
                 if len(prompts) >= 3:
