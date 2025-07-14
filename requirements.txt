@@ -22,3 +22,8 @@ faiss-cpu
 # 🧮 Data Processing
 pandas
 numpy
+
+# Utility
+tqdm
+aiohttp
+httpx
