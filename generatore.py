@@ -231,15 +231,13 @@ def build_prompt(row, examples=None, col_display_names=None, image_caption=None)
 
     product_info = "; ".join(fields)
 
-    example_section = ""
-    if examples is not None and not examples.empty:
-        example_section = "\n\n".join(
-            f"""Esempio {i+1}:
-        Descrizione lunga: {ex['Description']}
-        Descrizione breve: {ex['Description2']}"""
-            for i, (_, ex) in enumerate(examples.iterrows())
-            if pd.notna(ex.get("Description")) and pd.notna(ex.get("Description2"))
-        )
+    example_section = "\n\n".join(
+        f"Esempio {i+1}:\n"
+        f"Descrizione lunga: {ex['Description']}\n"
+        f"Descrizione breve: {ex['Description2']}"
+        for i, (_, ex) in enumerate(examples.iterrows())
+        if pd.notna(ex.get("Description")) and pd.notna(ex.get("Description2"))
+    )
 
     prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
 
