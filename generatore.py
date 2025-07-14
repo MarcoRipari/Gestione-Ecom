@@ -423,7 +423,7 @@ if "df_input" in st.session_state:
                 image_url = row.get("Image 1", "")
                 if use_image:
                     caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
-                else
+                else:
                     caption = None
                 prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
                 prompts.append(prompt)
@@ -476,7 +476,7 @@ if "df_input" in st.session_state:
                         )
                         if use_image:
                             caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
-                        else
+                        else:
                             caption = None
                         prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
                         gen_output = generate_descriptions(prompt)
@@ -571,7 +571,7 @@ if "df_input" in st.session_state:
                     image_url = test_row.get("Image 1", "")
                     if use_image:
                         caption = get_blip_caption(image_url) if image_url else None
-                    else
+                    else:
                         caption = None
                     prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names, caption)
                     st.expander("📄 Prompt generato").code(prompt_preview, language="markdown")
