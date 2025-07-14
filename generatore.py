@@ -609,7 +609,7 @@ if uploaded:
                 else:
                     simili = pd.DataFrame([])
 
-                image_url = row.get("Image 1", "")
+                image_url = test_row.get("Image 1", "")
                 caption = get_blip_caption(image_url) if image_url else None
                 prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names, caption)
                 prompt_tokens = len(prompt_preview) / 4  # stima token
