@@ -325,7 +325,7 @@ if uploaded:
     with settings_col2:
         k_simili = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
         
-    spacer1, col1, col2, col3, col4, spacer2 = st.columns([1, 2, 2, 1])
+    spacer1, col1, col2, spacer2 = st.columns([1, 2, 2, 1])
 
     with col1:
         if st.button("Stima costi"):
