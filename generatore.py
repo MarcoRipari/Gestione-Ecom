@@ -201,9 +201,11 @@ def build_prompt(row, examples=None, col_display_names=None):
 
     product_info = "; ".join(fields)
 
-    example_section = "\n".join(
-        f"- {ex['Description']}\n- {ex['Description2']}" 
-        for _, ex in examples.iterrows() 
+    example_section = "\n\n".join(
+        f"""Esempio {i+1}:
+    Descrizione lunga: {ex['Description']}
+    Descrizione breve: {ex['Description2']}"""
+        for i, (_, ex) in enumerate(examples.iterrows())
         if pd.notna(ex.get("Description")) and pd.notna(ex.get("Description2"))
     )
 
