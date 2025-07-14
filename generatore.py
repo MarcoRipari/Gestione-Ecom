@@ -247,7 +247,7 @@ Evita nome prodotto, colore e marchio.
 Scheda tecnica: {product_info}
 Aspetto visivo: {image_caption}
 
-Esempio:
+Esempi:
 {example_section.strip()}
 
 
