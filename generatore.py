@@ -363,8 +363,8 @@ if uploaded:
             """)
             
     with col2:
-        try:
-            if st.button("Genera Descrizioni"):
+        if st.button("Genera Descrizioni"):
+            try:
                 index_df = None
                 if sheet_id:
                     with st.spinner("Caricolo lo storico..."):
@@ -473,13 +473,14 @@ if uploaded:
                             csv_bytes = df_export.to_csv(index=False).encode("utf-8")
                             zf.writestr(f"descrizioni_{lang}.csv", csv_bytes)
                     mem_zip.seek(0)
-                    
-                st.success("✅ Generazione completata con successo!")
-                st.download_button("📥 Scarica CSV (ZIP)", mem_zip, file_name="descrizioni.zip")
+            except Exception as e:
+                st.error(f"Errore durante la generazione: {str(e)}")
+                st.text(traceback.format_exc())
+            
+            st.success("✅ Generazione completata con successo!")
+            st.download_button("📥 Scarica CSV (ZIP)", mem_zip, file_name="descrizioni.zip")
 
-        except Exception as e:
-            st.error(f"Errore durante la generazione: {str(e)}")
-            st.text(traceback.format_exc())
+        
         
     st.markdown("### 🧩 Seleziona colonne da includere nel prompt")
     
