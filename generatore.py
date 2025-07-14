@@ -219,45 +219,65 @@ def build_prompt(row, examples=None, col_display_names=None, image_caption=None)
     fields = []
 
     if col_display_names is None:
-        # fallback per retrocompatibilità
         col_display_names = {col: col for col in row.index}
 
+    # Seleziona solo campi con valore e peso > 0
     for col in col_display_names:
         if col in row and pd.notna(row[col]):
             label = col_display_names[col]
-            fields.append(f"{label}: {row[col]}")
+            value = str(row[col]).strip()
+            if value:
+                fields.append(f"{label}: {value}")
 
-    
+    if image_caption and len(image_caption.split()) >= 3:
+        fields.append(f"Aspetto visivo: {image_caption.strip()}")
 
     product_info = "; ".join(fields)
 
-    example_section = "\n\n".join(
-        f"""Esempio {i+1}:
-    Descrizione lunga: {ex['Description']}
-    Descrizione breve: {ex['Description2']}"""
-        for i, (_, ex) in enumerate(examples.iterrows())
-        if pd.notna(ex.get("Description")) and pd.notna(ex.get("Description2"))
-    )
+    # Sezione esempi
+    example_section = ""
+    if examples is not None and not examples.empty:
+        trimmed_examples = []
+        for i, (_, ex) in enumerate(examples.iterrows()):
+            descr = str(ex.get("Description", "")).strip()
+            descr2 = str(ex.get("Description2", "")).strip()
 
-    prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
+            if descr and descr2:
+                trimmed_examples.append(
+                    f"""Esempio {i+1}:
+Descrizione lunga: {descr}
+Descrizione breve: {descr2}"""
+                )
+            if len(trimmed_examples) >= 2:
+                break
 
-Tono richiesto: professionale, user friendly, accattivante, SEO-friendly.
-Evita nome prodotto, colore e marchio.
+        example_section = "\n\n".join(trimmed_examples)
 
-Scheda tecnica: {product_info}
-Aspetto visivo: {image_caption}
+    # Prompt finale
+    prompt = f"""Scrivi due descrizioni per una scheda prodotto di calzature destinata a uno shop online.
 
-Esempi:
-{example_section.strip()}
+Tono: professionale, chiaro, accattivante, SEO-oriented.
+Evita di ripetere marca, nome o colore.
 
+Caratteristiche prodotto:
+{product_info}
 
-Rispondi con:
+{"Esempi:\n" + example_section if example_section else ""}
+
+Vincoli:
+- Descrizione lunga: max 60 parole
+- Descrizione breve: max 20 parole
+
+Rispondi nel formato:
 Descrizione lunga:
-Descrizione breve:"""
+...
+Descrizione breve:
+..."""
 
+    # Warning se troppo lungo
     if len(prompt) > 12000:
-        st.warning("⚠️ Il prompt generato supera i limiti raccomandati di lunghezza.")
-    
+        st.warning("⚠️ Il prompt generato è molto lungo.")
+
     return prompt
 
 def generate_descriptions(prompt):
