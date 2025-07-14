@@ -227,8 +227,7 @@ def build_prompt(row, examples=None, col_display_names=None, image_caption=None)
             label = col_display_names[col]
             fields.append(f"{label}: {row[col]}")
 
-    if image_caption:
-        fields.append(f"Aspetto visivo: {image_caption}")
+    
 
     product_info = "; ".join(fields)
 
@@ -245,10 +244,12 @@ def build_prompt(row, examples=None, col_display_names=None, image_caption=None)
 Tono richiesto: professionale, user friendly, accattivante, SEO-friendly.
 Evita nome prodotto, colore e marchio.
 
+Scheda tecnica: {product_info}
+Aspetto visivo: {image_caption}
+
 Esempio:
 {example_section.strip()}
 
-Scheda tecnica: {product_info}
 
 Rispondi con:
 Descrizione lunga:
