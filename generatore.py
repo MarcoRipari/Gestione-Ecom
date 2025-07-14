@@ -524,84 +524,84 @@ if "df_input" in st.session_state:
         from io import BytesIO
         try:
         # Build FAISS if needed
-        if sheet_id:
-            with st.spinner("📚 Carico storico e indice FAISS..."):
-                data_sheet = get_sheet(sheet_id, "it")
-                df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
-                if "faiss_index" not in st.session_state:
-                    index, index_df = build_faiss_index(df_storico, col_display_names)
-                    st.session_state["faiss_index"] = (index, index_df)
-                else:
-                    index, index_df = st.session_state["faiss_index"]
-
-        # Costruisci i prompt
-        all_prompts = []
-        for _, row in df_input.iterrows():
-            simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=col_display_names) if k_simili > 0 else pd.DataFrame([])
-            caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
-            prompt = build_unified_prompt(row, col_display_names, selected_langs, image_caption=caption, simili=simili)
-            all_prompts.append(prompt)
-
-        with st.spinner("🚀 Generazione asincrona in corso..."):
-            results = asyncio.run(generate_all_prompts(all_prompts))
-
-        # Parsing risultati
-        all_outputs = {lang: [] for lang in selected_langs}
-        logs = []
-
-        for i, (_, row) in enumerate(df_input.iterrows()):
-            result = results.get(i, {})
-            if "error" in result:
+            if sheet_id:
+                with st.spinner("📚 Carico storico e indice FAISS..."):
+                    data_sheet = get_sheet(sheet_id, "it")
+                    df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
+                    if "faiss_index" not in st.session_state:
+                        index, index_df = build_faiss_index(df_storico, col_display_names)
+                        st.session_state["faiss_index"] = (index, index_df)
+                    else:
+                        index, index_df = st.session_state["faiss_index"]
+    
+            # Costruisci i prompt
+            all_prompts = []
+            for _, row in df_input.iterrows():
+                simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=col_display_names) if k_simili > 0 else pd.DataFrame([])
+                caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
+                prompt = build_unified_prompt(row, col_display_names, selected_langs, image_caption=caption, simili=simili)
+                all_prompts.append(prompt)
+    
+            with st.spinner("🚀 Generazione asincrona in corso..."):
+                results = asyncio.run(generate_all_prompts(all_prompts))
+    
+            # Parsing risultati
+            all_outputs = {lang: [] for lang in selected_langs}
+            logs = []
+    
+            for i, (_, row) in enumerate(df_input.iterrows()):
+                result = results.get(i, {})
+                if "error" in result:
+                    logs.append({
+                        "sku": row.get("SKU", ""),
+                        "status": f"Errore: {result['error']}",
+                        "prompt": all_prompts[i],
+                        "output": "",
+                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                    })
+                    continue
+    
+                for lang in selected_langs:
+                    row_data = {
+                        **row.to_dict(),
+                        "Description": result.get(lang, {}).get("descrizione_lunga", ""),
+                        "Description2": result.get(lang, {}).get("descrizione_breve", "")
+                    }
+                    all_outputs[lang].append(row_data)
+    
                 logs.append({
                     "sku": row.get("SKU", ""),
-                    "status": f"Errore: {result['error']}",
+                    "status": "OK",
                     "prompt": all_prompts[i],
-                    "output": "",
+                    "output": json.dumps(result, ensure_ascii=False),
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                 })
-                continue
-
-            for lang in selected_langs:
-                row_data = {
-                    **row.to_dict(),
-                    "Description": result.get(lang, {}).get("descrizione_lunga", ""),
-                    "Description2": result.get(lang, {}).get("descrizione_breve", "")
-                }
-                all_outputs[lang].append(row_data)
-
-            logs.append({
-                "sku": row.get("SKU", ""),
-                "status": "OK",
-                "prompt": all_prompts[i],
-                "output": json.dumps(result, ensure_ascii=False),
-                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-            })
-
-        # Salvataggio su Google Sheet
-        with st.spinner("📤 Salvataggio..."):
-            for lang in selected_langs:
-                df_out = pd.DataFrame(all_outputs[lang])
-                append_to_sheet(sheet_id, lang, df_out)
-            for log in logs:
-                append_log(sheet_id, log)
-
-        # Generazione ZIP
-        with st.spinner("📦 Generazione ZIP..."):
-            mem_zip = BytesIO()
-            with zipfile.ZipFile(mem_zip, "w") as zf:
+    
+            # Salvataggio su Google Sheet
+            with st.spinner("📤 Salvataggio..."):
                 for lang in selected_langs:
                     df_out = pd.DataFrame(all_outputs[lang])
-                    df_export = pd.DataFrame({
-                        "SKU": df_out.get("SKU", ""),
-                        "Descrizione lunga": df_out.get("Description", ""),
-                        "Descrizione breve": df_out.get("Description2", "")
-                    })
-                    zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
-            mem_zip.seek(0)
-
-        st.success("✅ Tutto fatto!")
-        st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
-        st.session_state["generate"] = False
+                    append_to_sheet(sheet_id, lang, df_out)
+                for log in logs:
+                    append_log(sheet_id, log)
+    
+            # Generazione ZIP
+            with st.spinner("📦 Generazione ZIP..."):
+                mem_zip = BytesIO()
+                with zipfile.ZipFile(mem_zip, "w") as zf:
+                    for lang in selected_langs:
+                        df_out = pd.DataFrame(all_outputs[lang])
+                        df_export = pd.DataFrame({
+                            "SKU": df_out.get("SKU", ""),
+                            "Descrizione lunga": df_out.get("Description", ""),
+                            "Descrizione breve": df_out.get("Description2", "")
+                        })
+                        zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
+                mem_zip.seek(0)
+    
+            st.success("✅ Tutto fatto!")
+            st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
+            st.session_state["generate"] = False
 
     except Exception as e:
         st.error(f"Errore durante la generazione: {str(e)}")
