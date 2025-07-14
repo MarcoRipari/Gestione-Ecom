@@ -21,6 +21,7 @@ import traceback
 from transformers import BlipProcessor, BlipForConditionalGeneration
 from PIL import Image
 import requests
+import asyncio
 
 logging.basicConfig(level=logging.INFO)
 
@@ -331,6 +332,31 @@ def estimate_cost(prompt, model="gpt-3.5-turbo"):
 
     cost = (est_tokens / 1000) * cost_per_1k.get(model, 0.001)
     return est_tokens, cost
+
+# ---------------------------
+# Async Functions
+# ---------------------------
+async def generate_description_async(prompt: str) -> str:
+    try:
+        response = await openai.ChatCompletion.acreate(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=3000,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"__ERROR__::{str(e)}"
+
+async def generate_descriptions_parallel(prompts: List[str], concurrency: int = 5) -> List[str]:
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def sem_task(prompt):
+        async with semaphore:
+            return await generate_description_async(prompt)
+
+    tasks = [sem_task(prompt) for prompt in prompts]
+    return await asyncio.gather(*tasks)
     
 # ---------------------------
 # 📦 Streamlit UI
@@ -440,66 +466,77 @@ if uploaded:
                     progress_bar = st.progress(0)
                     total = len(df_input)
                         
-                    #for _, row in df_input.iterrows():
-                    for i, (_, row) in enumerate(df_input.iterrows()):
-                        progress_bar.progress((i + 1) / total)
-                        try:
-                            if index_df is not None:
-                                simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
-                            else:
-                                simili = pd.DataFrame([])
-
-                            image_url = row.get("Image 1", "")
-                            caption = get_blip_caption(image_url) if image_url else None
-                            prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
-
-                            gen_output = generate_descriptions(prompt)
-
-                            if "Descrizione breve:" in gen_output:
-                                descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
-                                descr_lunga = descr_lunga.replace("Descrizione lunga:", "").strip()
-                                descr_breve = descr_breve.strip()
-                            else:
-                                # fallback se il modello non segue il formato atteso
-                                descr_lunga = gen_output.strip()
-                                descr_breve = ""
-                                    
-                            base = {
-                                **row.to_dict(),
-                                #"Description": descr_lunga.strip().replace("Descrizione lunga:", "").strip(),
-                                #"Description2": descr_breve.strip()
-                                "Description": descr_lunga,
-                                "Description2": descr_breve
-                            }
-                
-                            for lang in selected_langs:
-                                if lang == "it":
-                                    all_outputs[lang].append(base)
-                                else:
-                                    trad_lunga = translate_text(base["Description"], target_lang=lang)
-                                    trad_breve = translate_text(base["Description2"], target_lang=lang)
-                                    trad = base.copy()
-                                    trad["Description"] = trad_lunga
-                                    trad["Description2"] = trad_breve
-                                    all_outputs[lang].append(trad)
-                
+                    # Prepara tutti i prompt
+                    prompts = []
+                    row_info = []  # Per salvare i dati base di ogni riga
+                    
+                    for _, row in df_input.iterrows():
+                        if index_df is not None:
+                            simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+                        else:
+                            simili = pd.DataFrame([])
+                    
+                        image_url = row.get("Image 1", "")
+                        caption = get_blip_caption(image_url) if image_url else None
+                        prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
+                        prompts.append(prompt)
+                        row_info.append(row)
+                    
+                    # Genera in parallelo
+                    with st.spinner("Generazione in corso..."):
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        results = loop.run_until_complete(generate_descriptions_parallel(prompts, concurrency=5))
+                    
+                    # Post-processing risultati
+                    for i, gen_output in enumerate(results):
+                        row = row_info[i]
+                        prompt = prompts[i]
+                    
+                        if "__ERROR__::" in gen_output:
                             logs.append({
                                 "sku": row.get("SKU", ""),
-                                "status": "OK",
-                                "prompt": prompt,
-                                "output": gen_output,
-                                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                            })
-                        except Exception as e:
-                            logs.append({
-                                "sku": row.get("SKU", ""),
-                                "status": f"Errore: {str(e)}",
+                                "status": f"Errore: {gen_output}",
                                 "prompt": prompt,
                                 "output": "",
                                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                             })
-
-                        progress_bar.empty()
+                            continue
+                    
+                        if "Descrizione breve:" in gen_output:
+                            descr_lunga, descr_breve = gen_output.split("Descrizione breve:")
+                            descr_lunga = descr_lunga.replace("Descrizione lunga:", "").strip()
+                            descr_breve = descr_breve.strip()
+                        else:
+                            descr_lunga = gen_output.strip()
+                            descr_breve = ""
+                    
+                        base = {
+                            **row.to_dict(),
+                            "Description": descr_lunga,
+                            "Description2": descr_breve
+                        }
+                    
+                        for lang in selected_langs:
+                            if lang == "it":
+                                all_outputs[lang].append(base)
+                            else:
+                                trad_lunga = translate_text(base["Description"], target_lang=lang)
+                                trad_breve = translate_text(base["Description2"], target_lang=lang)
+                                trad = base.copy()
+                                trad["Description"] = trad_lunga
+                                trad["Description2"] = trad_breve
+                                all_outputs[lang].append(trad)
+                    
+                        logs.append({
+                            "sku": row.get("SKU", ""),
+                            "status": "OK",
+                            "prompt": prompt,
+                            "output": gen_output,
+                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                        })
+                
+                progress_bar.empty()
                             
                 with st.spinner("Salvo in Google Sheet..."):
                     # Salvataggio su Google Sheets
