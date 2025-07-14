@@ -284,15 +284,16 @@ if uploaded:
 
     selected_langs = st.multiselect("Seleziona lingue di output", ["it", "en", "fr", "de"], default=["it"])
 
-    spacer1, col1, col2, col3, spacer2 = st.columns([1, 2, 2, 2, 1])
+    if "col_configured" not in st.session_state:
+        st.session_state.col_configured = False
 
+    spacer1, col1, col2, col3, spacer2 = st.columns([1, 2, 2, 2, 1])
+        
     with col1:
         #k_simili = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
         k_simili = st.selectbox("N° Simili", options=[1, 2, 3], index=0)
         
     with col2:
-        if "col_configured" not in st.session_state:
-            st.session_state.col_configured = False
         if st.button("Stima costi", disabled=not st.session_state.col_configured):
             # Calcolo prompt medio sui primi 3 record
             prompts = []
@@ -327,7 +328,7 @@ if uploaded:
             """)
             
     with col3:
-        if st.button("Genera Descrizioni"):
+        if st.button("Genera Descrizioni", disabled=not st.session_state.col_configured):
             index_df = None
             if sheet_id:
                 try:
