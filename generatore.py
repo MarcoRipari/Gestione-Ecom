@@ -608,8 +608,10 @@ if uploaded:
                     simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
                 else:
                     simili = pd.DataFrame([])
-    
-                prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names)
+
+                image_url = row.get("Image 1", "")
+                caption = get_blip_caption(image_url) if image_url else None
+                prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names, caption)
                 prompt_tokens = len(prompt_preview) / 4  # stima token
     
                 with st.expander("📄 Anteprima prompt generato"):
