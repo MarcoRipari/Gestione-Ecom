@@ -293,7 +293,9 @@ if uploaded:
         k_simili = st.selectbox("N° Simili", options=[1, 2, 3], index=0)
         
     with col2:
-        if st.button("Stima costi"):
+        if "col_configured" not in st.session_state:
+            st.session_state.col_configured = False
+        if st.button("Stima costi", disabled=not st.session_state.col_configured):
             # Calcolo prompt medio sui primi 3 record
             prompts = []
             for _, row in df_input.iterrows():
@@ -450,6 +452,7 @@ if uploaded:
     if st.session_state.selected_cols:
         if st.button("▶️ Procedi alla configurazione colonne"):
             st.session_state.config_ready = True
+            st.session_state.col_configured = True
     
     # ⚙️ Step 2 – Configurazione colonne scelte
     if st.session_state.config_ready:
