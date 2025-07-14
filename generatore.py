@@ -312,7 +312,7 @@ if uploaded:
     col_weights = {}
     col_display_names = {}
 
-    settings_spacer1, settings_col1, settings_col2, settings_spacer2: st.columns([1, 2, 2, 1])
+    settings_spacer1, settings_col1, settings_col2, settings_spacer2 = st.columns([1, 2, 2, 1])
 
     with settings_col1:
         selected_labels = st.multiselect(
