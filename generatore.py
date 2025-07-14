@@ -20,6 +20,14 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
+LANG_NAMES = {
+    "IT": "italiano",
+    "EN": "inglese",
+    "FR": "francese",
+    "DE": "tedesco"
+}
+LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
+
 # ---------------------------
 # 🔐 Setup API keys and credentials
 # ---------------------------
@@ -217,7 +225,8 @@ def generate_descriptions(prompt):
 # 🌍 Traduzione
 # ---------------------------
 def translate_text(text, target_lang="en"):
-    prompt = f"Traduci il seguente testo in {target_lang}:\n{text}"
+    lang_name = LANG_NAMES.get(target_lang, target_lang)
+    prompt = f"Traduci il seguente testo in {lang_name}:\n{text}"
     response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}]
@@ -299,7 +308,12 @@ if uploaded:
     spacer1, col1, col2, col3, col4, spacer2 = st.columns([1, 2, 2, 2, 2, 1])
 
     with col1:
-        selected_langs = st.multiselect("Seleziona lingue di output", ["it", "en", "fr", "de"], default=["it"])
+        selected_labels = st.multiselect(
+            "Seleziona lingue di output",
+            options=list(LANG_LABELS.keys()),
+            default=["Italiano"]
+        )
+        selected_langs = [LANG_LABELS[label] for label in selected_labels]
         
     with col2:
         k_simili = st.number_input("Numero", min_value=1, max_value=3, value=1, step=1)
