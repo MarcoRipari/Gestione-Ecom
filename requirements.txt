@@ -13,6 +13,7 @@ huggingface_hub
 # 📊 Google Sheets API (autenticazione tramite service_account)
 gspread
 google-auth
+google-api-python-client
 
 # 🔎 Embedding e Retrieval (RAG)
 sentence-transformers
