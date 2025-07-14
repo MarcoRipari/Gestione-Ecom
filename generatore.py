@@ -449,6 +449,9 @@ if uploaded:
                                 "output": "",
                                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                             })
+
+                        progress_bar.empty()
+                            
                 with st.spinner("Salvo in Google Sheet..."):
                     # Salvataggio su Google Sheets
                     for lang in selected_langs:
