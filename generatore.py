@@ -49,12 +49,14 @@ gsheet_client = gspread.authorize(credentials)
 def get_sheet(sheet_id, tab):
     spreadsheet = gsheet_client.open_by_key(sheet_id)
     worksheets = spreadsheet.worksheets()
-    tab_names = [ws.title for ws in worksheets]
+    
+    # Confronto case-insensitive per maggiore robustezza
+    for ws in worksheets:
+        if ws.title.strip().lower() == tab.strip().lower():
+            return ws
 
-    if tab in tab_names:
-        return spreadsheet.worksheet(tab)
-    else:
-        return spreadsheet.add_worksheet(title=tab, rows="10000", cols="50")
+    # Se non trovato, lo crea
+    return spreadsheet.add_worksheet(title=tab, rows="10000", cols="50")
 
 # ---------------------------
 # 📦 Embedding & FAISS Setup
