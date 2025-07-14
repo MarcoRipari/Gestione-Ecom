@@ -18,6 +18,9 @@ from sentence_transformers import SentenceTransformer
 import torch
 import logging
 import traceback
+from transformers import BlipProcessor, BlipForConditionalGeneration
+from PIL import Image
+import requests
 
 logging.basicConfig(level=logging.INFO)
 
@@ -183,11 +186,36 @@ def benchmark_faiss(df, col_weights, query_sample_size=10):
     })
 
     os.remove("tmp_benchmark.index")
+
+# ---------------------------
+# 🎨 Visual Embedding
+# ---------------------------
+@st.cache_resource
+def load_blip_model():
+    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+    model = BlipForConditionalGeneration.from_pretrained(
+        "Salesforce/blip-image-captioning-base",
+        use_auth_token=st.secrets["HF_TOKEN"]
+    )
+    return processor, model
     
+def get_blip_caption(image_url: str) -> str:
+    try:
+        processor, model = load_blip_model()
+        raw_image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
+
+        inputs = processor(raw_image, return_tensors="pt")
+        output = model.generate(**inputs, max_new_tokens=30)
+        caption = processor.decode(output[0], skip_special_tokens=True)
+        return caption.strip()
+    except Exception as e:
+        st.warning(f"⚠️ Errore nel captioning: {str(e)}")
+        return ""
+        
 # ---------------------------
 # 🧠 Prompting e Generazione
 # ---------------------------
-def build_prompt(row, examples=None, col_display_names=None):
+def build_prompt(row, examples=None, col_display_names=None, image_caption=None):
     fields = []
 
     if col_display_names is None:
@@ -198,6 +226,9 @@ def build_prompt(row, examples=None, col_display_names=None):
         if col in row and pd.notna(row[col]):
             label = col_display_names[col]
             fields.append(f"{label}: {row[col]}")
+
+    if image_caption:
+        fields.append(f"Aspetto visivo: {image_caption}")
 
     product_info = "; ".join(fields)
 
@@ -349,7 +380,9 @@ if uploaded:
             prompts = []
             for _, row in df_input.iterrows():
                 simili = pd.DataFrame([])  # niente RAG per la stima
-                prompt = build_prompt(row, simili, st.session_state.col_display_names)
+                image_url = row.get("Image 1", "")
+                caption = get_blip_caption(image_url) if image_url else None
+                prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
                 prompts.append(prompt)
                 if len(prompts) >= 3:
                     break
@@ -415,7 +448,9 @@ if uploaded:
                             else:
                                 simili = pd.DataFrame([])
 
-                            prompt = build_prompt(row, simili, st.session_state.col_display_names)
+                            image_url = row.get("Image 1", "")
+                            caption = get_blip_caption(image_url) if image_url else None
+                            prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
 
                             gen_output = generate_descriptions(prompt)
 
