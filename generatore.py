@@ -40,12 +40,7 @@ def get_sheet(sheet_id, tab):
 # ---------------------------
 # 📦 Embedding & FAISS Setup
 # ---------------------------
-@st.cache_resource
-def load_model():
-    hf_token = st.secrets.get("HF_TOKEN", None)
-    return SentenceTransformer("all-MiniLM-L6-v2", use_auth_token=hf_token)
-
-model = load_model()
+model = SentenceTransformer("all-MiniLM-L6-v2", use_auth_token=st.secrets["HF_TOKEN"])
 
 def embed_texts(texts: List[str], batch_size=32) -> List[List[float]]:
     return model.encode(texts, show_progress_bar=False, batch_size=batch_size).tolist()
@@ -80,27 +75,6 @@ def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_dir
 
     return index, df
 
-@st.cache_data(show_spinner="🔄 Costruzione indice FAISS in corso...")
-def build_faiss_index_cached(df: pd.DataFrame, col_weights: Dict[str, float]) -> tuple:
-    return build_faiss_index(df, col_weights)
-
-@st.cache_data(show_spinner="📥 Caricamento FAISS + storico descrizioni...")
-def load_faiss_index(sheet_id: str, col_weights: Dict[str, float], tab_name: str = "it", last_n: int = 500):
-    """
-    Carica il foglio storico e costruisce l'indice FAISS.
-    Caching abilitato per evitare rielaborazione.
-    """
-    try:
-        data_sheet = get_sheet(sheet_id, tab_name)
-        df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(last_n)
-
-        index, index_df = build_faiss_index_cached(df_storico, col_weights)
-        return index, index_df
-    except Exception as e:
-        st.error("❌ Errore nel caricamento del foglio Google Sheet o nella costruzione dell'indice FAISS.")
-        st.exception(e)
-        return None, None
-    
 def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_weights: Dict[str, float] = {}):
     parts = []
     for col in df.columns:
@@ -112,6 +86,11 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
 
     query_vector = embed_texts([query_text])[0]
     D, I = index.search(np.array([query_vector]).astype("float32"), k)
+
+    # 🔍 DEBUG
+    logging.info(f"QUERY TEXT: {query_text[:300]} ...")
+    logging.info(f"INDICI trovati: {I[0]}")
+    logging.info(f"Distanze: {D[0]}")
     
     return df.iloc[I[0]]
 
@@ -259,9 +238,8 @@ def append_to_sheet(sheet_id, tab, df):
     sheet = get_sheet(sheet_id, tab)
     df = df.fillna("").astype(str)
     values = df.values.tolist()
-    sheet.append_rows(values, value_input_option="RAW")
-#    for row in values:
-#        sheet.append_row(row, value_input_option="RAW")
+    for row in values:
+        sheet.append_row(row, value_input_option="RAW")
     
 # ---------------------------
 # Funzioni varie
@@ -286,22 +264,6 @@ def estimate_cost(prompt, model="gpt-3.5-turbo"):
 
     cost = (est_tokens / 1000) * cost_per_1k.get(model, 0.001)
     return est_tokens, cost
-
-def get_active_columns_config() -> tuple[Dict[str, float], Dict[str, str]]:
-    """
-    Restituisce solo i pesi e nomi delle colonne attualmente selezionate.
-    Evita di usare tutto `session_state.col_weights`/`col_display_names`.
-    """
-    selected = st.session_state.get("selected_cols", [])
-    weights = {
-        col: st.session_state.col_weights.get(col, 1)
-        for col in selected
-    }
-    labels = {
-        col: st.session_state.col_display_names.get(col, col)
-        for col in selected
-    }
-    return weights, labels
     
 # ---------------------------
 # 📦 Streamlit UI
@@ -335,9 +297,7 @@ if uploaded:
             prompts = []
             for _, row in df_input.iterrows():
                 simili = pd.DataFrame([])  # niente RAG per la stima
-                #prompt = build_prompt(row, simili, st.session_state.col_display_names)
-                col_weights, col_display_names = get_active_columns_config()
-                prompt = build_prompt(row, simili, col_display_names)
+                prompt = build_prompt(row, simili, st.session_state.col_display_names)
                 prompts.append(prompt)
                 if len(prompts) >= 3:
                     break
@@ -369,15 +329,14 @@ if uploaded:
         if st.button("Genera Descrizioni"):
             index_df = None
             if sheet_id:
-                with st.spinner("📥 Caricamento storico descrizioni..."):
-                    try:
-                        col_weights, _ = get_active_columns_config()
-                        index, index_df = load_faiss_index(sheet_id, col_weights)
-                    except Exception as e:
-                        st.error("❌ Errore nel caricamento del Google Sheet o nella creazione dell'indice.")
-                        st.exception(e)
-                        index = None
-                        index_df = None
+                try:
+                    data_sheet = get_sheet(sheet_id, "it")
+                    #df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
+                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                except:
+                    index = None
     
             all_outputs = {lang: [] for lang in selected_langs}
             logs = []
@@ -392,14 +351,11 @@ if uploaded:
                 progress_bar.progress((i + 1) / total)
                 try:
                     if index_df is not None:
-                        col_weights, _ = get_active_columns_config()
-                        simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=col_weights)
+                        simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
                     else:
                         simili = pd.DataFrame([])
     
-                    # prompt = build_prompt(row, simili, st.session_state.col_display_names)
-                    col_weights, col_display_names = get_active_columns_config()
-                    prompt = build_prompt(row, simili, col_display_names)
+                    prompt = build_prompt(row, simili, st.session_state.col_display_names)
                     gen_output = generate_descriptions(prompt)
     
                     if "Descrizione breve:" in gen_output:
@@ -524,6 +480,9 @@ if uploaded:
     row_index = st.number_input("🔢 Indice riga per anteprima prompt", 0, len(df_input)-1, 0)
     test_row = df_input.iloc[row_index]
 
+    if st.button("Esegui Benchmark FAISS"):
+        benchmark_faiss(df_input, col_weights)
+
     # Stimo il costo del token con RAG
     if st.button("💬 Mostra Prompt di Anteprima"):
         with st.spinner("Genero il prompt..."):
@@ -531,23 +490,14 @@ if uploaded:
                 if sheet_id:
                     # Carica storico ed esegui FAISS
                     data_sheet = get_sheet(sheet_id, "it")
-                    with st.spinner("📥 Caricamento storico descrizioni..."):
-                        try:
-                            data_sheet = get_sheet(sheet_id, "it")
-                            df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
-                            col_weights, _ = get_active_columns_config()
-                            index, index_df = build_faiss_index_cached(df_storico, col_weights)
-                            simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=col_weights)
-                        except Exception as e:
-                            st.error("❌ Errore nel caricamento del Google Sheet o nella creazione dell'indice.")
-                            st.exception(e)
-                            index = None
-                            index_df = None
+                    df_storico = pd.DataFrame(data_sheet.get_all_records())
+                    df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
+                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                    simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
                 else:
                     simili = pd.DataFrame([])
-
-                col_weights, col_display_names = get_active_columns_config()
-                prompt_preview = build_prompt(test_row, simili, col_display_names)
+    
+                prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names)
                 prompt_tokens = len(prompt_preview) / 4  # stima token
     
                 with st.expander("📄 Anteprima prompt generato"):
