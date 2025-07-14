@@ -231,13 +231,18 @@ def build_prompt(row, examples=None, col_display_names=None, image_caption=None)
     # 🧩 Esempi, solo se disponibili
     example_section = ""
     if examples is not None and not examples.empty:
-        example_section = "\n\n".join([
-            f"Esempio {i+1}:\n"
-            f"Descrizione lunga: {ex['Description']}\n"
-            f"Descrizione breve: {ex['Description2']}"
-            for i, (_, ex) in enumerate(examples.iterrows())
-            if pd.notna(ex.get("Description")) and pd.notna(ex.get("Description2"))
-        ])
+        example_lines = []
+        for i, (_, ex) in enumerate(examples.iterrows()):
+            desc1 = ex.get("Description", "").strip()
+            desc2 = ex.get("Description2", "").strip()
+            if desc1 and desc2:
+                example = (
+                    f"Esempio {i+1}:\n"
+                    f"Descrizione lunga: {desc1}\n"
+                    f"Descrizione breve: {desc2}"
+                )
+                example_lines.append(example)
+        example_section = "\n\n".join(example_lines)
 
     # 📄 Prompt finale
     prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
@@ -247,12 +252,12 @@ Evita nome prodotto, colore e marchio.
 
 Scheda tecnica: {product_info}
 Aspetto visivo: {image_caption if image_caption else 'N/A'}
+"""
 
-{f"Esempi:\n{example_section}" if example_section else ""}
+    if example_section:
+        prompt += f"\n\nEsempi:\n{example_section}"
 
-Rispondi con:
-Descrizione lunga:
-Descrizione breve:"""
+    prompt += "\n\nRispondi con:\nDescrizione lunga:\nDescrizione breve:"
 
     if len(prompt) > 12000:
         st.warning("⚠️ Il prompt generato supera i limiti raccomandati di lunghezza.")
