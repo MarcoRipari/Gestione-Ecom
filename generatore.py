@@ -457,10 +457,10 @@ if uploaded:
     if st.session_state.selected_cols:
         if st.button("▶️ Procedi alla configurazione colonne"):
             st.session_state.config_ready = True
-            st.session_state.col_configured = True
     
     # ⚙️ Step 2 – Configurazione colonne scelte
     if st.session_state.config_ready:
+        st.session_state.col_configured = True
         st.markdown("### ⚙️ Configura pesi e nomi colonne")
     
         if "col_weights" not in st.session_state:
