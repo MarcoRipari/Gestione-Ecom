@@ -398,7 +398,7 @@ if "df_input" in st.session_state:
 
     # 🌍 Lingue e parametri
     with st.expander("🌍 Selezione Lingue & Parametri"):
-        settings_col1, settings_col2, settings col_3 = st.columns(3)
+        settings_col1, settings_col2, settings_col3 = st.columns(3)
         with settings_col1:
             selected_labels = st.multiselect(
                 "Lingue di output",
