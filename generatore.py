@@ -162,9 +162,7 @@ def benchmark_faiss(df, col_weights, query_sample_size=10):
 # 🧠 Prompting e Generazione
 # ---------------------------
 def build_prompt(row, examples=None, col_display_names=None):
-    selected_cols = list(col_display_names.keys()) if col_display_names else []
-
-    for col in selected_cols:
+    for col in col_display_names.keys():
         if col in row and pd.notna(row[col]):
             label = col_display_names.get(col, col)
             fields.append(f"{label}: {row[col]}")
