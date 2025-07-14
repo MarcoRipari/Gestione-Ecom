@@ -231,13 +231,15 @@ def build_prompt(row, examples=None, col_display_names=None, image_caption=None)
 
     product_info = "; ".join(fields)
 
-    example_section = "\n\n".join(
-        f"""Esempio {i+1}:
-    Descrizione lunga: {ex['Description']}
-    Descrizione breve: {ex['Description2']}"""
-        for i, (_, ex) in enumerate(examples.iterrows())
-        if pd.notna(ex.get("Description")) and pd.notna(ex.get("Description2"))
-    )
+    example_section = ""
+    if examples is not None and not examples.empty:
+        example_section = "\n\n".join(
+            f"""Esempio {i+1}:
+        Descrizione lunga: {ex['Description']}
+        Descrizione breve: {ex['Description2']}"""
+            for i, (_, ex) in enumerate(examples.iterrows())
+            if pd.notna(ex.get("Description")) and pd.notna(ex.get("Description2"))
+        )
 
     prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
 
@@ -247,8 +249,7 @@ Evita nome prodotto, colore e marchio.
 Scheda tecnica: {product_info}
 Aspetto visivo: {image_caption}
 
-Esempi:
-{example_section.strip()}
+{f"Esempi:\n{example_section.strip()}" if example_section else ""}
 
 
 Rispondi con:
@@ -393,7 +394,8 @@ if "df_input" in st.session_state:
             selected_langs = [LANG_LABELS[label] for label in selected_labels]
 
         with settings_col2:
-            k_simili = st.number_input("Numero descrizioni simili da usare (RAG)", min_value=1, max_value=3, value=1, step=1)
+            use_simili = st.checkbox("Usa descrizioni simili (RAG)", value=True)
+            k_simili = 2 if use_simili else 0
 
     # 💵 Stima costi
     if st.button("💰 Stima costi generazione"):
@@ -448,7 +450,10 @@ if "df_input" in st.session_state:
                 for i, (_, row) in enumerate(df_input.iterrows()):
                     progress_bar.progress((i + 1) / len(df_input))
                     try:
-                        simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if index_df is not None else pd.DataFrame([])
+                        simili = (
+                            retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+                            if k_simili > 0 else pd.DataFrame([])
+                        )
                         caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
                         prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
                         gen_output = generate_descriptions(prompt)
@@ -531,7 +536,10 @@ if "df_input" in st.session_state:
                             st.session_state["faiss_index"] = (index, index_df)
                         else:
                             index, index_df = st.session_state["faiss_index"]
-                        simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+                        simili = (
+                            retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+                            if k_simili > 0 else pd.DataFrame([])
+                        )
                     else:
                         simili = pd.DataFrame([])
 
