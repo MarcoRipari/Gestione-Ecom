@@ -123,6 +123,16 @@ def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_wei
     
     return df.iloc[I[0]]
 
+@st.cache_data(show_spinner="📥 Caricamento storico descrizioni...")
+def load_storico_auto(sheet_id: str, tab_name="it", max_rows=500) -> pd.DataFrame:
+    try:
+        sheet = get_sheet(sheet_id, tab_name)
+        df = pd.DataFrame(sheet.get_all_records())
+        return df.tail(max_rows)
+    except Exception as e:
+        st.warning(f"⚠️ Errore nel caricamento dello storico: {e}")
+        return pd.DataFrame([])
+        
 def estimate_embedding_time(df: pd.DataFrame, col_weights: Dict[str, float], sample_size: int = 10) -> float:
     """
     Stima il tempo totale per embeddare tutti i testi del dataframe.
@@ -360,6 +370,9 @@ st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
 # sheet_id = st.text_input("Google Sheet ID dello storico", key="sheet")
 sheet_id = st.secrets["GSHEET_ID"]
+
+df_storico = load_storico_auto(sheet_id, "it", 500)
+    
 uploaded = st.file_uploader("Carica il CSV dei prodotti", type="csv")
 
 # Configurazione pesi colonne per RAG
@@ -438,11 +451,6 @@ if uploaded:
                 if sheet_id:
                     with st.spinner("Caricolo lo storico..."):
                         try:
-                            data_sheet = get_sheet(sheet_id, "it")
-                            #df_storico = pd.DataFrame(data_sheet.get_all_records())
-                            df_storico = pd.DataFrame(data_sheet.get_all_records())
-                            df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                            #index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                             if "faiss_index" not in st.session_state:
                                 index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                                 st.session_state["faiss_index"] = (index, index_df)
@@ -612,15 +620,11 @@ if uploaded:
             benchmark_faiss(df_input, col_weights)
 
     # Stimo il costo del token con RAG
-    if st.button("💬 Mostra Prompt di Anteprima"):
+    if st.button("💬 Genera anteprima prompt"):
         with st.spinner("Genero il prompt..."):
             try:
                 if sheet_id:
                     # Carica storico ed esegui FAISS
-                    data_sheet = get_sheet(sheet_id, "it")
-                    df_storico = pd.DataFrame(data_sheet.get_all_records())
-                    df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
-                    # index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                     if "faiss_index" not in st.session_state:
                         index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                         st.session_state["faiss_index"] = (index, index_df)
