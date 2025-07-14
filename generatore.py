@@ -450,14 +450,12 @@ if uploaded:
                 index_df = None
                 if sheet_id:
                     with st.spinner("Caricolo lo storico..."):
-                        try:
-                            if "faiss_index" not in st.session_state:
-                                index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
-                                st.session_state["faiss_index"] = (index, index_df)
-                            else:
-                                index, index_df = st.session_state["faiss_index"]
-                        except:
+                        # Costruisce FAISS solo ora, con col_weights aggiornati
+                        if len(df_storico) > 0:
+                            index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                        else:
                             index = None
+                            index_df = None
 
                 all_outputs = {lang: [] for lang in selected_langs}
                 logs = []
