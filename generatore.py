@@ -510,7 +510,7 @@ if uploaded:
                     # Carica storico ed esegui FAISS
                     data_sheet = get_sheet(sheet_id, "it")
                     df_storico = pd.DataFrame(data_sheet.get_all_records())
-                    df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
+                    #df_storico = df_storico.tail(500)  # usa solo gli ultimi 500
                     index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                     simili = retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
                 else:
