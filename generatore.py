@@ -348,6 +348,17 @@ with st.sidebar:
     if uploaded:
         df_input = read_csv_auto_encoding(uploaded)
         st.session_state["df_input"] = df_input
+         # ✅ Inizializza variabili di stato se non esistono
+        if "col_weights" not in st.session_state:
+            st.session_state.col_weights = {}
+        if "col_display_names" not in st.session_state:
+            st.session_state.col_display_names = {}
+        if "selected_cols" not in st.session_state:
+            st.session_state.selected_cols = []
+        if "config_ready" not in st.session_state:
+            st.session_state.config_ready = False
+        if "generate" not in st.session_state:
+            st.session_state.generate = False
         st.success("✅ File caricato con successo!")
 
 # 📊 Anteprima dati
