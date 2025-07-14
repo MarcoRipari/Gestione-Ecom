@@ -416,6 +416,7 @@ if uploaded:
                             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                         })
 
+            progress_bar.empty()
             with st.spinner("Salvo in Google Sheets..."):
                 # Salvataggio su Google Sheets
                 for lang in selected_langs:
@@ -479,7 +480,7 @@ if uploaded:
         for col in st.session_state.selected_cols:
             # Init se non già presente
             if col not in st.session_state.col_weights:
-                st.session_state.col_weights[col] = 1
+                st.session_state.col_weights[col] = 0
             if col not in st.session_state.col_display_names:
                 st.session_state.col_display_names[col] = col
     
