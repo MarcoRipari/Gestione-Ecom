@@ -363,8 +363,7 @@ def append_to_sheet(sheet_id, tab, df):
     sheet = get_sheet(sheet_id, tab)
     df = df.fillna("").astype(str)
     values = df.values.tolist()
-    for row in values:
-        sheet.append_row(row, value_input_option="RAW")
+    sheet.append_rows(values, value_input_option="RAW")  # ✅ chiamata unica
     
 # ---------------------------
 # Funzioni varie
@@ -508,13 +507,13 @@ if "df_input" in st.session_state:
         with st.spinner("Calcolo in corso..."):
             prompts = []
             for _, row in df_input.iterrows():
-                simili = pd.DataFrame([])
+                simili = retrieve_similar(0, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
                 image_url = row.get("Image 1", "")
                 if use_image:
                     caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
                 else:
                     caption = None
-                prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
+                prompt = prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
                 prompts.append(prompt)
                 if len(prompts) >= 3:
                     break
