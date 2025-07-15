@@ -481,7 +481,11 @@ if "df_input" in st.session_state:
             selected_langs = [LANG_LABELS[label] for label in selected_labels]
 
         with settings_col2:
-            selected_tones = st.multiselect("Tono desiderato", ["professionale", "amichevole", "accattivante", "descrittivo", "tecnico", "ironico", "minimal"], default=["professionale", "user friendly", "SEO-friendly"])
+            selected_tones = st.multiselect(
+                "Tono desiderato",
+                ["professionale", "amichevole", "accattivante", "descrittivo", "tecnico", "ironico", "minimal", "user friendly", "SEO-friendly"],
+                default=["professionale", "user friendly", "SEO-friendly"]
+            )
 
         with settings_col3:
             desc_lunga_length = st.selectbox("Lunghezza descrizione lunga", ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"], index=5)
