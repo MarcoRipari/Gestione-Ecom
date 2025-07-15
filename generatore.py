@@ -283,8 +283,8 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     for col in col_display_names:
         if col in row and pd.notna(row[col]):
             label = col_display_names[col]
-            fields.append(f"{label}: {row[col]}")
-    product_info = "; ".join(fields)
+            fields.append(f"- {label}: {row[col]}")
+    product_info = "\n".join(fields)
 
     # Elenco lingue in stringa
     lang_list = ", ".join([LANG_NAMES.get(lang, lang) for lang in selected_langs])
@@ -307,10 +307,10 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     # Prompt finale
     prompt = f"""Scrivi due descrizioni per una calzatura da vendere online in ciascuna delle seguenti lingue: {lang_list}.
 
-- desc_lunga: descrizione coinvolgente, SEO-friendly
-- desc_breve: descrizione concisa, commerciale
+- desc_lunga: descrizione di {desc_lunga_length} parole
+- desc_breve: descrizione di {desc_breve_length} parole
 
-Tono: professionale, accattivante, user friendly.  
+Tono: {", ".join(selected_tones)}
 Non usare nome prodotto, marca o colore.
 
 Scheda tecnica: {product_info}{image_line}{sim_text}
@@ -481,10 +481,18 @@ if "df_input" in st.session_state:
             selected_langs = [LANG_LABELS[label] for label in selected_labels]
 
         with settings_col2:
+            selected_tones = st.multiselect("Tono desiderato", ["professionale", "amichevole", "accattivante", "descrittivo", "tecnico", "ironico", "minimal"], default=["professionale", "user friendly", "SEO-friendly"])
+
+        with settings_col3:
+            desc_lunga_length = st.selectbox("Lunghezza descrizione lunga", ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"], index=5)
+            desc_breve_length = st.selectbox("Lunghezza descrizione breve", ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"], index=1)
+
+        options_col1, options_col2, options_col3 = st.columns(3)
+        with options_col1:
             use_simili = st.checkbox("Usa descrizioni simili (RAG)", value=True)
             k_simili = 2 if use_simili else 0
             
-        with settings_col3:
+        with options_col2:
             use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
 
     # 💵 Stima costi
@@ -569,7 +577,6 @@ if "df_input" in st.session_state:
                     
                     descr_lunga = lang_data.get("desc_lunga", "").strip()
                     descr_breve = lang_data.get("desc_breve", "").strip()
-                    logging.info(f"Lingua: {lang} - Desc. Lunga: {descr_lunga} | Desc. Breve: {descr_breve}")
             
                     output_row = row.to_dict()
                     output_row["Description"] = descr_lunga
