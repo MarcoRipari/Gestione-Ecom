@@ -280,6 +280,7 @@ def generate_descriptions(prompt):
     return response.choices[0].message.content
 
 def build_unified_prompt(row, col_display_names, selected_langs, image_caption=None, simili=None):
+    # Costruzione scheda tecnica
     fields = []
     for col in col_display_names:
         if col in row and pd.notna(row[col]):
@@ -287,40 +288,38 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
             fields.append(f"{label}: {row[col]}")
     product_info = "; ".join(fields)
 
+    # Elenco lingue in stringa
     lang_list = ", ".join([LANG_NAMES.get(lang, lang) for lang in selected_langs])
-    image_line = f"Aspetto visivo: {image_caption}" if image_caption else ""
 
+    # Caption immagine
+    image_line = f"\nAspetto visivo: {image_caption}" if image_caption else ""
+
+    # Descrizioni simili
     sim_text = ""
     if simili is not None and not simili.empty:
         sim_lines = []
-        for idx, ex in simili.iterrows():
-            descr_lunga = ex.get("Description", "").strip()
-            descr_breve = ex.get("Description2", "").strip()
-            if descr_lunga and descr_breve:
-                sim_lines.append(f"- {descr_lunga}\n  {descr_breve}")
+        for _, ex in simili.iterrows():
+            dl = ex.get("Description", "").strip()
+            db = ex.get("Description2", "").strip()
+            if dl and db:
+                sim_lines.append(f"- {dl}\n  {db}")
         if sim_lines:
             sim_text = "\nDescrizioni simili:\n" + "\n".join(sim_lines)
 
-    prompt = f"""Scrivi due descrizioni (una lunga e una breve) per una calzatura da vendere online.
+    # Prompt finale
+    prompt = f"""Scrivi due descrizioni per una calzatura da vendere online in ciascuna delle seguenti lingue: {lang_list}.
 
-Tono: professionale, user friendly, accattivante, SEO-friendly.
-Evita nome prodotto, colore e marchio.
+- desc_lunga: descrizione coinvolgente, SEO-friendly
+- desc_breve: descrizione concisa, commerciale
 
-Scheda tecnica: {product_info}
-{image_line}{sim_text}
+Tono: professionale, accattivante, user friendly.  
+Non usare nome prodotto, marca o colore.
 
-Lingue richieste: {lang_list}
+Scheda tecnica: {product_info}{image_line}{sim_text}
+
+Rispondi con un oggetto JSON compatto come questo:
+{{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
 """
-    json_example = "{\n"
-    for lang in selected_langs:
-        json_example += f'  "{lang.lower()}": {{\n'
-        json_example += f'    "descrizione_lunga": "...",\n'
-        json_example += f'    "descrizione_breve": "..."\n'
-        json_example += f'  }},\n'
-    json_example = json_example.rstrip(",\n") + "\n}"
-
-    prompt += f"\n\nRispondi in formato JSON come questo:\n{json_example}"
-    
     return prompt
     
 # ---------------------------
@@ -553,11 +552,6 @@ if "df_input" in st.session_state:
             
             for i, (_, row) in enumerate(df_input.iterrows()):
                 result = results.get(i, {})
-            
-                # Logging debug risultato grezzo
-                if DEBUG == 1:
-                    st.write(f"📥 Risultato riga {i}:", result)
-            
                 if "error" in result:
                     logs.append({
                         "sku": row.get("SKU", ""),
@@ -569,13 +563,11 @@ if "df_input" in st.session_state:
                     continue
             
                 for lang in selected_langs:
-                    lang_code = lang.lower()
-                    lang_data = result.get(lang_code, {})
-                
-                    descr_lunga = lang_data.get("descrizione_lunga", "").strip()
-                    descr_breve = lang_data.get("descrizione_breve", "").strip()
-                
-                    output_row = copy.deepcopy(row.to_dict())  # 👈 deep copy per isolare ogni lingua
+                    lang_data = result.get(lang, {})
+                    descr_lunga = lang_data.get("desc_lunga", "").strip()
+                    descr_breve = lang_data.get("desc_breve", "").strip()
+            
+                    output_row = row.to_dict()
                     output_row["Description"] = descr_lunga
                     output_row["Description2"] = descr_breve
                     all_outputs[lang].append(output_row)
