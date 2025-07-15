@@ -278,6 +278,7 @@ def generate_descriptions(prompt):
     return response.choices[0].message.content
 
 def build_unified_prompt(row, col_display_names, selected_langs, image_caption=None, simili=None):
+    # Costruzione scheda tecnica
     fields = []
     for col in col_display_names:
         if col in row and pd.notna(row[col]):
@@ -285,40 +286,38 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
             fields.append(f"{label}: {row[col]}")
     product_info = "; ".join(fields)
 
+    # Elenco lingue in stringa
     lang_list = ", ".join([LANG_NAMES.get(lang, lang) for lang in selected_langs])
-    image_line = f"Aspetto visivo: {image_caption}" if image_caption else ""
 
+    # Caption immagine
+    image_line = f"\nAspetto visivo: {image_caption}" if image_caption else ""
+
+    # Descrizioni simili
     sim_text = ""
     if simili is not None and not simili.empty:
         sim_lines = []
-        for idx, ex in simili.iterrows():
-            descr_lunga = ex.get("Description", "").strip()
-            descr_breve = ex.get("Description2", "").strip()
-            if descr_lunga and descr_breve:
-                sim_lines.append(f"- {descr_lunga}\n  {descr_breve}")
+        for _, ex in simili.iterrows():
+            dl = ex.get("Description", "").strip()
+            db = ex.get("Description2", "").strip()
+            if dl and db:
+                sim_lines.append(f"- {dl}\n  {db}")
         if sim_lines:
             sim_text = "\nDescrizioni simili:\n" + "\n".join(sim_lines)
 
-    prompt = f"""Scrivi due descrizioni (una lunga e una breve) per una calzatura da vendere online.
+    # Prompt finale
+    prompt = f"""Scrivi due descrizioni per una calzatura da vendere online in ciascuna delle seguenti lingue: {lang_list}.
 
-Tono: professionale, user friendly, accattivante, SEO-friendly.
-Evita nome prodotto, colore e marchio.
+- desc_lunga: descrizione coinvolgente, SEO-friendly
+- desc_breve: descrizione concisa, commerciale
 
-Scheda tecnica: {product_info}
-{image_line}{sim_text}
+Tono: professionale, accattivante, user friendly.  
+Non usare nome prodotto, marca o colore.
 
-Lingue richieste: {lang_list}
+Scheda tecnica: {product_info}{image_line}{sim_text}
+
+Rispondi con un oggetto JSON compatto come questo:
+{{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
 """
-    json_example = "{\n"
-    for lang in selected_langs:
-        json_example += f'  "{lang.lower()}": {{\n'
-        json_example += f'    "descrizione_lunga": "...",\n'
-        json_example += f'    "descrizione_breve": "..."\n'
-        json_example += f'  }},\n'
-    json_example = json_example.rstrip(",\n") + "\n}"
-
-    prompt += f"\n\nRispondi in formato JSON come questo:\n{json_example}"
-    
     return prompt
     
 # ---------------------------
@@ -398,8 +397,9 @@ async def async_generate_description(prompt: str, idx: int):
             max_tokens=3000
         )
         content = response.choices[0].message.content
+        usage = response.usage  # <-- aggiunto
         data = json.loads(content)
-        return idx, data
+        return idx, {"result": data, "usage": usage.model_dump()}
     except Exception as e:
         return idx, {"error": str(e)}
 
@@ -416,6 +416,7 @@ st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
 # 📁 Caricamento dati
 with st.sidebar:
+    DEBUG = st.checkbox("Debug")
     st.header("📥 Caricamento")
     sheet_id = st.secrets["GSHEET_ID"]
     uploaded = st.file_uploader("CSV dei prodotti", type="csv")
@@ -525,7 +526,7 @@ if "df_input" in st.session_state:
         # Build FAISS if needed
             if sheet_id:
                 with st.spinner("📚 Carico storico e indice FAISS..."):
-                    data_sheet = get_sheet(sheet_id, "it")
+                    data_sheet = get_sheet(sheet_id, "STORICO")
                     df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
                     if "faiss_index" not in st.session_state:
                         index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
@@ -535,11 +536,14 @@ if "df_input" in st.session_state:
     
             # Costruisci i prompt
             all_prompts = []
-            for _, row in df_input.iterrows():
-                simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
-                caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
-                prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
-                all_prompts.append(prompt)
+            with st.spinner("📚 Cerco descrizioni con caratteristiche simili..."):
+                for _, row in df_input.iterrows():
+                    simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
+                    if DEBUG:
+                        st.write("🔎 Simili trovati:", simili[["Description", "Description2"]].head())
+                    caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
+                    prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
+                    all_prompts.append(prompt)
     
             with st.spinner("🚀 Generazione asincrona in corso..."):
                 results = asyncio.run(generate_all_prompts(all_prompts))
@@ -550,10 +554,6 @@ if "df_input" in st.session_state:
             
             for i, (_, row) in enumerate(df_input.iterrows()):
                 result = results.get(i, {})
-            
-                # Logging debug risultato grezzo
-                st.write(f"📥 Risultato riga {i}:", result)
-            
                 if "error" in result:
                     logs.append({
                         "sku": row.get("SKU", ""),
@@ -565,24 +565,34 @@ if "df_input" in st.session_state:
                     continue
             
                 for lang in selected_langs:
-                    lang_code = lang.lower()
-                    lang_data = result.get(lang_code, {})
-                
-                    descr_lunga = lang_data.get("descrizione_lunga", "").strip()
-                    descr_breve = lang_data.get("descrizione_breve", "").strip()
-                
-                    output_row = copy.deepcopy(row.to_dict())  # 👈 deep copy per isolare ogni lingua
+                    lang_data = result.get(lang, {})
+                    descr_lunga = lang_data.get("desc_lunga", "").strip()
+                    descr_breve = lang_data.get("desc_breve", "").strip()
+            
+                    output_row = row.to_dict()
                     output_row["Description"] = descr_lunga
                     output_row["Description2"] = descr_breve
                     all_outputs[lang].append(output_row)
             
-                logs.append({
+                log_entry = {
                     "sku": row.get("SKU", ""),
                     "status": "OK",
                     "prompt": all_prompts[i],
-                    "output": json.dumps(result, ensure_ascii=False),
+                    "output": json.dumps(result["result"], ensure_ascii=False),
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                })
+                }
+                
+                # Aggiungi uso token se presente
+                if "usage" in result:
+                    usage = result["usage"]
+                    log_entry.update({
+                        "prompt_tokens": usage.get("prompt_tokens", 0),
+                        "completion_tokens": usage.get("completion_tokens", 0),
+                        "total_tokens": usage.get("total_tokens", 0),
+                        "estimated_cost_usd": round(usage.get("total_tokens", 0) / 1000 * 0.001, 6)
+                    })
+                
+                logs.append(log_entry)
     
             # Salvataggio su Google Sheet
             with st.spinner("📤 Salvataggio..."):
@@ -623,7 +633,7 @@ if "df_input" in st.session_state:
             with st.spinner("Generazione..."):
                 try:
                     if sheet_id:
-                        data_sheet = get_sheet(sheet_id, "it")
+                        data_sheet = get_sheet(sheet_id, "STORICO")
                         df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
                         if "faiss_index" not in st.session_state:
                             index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
