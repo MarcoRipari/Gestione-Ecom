@@ -526,7 +526,7 @@ if "df_input" in st.session_state:
         # Build FAISS if needed
             if sheet_id:
                 with st.spinner("📚 Carico storico e indice FAISS..."):
-                    data_sheet = get_sheet(sheet_id, "it")
+                    data_sheet = get_sheet(sheet_id, "STORICO")
                     df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
                     if "faiss_index" not in st.session_state:
                         index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
@@ -633,7 +633,7 @@ if "df_input" in st.session_state:
             with st.spinner("Generazione..."):
                 try:
                     if sheet_id:
-                        data_sheet = get_sheet(sheet_id, "it")
+                        data_sheet = get_sheet(sheet_id, "STORICO")
                         df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
                         if "faiss_index" not in st.session_state:
                             index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
