@@ -565,7 +565,7 @@ if "df_input" in st.session_state:
                     continue
             
                 for lang in selected_langs:
-                    lang_data = result.get(lang, {})
+                    lang_data = result.get("result", {}).get(lang, {})
                     descr_lunga = lang_data.get("desc_lunga", "").strip()
                     descr_breve = lang_data.get("desc_breve", "").strip()
             
@@ -578,7 +578,7 @@ if "df_input" in st.session_state:
                     "sku": row.get("SKU", ""),
                     "status": "OK",
                     "prompt": all_prompts[i],
-                    "output": json.dumps(result["result"], ensure_ascii=False),
+                    "output": json.dumps(result.get("result", {}), ensure_ascii=False),
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                 }
                 
