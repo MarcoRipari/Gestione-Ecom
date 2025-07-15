@@ -529,7 +529,13 @@ if "df_input" in st.session_state:
                 with st.spinner("📚 Carico storico e indice FAISS..."):
                     data_sheet = get_sheet(sheet_id, "it")
                     df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
-                    df_storico = df_storico[[col for col in st.session_state.selected_cols if col in df_storico.columns]]
+                    # Includi sempre Description e Description2 nello storico, se presenti
+                    base_cols = [col for col in st.session_state.selected_cols if col in df_storico.columns]
+                    for extra_col in ["Description", "Description2"]:
+                        if extra_col in df_storico.columns and extra_col not in base_cols:
+                            base_cols.append(extra_col)
+                    
+                    df_storico = df_storico[base_cols]
                     if "faiss_index" not in st.session_state:
                         index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
                         st.session_state["faiss_index"] = (index, index_df)
