@@ -24,6 +24,7 @@ import requests
 import asyncio
 import json
 from openai import AsyncOpenAI
+import copy
 
 logging.basicConfig(level=logging.INFO)
 
@@ -566,14 +567,13 @@ if "df_input" in st.session_state:
                     continue
             
                 for lang in selected_langs:
-                    lang_code = lang.lower()  # 👈 forza lowercase per compatibilità con JSON
-            
+                    lang_code = lang.lower()
                     lang_data = result.get(lang_code, {})
-            
+                
                     descr_lunga = lang_data.get("descrizione_lunga", "").strip()
                     descr_breve = lang_data.get("descrizione_breve", "").strip()
-            
-                    output_row = row.to_dict()
+                
+                    output_row = copy.deepcopy(row.to_dict())  # 👈 deep copy per isolare ogni lingua
                     output_row["Description"] = descr_lunga
                     output_row["Description2"] = descr_breve
                     all_outputs[lang].append(output_row)
