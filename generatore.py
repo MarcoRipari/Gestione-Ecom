@@ -568,11 +568,16 @@ if "df_input" in st.session_state:
                     lang_data = result.get("result", {}).get(lang, {})
                     descr_lunga = lang_data.get("desc_lunga", "").strip()
                     descr_breve = lang_data.get("desc_breve", "").strip()
+                    if DEBUG:
+                        st.write(f"[{lang}] LUNGA:", descr_lunga)
+                        st.write(f"[{lang}] BREVE:", descr_breve)
             
                     output_row = row.to_dict()
                     output_row["Description"] = descr_lunga
                     output_row["Description2"] = descr_breve
                     all_outputs[lang].append(output_row)
+                    if DEBUG:
+                        st.write(f"✅ Output salvato per {lang}:", output_row)
             
                 log_entry = {
                     "sku": row.get("SKU", ""),
