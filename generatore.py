@@ -539,8 +539,6 @@ if "df_input" in st.session_state:
             with st.spinner("📚 Cerco descrizioni con caratteristiche simili..."):
                 for _, row in df_input.iterrows():
                     simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
-                    if DEBUG:
-                        st.write("🔎 Simili trovati:", simili[["Description", "Description2"]].head())
                     caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
                     prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
                     all_prompts.append(prompt)
@@ -569,6 +567,8 @@ if "df_input" in st.session_state:
                 
                 for lang in selected_langs:
                     lang_data = result_data.get(lang, {})
+                    if DEBUG:
+                        loggin.info("Estraggo lingua: {lang}")
                     descr_lunga = lang_data.get("desc_lunga", "").strip()
                     descr_breve = lang_data.get("desc_breve", "").strip()
                 
@@ -577,7 +577,7 @@ if "df_input" in st.session_state:
                     output_row["Description2"] = descr_breve
                     all_outputs[lang].append(output_row)
                     if DEBUG:
-                        st.write(f"✅ Output per {lang}:", output_row)
+                        logging.info(f"✅ Output per {lang}:", output_row)
             
                 log_entry = {
                     "sku": row.get("SKU", ""),
