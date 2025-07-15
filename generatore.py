@@ -311,9 +311,9 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 - desc_breve: descrizione di {desc_breve_length} parole
 
 Tono: {", ".join(selected_tones)}
-Non usare nome prodotto, marca o colore.
+Non inserire il codice articolo, il nome del prodotto, marca o colore.
 
-Scheda tecnica: {product_info}{image_line}{sim_text}
+Scheda tecnica: {product_info}\n{image_line}\n{sim_text}
 
 Rispondi con un oggetto JSON compatto come questo:
 {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
