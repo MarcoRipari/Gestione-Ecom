@@ -305,18 +305,25 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
             sim_text = "\nDescrizioni simili:\n" + "\n".join(sim_lines)
 
     # Prompt finale
-    prompt = f"""Scrivi due descrizioni per una calzatura da vendere online in ciascuna delle seguenti lingue: {lang_list}.
+    prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
 
-- desc_lunga: descrizione di {desc_lunga_length} parole
-- desc_breve: descrizione di {desc_breve_length} parole
-
-Tono: {", ".join(selected_tones)}
-Non inserire il codice articolo, il nome del prodotto, marca o colore.
-
-Scheda tecnica: {product_info}\n{image_line}\n{sim_text}
-
-Rispondi con un oggetto JSON compatto come questo:
+>>> FORMATO OUTPUT
 {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
+
+>>> GUIDA STILE
+- Tono: {", ".join(selected_tones)}
+- Evita: Codice, Nome, Marca, Colore (nemmeno in forma implicita)
+- Lingua: adatta al paese target
+
+>>> REGOLE
+- desc_lunga: {desc_lunga_length} parole → enfasi su comfort, materiali, utilizzo
+- desc_breve: {desc_breve_length} parole → adatta a social media o schede prodotto rapide
+
+>>> INFO ARTICOLO
+{product_info}
+{image_line}
+
+{sim_text}
 """
     return prompt
     
