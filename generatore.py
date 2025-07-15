@@ -375,19 +375,38 @@ def read_csv_auto_encoding(uploaded_file):
     uploaded_file.seek(0)  # Rewind after read
     return pd.read_csv(uploaded_file, encoding=encoding)
 
-def estimate_cost(prompt, model="gpt-3.5-turbo"):
-    # Conversione caratteri → token (media approssimata: 1 token ≈ 4 caratteri)
+def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, desc_lunga_length, desc_breve_length, k_simili, use_image, faiss_index, DEBUG=False):
+    if df_input.empty:
+        return None, None, "❌ Il CSV è vuoto"
+
+    row = df_input.iloc[0]
+
+    simili = pd.DataFrame([])
+    if k_simili > 0 and faiss_index:
+        index, index_df = faiss_index
+        simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+
+    caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
+
+    prompt = build_unified_prompt(
+        row=row,
+        col_display_names=col_display_names,
+        selected_langs=selected_langs,
+        image_caption=caption,
+        simili=simili
+    )
+
+    # Token estimation (~4 chars per token)
     num_chars = len(prompt)
-    est_tokens = num_chars // 4
+    token_est = num_chars // 4
+    cost_est = round(token_est / 1000 * 0.001, 6)
 
-    # Costi approssimativi per 1K token (puoi adattare)
-    cost_per_1k = {
-        "gpt-3.5-turbo": 0.001,         # input + output stimato
-        "gpt-4": 0.03                   # solo input (semplificato)
-    }
+    if DEBUG:
+        st.code(prompt)
+        st.markdown(f"📊 **Prompt Length**: {num_chars} caratteri ≈ {token_est} token")
+        st.markdown(f"💸 **Costo stimato per riga**: ${cost_est:.6f}")
 
-    cost = (est_tokens / 1000) * cost_per_1k.get(model, 0.001)
-    return est_tokens, cost
+    return token_est, cost_est, prompt
 
 # ---------------------------
 # Async
@@ -504,44 +523,22 @@ if "df_input" in st.session_state:
 
     # 💵 Stima costi
     if st.button("💰 Stima costi generazione"):
-        with st.spinner("Calcolo in corso..."):
-            test_row = df_input.iloc[0]
-            prompts = []
-            if sheet_id:
-                data_sheet = get_sheet(sheet_id, "STORICO")
-                df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
-                if "faiss_index" not in st.session_state:
-                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
-                    st.session_state["faiss_index"] = (index, index_df)
-                else:
-                    index, index_df = st.session_state["faiss_index"]
-                simili = (
-                    retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
-                    if k_simili > 0 else pd.DataFrame([])
-                )
-            else:
-                simili = pd.DataFrame([])
-            
-            image_url = test_row.get("Image 1", "")
-            if use_image:
-                caption = get_blip_caption(image_url) if image_url else None
-            else:
-                caption = None
-                
-            prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
-            prompts.append(prompt)
-
-            avg_prompt_len = sum(len(p) for p in prompts) / len(prompts)
-            avg_prompt_tokens = avg_prompt_len / 4
-            output_tokens = 80 * len(df_input) * len(selected_langs)
-            total_tokens = avg_prompt_tokens * len(df_input) + output_tokens
-            est_cost = total_tokens / 1000 * 0.001
-
+        token_est, cost_est, prompt = calcola_token_prompt(
+            df_input=df_input,
+            col_display_names=st.session_state.col_display_names,
+            selected_langs=selected_langs,
+            selected_tones=selected_tones,
+            desc_lunga_length=desc_lunga_length,
+            desc_breve_length=desc_breve_length,
+            k_simili=k_simili,
+            use_image=use_image,
+            faiss_index=st.session_state.get("faiss_index"),
+            DEBUG=True
+        )
+        if token_est:
             st.info(f"""
-            🧮 Prompt medio: ~{avg_prompt_tokens:.0f} token  
-            ✍️ Output stimato per riga: 80 token × {len(selected_langs)} lingue  
-            📊 Token totali: ~{int(total_tokens)}  
-            💸 **Costo stimato: ${est_cost:.4f}**
+            📊 Token totali: ~{token_est}
+            💸 Costo stimato: ${cost_est:.6f}
             """)
 
     # 🪄 Generazione descrizioni
