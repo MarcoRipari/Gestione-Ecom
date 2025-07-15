@@ -308,19 +308,17 @@ Scheda tecnica: {product_info}
 {image_line}{sim_text}
 
 Lingue richieste: {lang_list}
-
-Rispondi in formato JSON come questo:
-{{
-  "it": {{
-    "descrizione_lunga": "...",
-    "descrizione_breve": "..."
-  }},
-  "en": {{
-    "descrizione_lunga": "...",
-    "descrizione_breve": "..."
-  }}
-}}
 """
+    json_example = "{\n"
+    for lang in selected_langs:
+        json_example += f'  "{lang.lower()}": {{\n'
+        json_example += f'    "descrizione_lunga": "...",\n'
+        json_example += f'    "descrizione_breve": "..."\n'
+        json_example += f'  }},\n'
+    json_example = json_example.rstrip(",\n") + "\n}"
+
+    prompt += f"\n\nRispondi in formato JSON come questo:\n{json_example}"
+    
     return prompt
     
 # ---------------------------
