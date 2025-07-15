@@ -562,12 +562,14 @@ if "df_input" in st.session_state:
                     continue
     
                 for lang in selected_langs:
-                    row_data = {
-                        **row.to_dict(),
-                        "Description": result.get(lang, {}).get("descrizione_lunga", ""),
-                        "Description2": result.get(lang, {}).get("descrizione_breve", "")
-                    }
-                    all_outputs[lang].append(row_data)
+                    lang_data = result.get(lang, {})
+                    descr_lunga = lang_data.get("descrizione_lunga", "").strip()
+                    descr_breve = lang_data.get("descrizione_breve", "").strip()
+                
+                    output_row = row.to_dict()
+                    output_row["Description"] = descr_lunga
+                    output_row["Description2"] = descr_breve
+                    all_outputs[lang].append(output_row)
     
                 logs.append({
                     "sku": row.get("SKU", ""),
