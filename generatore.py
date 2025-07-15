@@ -565,7 +565,7 @@ if "df_input" in st.session_state:
                     continue
             
                 for lang in selected_langs:
-                    lang_data = result.get(lang, {})
+                    lang_data = result.get("result", {}).get(lang.lower(), {})
                     descr_lunga = lang_data.get("desc_lunga", "").strip()
                     descr_breve = lang_data.get("desc_breve", "").strip()
             
