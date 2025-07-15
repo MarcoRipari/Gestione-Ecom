@@ -566,8 +566,10 @@ if "df_input" in st.session_state:
             
                 for lang in selected_langs:
                     lang_data = result.get("result", {}).get(lang.lower(), {})
+                    
                     descr_lunga = lang_data.get("desc_lunga", "").strip()
                     descr_breve = lang_data.get("desc_breve", "").strip()
+                    logging.info(f"Lingua: {lang} - Desc. Lunga: {descr_lunga} | Desc. Breve: {descr_breve}")
             
                     output_row = row.to_dict()
                     output_row["Description"] = descr_lunga
