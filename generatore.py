@@ -539,7 +539,7 @@ if "df_input" in st.session_state:
             for _, row in df_input.iterrows():
                 simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
                 caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
-                prompt = build_unified_prompt(row, col_display_names, selected_langs, image_caption=caption, simili=simili)
+                prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
                 all_prompts.append(prompt)
     
             with st.spinner("🚀 Generazione asincrona in corso..."):
