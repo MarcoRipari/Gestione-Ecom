@@ -36,8 +36,6 @@ LANG_NAMES = {
 }
 LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 
-DEBUG = True
-
 # ---------------------------
 # 🔐 Setup API keys and credentials
 # ---------------------------
@@ -418,6 +416,7 @@ st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
 # 📁 Caricamento dati
 with st.sidebar:
+    DEBUG = st.checkbox("Debug")
     st.header("📥 Caricamento")
     sheet_id = st.secrets["GSHEET_ID"]
     uploaded = st.file_uploader("CSV dei prodotti", type="csv")
