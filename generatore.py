@@ -548,9 +548,13 @@ if "df_input" in st.session_state:
             # Parsing risultati
             all_outputs = {lang: [] for lang in selected_langs}
             logs = []
-    
+            
             for i, (_, row) in enumerate(df_input.iterrows()):
                 result = results.get(i, {})
+            
+                # Logging debug risultato grezzo
+                st.write(f"📥 Risultato riga {i}:", result)
+            
                 if "error" in result:
                     logs.append({
                         "sku": row.get("SKU", ""),
@@ -560,17 +564,20 @@ if "df_input" in st.session_state:
                         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                     })
                     continue
-    
+            
                 for lang in selected_langs:
-                    lang_data = result.get(lang, {})
+                    lang_code = lang.lower()  # 👈 forza lowercase per compatibilità con JSON
+            
+                    lang_data = result.get(lang_code, {})
+            
                     descr_lunga = lang_data.get("descrizione_lunga", "").strip()
                     descr_breve = lang_data.get("descrizione_breve", "").strip()
-                
+            
                     output_row = row.to_dict()
                     output_row["Description"] = descr_lunga
                     output_row["Description2"] = descr_breve
                     all_outputs[lang].append(output_row)
-    
+            
                 logs.append({
                     "sku": row.get("SKU", ""),
                     "status": "OK",
