@@ -36,6 +36,8 @@ LANG_NAMES = {
 }
 LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 
+DEBUG = 0
+
 # ---------------------------
 # 🔐 Setup API keys and credentials
 # ---------------------------
@@ -535,11 +537,12 @@ if "df_input" in st.session_state:
     
             # Costruisci i prompt
             all_prompts = []
-            for _, row in df_input.iterrows():
-                simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
-                caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
-                prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
-                all_prompts.append(prompt)
+            with st.spinner("📚 Cerco descrizioni con caratteristiche simili...")
+                for _, row in df_input.iterrows():
+                    simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
+                    caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
+                    prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
+                    all_prompts.append(prompt)
     
             with st.spinner("🚀 Generazione asincrona in corso..."):
                 results = asyncio.run(generate_all_prompts(all_prompts))
@@ -552,7 +555,8 @@ if "df_input" in st.session_state:
                 result = results.get(i, {})
             
                 # Logging debug risultato grezzo
-                st.write(f"📥 Risultato riga {i}:", result)
+                if DEBUG == 1:
+                    st.write(f"📥 Risultato riga {i}:", result)
             
                 if "error" in result:
                     logs.append({
