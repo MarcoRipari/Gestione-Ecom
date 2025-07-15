@@ -399,8 +399,9 @@ async def async_generate_description(prompt: str, idx: int):
             max_tokens=3000
         )
         content = response.choices[0].message.content
+        usage = response.usage  # <-- aggiunto
         data = json.loads(content)
-        return idx, data
+        return idx, {"result": data, "usage": usage.model_dump()}
     except Exception as e:
         return idx, {"error": str(e)}
 
@@ -572,13 +573,25 @@ if "df_input" in st.session_state:
                     output_row["Description2"] = descr_breve
                     all_outputs[lang].append(output_row)
             
-                logs.append({
+                log_entry = {
                     "sku": row.get("SKU", ""),
                     "status": "OK",
                     "prompt": all_prompts[i],
-                    "output": json.dumps(result, ensure_ascii=False),
+                    "output": json.dumps(result["result"], ensure_ascii=False),
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                })
+                }
+                
+                # Aggiungi uso token se presente
+                if "usage" in result:
+                    usage = result["usage"]
+                    log_entry.update({
+                        "prompt_tokens": usage.get("prompt_tokens", 0),
+                        "completion_tokens": usage.get("completion_tokens", 0),
+                        "total_tokens": usage.get("total_tokens", 0),
+                        "estimated_cost_usd": round(usage.get("total_tokens", 0) / 1000 * 0.001, 6)
+                    })
+                
+                logs.append(log_entry)
     
             # Salvataggio su Google Sheet
             with st.spinner("📤 Salvataggio..."):
