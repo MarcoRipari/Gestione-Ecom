@@ -536,7 +536,7 @@ if "df_input" in st.session_state:
     
             # Costruisci i prompt
             all_prompts = []
-            with st.spinner("📚 Cerco descrizioni con caratteristiche simili...")
+            with st.spinner("📚 Cerco descrizioni con caratteristiche simili..."):
                 for _, row in df_input.iterrows():
                     simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
                     caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
