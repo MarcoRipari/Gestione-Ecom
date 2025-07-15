@@ -567,22 +567,25 @@ if "df_input" in st.session_state:
                 if DEBUG:
                     logging.info(f"🧩 Output JSON: {json.dumps(result_data, ensure_ascii=False)}")
                     
-                if lang not in result_data:
-                    if DEBUG:
-                        logging.warning(f"⚠️ Lingua {lang} non trovata nell'output del modello.")
-                    continue
-            
-                lang_data = result_data[lang]
-                descr_lunga = lang_data.get("desc_lunga", "").strip()
-                descr_breve = lang_data.get("desc_breve", "").strip()
-            
-                if descr_lunga or descr_breve:
+                for lang in selected_langs:
+                    if lang not in result_data:
+                        if DEBUG:
+                            logging.warning(f"⚠️ Lingua {lang} non trovata nell'output del modello.")
+                        continue
+                
+                    lang_data = result_data[lang]
+                    descr_lunga = lang_data.get("desc_lunga", "").strip()
+                    descr_breve = lang_data.get("desc_breve", "").strip()
+                
                     output_row = row.to_dict()
                     output_row["Description"] = descr_lunga
                     output_row["Description2"] = descr_breve
                     all_outputs[lang].append(output_row)
+                
                     if DEBUG:
-                        logging.info(f"✅ Output salvato per {lang}: {descr_lunga[:40]} / {descr_breve[:40]}")
+                        logging.info(f"✅ Output per {lang}:")
+                        logging.info(f"    Lunga: {descr_lunga[:80]}")
+                        logging.info(f"    Breve: {descr_breve[:80]}")
             
                 log_entry = {
                     "sku": row.get("SKU", ""),
