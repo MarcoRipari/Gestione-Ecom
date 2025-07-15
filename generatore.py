@@ -473,14 +473,19 @@ if "df_input" in st.session_state:
     with st.expander("🌍 Selezione Lingue & Parametri"):
         settings_col1, settings_col2, settings_col3 = st.columns(3)
         with settings_col1:
+            use_simili = st.checkbox("Usa descrizioni simili (RAG)", value=True)
+            k_simili = 2 if use_simili else 0
+            
+            use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
+
+        with settings_col2:
             selected_labels = st.multiselect(
                 "Lingue di output",
                 options=list(LANG_LABELS.keys()),
-                default=["Italiano"]
+                default=["Italiano", "Inglese", "Francese", "Tedesco"]
             )
             selected_langs = [LANG_LABELS[label] for label in selected_labels]
-
-        with settings_col2:
+            
             selected_tones = st.multiselect(
                 "Tono desiderato",
                 ["professionale", "amichevole", "accattivante", "descrittivo", "tecnico", "ironico", "minimal", "user friendly", "SEO-friendly"],
@@ -493,11 +498,10 @@ if "df_input" in st.session_state:
 
         options_col1, options_col2, options_col3 = st.columns(3)
         with options_col1:
-            use_simili = st.checkbox("Usa descrizioni simili (RAG)", value=True)
-            k_simili = 2 if use_simili else 0
+            
             
         with options_col2:
-            use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
+            
 
     # 💵 Stima costi
     if st.button("💰 Stima costi generazione"):
@@ -665,7 +669,7 @@ if "df_input" in st.session_state:
                         caption = get_blip_caption(image_url) if image_url else None
                     else:
                         caption = None
-                    prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names, caption)
+                    prompt_preview = build_unified_prompt(test_row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
                     st.expander("📄 Prompt generato").code(prompt_preview, language="markdown")
                 except Exception as e:
                     st.error(f"Errore: {str(e)}")
