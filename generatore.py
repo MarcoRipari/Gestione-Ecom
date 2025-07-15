@@ -496,13 +496,6 @@ if "df_input" in st.session_state:
             desc_lunga_length = st.selectbox("Lunghezza descrizione lunga", ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"], index=5)
             desc_breve_length = st.selectbox("Lunghezza descrizione breve", ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"], index=1)
 
-        options_col1, options_col2, options_col3 = st.columns(3)
-        with options_col1:
-            
-            
-        with options_col2:
-            
-
     # 💵 Stima costi
     if st.button("💰 Stima costi generazione"):
         with st.spinner("Calcolo in corso..."):
