@@ -29,10 +29,10 @@ import copy
 logging.basicConfig(level=logging.INFO)
 
 LANG_NAMES = {
-    "IT": "italiano",
-    "EN": "inglese",
-    "FR": "francese",
-    "DE": "tedesco"
+"IT": "italiano",
+"EN": "inglese",
+"FR": "francese",
+"DE": "tedesco"
 }
 LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 
@@ -42,8 +42,8 @@ LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["GCP_SERVICE_ACCOUNT"],
-    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+st.secrets["GCP_SERVICE_ACCOUNT"],
+scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 )
 gsheet_client = gspread.authorize(credentials)
 
@@ -54,334 +54,347 @@ gsheet_client = gspread.authorize(credentials)
 #        return gsheet_client.open_by_key(sheet_id).add_worksheet(title=tab, rows="10000", cols="50")
 
 def get_sheet(sheet_id, tab):
-    spreadsheet = gsheet_client.open_by_key(sheet_id)
-    worksheets = spreadsheet.worksheets()
-    
-    # Confronto case-insensitive per maggiore robustezza
-    for ws in worksheets:
-        if ws.title.strip().lower() == tab.strip().lower():
-            return ws
+spreadsheet = gsheet_client.open_by_key(sheet_id)
+worksheets = spreadsheet.worksheets()
 
-    # Se non trovato, lo crea
-    return spreadsheet.add_worksheet(title=tab, rows="10000", cols="50")
+# Confronto case-insensitive per maggiore robustezza
+for ws in worksheets:
+if ws.title.strip().lower() == tab.strip().lower():
+return ws
+
+# Se non trovato, lo crea
+return spreadsheet.add_worksheet(title=tab, rows="10000", cols="50")
 
 # ---------------------------
 # 📦 Embedding & FAISS Setup
 # ---------------------------
 @st.cache_resource
 def load_model():
-    model = SentenceTransformer("all-MiniLM-L6-v2", use_auth_token=st.secrets["HF_TOKEN"])
-    return model.to("cpu")
+model = SentenceTransformer("all-MiniLM-L6-v2", use_auth_token=st.secrets["HF_TOKEN"])
+return model.to("cpu")
 
 model = load_model()
 
 def embed_texts(texts: List[str], batch_size=32) -> List[List[float]]:
-    return model.encode(texts, show_progress_bar=False, batch_size=batch_size).tolist()
+return model.encode(texts, show_progress_bar=False, batch_size=batch_size).tolist()
 
 def hash_dataframe_and_weights(df: pd.DataFrame, col_weights: Dict[str, float]) -> str:
-    df_bytes = pickle.dumps((df.fillna("").astype(str), col_weights))
-    return hashlib.md5(df_bytes).hexdigest()
+df_bytes = pickle.dumps((df.fillna("").astype(str), col_weights))
+return hashlib.md5(df_bytes).hexdigest()
 
 def build_faiss_index(df: pd.DataFrame, col_weights: Dict[str, float], cache_dir="faiss_cache"):
-    os.makedirs(cache_dir, exist_ok=True)
-    cache_key = hash_dataframe_and_weights(df, col_weights)
-    cache_path = os.path.join(cache_dir, f"{cache_key}.index")
+os.makedirs(cache_dir, exist_ok=True)
+cache_key = hash_dataframe_and_weights(df, col_weights)
+cache_path = os.path.join(cache_dir, f"{cache_key}.index")
 
-    if os.path.exists(cache_path):
-        index = faiss.read_index(cache_path)
-        return index, df
+if os.path.exists(cache_path):
+index = faiss.read_index(cache_path)
+return index, df
 
-    texts = []
-    for _, row in df.iterrows():
-        parts = []
-        for col in df.columns:
-            if pd.notna(row[col]):
-                weight = col_weights.get(col, 1)
-                if weight > 0:
-                    parts.append((f"{col}: {row[col]} ") * int(weight))
-        texts.append(" ".join(parts))
+texts = []
+for _, row in df.iterrows():
+parts = []
+for col in df.columns:
+if pd.notna(row[col]):
+weight = col_weights.get(col, 1)
+if weight > 0:
+parts.append((f"{col}: {row[col]} ") * int(weight))
+texts.append(" ".join(parts))
 
-    vectors = embed_texts(texts)
-    index = faiss.IndexFlatL2(len(vectors[0]))
-    index.add(np.array(vectors).astype("float32"))
-    faiss.write_index(index, cache_path)
+vectors = embed_texts(texts)
+index = faiss.IndexFlatL2(len(vectors[0]))
+index.add(np.array(vectors).astype("float32"))
+faiss.write_index(index, cache_path)
 
-    return index, df
+return index, df
 
 def retrieve_similar(query_row: pd.Series, df: pd.DataFrame, index, k=5, col_weights: Dict[str, float] = {}):
-    parts = []
-    for col in df.columns:
-        if pd.notna(query_row[col]):
-            weight = col_weights.get(col, 1)
-            if weight > 0:
-                parts.append((f"{col}: {query_row[col]} ") * int(weight))
-    query_text = " ".join(parts)
+parts = []
+for col in df.columns:
+if pd.notna(query_row[col]):
+weight = col_weights.get(col, 1)
+if weight > 0:
+parts.append((f"{col}: {query_row[col]} ") * int(weight))
+query_text = " ".join(parts)
 
-    query_vector = embed_texts([query_text])[0]
-    D, I = index.search(np.array([query_vector]).astype("float32"), k)
+query_vector = embed_texts([query_text])[0]
+D, I = index.search(np.array([query_vector]).astype("float32"), k)
 
-    # 🔍 DEBUG
-    logging.info(f"QUERY TEXT: {query_text[:300]} ...")
-    logging.info(f"INDICI trovati: {I[0]}")
-    logging.info(f"Distanze: {D[0]}")
-    
-    return df.iloc[I[0]]
+# 🔍 DEBUG
+logging.info(f"QUERY TEXT: {query_text[:300]} ...")
+logging.info(f"INDICI trovati: {I[0]}")
+logging.info(f"Distanze: {D[0]}")
+
+return df.iloc[I[0]]
 
 def estimate_embedding_time(df: pd.DataFrame, col_weights: Dict[str, float], sample_size: int = 10) -> float:
-    """
-    Stima il tempo totale per embeddare tutti i testi del dataframe.
-    """
-    texts = []
-    for _, row in df.head(sample_size).iterrows():
-        parts = []
-        for col in df.columns:
-            if pd.notna(row[col]):
-                weight = col_weights.get(col, 1)
-                if weight > 0:
-                    parts.append((f"{col}: {row[col]} ") * int(weight))
-        texts.append(" ".join(parts))
+"""
+   Stima il tempo totale per embeddare tutti i testi del dataframe.
+   """
+texts = []
+for _, row in df.head(sample_size).iterrows():
+parts = []
+for col in df.columns:
+if pd.notna(row[col]):
+weight = col_weights.get(col, 1)
+if weight > 0:
+parts.append((f"{col}: {row[col]} ") * int(weight))
+texts.append(" ".join(parts))
 
-    start = time.time()
-    _ = embed_texts(texts)
-    elapsed = time.time() - start
-    avg_time_per_row = elapsed / sample_size
-    total_estimated_time = avg_time_per_row * len(df)
+start = time.time()
+_ = embed_texts(texts)
+elapsed = time.time() - start
+avg_time_per_row = elapsed / sample_size
+total_estimated_time = avg_time_per_row * len(df)
 
-    return total_estimated_time
+return total_estimated_time
 
 def benchmark_faiss(df, col_weights, query_sample_size=10):
-    import os
+import os
 
-    st.markdown("### ⏱️ Benchmark FAISS + Embedding")
+st.markdown("### ⏱️ Benchmark FAISS + Embedding")
 
-    start_embed = time.time()
-    texts = []
-    for _, row in df.iterrows():
-        parts = [f"{col}: {row[col]}" * int(col_weights.get(col, 1))
-                 for col in df.columns if pd.notna(row[col])]
-        texts.append(" ".join(parts))
-    vectors = embed_texts(texts)
-    embed_time = time.time() - start_embed
+start_embed = time.time()
+texts = []
+for _, row in df.iterrows():
+parts = [f"{col}: {row[col]}" * int(col_weights.get(col, 1))
+for col in df.columns if pd.notna(row[col])]
+texts.append(" ".join(parts))
+vectors = embed_texts(texts)
+embed_time = time.time() - start_embed
 
-    start_faiss = time.time()
-    index = faiss.IndexFlatL2(len(vectors[0]))
-    index.add(np.array(vectors).astype("float32"))
-    faiss.write_index(index, "tmp_benchmark.index")
-    index_time = time.time() - start_faiss
+start_faiss = time.time()
+index = faiss.IndexFlatL2(len(vectors[0]))
+index.add(np.array(vectors).astype("float32"))
+faiss.write_index(index, "tmp_benchmark.index")
+index_time = time.time() - start_faiss
 
-    index_size = os.path.getsize("tmp_benchmark.index")
+index_size = os.path.getsize("tmp_benchmark.index")
 
-    # Test query
-    query_times = []
-    for i in range(min(query_sample_size, len(df))):
-        qtext = texts[i]
-        start_q = time.time()
-        _ = index.search(np.array([vectors[i]]).astype("float32"), 5)
-        query_times.append(time.time() - start_q)
+# Test query
+query_times = []
+for i in range(min(query_sample_size, len(df))):
+qtext = texts[i]
+start_q = time.time()
+_ = index.search(np.array([vectors[i]]).astype("float32"), 5)
+query_times.append(time.time() - start_q)
 
-    avg_query_time = sum(query_times) / len(query_times)
+avg_query_time = sum(query_times) / len(query_times)
 
-    st.write({
-        "🚀 Tempo embedding totale (s)": round(embed_time, 2),
-        "📄 Tempo medio per riga (ms)": round(embed_time / len(df) * 1000, 2),
-        "🏗️ Tempo costruzione FAISS (s)": round(index_time, 2),
-        "💾 Dimensione index (KB)": round(index_size / 1024, 1),
-        "🔍 Tempo medio query (ms)": round(avg_query_time * 1000, 2),
-    })
+st.write({
+"🚀 Tempo embedding totale (s)": round(embed_time, 2),
+"📄 Tempo medio per riga (ms)": round(embed_time / len(df) * 1000, 2),
+"🏗️ Tempo costruzione FAISS (s)": round(index_time, 2),
+"💾 Dimensione index (KB)": round(index_size / 1024, 1),
+"🔍 Tempo medio query (ms)": round(avg_query_time * 1000, 2),
+})
 
-    os.remove("tmp_benchmark.index")
+os.remove("tmp_benchmark.index")
 
 # ---------------------------
 # 🎨 Visual Embedding
 # ---------------------------
 @st.cache_resource
 def load_blip_model():
-    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-    model = BlipForConditionalGeneration.from_pretrained(
-        "Salesforce/blip-image-captioning-base",
-        use_auth_token=st.secrets["HF_TOKEN"]
-    )
-    return processor, model
-    
-def get_blip_caption(image_url: str) -> str:
-    try:
-        processor, model = load_blip_model()
-        raw_image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
+processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+model = BlipForConditionalGeneration.from_pretrained(
+"Salesforce/blip-image-captioning-base",
+use_auth_token=st.secrets["HF_TOKEN"]
+)
+return processor, model
 
-        inputs = processor(raw_image, return_tensors="pt")
-        output = model.generate(**inputs, max_new_tokens=30)
-        caption = processor.decode(output[0], skip_special_tokens=True)
-        return caption.strip()
-    except Exception as e:
-        # st.warning(f"⚠️ Errore nel captioning: {str(e)}")
-        return ""
-        
+def get_blip_caption(image_url: str) -> str:
+try:
+processor, model = load_blip_model()
+raw_image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
+
+inputs = processor(raw_image, return_tensors="pt")
+output = model.generate(**inputs, max_new_tokens=30)
+caption = processor.decode(output[0], skip_special_tokens=True)
+return caption.strip()
+except Exception as e:
+# st.warning(f"⚠️ Errore nel captioning: {str(e)}")
+return ""
+
 # ---------------------------
 # 🧠 Prompting e Generazione
 # ---------------------------
 def build_prompt(row, examples=None, col_display_names=None, image_caption=None):
-    fields = []
+fields = []
 
-    if col_display_names is None:
-        col_display_names = {col: col for col in row.index}
+if col_display_names is None:
+col_display_names = {col: col for col in row.index}
 
-    for col in col_display_names:
-        if col in row and pd.notna(row[col]):
-            label = col_display_names[col]
-            fields.append(f"{label}: {row[col]}")
+for col in col_display_names:
+if col in row and pd.notna(row[col]):
+label = col_display_names[col]
+fields.append(f"{label}: {row[col]}")
 
-    product_info = "; ".join(fields)
+product_info = "; ".join(fields)
 
-    # 🧩 Esempi, solo se disponibili
-    example_section = ""
-    if examples is not None and not examples.empty:
-        example_lines = []
-        for i, (_, ex) in enumerate(examples.iterrows()):
-            desc1 = ex.get("Description", "").strip()
-            desc2 = ex.get("Description2", "").strip()
-            if desc1 and desc2:
-                example = (
-                    f"Esempio {i+1}:\n"
-                    f"Descrizione lunga: {desc1}\n"
-                    f"Descrizione breve: {desc2}"
-                )
-                example_lines.append(example)
-        example_section = "\n\n".join(example_lines)
+# 🧩 Esempi, solo se disponibili
+example_section = ""
+if examples is not None and not examples.empty:
+example_lines = []
+for i, (_, ex) in enumerate(examples.iterrows()):
+desc1 = ex.get("Description", "").strip()
+desc2 = ex.get("Description2", "").strip()
+if desc1 and desc2:
+example = (
+f"Esempio {i+1}:\n"
+f"Descrizione lunga: {desc1}\n"
+f"Descrizione breve: {desc2}"
+)
+example_lines.append(example)
+example_section = "\n\n".join(example_lines)
 
-    # 📄 Prompt finale
-    prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
+# 📄 Prompt finale
+prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
 
 Tono richiesto: professionale, user friendly, accattivante, SEO-friendly.
 Evita nome prodotto, colore e marchio.
 
 Scheda tecnica: {product_info}
 """
-    if image_caption:
-        prompt += f"\nAspetto visivo: {image_caption}"
-    if example_section:
-        prompt += f"\n\nEsempi:\n{example_section}"
+if image_caption:
+prompt += f"\nAspetto visivo: {image_caption}"
+if example_section:
+prompt += f"\n\nEsempi:\n{example_section}"
 
-    prompt += "\n\nRispondi con:\nDescrizione lunga:\nDescrizione breve:"
+prompt += "\n\nRispondi con:\nDescrizione lunga:\nDescrizione breve:"
 
-    if len(prompt) > 12000:
-        st.warning("⚠️ Il prompt generato supera i limiti raccomandati di lunghezza.")
+if len(prompt) > 12000:
+st.warning("⚠️ Il prompt generato supera i limiti raccomandati di lunghezza.")
 
-    return prompt
+return prompt
 
 def generate_descriptions(prompt):
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=3000
-    )
-    return response.choices[0].message.content
+response = openai.chat.completions.create(
+model="gpt-3.5-turbo",
+messages=[{"role": "user", "content": prompt}],
+temperature=0.7,
+max_tokens=3000
+)
+return response.choices[0].message.content
 
 def build_unified_prompt(row, col_display_names, selected_langs, image_caption=None, simili=None):
-    # Costruzione scheda tecnica
-    fields = []
-    for col in col_display_names:
-        if col in row and pd.notna(row[col]):
-            label = col_display_names[col]
-            fields.append(f"{label}: {row[col]}")
-    product_info = "; ".join(fields)
+fields = []
+for col in col_display_names:
+if col in row and pd.notna(row[col]):
+label = col_display_names[col]
+fields.append(f"{label}: {row[col]}")
+product_info = "; ".join(fields)
 
-    # Elenco lingue in stringa
-    lang_list = ", ".join([LANG_NAMES.get(lang, lang) for lang in selected_langs])
+lang_list = ", ".join([LANG_NAMES.get(lang, lang) for lang in selected_langs])
+image_line = f"Aspetto visivo: {image_caption}" if image_caption else ""
 
-    # Caption immagine
-    image_line = f"\nAspetto visivo: {image_caption}" if image_caption else ""
+sim_text = ""
+if simili is not None and not simili.empty:
+sim_lines = []
+for idx, ex in simili.iterrows():
+descr_lunga = ex.get("Description", "").strip()
+descr_breve = ex.get("Description2", "").strip()
+if descr_lunga and descr_breve:
+sim_lines.append(f"- {descr_lunga}\n  {descr_breve}")
+if sim_lines:
+sim_text = "\nDescrizioni simili:\n" + "\n".join(sim_lines)
 
-    # Descrizioni simili
-    sim_text = ""
-    if simili is not None and not simili.empty:
-        sim_lines = []
-        for _, ex in simili.iterrows():
-            dl = ex.get("Description", "").strip()
-            db = ex.get("Description2", "").strip()
-            if dl and db:
-                sim_lines.append(f"- {dl}\n  {db}")
-        if sim_lines:
-            sim_text = "\nDescrizioni simili:\n" + "\n".join(sim_lines)
+prompt = f"""Scrivi due descrizioni (una lunga e una breve) per una calzatura da vendere online.
 
-    # Prompt finale
-    prompt = f"""Scrivi due descrizioni per una calzatura da vendere online in ciascuna delle seguenti lingue: {lang_list}.
+Tono: professionale, user friendly, accattivante, SEO-friendly.
+Evita nome prodotto, colore e marchio.
 
-- desc_lunga: descrizione coinvolgente, SEO-friendly
-- desc_breve: descrizione concisa, commerciale
+Scheda tecnica: {product_info}
+{image_line}{sim_text}
 
-Tono: professionale, accattivante, user friendly.  
-Non usare nome prodotto, marca o colore.
+Lingue richieste: {lang_list}
 
-Scheda tecnica: {product_info}{image_line}{sim_text}
-
-Rispondi con un oggetto JSON compatto come questo:
-{{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
+Rispondi in formato JSON come questo:
+{{
+  "it": {{
+    "descrizione_lunga": "...",
+    "descrizione_breve": "..."
+  }},
+  "en": {{
+    "descrizione_lunga": "...",
+    "descrizione_breve": "..."
+  }}
+}}
 """
-    return prompt
+    json_example = "{\n"
+    for lang in selected_langs:
+        json_example += f'  "{lang.lower()}": {{\n'
+        json_example += f'    "descrizione_lunga": "...",\n'
+        json_example += f'    "descrizione_breve": "..."\n'
+        json_example += f'  }},\n'
+    json_example = json_example.rstrip(",\n") + "\n}"
+
+    prompt += f"\n\nRispondi in formato JSON come questo:\n{json_example}"
     
+return prompt
+
 # ---------------------------
 # 🌍 Traduzione
 # ---------------------------
 def translate_text(text, target_lang="en"):
-    lang_name = LANG_NAMES.get(target_lang, target_lang)
-    prompt = f"Traduci il seguente testo in {lang_name}:\n{text}"
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content
+lang_name = LANG_NAMES.get(target_lang, target_lang)
+prompt = f"Traduci il seguente testo in {lang_name}:\n{text}"
+response = openai.chat.completions.create(
+model="gpt-3.5-turbo",
+messages=[{"role": "user", "content": prompt}]
+)
+return response.choices[0].message.content
 
 # ---------------------------
 # 📊 Audit Trail & Google Sheets
 # ---------------------------
 def append_log(sheet_id, log_data):
-    sheet = get_sheet(sheet_id, "logs")
-    sheet.append_row(list(log_data.values()), value_input_option="RAW")
+sheet = get_sheet(sheet_id, "logs")
+sheet.append_row(list(log_data.values()), value_input_option="RAW")
 
 def overwrite_sheet(sheet_id, tab, df):
-    sheet = get_sheet(sheet_id, tab)
-    sheet.clear()
+sheet = get_sheet(sheet_id, tab)
+sheet.clear()
 
-    # ✅ Sostituisci NaN con stringa vuota e converti tutto in stringa (safe per JSON)
-    df = df.fillna("").astype(str)
+# ✅ Sostituisci NaN con stringa vuota e converti tutto in stringa (safe per JSON)
+df = df.fillna("").astype(str)
 
-    # ✅ Prepara i dati: intestazione + righe
-    data = [df.columns.tolist()] + df.values.tolist()
+# ✅ Prepara i dati: intestazione + righe
+data = [df.columns.tolist()] + df.values.tolist()
 
-    # ✅ Scrittura nel foglio Google Sheets
-    sheet.update(data)
+# ✅ Scrittura nel foglio Google Sheets
+sheet.update(data)
 
 def append_to_sheet(sheet_id, tab, df):
-    sheet = get_sheet(sheet_id, tab)
-    df = df.fillna("").astype(str)
-    values = df.values.tolist()
-    for row in values:
-        sheet.append_row(row, value_input_option="RAW")
-    
+sheet = get_sheet(sheet_id, tab)
+df = df.fillna("").astype(str)
+values = df.values.tolist()
+for row in values:
+sheet.append_row(row, value_input_option="RAW")
+
 # ---------------------------
 # Funzioni varie
 # ---------------------------
 def read_csv_auto_encoding(uploaded_file):
-    raw_data = uploaded_file.read()
-    result = chardet.detect(raw_data)
-    encoding = result['encoding'] or 'utf-8'
-    uploaded_file.seek(0)  # Rewind after read
-    return pd.read_csv(uploaded_file, encoding=encoding)
+raw_data = uploaded_file.read()
+result = chardet.detect(raw_data)
+encoding = result['encoding'] or 'utf-8'
+uploaded_file.seek(0)  # Rewind after read
+return pd.read_csv(uploaded_file, encoding=encoding)
 
 def estimate_cost(prompt, model="gpt-3.5-turbo"):
-    # Conversione caratteri → token (media approssimata: 1 token ≈ 4 caratteri)
-    num_chars = len(prompt)
-    est_tokens = num_chars // 4
+# Conversione caratteri → token (media approssimata: 1 token ≈ 4 caratteri)
+num_chars = len(prompt)
+est_tokens = num_chars // 4
 
-    # Costi approssimativi per 1K token (puoi adattare)
-    cost_per_1k = {
-        "gpt-3.5-turbo": 0.001,         # input + output stimato
-        "gpt-4": 0.03                   # solo input (semplificato)
-    }
+# Costi approssimativi per 1K token (puoi adattare)
+cost_per_1k = {
+"gpt-3.5-turbo": 0.001,         # input + output stimato
+"gpt-4": 0.03                   # solo input (semplificato)
+}
 
-    cost = (est_tokens / 1000) * cost_per_1k.get(model, 0.001)
-    return est_tokens, cost
+cost = (est_tokens / 1000) * cost_per_1k.get(model, 0.001)
+return est_tokens, cost
 
 # ---------------------------
 # Async
@@ -389,25 +402,24 @@ def estimate_cost(prompt, model="gpt-3.5-turbo"):
 client = AsyncOpenAI(api_key=openai.api_key)
 
 async def async_generate_description(prompt: str, idx: int):
-    try:
-        response = await client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=3000
-        )
-        content = response.choices[0].message.content
-        usage = response.usage  # <-- aggiunto
-        data = json.loads(content)
-        return idx, {"result": data, "usage": usage.model_dump()}
-    except Exception as e:
-        return idx, {"error": str(e)}
+try:
+response = await client.chat.completions.create(
+model="gpt-3.5-turbo",
+messages=[{"role": "user", "content": prompt}],
+temperature=0.7,
+max_tokens=3000
+)
+content = response.choices[0].message.content
+data = json.loads(content)
+return idx, data
+except Exception as e:
+return idx, {"error": str(e)}
 
 async def generate_all_prompts(prompts: list[str]) -> dict:
-    tasks = [async_generate_description(prompt, idx) for idx, prompt in enumerate(prompts)]
-    results = await asyncio.gather(*tasks)
-    return dict(results)
-    
+tasks = [async_generate_description(prompt, idx) for idx, prompt in enumerate(prompts)]
+results = await asyncio.gather(*tasks)
+return dict(results)
+
 # ---------------------------
 # 📦 Streamlit UI (RIORGANIZZATA)
 # ---------------------------
@@ -416,260 +428,237 @@ st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
 # 📁 Caricamento dati
 with st.sidebar:
-    DEBUG = st.checkbox("Debug")
-    st.header("📥 Caricamento")
-    sheet_id = st.secrets["GSHEET_ID"]
-    uploaded = st.file_uploader("CSV dei prodotti", type="csv")
+st.header("📥 Caricamento")
+sheet_id = st.secrets["GSHEET_ID"]
+uploaded = st.file_uploader("CSV dei prodotti", type="csv")
 
-    if uploaded:
-        df_input = read_csv_auto_encoding(uploaded)
-        st.session_state["df_input"] = df_input
-         # ✅ Inizializza variabili di stato se non esistono
-        if "col_weights" not in st.session_state:
-            st.session_state.col_weights = {}
-        if "col_display_names" not in st.session_state:
-            st.session_state.col_display_names = {}
-        if "selected_cols" not in st.session_state:
-            st.session_state.selected_cols = []
-        if "config_ready" not in st.session_state:
-            st.session_state.config_ready = False
-        if "generate" not in st.session_state:
-            st.session_state.generate = False
-        st.success("✅ File caricato con successo!")
+if uploaded:
+df_input = read_csv_auto_encoding(uploaded)
+st.session_state["df_input"] = df_input
+# ✅ Inizializza variabili di stato se non esistono
+if "col_weights" not in st.session_state:
+st.session_state.col_weights = {}
+if "col_display_names" not in st.session_state:
+st.session_state.col_display_names = {}
+if "selected_cols" not in st.session_state:
+st.session_state.selected_cols = []
+if "config_ready" not in st.session_state:
+st.session_state.config_ready = False
+if "generate" not in st.session_state:
+st.session_state.generate = False
+st.success("✅ File caricato con successo!")
 
 # 📊 Anteprima dati
 if "df_input" in st.session_state:
-    df_input = st.session_state.df_input
-    st.subheader("🧾 Anteprima CSV")
-    st.dataframe(df_input.head())
+df_input = st.session_state.df_input
+st.subheader("🧾 Anteprima CSV")
+st.dataframe(df_input.head())
 
-    # 🧩 Configurazione colonne
-    with st.expander("⚙️ Configura colonne per il prompt", expanded=True):
-        st.markdown("### 1. Seleziona colonne")
-        available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
-        st.session_state.selected_cols = st.multiselect("Colonne da includere nel prompt", options=available_cols, default=[])
+# 🧩 Configurazione colonne
+with st.expander("⚙️ Configura colonne per il prompt", expanded=True):
+st.markdown("### 1. Seleziona colonne")
+available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
+st.session_state.selected_cols = st.multiselect("Colonne da includere nel prompt", options=available_cols, default=[])
 
-        if st.session_state.selected_cols:
-            if st.button("▶️ Procedi alla configurazione colonne"):
-                st.session_state.config_ready = True
+if st.session_state.selected_cols:
+if st.button("▶️ Procedi alla configurazione colonne"):
+st.session_state.config_ready = True
 
-        if st.session_state.get("config_ready"):
-            st.markdown("### 2. Configura pesi ed etichette")
-            for col in st.session_state.selected_cols:
-                st.session_state.col_weights.setdefault(col, 1)
-                st.session_state.col_display_names.setdefault(col, col)
+if st.session_state.get("config_ready"):
+st.markdown("### 2. Configura pesi ed etichette")
+for col in st.session_state.selected_cols:
+st.session_state.col_weights.setdefault(col, 1)
+st.session_state.col_display_names.setdefault(col, col)
 
-                cols = st.columns([2, 3])
-                with cols[0]:
-                    st.session_state.col_weights[col] = st.slider(
-                        f"Peso: {col}", 0, 5, st.session_state.col_weights[col], key=f"peso_{col}"
-                    )
-                with cols[1]:
-                    st.session_state.col_display_names[col] = st.text_input(
-                        f"Etichetta: {col}", value=st.session_state.col_display_names[col], key=f"label_{col}"
-                    )
+cols = st.columns([2, 3])
+with cols[0]:
+st.session_state.col_weights[col] = st.slider(
+f"Peso: {col}", 0, 5, st.session_state.col_weights[col], key=f"peso_{col}"
+)
+with cols[1]:
+st.session_state.col_display_names[col] = st.text_input(
+f"Etichetta: {col}", value=st.session_state.col_display_names[col], key=f"label_{col}"
+)
 
-    # 🌍 Lingue e parametri
-    with st.expander("🌍 Selezione Lingue & Parametri"):
-        settings_col1, settings_col2, settings_col3 = st.columns(3)
-        with settings_col1:
-            selected_labels = st.multiselect(
-                "Lingue di output",
-                options=list(LANG_LABELS.keys()),
-                default=["Italiano"]
-            )
-            selected_langs = [LANG_LABELS[label] for label in selected_labels]
+# 🌍 Lingue e parametri
+with st.expander("🌍 Selezione Lingue & Parametri"):
+settings_col1, settings_col2, settings_col3 = st.columns(3)
+with settings_col1:
+selected_labels = st.multiselect(
+"Lingue di output",
+options=list(LANG_LABELS.keys()),
+default=["Italiano"]
+)
+selected_langs = [LANG_LABELS[label] for label in selected_labels]
 
-        with settings_col2:
-            use_simili = st.checkbox("Usa descrizioni simili (RAG)", value=True)
-            k_simili = 2 if use_simili else 0
-            
-        with settings_col3:
-            use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
+with settings_col2:
+use_simili = st.checkbox("Usa descrizioni simili (RAG)", value=True)
+k_simili = 2 if use_simili else 0
 
-    # 💵 Stima costi
-    if st.button("💰 Stima costi generazione"):
-        with st.spinner("Calcolo in corso..."):
-            prompts = []
-            for _, row in df_input.iterrows():
-                simili = pd.DataFrame([])
-                image_url = row.get("Image 1", "")
-                if use_image:
-                    caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
-                else:
-                    caption = None
-                prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
-                prompts.append(prompt)
-                if len(prompts) >= 3:
-                    break
+with settings_col3:
+use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
 
-            avg_prompt_len = sum(len(p) for p in prompts) / len(prompts)
-            avg_prompt_tokens = avg_prompt_len / 4
-            output_tokens = 80 * len(df_input) * len(selected_langs)
-            total_tokens = avg_prompt_tokens * len(df_input) + output_tokens
-            est_cost = total_tokens / 1000 * 0.001
+# 💵 Stima costi
+if st.button("💰 Stima costi generazione"):
+with st.spinner("Calcolo in corso..."):
+prompts = []
+for _, row in df_input.iterrows():
+simili = pd.DataFrame([])
+image_url = row.get("Image 1", "")
+if use_image:
+caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
+else:
+caption = None
+prompt = build_prompt(row, simili, st.session_state.col_display_names, caption)
+prompts.append(prompt)
+if len(prompts) >= 3:
+break
 
-            st.info(f"""
-            🧮 Prompt medio: ~{avg_prompt_tokens:.0f} token  
-            ✍️ Output stimato per riga: 80 token × {len(selected_langs)} lingue  
-            📊 Token totali: ~{int(total_tokens)}  
-            💸 **Costo stimato: ${est_cost:.4f}**
-            """)
+avg_prompt_len = sum(len(p) for p in prompts) / len(prompts)
+avg_prompt_tokens = avg_prompt_len / 4
+output_tokens = 80 * len(df_input) * len(selected_langs)
+total_tokens = avg_prompt_tokens * len(df_input) + output_tokens
+est_cost = total_tokens / 1000 * 0.001
 
-    # 🪄 Generazione descrizioni
-    if st.button("🚀 Genera Descrizioni"):
-        st.session_state["generate"] = True
+st.info(f"""
+           🧮 Prompt medio: ~{avg_prompt_tokens:.0f} token  
+           ✍️ Output stimato per riga: 80 token × {len(selected_langs)} lingue  
+           📊 Token totali: ~{int(total_tokens)}  
+           💸 **Costo stimato: ${est_cost:.4f}**
+           """)
 
-    if st.session_state.get("generate"):
-        from io import BytesIO
-        try:
-        # Build FAISS if needed
-            if sheet_id:
-                with st.spinner("📚 Carico storico e indice FAISS..."):
-                    data_sheet = get_sheet(sheet_id, "STORICO")
-                    df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
-                    if "faiss_index" not in st.session_state:
-                        index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
-                        st.session_state["faiss_index"] = (index, index_df)
-                    else:
-                        index, index_df = st.session_state["faiss_index"]
-    
-            # Costruisci i prompt
-            all_prompts = []
-            with st.spinner("📚 Cerco descrizioni con caratteristiche simili..."):
-                for _, row in df_input.iterrows():
-                    simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
-                    caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
-                    prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
-                    all_prompts.append(prompt)
-    
-            with st.spinner("🚀 Generazione asincrona in corso..."):
-                results = asyncio.run(generate_all_prompts(all_prompts))
-    
-            # Parsing risultati
-            all_outputs = {lang: [] for lang in selected_langs}
-            logs = []
-            
-            for i, (_, row) in enumerate(df_input.iterrows()):
-                result = results.get(i, {})
-                if "error" in result:
-                    logs.append({
-                        "sku": row.get("SKU", ""),
-                        "status": f"Errore: {result['error']}",
-                        "prompt": all_prompts[i],
-                        "output": "",
-                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                    })
-                    continue
-            
-                # ⛏ Estrai il vero payload JSON (dentro "result")
-                result_data = result.get("result", {})
-                if DEBUG:
-                    logging.info(f"🧩 Output JSON: {json.dumps(result_data, ensure_ascii=False)}")
-                    
-                for lang in selected_langs:
-                    if lang not in result_data:
-                        if DEBUG:
-                            logging.warning(f"⚠️ Lingua {lang} non trovata nell'output del modello.")
-                        continue
-                
-                    lang_data = result_data[lang]
-                    descr_lunga = lang_data.get("desc_lunga", "").strip()
-                    descr_breve = lang_data.get("desc_breve", "").strip()
-                
-                    output_row = row.to_dict()
-                    output_row["Description"] = descr_lunga
-                    output_row["Description2"] = descr_breve
-                    all_outputs[lang].append(output_row)
-                
-                    if DEBUG:
-                        logging.info(f"✅ Output per {lang}:")
-                        logging.info(f"    Lunga: {descr_lunga[:80]}")
-                        logging.info(f"    Breve: {descr_breve[:80]}")
-            
-                log_entry = {
-                    "sku": row.get("SKU", ""),
-                    "status": "OK",
-                    "prompt": all_prompts[i],
-                    "output": json.dumps(result.get("result", {}), ensure_ascii=False),
-                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                }
-                
-                # Aggiungi uso token se presente
-                if "usage" in result:
-                    usage = result["usage"]
-                    log_entry.update({
-                        "prompt_tokens": usage.get("prompt_tokens", 0),
-                        "completion_tokens": usage.get("completion_tokens", 0),
-                        "total_tokens": usage.get("total_tokens", 0),
-                        "estimated_cost_usd": round(usage.get("total_tokens", 0) / 1000 * 0.001, 6)
-                    })
-                
-                logs.append(log_entry)
-    
-            # Salvataggio su Google Sheet
-            with st.spinner("📤 Salvataggio..."):
-                for lang in selected_langs:
-                    df_out = pd.DataFrame(all_outputs[lang])
-                    append_to_sheet(sheet_id, lang, df_out)
-                for log in logs:
-                    append_log(sheet_id, log)
-    
-            # Generazione ZIP
-            with st.spinner("📦 Generazione ZIP..."):
-                mem_zip = BytesIO()
-                with zipfile.ZipFile(mem_zip, "w") as zf:
-                    for lang in selected_langs:
-                        df_out = pd.DataFrame(all_outputs[lang])
-                        df_export = pd.DataFrame({
-                            "SKU": df_out.get("SKU", ""),
-                            "Descrizione lunga": df_out.get("Description", ""),
-                            "Descrizione breve": df_out.get("Description2", "")
-                        })
-                        zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
-                mem_zip.seek(0)
-    
-            st.success("✅ Tutto fatto!")
-            st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
-            st.session_state["generate"] = False
+# 🪄 Generazione descrizioni
+if st.button("🚀 Genera Descrizioni"):
+st.session_state["generate"] = True
 
-        except Exception as e:
-            st.error(f"Errore durante la generazione: {str(e)}")
-            st.text(traceback.format_exc())
+if st.session_state.get("generate"):
+from io import BytesIO
+try:
+# Build FAISS if needed
+if sheet_id:
+with st.spinner("📚 Carico storico e indice FAISS..."):
+data_sheet = get_sheet(sheet_id, "it")
+df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
+if "faiss_index" not in st.session_state:
+index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+st.session_state["faiss_index"] = (index, index_df)
+else:
+index, index_df = st.session_state["faiss_index"]
 
-    # 🔍 Prompt Preview & Benchmark
-    with st.expander("🔍 Strumenti di debug & Anteprima"):
-        row_index = st.number_input("Indice riga per anteprima", 0, len(df_input) - 1, 0)
-        test_row = df_input.iloc[row_index]
+# Costruisci i prompt
+all_prompts = []
+for _, row in df_input.iterrows():
+simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
+caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
+prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
+all_prompts.append(prompt)
 
-        if st.button("💬 Mostra Prompt di Anteprima"):
-            with st.spinner("Generazione..."):
-                try:
-                    if sheet_id:
-                        data_sheet = get_sheet(sheet_id, "STORICO")
-                        df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
-                        if "faiss_index" not in st.session_state:
-                            index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
-                            st.session_state["faiss_index"] = (index, index_df)
-                        else:
-                            index, index_df = st.session_state["faiss_index"]
-                        simili = (
-                            retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
-                            if k_simili > 0 else pd.DataFrame([])
-                        )
-                    else:
-                        simili = pd.DataFrame([])
+with st.spinner("🚀 Generazione asincrona in corso..."):
+results = asyncio.run(generate_all_prompts(all_prompts))
 
-                    image_url = test_row.get("Image 1", "")
-                    if use_image:
-                        caption = get_blip_caption(image_url) if image_url else None
-                    else:
-                        caption = None
-                    prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names, caption)
-                    st.expander("📄 Prompt generato").code(prompt_preview, language="markdown")
-                except Exception as e:
-                    st.error(f"Errore: {str(e)}")
+# Parsing risultati
+all_outputs = {lang: [] for lang in selected_langs}
+logs = []
 
-        if st.button("🧪 Esegui Benchmark FAISS"):
-            with st.spinner("In corso..."):
-                benchmark_faiss(df_input, st.session_state.col_weights)
+for i, (_, row) in enumerate(df_input.iterrows()):
+result = results.get(i, {})
+
+# Logging debug risultato grezzo
+st.write(f"📥 Risultato riga {i}:", result)
+
+if "error" in result:
+logs.append({
+"sku": row.get("SKU", ""),
+"status": f"Errore: {result['error']}",
+"prompt": all_prompts[i],
+"output": "",
+"timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+})
+continue
+
+for lang in selected_langs:
+lang_code = lang.lower()
+lang_data = result.get(lang_code, {})
+
+descr_lunga = lang_data.get("descrizione_lunga", "").strip()
+descr_breve = lang_data.get("descrizione_breve", "").strip()
+
+output_row = copy.deepcopy(row.to_dict())  # 👈 deep copy per isolare ogni lingua
+output_row["Description"] = descr_lunga
+output_row["Description2"] = descr_breve
+all_outputs[lang].append(output_row)
+
+logs.append({
+"sku": row.get("SKU", ""),
+"status": "OK",
+"prompt": all_prompts[i],
+"output": json.dumps(result, ensure_ascii=False),
+"timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+})
+
+# Salvataggio su Google Sheet
+with st.spinner("📤 Salvataggio..."):
+for lang in selected_langs:
+df_out = pd.DataFrame(all_outputs[lang])
+append_to_sheet(sheet_id, lang, df_out)
+for log in logs:
+append_log(sheet_id, log)
+
+# Generazione ZIP
+with st.spinner("📦 Generazione ZIP..."):
+mem_zip = BytesIO()
+with zipfile.ZipFile(mem_zip, "w") as zf:
+for lang in selected_langs:
+df_out = pd.DataFrame(all_outputs[lang])
+df_export = pd.DataFrame({
+"SKU": df_out.get("SKU", ""),
+"Descrizione lunga": df_out.get("Description", ""),
+"Descrizione breve": df_out.get("Description2", "")
+})
+zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
+mem_zip.seek(0)
+
+st.success("✅ Tutto fatto!")
+st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
+st.session_state["generate"] = False
+
+except Exception as e:
+st.error(f"Errore durante la generazione: {str(e)}")
+st.text(traceback.format_exc())
+
+# 🔍 Prompt Preview & Benchmark
+with st.expander("🔍 Strumenti di debug & Anteprima"):
+row_index = st.number_input("Indice riga per anteprima", 0, len(df_input) - 1, 0)
+test_row = df_input.iloc[row_index]
+
+if st.button("💬 Mostra Prompt di Anteprima"):
+with st.spinner("Generazione..."):
+try:
+if sheet_id:
+data_sheet = get_sheet(sheet_id, "it")
+df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
+if "faiss_index" not in st.session_state:
+index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+st.session_state["faiss_index"] = (index, index_df)
+else:
+index, index_df = st.session_state["faiss_index"]
+simili = (
+retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+if k_simili > 0 else pd.DataFrame([])
+)
+else:
+simili = pd.DataFrame([])
+
+image_url = test_row.get("Image 1", "")
+if use_image:
+caption = get_blip_caption(image_url) if image_url else None
+else:
+caption = None
+prompt_preview = build_prompt(test_row, simili, st.session_state.col_display_names, caption)
+st.expander("📄 Prompt generato").code(prompt_preview, language="markdown")
+except Exception as e:
+st.error(f"Errore: {str(e)}")
+
+if st.button("🧪 Esegui Benchmark FAISS"):
+with st.spinner("In corso..."):
+benchmark_faiss(df_input, st.session_state.col_weights)
