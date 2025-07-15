@@ -505,18 +505,31 @@ if "df_input" in st.session_state:
     # 💵 Stima costi
     if st.button("💰 Stima costi generazione"):
         with st.spinner("Calcolo in corso..."):
+            test_row = df_input.iloc[0]
             prompts = []
-            for _, row in df_input.iterrows():
-                simili = retrieve_similar(0, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
-                image_url = row.get("Image 1", "")
-                if use_image:
-                    caption = get_blip_caption(row.get("Image 1", "")) if row.get("Image 1", "") else None
+            if sheet_id:
+                data_sheet = get_sheet(sheet_id, "STORICO")
+                df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
+                if "faiss_index" not in st.session_state:
+                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                    st.session_state["faiss_index"] = (index, index_df)
                 else:
-                    caption = None
-                prompt = prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
-                prompts.append(prompt)
-                if len(prompts) >= 3:
-                    break
+                    index, index_df = st.session_state["faiss_index"]
+                simili = (
+                    retrieve_similar(test_row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+                    if k_simili > 0 else pd.DataFrame([])
+                )
+            else:
+                simili = pd.DataFrame([])
+            
+            image_url = test_row.get("Image 1", "")
+            if use_image:
+                caption = get_blip_caption(image_url) if image_url else None
+            else:
+                caption = None
+                
+            prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
+            prompts.append(prompt)
 
             avg_prompt_len = sum(len(p) for p in prompts) / len(prompts)
             avg_prompt_tokens = avg_prompt_len / 4
