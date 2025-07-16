@@ -375,6 +375,10 @@ def read_csv_auto_encoding(uploaded_file):
     uploaded_file.seek(0)  # Rewind after read
     return pd.read_csv(uploaded_file, encoding=encoding)
 
+def not_in_array(array, list):
+    missing = not all(col in array for col in list)
+    return missing
+    
 def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, desc_lunga_length, desc_breve_length, k_simili, use_image, faiss_index, DEBUG=False):
     if df_input.empty:
         return None, None, "❌ Il CSV è vuoto"
@@ -472,7 +476,30 @@ if "df_input" in st.session_state:
     with st.expander("⚙️ Configura colonne per il prompt", expanded=True):
         st.markdown("### 1. Seleziona colonne")
         available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
-        st.session_state.selected_cols = st.multiselect("Colonne da includere nel prompt", options=available_cols, default=[])
+
+        def_column = ["skuarticolo",
+                      "Classification",
+                      "Matiere", "Sexe",
+                      "Saison", "Silouhette",
+                      "shoe_toecap_zalando",
+                      "shoe_detail_zalando",
+                      "heel_height_zalando",
+                      "heel_form_zalando",
+                      "sole_material_zalando",
+                      "shoe_fastener_zalando",
+                      "pattern_zalando",
+                      "upper_material_zalando",
+                      "futter_zalando",
+                      "Subtile2",
+                      "Concept",
+                      "Sp.feature"
+                     ]
+
+        missing = not_in_column(avaiable_cols, def_column)
+        if missing:
+            def_column = []
+            
+        st.session_state.selected_cols = st.multiselect("Colonne da includere nel prompt", options=available_cols, default=def_column)
 
         if st.session_state.selected_cols:
             if st.button("▶️ Procedi alla configurazione colonne"):
