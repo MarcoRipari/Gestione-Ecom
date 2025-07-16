@@ -316,6 +316,7 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 - Lingua: adatta al paese target
 - Non usare il genere
 - Usa sempre la parola strappo, niente sinonimi ne velcro
+- Evita le percentuali materiali
 
 >>> REGOLE
 - desc_lunga: {desc_lunga_length} parole → enfasi su comfort, materiali, utilizzo
