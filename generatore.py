@@ -523,7 +523,7 @@ if "df_input" in st.session_state:
 
     # 💵 Stima costi
     if st.button("💰 Stima costi generazione"):
-        token_est, cost_est, prompt = calcola_token_prompt(
+        token_est, cost_est, prompt = calcola_tokens(
             df_input=df_input,
             col_display_names=st.session_state.col_display_names,
             selected_langs=selected_langs,
