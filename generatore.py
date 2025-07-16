@@ -498,6 +498,10 @@ if "df_input" in st.session_state:
     with st.expander("🌍 Selezione Lingue & Parametri"):
         settings_col1, settings_col2, settings_col3 = st.columns(3)
         with settings_col1:
+            marchio = st.radio(
+                "",
+                ["NAT", "FAL", "VB", "FM", "WZ", "CC"]
+            )
             use_simili = st.checkbox("Usa descrizioni simili (RAG)", value=True)
             k_simili = 2 if use_simili else 0
             
@@ -551,7 +555,8 @@ if "df_input" in st.session_state:
         # Build FAISS if needed
             if sheet_id:
                 with st.spinner("📚 Carico storico e indice FAISS..."):
-                    data_sheet = get_sheet(sheet_id, "STORICO")
+                    tab_storico = f"STORICO_{marchio}"
+                    data_sheet = get_sheet(sheet_id, tab_storico)
                     df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
                     if "faiss_index" not in st.session_state:
                         index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
@@ -659,7 +664,8 @@ if "df_input" in st.session_state:
             with st.spinner("Generazione..."):
                 try:
                     if sheet_id:
-                        data_sheet = get_sheet(sheet_id, "STORICO")
+                        tab_storico = f"STORICO_{marchio}"
+                        data_sheet = get_sheet(sheet_id, tab_storico)
                         df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
                         if "faiss_index" not in st.session_state:
                             index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
