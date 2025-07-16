@@ -8,7 +8,6 @@ import os
 from typing import List, Dict, Any
 from google.oauth2 import service_account
 import gspread
-from googleapiclient.discovery import build
 from io import BytesIO
 import zipfile
 import chardet
@@ -24,7 +23,6 @@ import requests
 import asyncio
 import json
 from openai import AsyncOpenAI
-import copy
 
 logging.basicConfig(level=logging.INFO)
 
@@ -219,64 +217,6 @@ def get_blip_caption(image_url: str) -> str:
 # ---------------------------
 # 🧠 Prompting e Generazione
 # ---------------------------
-def build_prompt(row, examples=None, col_display_names=None, image_caption=None):
-    fields = []
-
-    if col_display_names is None:
-        col_display_names = {col: col for col in row.index}
-
-    for col in col_display_names:
-        if col in row and pd.notna(row[col]):
-            label = col_display_names[col]
-            fields.append(f"{label}: {row[col]}")
-
-    product_info = "; ".join(fields)
-
-    # 🧩 Esempi, solo se disponibili
-    example_section = ""
-    if examples is not None and not examples.empty:
-        example_lines = []
-        for i, (_, ex) in enumerate(examples.iterrows()):
-            desc1 = ex.get("Description", "").strip()
-            desc2 = ex.get("Description2", "").strip()
-            if desc1 and desc2:
-                example = (
-                    f"Esempio {i+1}:\n"
-                    f"Descrizione lunga: {desc1}\n"
-                    f"Descrizione breve: {desc2}"
-                )
-                example_lines.append(example)
-        example_section = "\n\n".join(example_lines)
-
-    # 📄 Prompt finale
-    prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
-
-Tono richiesto: professionale, user friendly, accattivante, SEO-friendly.
-Evita nome prodotto, colore e marchio.
-
-Scheda tecnica: {product_info}
-"""
-    if image_caption:
-        prompt += f"\nAspetto visivo: {image_caption}"
-    if example_section:
-        prompt += f"\n\nEsempi:\n{example_section}"
-
-    prompt += "\n\nRispondi con:\nDescrizione lunga:\nDescrizione breve:"
-
-    if len(prompt) > 12000:
-        st.warning("⚠️ Il prompt generato supera i limiti raccomandati di lunghezza.")
-
-    return prompt
-
-def generate_descriptions(prompt):
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=3000
-    )
-    return response.choices[0].message.content
-
 def build_unified_prompt(row, col_display_names, selected_langs, image_caption=None, simili=None):
     # Costruzione scheda tecnica
     fields = []
@@ -329,19 +269,16 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 {sim_text}
 """
     return prompt
-    
-# ---------------------------
-# 🌍 Traduzione
-# ---------------------------
-def translate_text(text, target_lang="en"):
-    lang_name = LANG_NAMES.get(target_lang, target_lang)
-    prompt = f"Traduci il seguente testo in {lang_name}:\n{text}"
+
+def generate_descriptions(prompt):
     response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7,
+        max_tokens=3000
     )
     return response.choices[0].message.content
-
+    
 # ---------------------------
 # 📊 Audit Trail & Google Sheets
 # ---------------------------
