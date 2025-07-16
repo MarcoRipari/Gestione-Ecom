@@ -495,7 +495,7 @@ if "df_input" in st.session_state:
                       "Sp.feature"
                      ]
 
-        missing = not_in_column(avaiable_cols, def_column)
+        missing = not_in_array(avaiable_cols, def_column)
         if missing:
             def_column = []
             
