@@ -499,8 +499,9 @@ if "df_input" in st.session_state:
         settings_col1, settings_col2, settings_col3 = st.columns(3)
         with settings_col1:
             marchio = st.radio(
-                "",
-                ["NAT", "FAL", "VB", "FM", "WZ", "CC"]
+                "Seleziona il marchio",
+                ["NAT", "FAL", "VB", "FM", "WZ", "CC"],
+                horizontal = False
             )
             use_simili = st.checkbox("Usa descrizioni simili (RAG)", value=True)
             k_simili = 2 if use_simili else 0
