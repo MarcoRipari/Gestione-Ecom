@@ -1,5 +1,3 @@
-# utils.py
-
 import pandas as pd
 import chardet
 
