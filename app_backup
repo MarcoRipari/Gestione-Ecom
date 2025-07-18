@@ -8,7 +8,6 @@ import os
 from typing import List, Dict, Any
 from google.oauth2 import service_account
 import gspread
-from googleapiclient.discovery import build
 from io import BytesIO
 import zipfile
 import chardet
@@ -24,7 +23,6 @@ import requests
 import asyncio
 import json
 from openai import AsyncOpenAI
-import copy
 
 logging.basicConfig(level=logging.INFO)
 
@@ -219,64 +217,6 @@ def get_blip_caption(image_url: str) -> str:
 # ---------------------------
 # 🧠 Prompting e Generazione
 # ---------------------------
-def build_prompt(row, examples=None, col_display_names=None, image_caption=None):
-    fields = []
-
-    if col_display_names is None:
-        col_display_names = {col: col for col in row.index}
-
-    for col in col_display_names:
-        if col in row and pd.notna(row[col]):
-            label = col_display_names[col]
-            fields.append(f"{label}: {row[col]}")
-
-    product_info = "; ".join(fields)
-
-    # 🧩 Esempi, solo se disponibili
-    example_section = ""
-    if examples is not None and not examples.empty:
-        example_lines = []
-        for i, (_, ex) in enumerate(examples.iterrows()):
-            desc1 = ex.get("Description", "").strip()
-            desc2 = ex.get("Description2", "").strip()
-            if desc1 and desc2:
-                example = (
-                    f"Esempio {i+1}:\n"
-                    f"Descrizione lunga: {desc1}\n"
-                    f"Descrizione breve: {desc2}"
-                )
-                example_lines.append(example)
-        example_section = "\n\n".join(example_lines)
-
-    # 📄 Prompt finale
-    prompt = f"""Scrivi due descrizioni in italiano per una calzatura da vendere online.
-
-Tono richiesto: professionale, user friendly, accattivante, SEO-friendly.
-Evita nome prodotto, colore e marchio.
-
-Scheda tecnica: {product_info}
-"""
-    if image_caption:
-        prompt += f"\nAspetto visivo: {image_caption}"
-    if example_section:
-        prompt += f"\n\nEsempi:\n{example_section}"
-
-    prompt += "\n\nRispondi con:\nDescrizione lunga:\nDescrizione breve:"
-
-    if len(prompt) > 12000:
-        st.warning("⚠️ Il prompt generato supera i limiti raccomandati di lunghezza.")
-
-    return prompt
-
-def generate_descriptions(prompt):
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=3000
-    )
-    return response.choices[0].message.content
-
 def build_unified_prompt(row, col_display_names, selected_langs, image_caption=None, simili=None):
     # Costruzione scheda tecnica
     fields = []
@@ -312,8 +252,11 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 
 >>> GUIDA STILE
 - Tono: {", ".join(selected_tones)}
-- Evita: Codice, Nome, Marca, Colore (nemmeno in forma implicita)
+- Ometti sempre: Codice, Nome, Marca, Colore (nemmeno in forma implicita)
 - Lingua: adatta al paese target
+- Non usare il genere
+- Usa sempre la parola strappo, niente sinonimi ne velcro
+- Evita le percentuali materiali
 
 >>> REGOLE
 - desc_lunga: {desc_lunga_length} parole → enfasi su comfort, materiali, utilizzo
@@ -326,19 +269,16 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 {sim_text}
 """
     return prompt
-    
-# ---------------------------
-# 🌍 Traduzione
-# ---------------------------
-def translate_text(text, target_lang="en"):
-    lang_name = LANG_NAMES.get(target_lang, target_lang)
-    prompt = f"Traduci il seguente testo in {lang_name}:\n{text}"
+
+def generate_descriptions(prompt):
     response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7,
+        max_tokens=3000
     )
     return response.choices[0].message.content
-
+    
 # ---------------------------
 # 📊 Audit Trail & Google Sheets
 # ---------------------------
@@ -576,29 +516,70 @@ if "df_input" in st.session_state:
     # 🪄 Generazione descrizioni
     if st.button("🚀 Genera Descrizioni"):
         st.session_state["generate"] = True
-
+    
     if st.session_state.get("generate"):
         from io import BytesIO
         try:
-        # Build FAISS if needed
-            if sheet_id:
-                with st.spinner("📚 Carico storico e indice FAISS..."):
-                    tab_storico = f"STORICO_{marchio}"
-                    data_sheet = get_sheet(sheet_id, tab_storico)
-                    df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
-                    if "faiss_index" not in st.session_state:
-                        index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
-                        st.session_state["faiss_index"] = (index, index_df)
-                    else:
-                        index, index_df = st.session_state["faiss_index"]
+            with st.spinner("📚 Carico storico e indice FAISS..."):
+                tab_storico = f"STORICO_{marchio}"
+                data_sheet = get_sheet(sheet_id, tab_storico)
+                df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
     
-            # Costruisci i prompt
+                if "faiss_index" not in st.session_state:
+                    index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                    st.session_state["faiss_index"] = (index, index_df)
+                else:
+                    index, index_df = st.session_state["faiss_index"]
+    
+            # ✅ Recupera descrizioni già esistenti su GSheet
+            st.info("🔄 Verifico se alcune righe sono già state generate...")
+            existing_data = {}
+            already_generated = {lang: [] for lang in selected_langs}
+            rows_to_generate = []
+    
+            for lang in selected_langs:
+                try:
+                    tab_df = pd.DataFrame(get_sheet(sheet_id, lang).get_all_records())
+                    tab_df = tab_df[["SKU", "Description", "Description2"]].dropna(subset=["SKU"])
+                    tab_df["SKU"] = tab_df["SKU"].astype(str)
+                    existing_data[lang] = tab_df.set_index("SKU")
+                except:
+                    existing_data[lang] = pd.DataFrame(columns=["Description", "Description2"])
+    
+            for i, row in df_input.iterrows():
+                sku = str(row.get("SKU", "")).strip()
+                if not sku:
+                    rows_to_generate.append(i)
+                    continue
+    
+                all_present = True
+                for lang in selected_langs:
+                    df_lang = existing_data.get(lang)
+                    if df_lang is None or sku not in df_lang.index:
+                        all_present = False
+                        break
+                    desc = df_lang.loc[sku]
+                    if not desc["Description"] or not desc["Description2"]:
+                        all_present = False
+                        break
+    
+                if all_present:
+                    for lang in selected_langs:
+                        desc = existing_data[lang].loc[sku]
+                        output_row = row.to_dict()
+                        output_row["Description"] = desc["Description"]
+                        output_row["Description2"] = desc["Description2"]
+                        already_generated[lang].append(output_row)
+                else:
+                    rows_to_generate.append(i)
+    
+            df_input_to_generate = df_input.iloc[rows_to_generate]
+    
+            # Costruzione dei prompt
             all_prompts = []
-            with st.spinner("📚 Cerco descrizioni con caratteristiche simili..."):
-                for _, row in df_input.iterrows():
+            with st.spinner("✍️ Costruisco i prompt..."):
+                for _, row in df_input_to_generate.iterrows():
                     simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
-                    if DEBUG:
-                        st.write("🔎 Simili trovati:", simili[["Description", "Description2"]].head())
                     caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
                     prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
                     all_prompts.append(prompt)
@@ -607,10 +588,10 @@ if "df_input" in st.session_state:
                 results = asyncio.run(generate_all_prompts(all_prompts))
     
             # Parsing risultati
-            all_outputs = {lang: [] for lang in selected_langs}
+            all_outputs = already_generated.copy()
             logs = []
-            
-            for i, (_, row) in enumerate(df_input.iterrows()):
+    
+            for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
                 result = results.get(i, {})
                 if "error" in result:
                     logs.append({
@@ -621,18 +602,17 @@ if "df_input" in st.session_state:
                         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                     })
                     continue
-            
+    
                 for lang in selected_langs:
                     lang_data = result.get("result", {}).get(lang.lower(), {})
-                    
                     descr_lunga = lang_data.get("desc_lunga", "").strip()
                     descr_breve = lang_data.get("desc_breve", "").strip()
-            
+    
                     output_row = row.to_dict()
                     output_row["Description"] = descr_lunga
                     output_row["Description2"] = descr_breve
                     all_outputs[lang].append(output_row)
-            
+    
                 log_entry = {
                     "sku": row.get("SKU", ""),
                     "status": "OK",
@@ -640,8 +620,6 @@ if "df_input" in st.session_state:
                     "output": json.dumps(result["result"], ensure_ascii=False),
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                 }
-                
-                # Aggiungi uso token se presente
                 if "usage" in result:
                     usage = result["usage"]
                     log_entry.update({
@@ -650,18 +628,19 @@ if "df_input" in st.session_state:
                         "total_tokens": usage.get("total_tokens", 0),
                         "estimated_cost_usd": round(usage.get("total_tokens", 0) / 1000 * 0.001, 6)
                     })
-                
                 logs.append(log_entry)
     
-            # Salvataggio su Google Sheet
-            with st.spinner("📤 Salvataggio..."):
+            # 🔄 Salvataggio solo dei nuovi risultati
+            with st.spinner("📤 Salvataggio nuovi dati..."):
                 for lang in selected_langs:
                     df_out = pd.DataFrame(all_outputs[lang])
-                    append_to_sheet(sheet_id, lang, df_out)
+                    df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
+                    if not df_new.empty:
+                        append_to_sheet(sheet_id, lang, df_new)
                 for log in logs:
                     append_log(sheet_id, log)
     
-            # Generazione ZIP
+            # 📦 ZIP finale
             with st.spinner("📦 Generazione ZIP..."):
                 mem_zip = BytesIO()
                 with zipfile.ZipFile(mem_zip, "w") as zf:
@@ -678,7 +657,7 @@ if "df_input" in st.session_state:
             st.success("✅ Tutto fatto!")
             st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
             st.session_state["generate"] = False
-
+    
         except Exception as e:
             st.error(f"Errore durante la generazione: {str(e)}")
             st.text(traceback.format_exc())
