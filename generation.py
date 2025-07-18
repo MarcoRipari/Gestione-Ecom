@@ -1,5 +1,3 @@
-# generation.py
-
 import json
 from openai import AsyncOpenAI
 import asyncio
