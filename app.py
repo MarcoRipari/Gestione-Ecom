@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
-from config import (
-    LANG_LABELS, LANG_NAMES, st_init, st_config,
-    st_language_ui, st_column_ui, st_cost_estimation_ui,
-    st_prompt_preview_ui, st_download_zip
-)
+#from config import (
+#    LANG_LABELS, LANG_NAMES, st_init, st_config,
+#    st_language_ui, st_column_ui, st_cost_estimation_ui,
+#    st_prompt_preview_ui, st_download_zip
+#)
 from gdrive import (
     get_sheet, append_log, append_to_sheet, read_csv_auto_encoding
 )
