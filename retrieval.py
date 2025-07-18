@@ -1,4 +1,3 @@
-# retrieval.py
 import os
 import pickle
 import hashlib
