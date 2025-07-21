@@ -388,7 +388,7 @@ st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
-    page = st.radio("Seleziona sezione:", ["🏠 Home", "📝 Generazione Descrizioni"])
+    page = st.radio("", ["🏠 Home", "📝 Generazione Descrizioni"])
 
 # ---------------------------
 # 🏠 HOME
