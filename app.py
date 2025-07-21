@@ -384,10 +384,6 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
 # 📁 Caricamento dati
-with st.sidebar:
-    DEBUG = st.checkbox("Debug")
-    st.header("📥 Caricamento")
-
 # Sidebar: menu
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
