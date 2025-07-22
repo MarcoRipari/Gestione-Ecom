@@ -412,35 +412,42 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
     range_update = f"A3:B{len(new_rows)+2}"
     sheet_lista.update(range_update, new_rows, value_input_option="RAW")
 
-async def check_single_foto(session, sku):
+async def check_single_photo(session, sku: str) -> tuple[str, bool]:
     url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
     try:
-        async with session.head(url) as response:
-            return sku, response.status != 200  # True se mancante
+        async with session.head(url, timeout=10) as response:
+            return sku, response.status != 200  # True = manca
     except:
-        return sku, True  # errore = considerata mancante
+        return sku, True  # Considera mancante in caso di errore
 
 async def controlla_foto_exist(sheet_id: str):
     sheet_lista = get_sheet(sheet_id, "LISTA")
     all_rows = sheet_lista.get_all_values()
+
     if len(all_rows) < 3:
         return
 
     sku_list = [row[0] for row in all_rows[2:] if row[0]]
-    results = {}
+
+    results = {}  # SKU → True/False
 
     async with aiohttp.ClientSession() as session:
-        tasks = [check_single_foto(session, sku) for sku in sku_list]
+        tasks = [check_single_photo(session, sku) for sku in sku_list]
         responses = await asyncio.gather(*tasks)
 
     for sku, missing in responses:
         results[sku] = missing
 
-    # Scrive colonna K
-    for idx, row in enumerate(all_rows[2:], start=3):
+    # Ricostruisci la colonna K completa (solo i valori)
+    valori_k = []
+    for row in all_rows[2:]:
         sku = row[0]
-        val = str(results.get(sku, True))
-        sheet_lista.update(f"K{idx}", [[val]])
+        val = str(results.get(sku, True))  # True = mancante
+        valori_k.append([val])
+
+    # Aggiorna tutte le celle K3:K... in una sola chiamata
+    range_k = f"K3:K{len(valori_k) + 2}"
+    sheet_lista.update(range_k, valori_k, value_input_option="RAW")
 
 # ---------------------------
 # 📦 Streamlit UI
@@ -806,10 +813,11 @@ elif page == "📸 Gestione foto":
     with col2:
         if st.button("🔍 Controlla esistenza foto"):
             try:
-                asyncio.run(controlla_foto_exist(sheet_id))
-                st.toast("🔍 Controllo completato!")
+                with st.spinner("🔍 Controllo asincrono delle foto..."):
+                    asyncio.run(controlla_foto_exist(sheet_id))
+                st.toast("✅ Controllo foto completato!")
             except Exception as e:
-                st.error(f"Errore: {str(e)}")
+                st.error(f"Errore durante il controllo: {str(e)}")
 
     try:
         sheet_lista = get_sheet(sheet_id, "LISTA")
