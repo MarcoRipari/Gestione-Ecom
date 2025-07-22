@@ -412,7 +412,7 @@ def genera_lista_foto(sheet_id: str, tab_names: list[str]):
         new_rows.append([sku, provenienza])
 
     # Scrivi solo colonne A e B
-    range_aggiornamento = f"A1:B{len(new_rows)}"
+    range_aggiornamento = f"A2:B{len(new_rows)}"
     sheet_lista.update(range_aggiornamento, new_rows, value_input_option="RAW")
 
 # ---------------------------
@@ -766,7 +766,7 @@ if "df_input" in st.session_state:
 elif page == "Gestione foto":
     tab_names = ["ECOM","ZFS","AMAZON"]
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    if st.button("Genera lista":
+    if st.button("Genera lista"):
         try:
             genera_lista_foto(sheet_id, tab_names)
             st.success("✅ Colonna SKU aggiornata nel tab LISTA!")
