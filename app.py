@@ -388,10 +388,17 @@ def genera_lista_foto(sheet_id: str, tab_names: list[str]):
     sku_dict = {}
 
     for tab in tab_names:
-        df = pd.DataFrame(get_sheet(sheet_id, tab).get_all_records())
+        # Ottieni tutte le righe del tab corrente
+        all_values = get_sheet(sheet_id, tab).get_all_values()
 
-        if len(df.columns) < 10:
-            continue  # Salta tab se ha colonne insufficienti
+        # Escludi le prime due righe (intestazioni/descrizioni)
+        if len(all_values) <= 2:
+            continue
+
+        data = all_values[2:]  # Salta le prime due righe
+        headers = all_values[1]  # Usa la seconda riga come intestazione
+
+        df = pd.DataFrame(data, columns=headers)
 
         for _, row in df.iterrows():
             codice = str(row.get(df.columns[7], "")).zfill(7)
@@ -406,7 +413,7 @@ def genera_lista_foto(sheet_id: str, tab_names: list[str]):
                     sku_dict[sku] = {tab}
 
     # Costruisci le nuove righe A + B
-    new_rows = [["SKU", "CANALE"]]
+    new_rows = []
     for sku in sorted(sku_dict.keys()):
         provenienza = ", ".join(sorted(sku_dict[sku]))
         new_rows.append([sku, provenienza])
