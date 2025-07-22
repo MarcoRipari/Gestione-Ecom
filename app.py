@@ -831,7 +831,7 @@ elif page == "📸 Gestione foto":
 
             cols_to_show = ["SKU", "CANALE", df.columns[3], df.columns[4], df.columns[10]]
             df_show = df[cols_to_show].copy()
-            df_show.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE"]
+            df_show.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "Foto da fare"]
 
             def highlight_missing(row):
                 return ['background-color: #ffcdd2' if row["Foto da fare"] == 'True' else '' for _ in row]
