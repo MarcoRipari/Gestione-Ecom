@@ -378,18 +378,43 @@ async def generate_all_prompts(prompts: list[str]) -> dict:
     return dict(results)
     
 # ---------------------------
-# 📦 Streamlit UI (RIORGANIZZATA)
+# 📦 Streamlit UI
 # ---------------------------
 st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
 # 📁 Caricamento dati
+# Sidebar: menu
 with st.sidebar:
-    DEBUG = st.checkbox("Debug")
-    st.header("📥 Caricamento")
-    sheet_id = st.secrets["GSHEET_ID"]
-    uploaded = st.file_uploader("CSV dei prodotti", type="csv")
+    DEBUG = st.checkbox("🪛 Debug")
+    st.markdown("## 📋 Menu")
+    page = st.radio("", ["🏠 Home", "📝 Generazione Descrizioni"])
 
+# ---------------------------
+# 🏠 HOME
+# ---------------------------
+if page == "🏠 Home":
+    st.subheader("📌 Benvenuto")
+    st.markdown("""
+    Benvenuto nell'app di generazione descrizioni prodotto per calzature.  
+    Utilizza il menu a sinistra per iniziare.
+    
+    Funzionalità disponibili:
+    - Generazione asincrona di descrizioni multilingua
+    - Supporto RAG con FAISS
+    - Captioning automatico immagine (BLIP)
+    - Logging su Google Sheets
+    - Salvataggio ZIP con CSV multilingua
+    """)
+
+# ---------------------------
+# 📝 GENERAZIONE DESCRIZIONI
+# ---------------------------
+elif page == "📝 Generazione Descrizioni":
+    st.header("📥 Caricamento CSV dei prodotti")
+    sheet_id = st.secrets["GSHEET_ID"]
+    uploaded = st.file_uploader("Carica un file CSV", type="csv")
+    
     if uploaded:
         df_input = read_csv_auto_encoding(uploaded)
         st.session_state["df_input"] = df_input
