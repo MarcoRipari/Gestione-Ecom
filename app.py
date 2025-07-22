@@ -381,29 +381,27 @@ async def generate_all_prompts(prompts: list[str]) -> dict:
 # Funzioni gestione foto
 # ---------------------------
 def genera_lista_foto(sheet_id: str, tab_names: list[str]):
-    # Ottieni oggetto del tab "LISTA"
     sheet_lista = get_sheet(sheet_id, "LISTA")
 
-    # Dizionario SKU → set di provenienze
     sku_dict = {}
 
     for tab in tab_names:
-        # Ottieni tutte le righe del tab corrente
-        all_values = get_sheet(sheet_id, tab).get_all_values()
+        ws = get_sheet(sheet_id, tab)
+        all_values = ws.get_all_values()
 
-        # Escludi le prime due righe (intestazioni/descrizioni)
-        if len(all_values) <= 2:
+        # Richiede almeno 3 righe (descrizione + header + almeno 1 riga)
+        if len(all_values) < 3:
             continue
 
-        data = all_values[2:]  # Salta le prime due righe
-        headers = all_values[1]  # Usa la seconda riga come intestazione
+        headers = all_values[1]  # La seconda riga è l'intestazione
+        data = all_values[2:]    # Dalla terza riga in poi
 
         df = pd.DataFrame(data, columns=headers)
 
         for _, row in df.iterrows():
-            codice = str(row.get(df.columns[7], "")).zfill(7)
-            variante = str(row.get(df.columns[8], "")).zfill(2)
-            colore = str(row.get(df.columns[9], "")).zfill(4)
+            codice = str(row.get(headers[7], "")).zfill(7)
+            variante = str(row.get(headers[8], "")).zfill(2)
+            colore = str(row.get(headers[9], "")).zfill(4)
 
             if codice and variante and colore:
                 sku = f"{codice}{variante}{colore}"
@@ -412,14 +410,15 @@ def genera_lista_foto(sheet_id: str, tab_names: list[str]):
                 else:
                     sku_dict[sku] = {tab}
 
-    # Costruisci le nuove righe A + B
+    # Costruzione nuova lista (colonna A e B)
     new_rows = []
     for sku in sorted(sku_dict.keys()):
         provenienza = ", ".join(sorted(sku_dict[sku]))
         new_rows.append([sku, provenienza])
 
-    # Scrivi solo colonne A e B
-    range_aggiornamento = f"A3:B{len(new_rows)+2}"
+    # Scrive solo A e B da riga 3
+    start_row = 3
+    range_aggiornamento = f"A{start_row}:B{start_row + len(new_rows) - 1}"
     sheet_lista.update(range_aggiornamento, new_rows, value_input_option="RAW")
 
 # ---------------------------
