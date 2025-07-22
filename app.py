@@ -21,6 +21,7 @@ from transformers import BlipProcessor, BlipForConditionalGeneration
 from PIL import Image
 import requests
 import asyncio
+import aiohttp
 import json
 from openai import AsyncOpenAI
 
@@ -382,18 +383,17 @@ async def generate_all_prompts(prompts: list[str]) -> dict:
 # ---------------------------
 def genera_lista_foto(sheet_id: str, tab_names: list[str]):
     sheet_lista = get_sheet(sheet_id, "LISTA")
-
     sku_dict = {}
 
     for tab in tab_names:
         ws = get_sheet(sheet_id, tab)
         all_values = ws.get_all_values()
 
-        # Richiede almeno 3 righe (descrizione + header + almeno 1 riga)
+        # Salta tab se meno di 3 righe (descrizione + intestazione + dati)
         if len(all_values) < 3:
             continue
 
-        headers = all_values[1]  # La seconda riga è l'intestazione
+        headers = all_values[1]  # Seconda riga come intestazioni
         data = all_values[2:]    # Dalla terza riga in poi
 
         df = pd.DataFrame(data, columns=headers)
@@ -405,21 +405,66 @@ def genera_lista_foto(sheet_id: str, tab_names: list[str]):
 
             if codice and variante and colore:
                 sku = f"{codice}{variante}{colore}"
-                if sku in sku_dict:
-                    sku_dict[sku].add(tab)
-                else:
-                    sku_dict[sku] = {tab}
+                if sku not in sku_dict:
+                    sku_dict[sku] = set()
+                sku_dict[sku].add(tab)
 
-    # Costruzione nuova lista (colonna A e B)
+    # Prepara i nuovi valori per A (SKU) e B (Provenienza)
     new_rows = []
-    for sku in sorted(sku_dict.keys()):
+    for sku in sorted(sku_dict):
         provenienza = ", ".join(sorted(sku_dict[sku]))
         new_rows.append([sku, provenienza])
 
-    # Scrive solo A e B da riga 3
+    # Calcola range corretto partendo da A3
     start_row = 3
-    range_aggiornamento = f"A{start_row}:B{start_row + len(new_rows) - 1}"
-    sheet_lista.update(range_aggiornamento, new_rows, value_input_option="RAW")
+    end_row = start_row + len(new_rows) - 1
+    range_to_update = f"A{start_row}:B{end_row}"
+
+    # Scrive le nuove righe nelle colonne A e B
+    sheet_lista.update(range_to_update, new_rows, value_input_option="RAW")
+
+async def fetch_image_status(session, url):
+    try:
+        async with session.head(url, timeout=10) as response:
+            return response.status == 200
+    except:
+        return False
+
+async def check_photos_async(skus: list[str]) -> list[bool]:
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for sku in skus:
+            url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
+            tasks.append(fetch_image_status(session, url))
+        results = await asyncio.gather(*tasks)
+        return results
+
+def controlla_foto_sku(sheet_id: str):
+    sheet = get_sheet(sheet_id, "LISTA")
+    data = sheet.get_all_values()
+
+    if len(data) < 3:
+        return "❌ LISTA è vuoto o mancano dati da riga 3"
+
+    header = data[1]  # intestazioni
+    rows = data[2:]   # da riga 3 in poi
+    sku_list = [row[0].strip().lower() for row in rows if row[0]]
+
+    # Controlla foto in modo asincrono
+    results = asyncio.run(check_photos_async(sku_list))
+
+    # Estendi righe con valore booleano in colonna K
+    updated_rows = []
+    for row, result in zip(rows, results):
+        while len(row) < 11:  # Assicura almeno fino a colonna K
+            row.append("")
+        row[10] = str(result)  # Colonna K = indice 10
+        updated_rows.append(row)
+
+    # Scrittura solo delle righe aggiornate (escluse intestazioni)
+    start_row = 3
+    end_row = start_row + len(updated_rows) - 1
+    sheet.update(f"A{start_row}:K{end_row}", updated_rows, value_input_option="RAW")
 
 # ---------------------------
 # 📦 Streamlit UI
@@ -780,16 +825,56 @@ elif page == "📸 Gestione foto":
             st.toast("Colonna SKU aggiornata nel tab LISTA!", icon='✅')
         except Exception as e:
             st.error(f"Errore: {str(e)}")
+            
+    if st.button("Avvia controllo foto"):
+        try:
+            with st.spinner("Verifico esistenza delle immagini..."):
+                controlla_foto_sku(sheet_id)
+            st.success("✅ Controllo foto completato. Risultati scritti nella colonna K.")
+        except Exception as e:
+            st.error(f"Errore durante il controllo foto: {str(e)}")
+
 
     try:
         sheet_lista = get_sheet(sheet_id, "LISTA")
         data_lista = sheet_lista.get_all_values()
 
-        if len(data_lista) > 1:
-            # Estrae solo la colonna A (SKU)
-            sku_list = [row[0] for row in data_lista[1:] if row[0]]
-            df_sku = pd.DataFrame({"SKU": sku_list})
-            st.dataframe(df_sku, use_container_width=True)
+        if len(data_lista) > 2:
+            header = data_lista[1]  # Seconda riga = intestazioni
+            rows = data_lista[2:]   # Dati da riga 3 in poi
+
+            # Prepara DataFrame con colonne A, D, E, K
+            data_filtered = []
+            for row in rows:
+                sku = row[0] if len(row) > 0 else ""
+                modello = row[3] if len(row) > 3 else ""
+                descrizione = row[4] if len(row) > 4 else ""
+                foto = row[10] if len(row) > 10 else ""
+
+                foto_bool = str(foto).strip().lower() == "true"
+                data_filtered.append({
+                    "SKU": sku,
+                    "Collezione": modello,
+                    "Descrizione": descrizione,
+                    "Foto Presente": foto_bool,
+                })
+
+            df_foto = pd.DataFrame(data_filtered)
+
+            # 🔘 Filtro interattivo
+            show_missing_only = st.checkbox("🔍 Mostra solo le SKU senza foto", value=False)
+            if show_missing_only:
+                df_foto = df_foto[df_foto["Foto Presente"] == False]
+
+            # 🎨 Colorazione condizionale
+            def highlight_foto(val):
+                color = "background-color: #d4edda;" if val else "background-color: #f8d7da;"
+                return color
+
+            st.dataframe(
+                df_foto.style.applymap(highlight_foto, subset=["Foto Presente"]),
+                use_container_width=True
+            )
         else:
             st.warning("La lista SKU è vuota o non è stata generata.")
 
