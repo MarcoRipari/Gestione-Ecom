@@ -392,7 +392,7 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 
         headers = all_values[1]
         data = all_values[2:]
-        df = pd.DataFrame(data, columns=headers)
+        df = pd.DataFrame(data)
 
         for _, row in df.iterrows():
             codice = str(row.get(df.columns[7], "")).zfill(7)
