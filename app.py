@@ -376,7 +376,45 @@ async def generate_all_prompts(prompts: list[str]) -> dict:
     tasks = [async_generate_description(prompt, idx) for idx, prompt in enumerate(prompts)]
     results = await asyncio.gather(*tasks)
     return dict(results)
-    
+
+# ---------------------------
+# Funzioni gestione foto
+# ---------------------------
+def genera_lista_foto(sheet_id: str, tab_names: list[str]):
+    # Ottieni oggetto del tab "LISTA"
+    sheet_lista = get_sheet(sheet_id, "LISTA")
+
+    # Dizionario SKU → set di provenienze
+    sku_dict = {}
+
+    for tab in tab_names:
+        df = pd.DataFrame(get_sheet(sheet_id, tab).get_all_records())
+
+        if len(df.columns) < 10:
+            continue  # Salta tab se ha colonne insufficienti
+
+        for _, row in df.iterrows():
+            codice = str(row.get(df.columns[7], "")).strip()
+            variante = str(row.get(df.columns[8], "")).strip()
+            colore = str(row.get(df.columns[9], "")).strip()
+
+            if codice and variante and colore:
+                sku = f"{codice}_{variante}_{colore}"
+                if sku in sku_dict:
+                    sku_dict[sku].add(tab)
+                else:
+                    sku_dict[sku] = {tab}
+
+    # Costruisci le nuove righe A + B
+    new_rows = [["SKU", "Provenienza"]]
+    for sku in sorted(sku_dict.keys()):
+        provenienza = ", ".join(sorted(sku_dict[sku]))
+        new_rows.append([sku, provenienza])
+
+    # Scrivi solo colonne A e B
+    range_aggiornamento = f"A1:B{len(new_rows)}"
+    sheet_lista.update(range_aggiornamento, new_rows, value_input_option="RAW")
+
 # ---------------------------
 # 📦 Streamlit UI
 # ---------------------------
@@ -388,7 +426,7 @@ st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
-    page = st.radio("", ["🏠 Home", "📝 Generazione Descrizioni"])
+    page = st.radio("", ["🏠 Home", "📝 Generazione Descrizioni", "Gestione foto"])
 
 # ---------------------------
 # 🏠 HOME
@@ -724,3 +762,10 @@ if "df_input" in st.session_state:
         if st.button("🧪 Esegui Benchmark FAISS"):
             with st.spinner("In corso..."):
                 benchmark_faiss(df_input, st.session_state.col_weights)
+
+elif page == "Gestione foto":
+    tab_names = ["ECOM","ZFS","AMAZON"]
+    sheet_id = "1PL_MkUvlllWD1NElrFf-32hqUYstwNebI1qSFwFZzpM"
+    genera_lista_foto(sheet_id, tab_names)
+    st.success("✅ Colonna SKU aggiornata nel tab LISTA!")
+
