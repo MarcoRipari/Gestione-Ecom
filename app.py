@@ -829,8 +829,9 @@ elif page == "📸 Gestione foto":
             rows = data[2:]
             df = pd.DataFrame(rows, columns=headers)
 
-            cols_to_show = ["SKU", "CANALE", df.columns[3], df.columns[4], df.columns[10].map(lambda x: "✅" if str(x).strip().lower() == "false" else "⬜")]
+            cols_to_show = ["SKU", "CANALE", df.columns[3], df.columns[4], df.columns[10]]
             df_show = df[cols_to_show].copy()
+            df_show.columns[4] = df_show.columns[4].map(lambda x: "✅" if str(x).strip().lower() == "false" else "⬜")
             df_show.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE"]
 
             def highlight_missing(row):
