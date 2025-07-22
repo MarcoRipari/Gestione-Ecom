@@ -419,14 +419,14 @@ def genera_lista_foto(sheet_id: str, tab_names: list[str]):
 # 📦 Streamlit UI
 # ---------------------------
 st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
-st.title("👟 Generatore Descrizioni di Scarpe con RAG")
+# st.title("👟 Generatore Descrizioni di Scarpe con RAG")
 
 # 📁 Caricamento dati
 # Sidebar: menu
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
-    page = st.radio("", ["🏠 Home", "📝 Generazione Descrizioni", "Gestione foto"])
+    page = st.radio("", ["🏠 Home", "📝 Generazione Descrizioni", "📸 Gestione foto"])
 
 # ---------------------------
 # 🏠 HOME
@@ -763,12 +763,29 @@ if "df_input" in st.session_state:
             with st.spinner("In corso..."):
                 benchmark_faiss(df_input, st.session_state.col_weights)
 
-elif page == "Gestione foto":
+elif page == "📸 Gestione foto":
+    st.header("📸 Gestione Foto – Lista SKU unificata")
     tab_names = ["ECOM","ZFS","AMAZON"]
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     if st.button("Genera lista"):
         try:
-            genera_lista_foto(sheet_id, tab_names)
-            st.success("✅ Colonna SKU aggiornata nel tab LISTA!")
+            with st.spinner("Genero la lista..."):
+                genera_lista_foto(sheet_id, tab_names)
+            st.toast("Colonna SKU aggiornata nel tab LISTA!", icon='✅')
         except Exception as e:
             st.error(f"Errore: {str(e)}")
+
+    try:
+        sheet_lista = get_sheet(sheet_id, "LISTA")
+        data_lista = sheet_lista.get_all_values()
+
+        if len(data_lista) > 1:
+            # Estrae solo la colonna A (SKU)
+            sku_list = [row[0] for row in data_lista[1:] if row[0]]
+            df_sku = pd.DataFrame({"SKU": sku_list})
+            st.dataframe(df_sku, use_container_width=True)
+        else:
+            st.warning("La lista SKU è vuota o non è stata generata.")
+
+    except Exception as e:
+        st.error(f"Errore durante la lettura del tab LISTA: {str(e)}")
