@@ -406,7 +406,7 @@ def genera_lista_foto(sheet_id: str, tab_names: list[str]):
                     sku_dict[sku] = {tab}
 
     # Costruisci le nuove righe A + B
-    new_rows = [["SKU", "Provenienza"]]
+    new_rows = [["SKU", "CANALE"]]
     for sku in sorted(sku_dict.keys()):
         provenienza = ", ".join(sorted(sku_dict[sku]))
         new_rows.append([sku, provenienza])
