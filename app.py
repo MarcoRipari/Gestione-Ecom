@@ -412,7 +412,7 @@ def genera_lista_foto(sheet_id: str, tab_names: list[str]):
         new_rows.append([sku, provenienza])
 
     # Scrivi solo colonne A e B
-    range_aggiornamento = f"A2:B{len(new_rows)}"
+    range_aggiornamento = f"A2:B{len(new_rows)+1}"
     sheet_lista.update(range_aggiornamento, new_rows, value_input_option="RAW")
 
 # ---------------------------
