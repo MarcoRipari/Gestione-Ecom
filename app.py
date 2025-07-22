@@ -399,7 +399,7 @@ def genera_lista_foto(sheet_id: str, tab_names: list[str]):
             colore = str(row.get(df.columns[9], "")).strip()
 
             if codice and variante and colore:
-                sku = f"{codice}_{variante}_{colore}"
+                sku = f"{codice}{variante}{colore}"
                 if sku in sku_dict:
                     sku_dict[sku].add(tab)
                 else:
