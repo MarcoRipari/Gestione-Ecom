@@ -394,9 +394,9 @@ def genera_lista_foto(sheet_id: str, tab_names: list[str]):
             continue  # Salta tab se ha colonne insufficienti
 
         for _, row in df.iterrows():
-            codice = str(row.get(df.columns[7], "")).strip()
-            variante = str(row.get(df.columns[8], "")).strip()
-            colore = str(row.get(df.columns[9], "")).strip()
+            codice = str(row.get(df.columns[7], "")).zfill(7)
+            variante = str(row.get(df.columns[8], "")).zfill(2)
+            colore = str(row.get(df.columns[9], "")).zfill(4)
 
             if codice and variante and colore:
                 sku = f"{codice}{variante}{colore}"
@@ -450,7 +450,7 @@ if page == "🏠 Home":
 # ---------------------------
 elif page == "📝 Generazione Descrizioni":
     st.header("📥 Caricamento CSV dei prodotti")
-    sheet_id = st.secrets["GSHEET_ID"]
+    sheet_id = st.secrets["DESC_GSHEET_ID"]
     uploaded = st.file_uploader("Carica un file CSV", type="csv")
     
     if uploaded:
@@ -765,7 +765,10 @@ if "df_input" in st.session_state:
 
 elif page == "Gestione foto":
     tab_names = ["ECOM","ZFS","AMAZON"]
-    sheet_id = "1PL_MkUvlllWD1NElrFf-32hqUYstwNebI1qSFwFZzpM"
-    genera_lista_foto(sheet_id, tab_names)
-    st.success("✅ Colonna SKU aggiornata nel tab LISTA!")
-
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    if st.button("Genera lista":
+        try:
+            genera_lista_foto(sheet_id, tab_names)
+            st.success("✅ Colonna SKU aggiornata nel tab LISTA!")
+        except Exception as e:
+            st.error(f"Errore: {str(e)}")
