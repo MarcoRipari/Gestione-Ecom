@@ -27,3 +27,4 @@ numpy
 tqdm
 aiohttp
 httpx
+tenacity
