@@ -453,15 +453,15 @@ async def controlla_foto_exist(sheet_id: str):
 def carica_lista_foto(sheet_id: str) -> pd.DataFrame:
     try:
         sheet = get_sheet(sheet_id, "LISTA")
-        values = sheet.get("A3:K2000")  # Solo le colonne necessarie (A-K)
+        values = sheet.get("A3:K2000")
         if not values:
             return pd.DataFrame()
 
-        # Definizione manuale intestazioni (corrispondenti ai nomi presenti nel tuo GSheet)
-        headers = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE"] + [f"COL_{i}" for i in range(5, 10)] + ["SCATTARE"]
-        df = pd.DataFrame(values, columns=headers[:len(values[0])])  # Evita errori su colonne mancanti
+        # ✅ Definizione corretta: 11 intestazioni per colonne A–K
+        headers = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "ALT4", "ALT5", "ALT6", "SCATTARE"]
+        df = pd.DataFrame(values, columns=headers)
 
-        # Normalizza valori booleani colonna SCATTARE
+        # 🧹 Normalizza booleani
         df["SCATTARE"] = df["SCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
         df["SCATTARE"] = df["SCATTARE"].fillna(False)
 
