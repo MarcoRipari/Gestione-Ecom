@@ -476,12 +476,12 @@ async def controlla_foto_exist(sheet_id: str):
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
     try:
         sheet = get_sheet(sheet_id, "LISTA")
-        values = sheet.get("A3:K5000")
+        values = sheet.get("A3:O5000")
         if not values:
             return pd.DataFrame()
 
         # ✅ Definizione corretta: 11 intestazioni per colonne A–K
-        headers = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "ALT4", "ALT5", "ALT6", "SCATTARE"]
+        headers = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "ALT4", "ALT5", "ALT6", "SCATTARE", "ALT7", "ALT8", "ALT9", "CONSEGNATA"]
         df = pd.DataFrame(values, columns=headers)
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
@@ -489,7 +489,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         df["SCATTARE"] = df["SCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
         df["SCATTARE"] = df["SCATTARE"].fillna(False)
 
-        return df[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE"]]
+        return df[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "CONSEGNATA"]]
     except Exception as e:
         st.error(f"Errore durante il caricamento: {str(e)}")
         return pd.DataFrame()
