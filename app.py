@@ -868,7 +868,7 @@ elif page == "📸 Gestione foto":
             st.error(f"Errore caricamento dati: {str(e)})")
             df = pd.DataFrame()
     else:
-        df = st.session_state["df_lista_foto"
+        df = st.session_state["df_lista_foto"]
     
 
     # 🔽 Filtro visualizzazione
