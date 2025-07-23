@@ -850,8 +850,6 @@ elif page == "📸 Gestione foto":
     
     # 🔽 Caricamento dati con cache
     df = carica_lista_foto(sheet_id)
-    st.session_state["df_lista_foto"] = df
-    st.session_state["force_refresh_foto"] = False
 
     # 📊 Riepilogo
     total = len(df)
