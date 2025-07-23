@@ -847,6 +847,7 @@ elif page == "📸 Gestione foto":
     with col3:
         if st.button("🔄 Refresh"):
             st.session_state["force_refresh_foto"] = True
+            st.session_state["df_lista_foto"] = []
     
     # 🔽 Caricamento dati con cache
     if "df_lista_foto" not in st.session_state or st.session_state.get("force_refresh_foto", False):
