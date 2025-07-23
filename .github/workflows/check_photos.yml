@@ -1,11 +1,15 @@
-name: 🔍 Controllo Foto SKU
+name: 📸 Controllo Foto SKU
 
 on:
-  workflow_dispatch:  # Avvio manuale dal pannello Actions
+  workflow_dispatch:       # Avvio manuale
+  schedule:
+    - cron: '0 5 * * *'     # Ogni giorno alle 5:00 UTC
+  push:
+    branches:
+      - main                # In caso di push su main
 
 jobs:
   check-photos:
-    name: Controllo Esistenza Foto
     runs-on: ubuntu-latest
 
     steps:
@@ -19,11 +23,18 @@ jobs:
 
       - name: 📦 Installa dipendenze
         run: |
-          pip install -r requirements_actions.txt
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements_actions.txt
 
-      - name: 🚀 Esegui controllo foto
+      - name: 🔐 Imposta variabili segrete
         env:
           FOTO_GSHEET_ID: ${{ secrets.FOTO_GSHEET_ID }}
-          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+          SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
         run: |
-          python scripts/check_photos.py
+          echo "✅ Variabili segrete impostate"
+
+      - name: 🚀 Avvia script controllo foto
+        env:
+          FOTO_GSHEET_ID: ${{ secrets.FOTO_GSHEET_ID }}
+          SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+        run: python scripts/check_photos.py
