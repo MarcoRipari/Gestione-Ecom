@@ -880,8 +880,8 @@ elif page == "📸 Foto":
 
     # 📊 Riepilogo
     total = len(df)
-    da_scattare = df["SCATTARE"].sum()
-    scattate = total - da_scattare
+    #da_scattare = df["SCATTARE"].sum()
+    #scattate = total - da_scattare
         
     c1, c2, c3 = st.columns(3)
     c1.metric("📦 Totale SKU", total)
