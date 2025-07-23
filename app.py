@@ -866,6 +866,9 @@ elif page == "📸 Gestione foto":
             c3.metric("✅ Già scattate", scattate)
         except Exception as e:
             st.error(f"Errore caricamento dati: {str(e)})")
+            df = pd.DataFrame()
+    else:
+        df = st.session_state["df_lista_foto"
     
 
     # 🔽 Filtro visualizzazione
