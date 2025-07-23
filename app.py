@@ -828,14 +828,20 @@ elif page == "📸 Gestione foto":
             headers = data[1]
             rows = data[2:]
             df = pd.DataFrame(rows, columns=headers)
-
+    
             cols_to_show = ["SKU", "CANALE", df.columns[3], df.columns[4], df.columns[10]]
             df_show = df[cols_to_show].copy()
             df_show.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "Foto da fare"]
-
+    
+            # ✅ Mappa booleani a emoji
+            df_show["Foto da fare"] = df_show["Foto da fare"].apply(
+                lambda x: "⬜" if str(x).strip().lower() == "true" else "✅"
+            )
+    
             def highlight_missing(row):
-                return ['background-color: #ffcdd2' if row["Foto da fare"] == 'True' else '' for _ in row]
-
+                return ['background-color: #ffcdd2' if row["Foto da fare"] == "⬜" else '' for _ in row]
+    
             st.dataframe(df_show.style.apply(highlight_missing, axis=1), use_container_width=True)
+    
     except Exception as e:
         st.error(f"Errore caricamento dati: {str(e)}")
