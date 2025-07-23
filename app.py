@@ -857,7 +857,7 @@ elif page == "📸 Gestione foto":
             try:
                 with st.spinner("🔍 Controllo asincrono delle foto..."):
                     asyncio.run(controlla_foto_exist(sheet_id))
-                    st.session_state["refresh_foto_token"] = str(time.time())
+                st.session_state["refresh_foto_token"] = str(time.time())
                 st.toast("✅ Controllo foto completato!")
             except Exception as e:
                 st.error(f"Errore durante il controllo: {str(e)}")
