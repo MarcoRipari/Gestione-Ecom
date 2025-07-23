@@ -427,25 +427,41 @@ async def controlla_foto_exist(sheet_id: str):
     if len(all_rows) < 3:
         return
 
-    sku_list = [row[0] for row in all_rows[2:] if row[0]]
+    # Intestazioni e righe
+    headers = all_rows[1]
+    rows = all_rows[2:]
 
-    results = {}  # SKU → True/False
+    # Trova indice colonna "SCATTARE" (K)
+    idx_sku = 0
+    idx_scattare = 10  # K è la colonna 11 -> indice 10
+
+    sku_to_check = []
+    for row in rows:
+        if len(row) <= idx_scattare:
+            continue
+        sku = row[idx_sku].strip()
+        scattare_val = str(row[idx_scattare]).strip().lower()
+
+        if sku and scattare_val == "true":  # Solo se da scattare
+            sku_to_check.append(sku)
+
+    results = {}
 
     async with aiohttp.ClientSession() as session:
-        tasks = [check_single_photo(session, sku) for sku in sku_list]
+        tasks = [check_single_photo(session, sku) for sku in sku_to_check]
         responses = await asyncio.gather(*tasks)
 
     for sku, missing in responses:
         results[sku] = missing
 
-    # Ricostruisci la colonna K completa (solo i valori)
+    # Prepara nuova colonna K
     valori_k = []
-    for row in all_rows[2:]:
-        sku = row[0]
-        val = str(results.get(sku, True))  # True = mancante
-        valori_k.append([val])
+    for row in rows:
+        sku = row[0].strip()
+        nuovo_valore = str(results.get(sku, row[idx_scattare]))  # Se non è stato controllato, lascia il valore originale
+        valori_k.append([nuovo_valore])
 
-    # Aggiorna tutte le celle K3:K... in una sola chiamata
+    # Aggiorna colonna K
     range_k = f"K3:K{len(valori_k) + 2}"
     sheet_lista.update(values=valori_k, range_name=range_k, value_input_option="RAW")
 
