@@ -18,7 +18,7 @@ SERVICE_ACCOUNT_JSON = os.getenv("GCP_SERVICE_ACCOUNT_JSON")
 SHEET_ID = os.getenv("FOTO_GSHEET_ID")
 
 # 🔓 Autenticazione Google
-credentials = service_account.Credentials.from_service_account_info(
+credentials = Credentials.from_service_account_info(
     json.loads(SERVICE_ACCOUNT_JSON),
     scopes=["https://www.googleapis.com/auth/spreadsheets"]
 )
