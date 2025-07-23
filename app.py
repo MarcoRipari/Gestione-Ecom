@@ -450,10 +450,12 @@ async def controlla_foto_exist(sheet_id: str):
     sheet_lista.update(range_k, valori_k, value_input_option="RAW")
 
 @st.cache_data(ttl=300)
-def carica_lista_foto(sheet_id: str) -> pd.DataFrame:
+def carica_lista_foto(sheet_id: str, force_reload: bool = False) -> pd.DataFrame:
+    if force_reload:
+        raise st.cache_data.RerunException  # Invalida solo questa funzione
     try:
         sheet = get_sheet(sheet_id, "LISTA")
-        values = sheet.get("A3:K2000")
+        values = sheet.get("A3:K5000")
         if not values:
             return pd.DataFrame()
 
@@ -849,13 +851,15 @@ elif page == "📸 Gestione foto":
             st.session_state["force_refresh_foto"] = True
     
     # 🔽 Caricamento dati con cache (refresh se richiesto)
-    if "df_lista_foto" not in st.session_state or st.session_state.get("force_refresh_foto", False):
-        df = carica_lista_foto(sheet_id)
+    try:
+        force_reload = st.session_state.pop("force_refresh_foto", False)
+        df = carica_lista_foto(sheet_id, force_reload=force_reload)
         st.session_state["df_lista_foto"] = df
-        st.toast("🔁 Contatori aggiornati!")
-        st.session_state["force_refresh_foto"] = False
-    else:
-        df = st.session_state["df_lista_foto"]
+    except st.cache_data.RerunException:
+        # Forza il ricaricamento bypassando la cache solo per questa funzione
+        df = carica_lista_foto(sheet_id, force_reload=False)
+        st.session_state["df_lista_foto"] = df
+
 
     # 📊 Riepilogo
     total = len(df)
