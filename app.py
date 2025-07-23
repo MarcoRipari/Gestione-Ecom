@@ -488,6 +488,8 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         # 🧹 Normalizza booleani
         df["SCATTARE"] = df["SCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
         df["SCATTARE"] = df["SCATTARE"].fillna(False)
+        df["CONSEGNATA"] = df["CONSEGNATA"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
+        df["CONSEGNATA"] = df["CONSEGNATA"].fillna(False)
 
         return df[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "CONSEGNATA"]]
     except Exception as e:
