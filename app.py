@@ -882,11 +882,13 @@ elif page == "📸 Foto":
     total = len(df)
     da_scattare = df["SCATTARE"].sum()
     scattate = total - da_scattare
+    consegnate = 0
         
-    c1, c2, c3 = st.columns(3)
-    c1.metric("📦 Totale SKU", total)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("📝 Totale SKU", total)
     c2.metric("📸 Da scattare", da_scattare)
-    c3.metric("✅ Già scattate", scattate)
+    c3.metric("🚚 Consegnate", consegnate)
+    c4.metric("✅ Già scattate", scattate)
    
 
     # 🔽 Filtro visualizzazione
