@@ -463,7 +463,7 @@ async def controlla_foto_exist(sheet_id: str):
 
     # Aggiorna colonna K
     range_k = f"K3:K{len(valori_k) + 2}"
-    sheet_lista.update(range_k, valori_k, value_input_option="RAW")
+    sheet_lista.update(values=valori_k, range_name=range_k, value_input_option="RAW")
 
 @st.cache_data(ttl=300)
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
@@ -500,7 +500,7 @@ with st.sidebar:
     st.markdown("## 📋 Menu")
     page = st.radio(
     "Seleziona sezione",  # label visibile a lettori di schermo
-    ["🏠 Home", "📝 Generazione Descrizioni", "📸 Gestione foto"],
+    ["🏠 Home", "📝 Descrizioni", "📸 Foto"],
     label_visibility="collapsed"  # nasconde visivamente la label
 )
 
