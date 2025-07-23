@@ -888,8 +888,8 @@ elif page == "📸 Foto":
         
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("📝 Totale SKU", total)
-    c2.metric("📸 Da scattare", da_scattare)
-    c3.metric("🚚 Consegnate", consegnate)
+    c2.metric("🚚 Consegnate", consegnate)
+    c3.metric("📸 Da scattare", da_scattare-consegnata)
     c4.metric("✅ Già scattate", scattate)
    
 
