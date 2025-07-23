@@ -852,6 +852,7 @@ elif page == "📸 Gestione foto":
     if "df_lista_foto" not in st.session_state or st.session_state.get("force_refresh_foto", False):
         df = carica_lista_foto(sheet_id)
         st.session_state["df_lista_foto"] = df
+        st.toast("🔁 Contatori aggiornati!")
         st.session_state["force_refresh_foto"] = False
     else:
         df = st.session_state["df_lista_foto"]
