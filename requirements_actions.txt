@@ -1,0 +1,5 @@
+aiohttp
+gspread
+oauth2client
+pandas
+google-auth
