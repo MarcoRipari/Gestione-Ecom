@@ -845,11 +845,16 @@ elif page == "📸 Gestione foto":
             except Exception as e:
                 st.error(f"Errore durante il controllo: {str(e)}")
     with col3:
-        if st.button("🔄 Test"):
-            st.write("Msg di prova")
+        if st.button("🔄 Refresh"):
+            st.session_state["force_refresh_foto"] = True
     
-    # 🔽 Caricamento dati con cache
-    df = carica_lista_foto(sheet_id)
+    # 🔽 Caricamento dati con cache (refresh se richiesto)
+    if "df_lista_foto" not in st.session_state or st.session_state.get("force_refresh_foto", False):
+        df = carica_lista_foto(sheet_id)
+        st.session_state["df_lista_foto"] = df
+        st.session_state["force_refresh_foto"] = False
+    else:
+        df = st.session_state["df_lista_foto"]
 
     # 📊 Riepilogo
     total = len(df)
