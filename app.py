@@ -450,9 +450,7 @@ async def controlla_foto_exist(sheet_id: str):
     sheet_lista.update(range_k, valori_k, value_input_option="RAW")
 
 @st.cache_data(ttl=300)
-def carica_lista_foto(sheet_id: str, force_reload: bool = False) -> pd.DataFrame:
-    if force_reload:
-        raise st.cache_data.RerunException  # Invalida solo questa funzione
+def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
     try:
         sheet = get_sheet(sheet_id, "LISTA")
         values = sheet.get("A3:K5000")
@@ -848,17 +846,12 @@ elif page == "📸 Gestione foto":
                 st.error(f"Errore durante il controllo: {str(e)}")
     with col3:
         if st.button("🔄 Refresh"):
-            st.session_state["force_refresh_foto"] = True
+            st.session_state["refresh_foto_token"] = str(time.time())
     
-    # 🔽 Caricamento dati con cache (refresh se richiesto)
-    try:
-        force_reload = st.session_state.pop("force_refresh_foto", False)
-        df = carica_lista_foto(sheet_id, force_reload=force_reload)
-        st.session_state["df_lista_foto"] = df
-    except st.cache_data.RerunException:
-        # Forza il ricaricamento bypassando la cache solo per questa funzione
-        df = carica_lista_foto(sheet_id, force_reload=False)
-        st.session_state["df_lista_foto"] = df
+    # 🔽 Caricamento dati con chiave cache dinamica
+    cache_token = str(st.session_state.get("refresh_foto_token", "static"))
+    df = carica_lista_foto(sheet_id, cache_key=cache_token)
+    st.session_state["df_lista_foto"] = df
 
 
     # 📊 Riepilogo
