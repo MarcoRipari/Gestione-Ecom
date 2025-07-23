@@ -855,7 +855,7 @@ elif page == "📸 Gestione foto":
             st.session_state["df_lista_foto"] = df
             st.session_state["force_refresh_foto"] = False
         except Exception as e:
-            st.error(f"Errore caricamento dati: {str(e})")
+            st.error(f"Errore caricamento dati: {str(e)})")
     
     # 📊 Riepilogo
     total = len(df)
