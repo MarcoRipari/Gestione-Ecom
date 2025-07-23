@@ -481,7 +481,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
             return pd.DataFrame()
 
         # ✅ Definizione corretta: 11 intestazioni per colonne A–K
-        headers = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "ALT4", "ALT5", "ALT6", "SCATTARE", "ALT7", "ALT8", "ALT9", "CONSEGNATA"]
+        headers = ["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "TGCAMP", "TGDISP", "SCATTARE", "ALT6", "ALT7", "DISPONIBILITE", "CONSEGNATA"]
         df = pd.DataFrame(values, columns=headers)
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
@@ -922,6 +922,7 @@ elif page == "📸 Foto":
 
         st.dataframe(df_vista, use_container_width=True)
 
+    # Foto da riscattare
     st.subheader("🔁 Ristampa foto specifica")
     # ✅ Considera solo SKU che hanno già la foto (SCATTARE == False)
     df_foto_esistenti = df[df["SCATTARE"] == False]
