@@ -884,7 +884,6 @@ elif page == "📸 Foto":
     total = len(df)
     consegnate = df["CONSEGNATA"].sum()
     da_scattare = df["SCATTARE"].sum()
-    da_scattare = da_scattare - consegnate
     scattate = total - da_scattare
         
     c1, c2, c3, c4 = st.columns(4)
