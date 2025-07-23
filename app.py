@@ -460,6 +460,7 @@ def carica_lista_foto(sheet_id: str) -> pd.DataFrame:
         # ✅ Definizione corretta: 11 intestazioni per colonne A–K
         headers = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "ALT4", "ALT5", "ALT6", "SCATTARE"]
         df = pd.DataFrame(values, columns=headers)
+        df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
         # 🧹 Normalizza booleani
         df["SCATTARE"] = df["SCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
@@ -844,13 +845,22 @@ elif page == "📸 Gestione foto":
             except Exception as e:
                 st.error(f"Errore durante il controllo: {str(e)}")
 
-    # 🔽 Filtro visualizzazione
-    st.markdown("### 🎛️ Filtra per 'Foto da fare'")
-    # filtro_foto = st.radio("Mostra:", options=["Tutti", "Solo da scattare", "Solo già scattate"], index=0)
-    filtro_foto = st.selectbox("📌 Filtro foto da fare", ["Tutti", "Solo da scattare", "Solo già scattate"])
-
+    
     # 🔽 Caricamento dati con cache
     df = carica_lista_foto(sheet_id)
+    
+    # 📊 Riepilogo
+    total = len(df)
+    da_scattare = df["SCATTARE"].sum()
+    scattate = total - da_scattare
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("📦 Totale SKU", total)
+    c2.metric("📸 Da scattare", da_scattare)
+    c3.metric("✅ Già scattate", scattate)
+    
+    # 🔽 Filtro visualizzazione
+    filtro_foto = st.selectbox("📌 Filtro foto da fare", ["Tutti", "Solo da scattare", "Solo già scattate"])
 
     if df.empty:
         st.warning("Nessuna SKU disponibile.")
