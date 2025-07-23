@@ -3,7 +3,6 @@ import aiohttp
 import pandas as pd
 import gspread
 import os
-import json
 from google.oauth2.service_account import Credentials
 import logging
 from dotenv import load_dotenv
@@ -20,8 +19,8 @@ SHEET_ID = os.getenv("FOTO_GSHEET_ID")
 
 # 🔓 Autenticazione Google
 credentials = Credentials.from_service_account_info(
-    json.loads(SERVICE_ACCOUNT_JSON),
-    scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    eval(SERVICE_ACCOUNT_JSON),
+    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 )
 gsheet_client = gspread.authorize(credentials)
 
