@@ -524,7 +524,7 @@ if page == "🏠 Home":
 # ---------------------------
 # 📝 GENERAZIONE DESCRIZIONI
 # ---------------------------
-elif page == "📝 Generazione Descrizioni":
+elif page == "📝 Descrizioni":
     st.header("📥 Caricamento CSV dei prodotti")
     sheet_id = st.secrets["DESC_GSHEET_ID"]
     uploaded = st.file_uploader("Carica un file CSV", type="csv")
@@ -839,7 +839,7 @@ if "df_input" in st.session_state:
             with st.spinner("In corso..."):
                 benchmark_faiss(df_input, st.session_state.col_weights)
 
-elif page == "📸 Gestione foto":
+elif page == "📸 Foto":
     st.header("📸 Gestione Foto")
     tab_names = ["ECOM", "ZFS", "AMAZON"]
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
