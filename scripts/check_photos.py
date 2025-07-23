@@ -1,92 +1,119 @@
 import asyncio
 import aiohttp
-import pandas as pd
-import gspread
 import os
+import json
+import gspread
 from google.oauth2.service_account import Credentials
-import logging
-from dotenv import load_dotenv
+from typing import List, Dict
 
-# 📦 Carica le variabili d'ambiente (es. .env)
-load_dotenv()
+# -------------------------------
+# CONFIGURAZIONE
+# -------------------------------
+SHEET_ID = os.environ.get("FOTO_GSHEET_ID")
+SERVICE_ACCOUNT_JSON = os.environ.get("SERVICE_ACCOUNT_JSON")
+FOGLIO = "LISTA"
+MAX_CONCURRENT = 40
+RETRY_LIMIT = 3
+TIMEOUT_SECONDS = 10
 
-# 📂 Configurazione logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-# 🔐 Credenziali e ID foglio
-SERVICE_ACCOUNT_JSON = os.getenv("GCP_SERVICE_ACCOUNT_JSON")
-SHEET_ID = os.getenv("FOTO_GSHEET_ID")
-
-# 🔓 Autenticazione Google
+# -------------------------------
+# AUTENTICAZIONE GOOGLE
+# -------------------------------
 credentials = Credentials.from_service_account_info(
-    eval(SERVICE_ACCOUNT_JSON),
-    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    json.loads(SERVICE_ACCOUNT_JSON),
+    scopes=["https://www.googleapis.com/auth/spreadsheets"]
 )
-gsheet_client = gspread.authorize(credentials)
+client = gspread.authorize(credentials)
 
+# -------------------------------
+# UTILS
+# -------------------------------
 def get_sheet(sheet_id, tab_name):
-    spreadsheet = gsheet_client.open_by_key(sheet_id)
-    for ws in spreadsheet.worksheets():
-        if ws.title.lower() == tab_name.lower():
-            return ws
-    return spreadsheet.add_worksheet(title=tab_name, rows="10000", cols="50")
+    spreadsheet = client.open_by_key(sheet_id)
+    return spreadsheet.worksheet(tab_name)
 
-async def check_single_photo(session, sku: str) -> tuple[str, bool]:
+async def check_photo(sku: str, sem: asyncio.Semaphore, session: aiohttp.ClientSession) -> bool:
     url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
-    try:
-        async with session.head(url, timeout=10) as response:
-            return sku, response.status != 200  # True = mancante
-    except Exception as e:
-        logging.warning(f"Errore su {sku}: {e}")
-        return sku, True
+    async with sem:
+        try:
+            async with session.head(url, timeout=aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)) as response:
+                return response.status != 200  # True = manca
+        except:
+            return True  # considera mancante in caso di errore
 
-async def controlla_foto_exist():
-    logging.info("🔄 Caricamento dati da Google Sheets...")
-    sheet_lista = get_sheet(SHEET_ID, "LISTA")
-    rows = sheet_lista.get_all_values()
+async def process_skus(skus: List[str]) -> Dict[str, bool]:
+    results = {}
+    sem = asyncio.Semaphore(MAX_CONCURRENT)
+    async with aiohttp.ClientSession() as session:
+        tasks = {
+            sku: asyncio.create_task(check_photo(sku, sem, session))
+            for sku in skus
+        }
+        for sku, task in tasks.items():
+            try:
+                result = await task
+                results[sku] = result
+            except:
+                results[sku] = True
+    return results
 
-    if len(rows) < 3:
-        logging.warning("⚠️ Nessuna riga da elaborare.")
+async def retry_until_complete(skus: List[str]) -> Dict[str, bool]:
+    checked = {}
+    retries = 0
+    while retries < RETRY_LIMIT:
+        remaining = [sku for sku in skus if sku not in checked]
+        if not remaining:
+            break
+        print(f"🔁 Retry {retries+1}, checking {len(remaining)} SKU...")
+        partial = await process_skus(remaining)
+        checked.update(partial)
+        retries += 1
+    return checked
+
+# -------------------------------
+# MAIN
+# -------------------------------
+async def main():
+    sheet = get_sheet(SHEET_ID, FOGLIO)
+    all_data = sheet.get_all_values()
+
+    if len(all_data) < 3:
+        print("❌ Foglio vuoto o con meno di 3 righe.")
         return
 
-    headers = rows[1]
-    data = rows[2:]
-    df = pd.DataFrame(data, columns=headers)
+    header = all_data[1]
+    rows = all_data[2:]
 
-    # ❌ Escludi righe con SCATTARE = False
-    df = df[df["SCATTARE"].str.strip().str.lower() != "false"]
-    df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
+    try:
+        sku_idx = header.index("SKU")
+    except ValueError:
+        print("❌ Colonna SKU non trovata.")
+        return
 
-    sku_list = df["SKU"].tolist()
-    logging.info(f"🔍 Verifica in corso su {len(sku_list)} SKU...")
+    sku_list = [row[sku_idx].strip() for row in rows if len(row) > sku_idx and row[sku_idx].strip()]
 
-    results = {}
+    print(f"🔎 Totale SKU da controllare: {len(sku_list)}")
 
-    async with aiohttp.ClientSession() as session:
-        tasks = [check_single_photo(session, sku) for sku in sku_list]
-        responses = await asyncio.gather(*tasks)
+    results = await retry_until_complete(sku_list)
+    print(f"✅ Controllo completato: {len(results)} SKU verificate")
 
-    for sku, missing in responses:
-        results[sku] = str(missing)  # Per compatibilità con Google Sheets (string)
+    # Prepara i risultati per la colonna K
+    output_column = []
+    for row in rows:
+        sku = row[sku_idx].strip() if len(row) > sku_idx else ""
+        if sku in results:
+            output_column.append([str(results[sku])])
+        else:
+            output_column.append([""])
 
-    # 🔄 Scrittura risultati in colonna K (SCATTARE)
-    logging.info("✍️ Scrittura risultati in Google Sheets...")
-    update_values = []
-    for _, row in df.iterrows():
-        sku = row["SKU"]
-        val = results.get(sku, "True")
-        update_values.append([val])
+    start_row = 3
+    end_row = start_row + len(output_column) - 1
+    range_k = f"K{start_row}:K{end_row}"
 
-    start_row = 3 + df.index.min()
-    end_row = start_row + len(update_values) - 1
-    range_name = f"K{start_row}:K{end_row}"
+    print(f"✍️ Scrittura risultati su {range_k}")
+    sheet.update(values=output_column, range_name=range_k, value_input_option="RAW")
 
-    sheet_lista.update(range_name=range_name, values=update_values, value_input_option="RAW")
-
-    logging.info("✅ Controllo completato!")
+    print("✅ Scrittura completata")
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(controlla_foto_exist())
-    except Exception as e:
-        logging.error(f"Errore fatale: {e}")
+    asyncio.run(main())
