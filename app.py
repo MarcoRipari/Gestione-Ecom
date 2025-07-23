@@ -24,6 +24,8 @@ import asyncio
 import aiohttp
 import json
 from openai import AsyncOpenAI
+from aiohttp import ClientTimeout
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 logging.basicConfig(level=logging.INFO)
 
@@ -420,6 +422,15 @@ async def check_single_photo(session, sku: str) -> tuple[str, bool]:
     except:
         return sku, True  # Considera mancante in caso di errore
 
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))  # Retry automatico per errori temporanei
+async def check_single_photo(session, sku: str) -> tuple[str, bool]:
+    url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
+    try:
+        async with session.head(url, timeout=ClientTimeout(total=5)) as response:
+            return sku, response.status != 200  # True = mancante
+    except Exception:
+        return sku, True  # In caso di errore, considera mancante
+
 async def controlla_foto_exist(sheet_id: str):
     sheet_lista = get_sheet(sheet_id, "LISTA")
     all_rows = sheet_lista.get_all_values()
@@ -427,41 +438,37 @@ async def controlla_foto_exist(sheet_id: str):
     if len(all_rows) < 3:
         return
 
-    # Intestazioni e righe
-    headers = all_rows[1]
-    rows = all_rows[2:]
+    header = all_rows[1]
+    data = all_rows[2:]
 
-    # Trova indice colonna "SCATTARE" (K)
-    idx_sku = 0
-    idx_scattare = 10  # K è la colonna 11 -> indice 10
+    # Trova indice delle colonne
+    col_sku = header.index("SKU") if "SKU" in header else 0
+    col_scattare = header.index("SCATTARE") if "SCATTARE" in header else 10
 
-    sku_to_check = []
-    for row in rows:
-        if len(row) <= idx_scattare:
-            continue
-        sku = row[idx_sku].strip()
-        scattare_val = str(row[idx_scattare]).strip().lower()
-
-        if sku and scattare_val == "true":  # Solo se da scattare
-            sku_to_check.append(sku)
+    # Filtra solo righe con SKU e SCATTARE == True
+    rows_to_check = [row for row in data if len(row) > col_scattare and row[col_sku] and row[col_scattare].strip().lower() == "true"]
+    sku_list = [row[col_sku] for row in rows_to_check]
 
     results = {}
 
-    async with aiohttp.ClientSession() as session:
-        tasks = [check_single_photo(session, sku) for sku in sku_to_check]
-        responses = await asyncio.gather(*tasks)
+    connector = aiohttp.TCPConnector(limit=100)  # massimo 100 connessioni simultanee
+    timeout = ClientTimeout(total=10)
+
+    async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+        tasks = [check_single_photo(session, sku) for sku in sku_list]
+        responses = await asyncio.gather(*tasks, return_exceptions=False)
 
     for sku, missing in responses:
         results[sku] = missing
 
-    # Prepara nuova colonna K
+    # Costruisci nuova colonna K
     valori_k = []
-    for row in rows:
-        sku = row[0].strip()
-        nuovo_valore = str(results.get(sku, row[idx_scattare]))  # Se non è stato controllato, lascia il valore originale
-        valori_k.append([nuovo_valore])
+    for row in data:
+        sku = row[col_sku] if len(row) > col_sku else ""
+        val = str(results.get(sku, row[col_scattare].strip().lower() == "true"))  # mantieni valore se non ricontrollato
+        valori_k.append([val])
 
-    # Aggiorna colonna K
+    # Scrivi in K3:K...
     range_k = f"K3:K{len(valori_k) + 2}"
     sheet_lista.update(values=valori_k, range_name=range_k, value_input_option="RAW")
 
