@@ -879,7 +879,6 @@ elif page == "📸 Foto":
     df = carica_lista_foto(sheet_id, cache_key=cache_token)
     st.session_state["df_lista_foto"] = df
 
-
     # 📊 Riepilogo
     total = len(df)
     consegnate = df["CONSEGNATA"].sum()
@@ -889,7 +888,7 @@ elif page == "📸 Foto":
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("📝 Totale SKU", total)
     c2.metric("🚚 Consegnate", consegnate)
-    c3.metric("📸 Da scattare", da_scattare)
+    c3.metric("📸 Dal fotografo", da_scattare)
     c4.metric("✅ Già scattate", scattate)
    
 
