@@ -828,7 +828,7 @@ elif page == "📸 Gestione foto":
     tab_names = ["ECOM", "ZFS", "AMAZON"]
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
 
-    col1, col2 = st.columns(2)
+    col1, col2, spacer1, spacer2, col3 = st.columns(5)
     with col1:
         if st.button("📦 Genera lista SKU"):
             try:
@@ -844,10 +844,18 @@ elif page == "📸 Gestione foto":
                 st.toast("✅ Controllo foto completato!")
             except Exception as e:
                 st.error(f"Errore durante il controllo: {str(e)}")
-
+    with col3:
+        if st.button("🔄 Refresh"):
+            st.session_state["force_refresh_foto"] = True
     
     # 🔽 Caricamento dati con cache
-    df = carica_lista_foto(sheet_id)
+    if "df_lista_foto" not in st.session_state or st.session_state.get("force_refresh_foto", False):
+        try:
+            df = carica_lista_foto(sheet_id)
+            st.session_state["df_lista_foto"] = df
+            st.session_state["force_refresh_foto"] = False
+        except Exception as e:
+            st.error(f"Errore caricamento dati: {str(e})")
     
     # 📊 Riepilogo
     total = len(df)
