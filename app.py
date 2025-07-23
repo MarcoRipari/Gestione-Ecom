@@ -922,7 +922,7 @@ elif page == "📸 Foto":
 
         st.dataframe(df_vista, use_container_width=True)
 
-    st.subheader("🔁 Ristampa foto specifica"):
+    st.subheader("🔁 Ristampa foto specifica")
     # ✅ Considera solo SKU che hanno già la foto (SCATTARE == False)
     df_foto_esistenti = df[df["SCATTARE"] == False]
     
