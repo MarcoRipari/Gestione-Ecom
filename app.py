@@ -882,7 +882,7 @@ elif page == "📸 Foto":
     total = len(df)
     da_scattare = df["SCATTARE"].sum()
     scattate = total - da_scattare
-    consegnate = 0
+    consegnate = df["CONSEGNATA"].sum()
         
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("📝 Totale SKU", total)
@@ -912,6 +912,7 @@ elif page == "📸 Foto":
             return "⛔️"
 
         df_vista = df.copy()
+        df_vista = df_vista[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE"]]
         df_vista["Foto da fare"] = df_vista["SCATTARE"].apply(format_checkbox)
         df_vista = df_vista.drop(columns=["SCATTARE"])
 
