@@ -846,7 +846,8 @@ elif page == "📸 Gestione foto":
 
     # 🔽 Filtro visualizzazione
     st.markdown("### 🎛️ Filtra per 'Foto da fare'")
-    filtro_foto = st.radio("Mostra:", options=["Tutti", "Solo da scattare", "Solo già scattate"], index=0)
+    # filtro_foto = st.radio("Mostra:", options=["Tutti", "Solo da scattare", "Solo già scattate"], index=0)
+    filtro_foto = st.selectbox("📌 Filtro foto da fare", ["Tutti", "Solo da scattare", "Solo già scattate"])
 
     # 🔽 Caricamento dati con cache
     df = carica_lista_foto(sheet_id)
