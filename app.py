@@ -833,19 +833,30 @@ elif page == "📸 Gestione foto":
             rows = data[2:]
             df = pd.DataFrame(rows, columns=headers)
     
+            # Rinomina colonne interessate
             cols_to_show = ["SKU", "CANALE", df.columns[3], df.columns[4], df.columns[10]]
             df_show = df[cols_to_show].copy()
             df_show.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "Foto da fare"]
     
-            # ✅ Mappa booleani a emoji
-            df_show["Foto da fare"] = df_show["Foto da fare"].apply(
-                lambda x: "⬜" if str(x).strip().lower() == "true" else "✅"
-            )
+            # ✅ Converti "Foto da fare" in booleano (True/False)
+            df_show["Foto da fare"] = df_show["Foto da fare"].astype(str).str.lower().eq("true")
     
-            def highlight_missing(row):
-                return ['background-color: #ffcdd2' if row["Foto da fare"] == "⬜" else '' for _ in row]
+            # ✅ Aggiungi filtro visivo
+            filtro = st.selectbox("📂 Filtro visualizzazione", ["Tutti", "Solo da fare", "Solo completate"])
+            if filtro == "Solo da fare":
+                df_vista = df_show[df_show["Foto da fare"] == True]
+            elif filtro == "Solo completate":
+                df_vista = df_show[df_show["Foto da fare"] == False]
+            else:
+                df_vista = df_show.copy()
     
-            st.dataframe(df_show.style.apply(highlight_missing, axis=1), use_container_width=True)
+            # ✅ Checkbox grafico
+            df_vista["Foto da fare"] = df_vista["Foto da fare"].apply(lambda x: "✅" if not x else "⬜")
     
+            # ✅ Evidenzia quelli da fare
+            def evidenzia(row):
+                return ['background-color: #daffcd' if row["Foto da fare"] == "✅" else '' for _ in row]
+    
+            st.dataframe(df_vista.style.apply(evidenzia, axis=1), use_container_width=True)
     except Exception as e:
         st.error(f"Errore caricamento dati: {str(e)}")
