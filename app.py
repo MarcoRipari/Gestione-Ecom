@@ -460,7 +460,11 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
-    page = st.radio("", ["🏠 Home", "📝 Generazione Descrizioni", "📸 Gestione foto"])
+    page = st.radio(
+    "Seleziona sezione",  # label visibile a lettori di schermo
+    ["🏠 Home", "📝 Generazione Descrizioni", "📸 Gestione foto"],
+    label_visibility="collapsed"  # nasconde visivamente la label
+)
 
 # ---------------------------
 # 🏠 HOME
