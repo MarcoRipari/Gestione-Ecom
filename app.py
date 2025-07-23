@@ -919,6 +919,6 @@ elif page == "📸 Foto":
         df_vista = df_vista.drop(columns=["SCATTARE"])
 
         # ✅ Rinomina colonne
-        df_vista.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "📷", "CONSEGNATA"]
+        df_vista.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "📷"]
 
         st.dataframe(df_vista, use_container_width=True)
