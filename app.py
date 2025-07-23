@@ -854,19 +854,20 @@ elif page == "📸 Gestione foto":
             df = carica_lista_foto(sheet_id)
             st.session_state["df_lista_foto"] = df
             st.session_state["force_refresh_foto"] = False
+
+            # 📊 Riepilogo
+            total = len(df)
+            da_scattare = df["SCATTARE"].sum()
+            scattate = total - da_scattare
+        
+            c1, c2, c3 = st.columns(3)
+            c1.metric("📦 Totale SKU", total)
+            c2.metric("📸 Da scattare", da_scattare)
+            c3.metric("✅ Già scattate", scattate)
         except Exception as e:
             st.error(f"Errore caricamento dati: {str(e)})")
     
-    # 📊 Riepilogo
-    total = len(df)
-    da_scattare = df["SCATTARE"].sum()
-    scattate = total - da_scattare
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("📦 Totale SKU", total)
-    c2.metric("📸 Da scattare", da_scattare)
-    c3.metric("✅ Già scattate", scattate)
-    
     # 🔽 Filtro visualizzazione
     filtro_foto = st.selectbox("📌 Filtro foto da fare", ["Tutti", "Solo da scattare", "Solo già scattate"])
 
