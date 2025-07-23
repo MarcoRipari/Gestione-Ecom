@@ -449,6 +449,27 @@ async def controlla_foto_exist(sheet_id: str):
     range_k = f"K3:K{len(valori_k) + 2}"
     sheet_lista.update(range_k, valori_k, value_input_option="RAW")
 
+@st.cache_data(ttl=300)
+def carica_lista_foto(sheet_id: str) -> pd.DataFrame:
+    try:
+        sheet = get_sheet(sheet_id, "LISTA")
+        values = sheet.get("A3:K2000")  # Solo le colonne necessarie (A-K)
+        if not values:
+            return pd.DataFrame()
+
+        # Definizione manuale intestazioni (corrispondenti ai nomi presenti nel tuo GSheet)
+        headers = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE"] + [f"COL_{i}" for i in range(5, 10)] + ["SCATTARE"]
+        df = pd.DataFrame(values, columns=headers[:len(values[0])])  # Evita errori su colonne mancanti
+
+        # Normalizza valori booleani colonna SCATTARE
+        df["SCATTARE"] = df["SCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
+        df["SCATTARE"] = df["SCATTARE"].fillna(False)
+
+        return df[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE"]]
+    except Exception as e:
+        st.error(f"Errore durante il caricamento: {str(e)}")
+        return pd.DataFrame()
+
 # ---------------------------
 # 📦 Streamlit UI
 # ---------------------------
@@ -823,40 +844,35 @@ elif page == "📸 Gestione foto":
             except Exception as e:
                 st.error(f"Errore durante il controllo: {str(e)}")
 
-    try:
-        sheet_lista = get_sheet(sheet_id, "LISTA")
-        data = sheet_lista.get_all_values()
-        if len(data) < 3:
-            st.warning("Lista vuota")
-        else:
-            headers = data[1]
-            rows = data[2:]
-            df = pd.DataFrame(rows, columns=headers)
-    
-            # Rinomina colonne interessate
-            cols_to_show = ["SKU", "CANALE", df.columns[3], df.columns[4], df.columns[10]]
-            df_show = df[cols_to_show].copy()
-            df_show.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "Foto da fare"]
-    
-            # ✅ Converti "Foto da fare" in booleano (True/False)
-            df_show["Foto da fare"] = df_show["Foto da fare"].astype(str).str.lower().eq("true")
-    
-            # ✅ Aggiungi filtro visivo
-            filtro = st.selectbox("📂 Filtro visualizzazione", ["Tutti", "Solo da fare", "Solo completate"])
-            if filtro == "Solo da fare":
-                df_vista = df_show[df_show["Foto da fare"] == True]
-            elif filtro == "Solo completate":
-                df_vista = df_show[df_show["Foto da fare"] == False]
-            else:
-                df_vista = df_show.copy()
-    
-            # ✅ Checkbox grafico
-            df_vista["Foto da fare"] = df_vista["Foto da fare"].apply(lambda x: "✅" if not x else "⬜")
-    
-            # ✅ Evidenzia quelli da fare
-            def evidenzia(row):
-                return ['background-color: #daffcd' if row["Foto da fare"] == "✅" else '' for _ in row]
-    
-            st.dataframe(df_vista.style.apply(evidenzia, axis=1), use_container_width=True)
-    except Exception as e:
-        st.error(f"Errore caricamento dati: {str(e)}")
+    # 🔽 Filtro visualizzazione
+    st.markdown("### 🎛️ Filtra per 'Foto da fare'")
+    filtro_foto = st.radio("Mostra:", options=["Tutti", "Solo da scattare", "Solo già scattate"], index=0)
+
+    # 🔽 Caricamento dati con cache
+    df = carica_lista_foto(sheet_id)
+
+    if df.empty:
+        st.warning("Nessuna SKU disponibile.")
+    else:
+        # 🔍 Applica filtro
+        if filtro_foto == "Solo da scattare":
+            df = df[df["SCATTARE"] == True]
+        elif filtro_foto == "Solo già scattate":
+            df = df[df["SCATTARE"] == False]
+
+        # ✅ Visualizzazione con emoji
+        def format_checkbox(val):
+            if val is True:
+                return "✅"
+            elif val is False:
+                return "❌"
+            return "⛔️"
+
+        df_vista = df.copy()
+        df_vista["Foto da fare"] = df_vista["SCATTARE"].apply(format_checkbox)
+        df_vista = df_vista.drop(columns=["SCATTARE"])
+
+        # ✅ Rinomina colonne
+        df_vista.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "📷"]
+
+        st.dataframe(df_vista, use_container_width=True)
