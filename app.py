@@ -895,52 +895,60 @@ elif page == "📸 Foto":
     # 🔽 Filtro visualizzazione
     filtro_foto = st.selectbox("📌 Filtro foto da fare", ["Tutti", "Solo da scattare", "Solo già scattate"])
     
-    with st.expander("🔁 Seleziona foto da ristampare"):
-        df_ristampa = df[(df["SCATTARE"] == False)].copy()
-        if df_ristampa.empty:
-            st.info("✅ Nessuna foto già scattata disponibile per ristampa.")
-        else:
-            df_ristampa["📷"] = df_ristampa["SKU"].apply(lambda x: f"https://repository.falc.biz/fal001{x.lower()}-1.jpg")
+    with st.expander("🔁 Ristampa foto specifica"):
+        sku_input = st.text_input("🔍 Inserisci SKU da cercare")
     
-            # Mostra anteprima e checkbox selezione
-            selected_sku = []
-            for _, row in df_ristampa.iterrows():
-                with st.container():
-                    cols = st.columns([1, 3, 1])
-                    with cols[0]:
-                        st.image(row["📷"], width=100, caption=row["SKU"])
-                    with cols[1]:
-                        st.write(f"**{row['DESCRIZIONE']}**")
-                        st.write(f"Canale: {row['CANALE']}")
-                        st.write(f"Collezione: {row['COLLEZIONE']}")
-                    with cols[2]:
-                        if st.checkbox("Richiedi nuova foto", key=row["SKU"]):
-                            selected_sku.append(row["SKU"])
+        selected_ristampe = st.session_state.get("ristampe_selezionate", set())
     
-            if selected_sku:
-                if st.button("✅ Conferma ristampa selezionate"):
-                    try:
-                        sheet = get_sheet(sheet_id, "LISTA")
-                        all_rows = sheet.get_all_values()
-                        headers = all_rows[1]
-                        data_rows = all_rows[2:]
+        if sku_input:
+            sku_norm = sku_input.strip().upper()
+            match = df[df["SKU"] == sku_norm]
     
-                        col_sku = 0
-                        col_ristampare = 15  # Colonna P = indice 15
+            if match.empty:
+                st.warning("❌ SKU non trovata nella lista.")
+            else:
+                row = match.iloc[0]
+                image_url = f"https://repository.falc.biz/fal001{row['SKU'].lower()}-1.jpg"
+                cols = st.columns([1, 3, 1])
+                with cols[0]:
+                    st.image(image_url, width=100, caption=row["SKU"])
+                with cols[1]:
+                    st.markdown(f"**{row['DESCRIZIONE']}**")
+                    st.markdown(f"*Canale*: {row['CANALE']}  \n*Collezione*: {row['COLLEZIONE']}")
+                with cols[2]:
+                    ristampa_checkbox = st.checkbox("🔁 Ristampa", key=f"ristampa_{row['SKU']}")
+                    if ristampa_checkbox:
+                        selected_ristampe.add(row['SKU'])
+                    else:
+                        selected_ristampe.discard(row['SKU'])
     
-                        # Genera nuova colonna P con valori aggiornati
-                        nuovi_valori = []
-                        for row in data_rows:
-                            sku = row[col_sku].strip()
-                            ristampare = "TRUE" if sku in selected_sku else row[col_ristampare] if len(row) > col_ristampare else ""
-                            nuovi_valori.append([ristampare])
+        st.session_state["ristampe_selezionate"] = selected_ristampe
     
-                        # Scrittura batch su colonna P
-                        range_update = f"P3:P{len(nuovi_valori)+2}"
-                        sheet.update(values=nuovi_valori, range_name=range_update)
-                        st.success("✅ Aggiornamento completato!")
-                    except Exception as e:
-                        st.error(f"Errore aggiornamento ristampa: {str(e)}")
+        if selected_ristampe:
+            st.markdown(f"📦 SKU selezionate per ristampa: `{', '.join(sorted(selected_ristampe))}`")
+            if st.button("✅ Conferma selezione per ristampa"):
+                try:
+                    sheet = get_sheet(sheet_id, "LISTA")
+                    all_rows = sheet.get_all_values()
+                    headers = all_rows[1]
+                    data_rows = all_rows[2:]
+    
+                    col_sku = 0
+                    col_ristampare = 13  # colonna N
+    
+                    nuovi_valori = []
+                    for row in data_rows:
+                        sku = row[col_sku].strip()
+                        val = "TRUE" if sku in selected_ristampe else row[col_ristampare] if len(row) > col_ristampare else ""
+                        nuovi_valori.append([val])
+    
+                    range_update = f"N3:N{len(nuovi_valori) + 2}"
+                    sheet.update(values=nuovi_valori, range_name=range_update)
+                    st.success("✅ Ristampe aggiornate correttamente!")
+                    st.session_state["ristampe_selezionate"] = set()
+                except Exception as e:
+                    st.error(f"❌ Errore aggiornamento: {str(e)}")
+
 
     
     if df.empty:
