@@ -82,45 +82,37 @@ def save_image_to_dropbox(sku: str, filename: str, image: Image.Image):
     except dropbox.exceptions.ApiError as e:
         print(f"⚠️ Impossibile creare link condiviso per {file_path}: {e}")
 
-async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, session: aiohttp.ClientSession, debug_count: int = 10) -> (str, bool, bool):
+async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, session: aiohttp.ClientSession) -> (str, bool):
     url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
     async with sem:
         try:
-            async with session.get(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as get_resp:
-                status = get_resp.status
-                if debug_count > 0:
-                    print(f"[GET] {sku} → status={status}")
-                if status == 200:
-                    img_bytes = await get_resp.read()
+            async with session.get(url, timeout=TIMEOUT_SECONDS) as response:
+                if response.status == 200:
+                    img_bytes = await response.read()
                     new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-                    foto_salvata = False
 
                     if riscattare:
                         old_name, old_img = get_dropbox_latest_image(sku)
-                        if not old_img or not images_are_equal(new_img, old_img):
-                            if old_name:
-                                date_suffix = datetime.now().strftime("%d%m%Y")
-                                ext = old_name.split(".")[-1]
-                                new_old_name = f"{sku}_{date_suffix}.{ext}"
-                                try:
-                                    dbx.files_move_v2(
-                                        from_path=f"/repository/{sku}/{old_name}",
-                                        to_path=f"/repository/{sku}/{new_old_name}",
-                                        allow_shared_folder=True,
-                                        autorename=True
-                                    )
-                                except Exception as e:
-                                    print(f"⚠️ Errore nel rinominare {old_name} → {e}")
-                            save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
-                            foto_salvata = True
-
-                    return sku, False, foto_salvata
+                        if old_img and images_are_equal(new_img, old_img):
+                            return sku, False
+                        if old_name:
+                            date_suffix = datetime.now().strftime("%d%m%Y")
+                            ext = old_name.split(".")[-1]
+                            new_old_name = f"{sku}_{date_suffix}.{ext}"
+                            dbx.files_move_v2(
+                                from_path=f"/repository/{sku}/{old_name}",
+                                to_path=f"/repository/{sku}/{new_old_name}",
+                                allow_shared_folder=True,
+                                autorename=True
+                            )
+                        save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
+                    return sku, False
                 else:
-                    return sku, True, False
+                    print(f"[GET] {sku} → status {response.status}")
+                    return sku, True
         except Exception as e:
-            if debug_count > 0:
-                print(f"[ERROR] {sku} → {e}")
-            return sku, True, False
+            print(f"[GET ERROR] {sku} → {e}")
+            return sku, True
 
 async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx: int) -> Dict[str, bool]:
     results = {}
