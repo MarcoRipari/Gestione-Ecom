@@ -94,51 +94,73 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
     url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
     async with sem:
         try:
-            # 1. Tentativo HEAD
+            # 1. HEAD check (facoltativo ma veloce)
             try:
                 async with session.head(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as head_resp:
-                    status = head_resp.status
                     if debug_count > 0:
-                        print(f"[HEAD] {sku} → status={status}")
-                    if status == 200:
+                        print(f"[HEAD] {sku} → status={head_resp.status}")
+                    if head_resp.status == 200:
                         return sku, False
             except Exception as e:
                 if debug_count > 0:
                     print(f"[HEAD ERROR] {sku} → {e}")
 
-            # 2. Tentativo GET solo se HEAD ha fallito
-            try:
-                async with session.get(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as get_resp:
-                    status = get_resp.status
-                    if debug_count > 0:
-                        print(f"[GET] {sku} → status={status}")
-                    if status == 200:
-                        img_bytes = await get_resp.read()
-                        new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-
-                        if riscattare:
-                            old_name, old_img = get_dropbox_latest_image(sku)
-                            if old_img and images_are_equal(new_img, old_img):
-                                return sku, False
-                            if old_name:
-                                date_suffix = datetime.now().strftime("%d%m%Y")
-                                ext = old_name.split(".")[-1]
-                                new_old_name = f"{sku}_{date_suffix}.{ext}"
-                                dbx.files_move_v2(
-                                    from_path=f"/repository/{sku}/{old_name}",
-                                    to_path=f"/repository/{sku}/{new_old_name}",
-                                    allow_shared_folder=True,
-                                    autorename=True
-                                )
-                            save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
-                        return sku, False
-                    else:
-                        return sku, True
-            except Exception as e:
+            # 2. GET image
+            async with session.get(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as get_resp:
                 if debug_count > 0:
-                    print(f"[GET ERROR] {sku} → {e}")
-                return sku, True
+                    print(f"[GET] {sku} → status={get_resp.status}")
+                if get_resp.status != 200:
+                    return sku, True  # mancante
 
+                img_bytes = await get_resp.read()
+                new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+
+                if riscattare:
+                    old_name, old_img = get_dropbox_latest_image(sku)
+                    if old_img and images_are_equal(new_img, old_img):
+                        if debug_count > 0:
+                            print(f"🟢 {sku}: immagine già presente e identica")
+                        return sku, False
+
+                    # Rinominare vecchia
+                    if old_name:
+                        date_suffix = datetime.now().strftime("%d%m%Y")
+                        ext = old_name.split(".")[-1]
+                        new_old_name = f"{sku}_{date_suffix}.{ext}"
+                        dbx.files_move_v2(
+                            from_path=f"/repository/{sku}/{old_name}",
+                            to_path=f"/repository/{sku}/{new_old_name}",
+                            allow_shared_folder=True,
+                            autorename=True
+                        )
+                        if debug_count > 0:
+                            print(f"📁 {sku}: vecchia immagine rinominata → {new_old_name}")
+
+                    # Carica nuova immagine
+                    dropbox_path = f"/repository/{sku}/{sku}.jpg"
+                    img_io = io.BytesIO()
+                    new_img.save(img_io, format="JPEG")
+                    img_io.seek(0)
+
+                    # Crea cartella se non esiste
+                    try:
+                        dbx.files_create_folder_v2(f"/repository/{sku}")
+                    except dropbox.exceptions.ApiError:
+                        pass
+
+                    dbx.files_upload(img_io.read(), dropbox_path, mode=WriteMode("overwrite"))
+
+                    # URL pubblico
+                    try:
+                        shared = dbx.sharing_create_shared_link_with_settings(dropbox_path)
+                        public_url = shared.url.replace("?dl=0", "?raw=1")
+                        if debug_count > 0:
+                            print(f"🔗 {sku}: immagine aggiornata su Dropbox → {public_url}")
+                    except dropbox.exceptions.ApiError:
+                        if debug_count > 0:
+                            print(f"⚠️ {sku}: errore nella creazione link pubblico Dropbox")
+
+                return sku, False  # Foto esiste
         except Exception as final_error:
             if debug_count > 0:
                 print(f"[UNHANDLED ERROR] {sku} → {final_error}")
