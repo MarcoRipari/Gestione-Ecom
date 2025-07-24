@@ -927,7 +927,7 @@ elif page == "📸 Foto":
         df_vista = df_vista[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE"]]
         
         df_vista["📷"] = df_vista["SCATTARE"].apply(format_checkbox)
-        df_vista["🔁"] = df_vista["RISCATTARE"].apply(format_checkbox)
+        df_vista["🔁"] = df_vista["RISCATTARE"]
         
         # Rimuovi le colonne booleane originali
         df_vista = df_vista.drop(columns=["SCATTARE", "RISCATTARE"])
