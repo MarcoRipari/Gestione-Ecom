@@ -20,8 +20,8 @@ async def test_debug():
     sem = asyncio.Semaphore(1)
 
     async with aiohttp.ClientSession() as session:
-        url = "https://drive.google.com/uc?export=download&id=1GVjmhKEPNQTiFfnAuDM-NsCJEC2DLBM2"
-        #url = "https://drive.google.com/uc?export=download&id=1lLyYfJmbRxR7aRVdKdt1Ev78SUHALi0d"
+        #url = "https://drive.google.com/uc?export=download&id=1GVjmhKEPNQTiFfnAuDM-NsCJEC2DLBM2"
+        url = "https://drive.google.com/uc?export=download&id=1lLyYfJmbRxR7aRVdKdt1Ev78SUHALi0d"
 
         async def fetch_image():
             try:
