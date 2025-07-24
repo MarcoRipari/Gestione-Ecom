@@ -912,14 +912,25 @@ elif page == "📸 Foto":
                 return "❌"
             return "⛔️"
 
-        df_vista = df.copy()
-        df_vista = df_vista[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE"]]
-        df_vista["Foto da fare"] = df_vista["SCATTARE"].apply(format_checkbox)
-        df_vista = df_vista.drop(columns=["SCATTARE"])
+        #df_vista = df.copy()
+        #df_vista = df_vista[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE"]]
+        #df_vista["Foto da fare"] = df_vista["SCATTARE"].apply(format_checkbox)
+        #df_vista = df_vista.drop(columns=["SCATTARE"])
 
         # ✅ Rinomina colonne
-        df_vista.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "📷"]
+        #df_vista.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "📷"]
 
+        # ✅ Costruzione vista tabellare con emoji
+        df_vista = df.copy()
+        df_vista = df_vista[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE"]]
+        
+        df_vista["📷"] = df_vista["SCATTARE"].apply(format_checkbox)
+        df_vista["🔁"] = df_vista["RISCATTARE"].apply(format_checkbox)
+        
+        # Rimuovi le colonne booleane originali
+        df_vista = df_vista.drop(columns=["SCATTARE", "RISCATTARE"])
+        
+        # ✅ Visualizzazione
         st.dataframe(df_vista, use_container_width=True)
 
     # Foto da riscattare
