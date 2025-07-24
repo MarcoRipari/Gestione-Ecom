@@ -119,7 +119,9 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                 else:
                     return sku, True, False
         except Exception as e:
-            print(f"❌ Errore fetch immagine {sku}: {e}")
+            import traceback
+            print(f"❌ Errore fetch immagine {sku}: {str(e)}")
+            traceback.print_exc()
             return sku, True, False
 
 async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx: int) -> Dict[str, bool]:
