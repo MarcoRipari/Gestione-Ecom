@@ -26,7 +26,8 @@ jobs:
       - name: 🔐 Imposta variabili segrete
         env:
           FOTO_GSHEET_ID: ${{ secrets.FOTO_GSHEET_ID }}
-          SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+          SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          REPOSITORY_FOLDER_ID: ${{ secrets.REPOSITORY_FOLDER_ID }}
         run: |
           echo "✅ Variabili segrete impostate"
 
