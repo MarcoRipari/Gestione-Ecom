@@ -5,6 +5,7 @@ import json
 import gspread
 import io
 import hashlib
+import imagehash
 from PIL import Image, ImageChops
 from datetime import datetime
 from typing import List, Dict
@@ -46,10 +47,11 @@ def hash_image(image: Image.Image) -> str:
     image.save(img_bytes, format="JPEG")
     return hashlib.md5(img_bytes.getvalue()).hexdigest()
 
-def images_are_equal(img1: Image.Image, img2: Image.Image) -> bool:
-    """Confronto visuale basato su differenza pixel."""
-    diff = ImageChops.difference(img1, img2)
-    return not diff.getbbox()
+def images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 0) -> bool:
+    """Confronta le immagini usando perceptual hash (pHash)."""
+    hash1 = imagehash.phash(img1)
+    hash2 = imagehash.phash(img2)
+    return hash1 - hash2 <= threshold  # soglia 0 = identiche, 1-2 = molto simili
 
 def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
     folder_path = f"/repository/{sku}"
