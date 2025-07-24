@@ -414,64 +414,6 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
     range_update = f"A3:B{len(new_rows)+2}"
     sheet_lista.update(range_update, new_rows, value_input_option="RAW")
 
-async def check_single_photo(session, sku: str) -> tuple[str, bool]:
-    url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
-    try:
-        async with session.head(url, timeout=10) as response:
-            return sku, response.status != 200  # True = manca
-    except:
-        return sku, True  # Considera mancante in caso di errore
-
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))  # Retry automatico per errori temporanei
-async def check_single_photo(session, sku: str) -> tuple[str, bool]:
-    url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
-    try:
-        async with session.head(url, timeout=ClientTimeout(total=5)) as response:
-            return sku, response.status != 200  # True = mancante
-    except Exception:
-        return sku, True  # In caso di errore, considera mancante
-
-async def controlla_foto_exist(sheet_id: str):
-    sheet_lista = get_sheet(sheet_id, "LISTA")
-    all_rows = sheet_lista.get_all_values()
-
-    if len(all_rows) < 3:
-        return
-
-    header = all_rows[1]
-    data = all_rows[2:]
-
-    # Trova indice delle colonne
-    col_sku = header.index("SKU") if "SKU" in header else 0
-    col_scattare = header.index("SCATTARE") if "SCATTARE" in header else 10
-
-    # Filtra solo righe con SKU e SCATTARE == True
-    rows_to_check = [row for row in data if len(row) > col_scattare and row[col_sku] and row[col_scattare].strip().lower() == "true"]
-    sku_list = [row[col_sku] for row in rows_to_check]
-
-    results = {}
-
-    connector = aiohttp.TCPConnector(limit=100)  # massimo 100 connessioni simultanee
-    timeout = ClientTimeout(total=10)
-
-    async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-        tasks = [check_single_photo(session, sku) for sku in sku_list]
-        responses = await asyncio.gather(*tasks, return_exceptions=False)
-
-    for sku, missing in responses:
-        results[sku] = missing
-
-    # Costruisci nuova colonna K
-    valori_k = []
-    for row in data:
-        sku = row[col_sku] if len(row) > col_sku else ""
-        val = str(results.get(sku, row[col_scattare].strip().lower() == "true"))  # mantieni valore se non ricontrollato
-        valori_k.append([val])
-
-    # Scrivi in K3:K...
-    range_k = f"K3:K{len(valori_k) + 2}"
-    sheet_lista.update(values=valori_k, range_name=range_k, value_input_option="RAW")
-
 @st.cache_data(ttl=300)
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
     try:
@@ -871,14 +813,8 @@ elif page == "📸 Foto":
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
     with col2:
-        if st.button("🔍 Controlla esistenza foto"):
-            try:
-                with st.spinner("🔍 Controllo asincrono delle foto..."):
-                    asyncio.run(controlla_foto_exist(sheet_id))
-                st.session_state["refresh_foto_token"] = str(time.time())
-                st.toast("✅ Controllo foto completato!")
-            except Exception as e:
-                st.error(f"Errore durante il controllo: {str(e)}")
+        if st.button("🔍 Test"):
+            st.write("Pulsante test")
     with col3:
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
