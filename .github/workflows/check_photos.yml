@@ -28,6 +28,7 @@ jobs:
           FOTO_GSHEET_ID: ${{ secrets.FOTO_GSHEET_ID }}
           SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+          DROPBOX_ROOT_PATH: ${{ secrets.DROPBOX_ROOT_PATH }}
         run: |
           echo "✅ Variabili segrete impostate"
 
@@ -36,4 +37,5 @@ jobs:
           FOTO_GSHEET_ID: ${{ secrets.FOTO_GSHEET_ID }}
           SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+          DROPBOX_ROOT_PATH: ${{ secrets.DROPBOX_ROOT_PATH }}
         run: python scripts/check_photos.py
