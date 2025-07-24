@@ -4,19 +4,19 @@ import os
 import json
 import gspread
 import io
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from PIL import Image
-from typing import List, Dict
 from datetime import datetime
+from typing import List, Dict
+from google.oauth2.service_account import Credentials
+import dropbox
+from dropbox.files import WriteMode
 
 # -------------------------------
-# CONFIGURAZIONE
+# CONFIG
 # -------------------------------
 SHEET_ID = os.environ.get("FOTO_GSHEET_ID")
 SERVICE_ACCOUNT_JSON = os.environ.get("SERVICE_ACCOUNT_JSON")
-REPOSITORY_FOLDER_ID = os.environ.get("REPOSITORY_FOLDER_ID")
+DROPBOX_TOKEN = os.environ.get("DROPBOX_TOKEN")
 
 FOGLIO = "LISTA"
 MAX_CONCURRENT = 40
@@ -24,55 +24,53 @@ RETRY_LIMIT = 3
 TIMEOUT_SECONDS = 10
 
 # -------------------------------
-# AUTENTICAZIONE GOOGLE
+# AUTENTICAZIONE
 # -------------------------------
 credentials = Credentials.from_service_account_info(
     json.loads(SERVICE_ACCOUNT_JSON),
-    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    scopes=["https://www.googleapis.com/auth/spreadsheets"]
 )
 gs_client = gspread.authorize(credentials)
-drive_service = build("drive", "v3", credentials=credentials)
+dbx = dropbox.Dropbox(DROPBOX_TOKEN)
 
 # -------------------------------
 # UTILS
 # -------------------------------
 def get_sheet(sheet_id, tab_name):
-    spreadsheet = gs_client.open_by_key(sheet_id)
-    return spreadsheet.worksheet(tab_name)
-
-def get_drive_file(folder_id, filename):
-    results = drive_service.files().list(
-        q=f"name='{filename}' and '{folder_id}' in parents and trashed = false",
-        spaces='drive',
-        fields="files(id, name)"
-    ).execute()
-    files = results.get("files", [])
-    return files[0] if files else None
-
-def create_folder_if_not_exists(parent_id, folder_name):
-    folder = get_drive_file(parent_id, folder_name)
-    if folder:
-        return folder["id"]
-    file_metadata = {
-        "name": folder_name,
-        "mimeType": "application/vnd.google-apps.folder",
-        "parents": [parent_id]
-    }
-    folder = drive_service.files().create(body=file_metadata, fields="id").execute()
-    return folder["id"]
-
-def download_drive_image(file_id):
-    request = drive_service.files().get_media(fileId=file_id)
-    fh = io.BytesIO()
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    while not done:
-        _, done = downloader.next_chunk()
-    fh.seek(0)
-    return Image.open(fh)
+    return gs_client.open_by_key(sheet_id).worksheet(tab_name)
 
 def images_are_equal(img1: Image.Image, img2: Image.Image) -> bool:
     return list(img1.getdata()) == list(img2.getdata())
+
+def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
+    folder_path = f"/repository/{sku}"
+    try:
+        res = dbx.files_list_folder(folder_path)
+        jpgs = sorted(
+            [entry for entry in res.entries if entry.name.lower().endswith(".jpg")],
+            key=lambda e: e.client_modified,
+            reverse=True
+        )
+        if not jpgs:
+            return None, None
+        latest = jpgs[0]
+        _, resp = dbx.files_download(latest.path_display)
+        img = Image.open(io.BytesIO(resp.content)).convert("RGB")
+        return latest.name, img
+    except dropbox.exceptions.ApiError:
+        return None, None
+
+def save_image_to_dropbox(sku: str, filename: str, image: Image.Image):
+    folder_path = f"/repository/{sku}"
+    file_path = f"{folder_path}/{filename}"
+    img_bytes = io.BytesIO()
+    image.save(img_bytes, format="JPEG")
+    img_bytes.seek(0)
+    try:
+        dbx.files_create_folder_v2(folder_path)
+    except dropbox.exceptions.ApiError:
+        pass
+    dbx.files_upload(img_bytes.read(), file_path, mode=WriteMode("overwrite"))
 
 async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, session: aiohttp.ClientSession) -> (str, bool):
     url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
@@ -82,33 +80,22 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                 if response.status == 200:
                     img_bytes = await response.read()
                     if riscattare:
-                        folder_id = create_folder_if_not_exists(REPOSITORY_FOLDER_ID, sku)
-                        filename = f"{sku}.jpg"
-                        existing_file = get_drive_file(folder_id, filename)
-
-                        new_image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-
-                        if existing_file:
-                            existing_img = download_drive_image(existing_file["id"]).convert("RGB")
-                            if images_are_equal(existing_img, new_image):
-                                return sku, False
-                            else:
-                                today = datetime.now().strftime("%Y-%m-%d")
-                                archived_name = f"{today}_{sku}.jpg"
-                                drive_service.files().update(
-                                    fileId=existing_file["id"],
-                                    body={"name": archived_name}
-                                ).execute()
-
-                        fh = io.BytesIO()
-                        new_image.save(fh, format="JPEG")
-                        fh.seek(0)
-                        media = MediaIoBaseUpload(fh, mimetype="image/jpeg")
-                        drive_service.files().create(
-                            body={"name": filename, "parents": [folder_id]},
-                            media_body=media,
-                            fields="id"
-                        ).execute()
+                        new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+                        old_name, old_img = get_dropbox_latest_image(sku)
+                        if old_img and images_are_equal(new_img, old_img):
+                            return sku, False
+                        # Rinominare la vecchia
+                        if old_name:
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            ext = old_name.split(".")[-1]
+                            new_old_name = f"{sku}_{timestamp}.{ext}"
+                            dbx.files_move_v2(
+                                from_path=f"/repository/{sku}/{old_name}",
+                                to_path=f"/repository/{sku}/{new_old_name}",
+                                allow_shared_folder=True,
+                                autorename=True
+                            )
+                        save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
                     return sku, False
                 else:
                     return sku, True
@@ -126,7 +113,6 @@ async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx:
                 riscattare = row[riscattare_idx].strip().lower() == "true"
                 if sku:
                     tasks[sku] = asyncio.create_task(check_photo(sku, riscattare, sem, session))
-
         for sku, task in tasks.items():
             try:
                 result = await task
@@ -139,14 +125,11 @@ async def retry_until_complete(data_rows, sku_idx, riscattare_idx) -> Dict[str, 
     checked = {}
     retries = 0
     while retries < RETRY_LIMIT:
-        pending_rows = [
-            row for row in data_rows
-            if row[sku_idx].strip() not in checked
-        ]
-        if not pending_rows:
+        pending = [row for row in data_rows if row[sku_idx].strip() not in checked]
+        if not pending:
             break
-        print(f"🔁 Retry {retries+1}, checking {len(pending_rows)} SKU...")
-        partial = await process_skus(pending_rows, sku_idx, riscattare_idx)
+        print(f"🔁 Retry {retries+1}: {len(pending)} SKU")
+        partial = await process_skus(pending, sku_idx, riscattare_idx)
         checked.update(partial)
         retries += 1
     return checked
@@ -158,7 +141,7 @@ async def main():
     sheet = get_sheet(SHEET_ID, FOGLIO)
     all_data = sheet.get_all_values()
     if len(all_data) < 3:
-        print("❌ Foglio vuoto o troppo corto.")
+        print("❌ Foglio vuoto.")
         return
 
     header = all_data[1]
@@ -171,24 +154,17 @@ async def main():
         print(f"❌ Colonna mancante: {e}")
         return
 
-    print(f"🔍 Totale righe da analizzare: {len(rows)}")
-
+    print(f"🔍 SKU totali: {len(rows)}")
     results = await retry_until_complete(rows, sku_idx, riscattare_idx)
-
-    print(f"✅ Controllate: {len(results)} SKU")
+    print(f"✅ Verificate: {len(results)}")
 
     output_column = []
     for row in rows:
         sku = row[sku_idx].strip() if len(row) > sku_idx else ""
-        if sku in results:
-            output_column.append([str(results[sku])])
-        else:
-            output_column.append([""])
+        output_column.append([str(results.get(sku, ""))])
 
-    range_k = f"K3:K{len(output_column)+2}"
-    print(f"✍️ Aggiorno Google Sheet su {range_k}")
-    sheet.update(values=output_column, range_name=range_k, value_input_option="RAW")
-    print("✅ Operazione completata.")
+    sheet.update(f"K3:K{len(output_column)+2}", output_column, value_input_option="RAW")
+    print("✅ Google Sheet aggiornato")
 
 if __name__ == "__main__":
     asyncio.run(main())
