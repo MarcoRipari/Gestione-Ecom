@@ -166,7 +166,11 @@ async def main():
         sku = row[sku_idx].strip() if len(row) > sku_idx else ""
         output_column.append([str(results.get(sku, ""))])
 
-    sheet.update(f"K3:K{len(output_column)+2}", output_column, value_input_option="RAW")
+    sheet.update(
+        range_name=f"K3:K{len(output_column)+2}",
+        values=output_column,
+        value_input_option="RAW"
+    )
     print("✅ Google Sheet aggiornato")
 
 if __name__ == "__main__":
