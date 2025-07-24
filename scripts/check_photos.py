@@ -79,28 +79,31 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
             async with session.get(url, timeout=TIMEOUT_SECONDS) as response:
                 if response.status == 200:
                     img_bytes = await response.read()
+                    new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+
                     if riscattare:
-                        new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
                         old_name, old_img = get_dropbox_latest_image(sku)
                         if old_img and images_are_equal(new_img, old_img):
-                            return sku, False
-                        # Rinominare la vecchia
+                            return sku, False  # Uguale, nessuna azione
+                        # Rinominare vecchia
                         if old_name:
-                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            date_suffix = datetime.now().strftime("%d%m%Y")
                             ext = old_name.split(".")[-1]
-                            new_old_name = f"{sku}_{timestamp}.{ext}"
+                            new_old_name = f"{sku}_{date_suffix}.{ext}"
                             dbx.files_move_v2(
                                 from_path=f"/repository/{sku}/{old_name}",
                                 to_path=f"/repository/{sku}/{new_old_name}",
                                 allow_shared_folder=True,
                                 autorename=True
                             )
+                        # Salva la nuova foto come {sku}.jpg
                         save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
-                    return sku, False
+
+                    return sku, False  # Foto esiste
                 else:
-                    return sku, True
+                    return sku, True  # Foto mancante
         except:
-            return sku, True
+            return sku, True  # Errore, considera come mancante
 
 async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx: int) -> Dict[str, bool]:
     results = {}
