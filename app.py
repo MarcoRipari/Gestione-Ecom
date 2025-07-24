@@ -486,12 +486,19 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
         # 🧹 Normalizza booleani
-        df["SCATTARE"] = df["SCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
-        df["SCATTARE"] = df["SCATTARE"].fillna(False)
-        df["CONSEGNATA"] = df["CONSEGNATA"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
-        df["CONSEGNATA"] = df["CONSEGNATA"].fillna(False)
-        df["RISCATTARE"] = df["RISCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
-        df["RISCATTARE"] = df["RISCATTARE"].fillna(False)
+        #df["SCATTARE"] = df["SCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
+        #df["SCATTARE"] = df["SCATTARE"].fillna(False)
+        #df["CONSEGNATA"] = df["CONSEGNATA"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
+        #df["CONSEGNATA"] = df["CONSEGNATA"].fillna(False)
+        #df["RISCATTARE"] = df["RISCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
+        #df["RISCATTARE"] = df["RISCATTARE"].fillna(False)
+
+        def normalize_bool(col):
+            return col.astype(str).str.strip().str.lower().map({"true": True, "false": False}).fillna(False)
+        
+        df["SCATTARE"] = normalize_bool(df["SCATTARE"])
+        df["CONSEGNATA"] = normalize_bool(df["CONSEGNATA"])
+        df["RISCATTARE"] = normalize_bool(df["RISCATTARE"])
 
         return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA"]]
     except Exception as e:
