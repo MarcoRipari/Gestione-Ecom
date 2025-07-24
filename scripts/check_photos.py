@@ -39,6 +39,13 @@ dbx = dropbox.Dropbox(DROPBOX_TOKEN)
 def get_sheet(sheet_id, tab_name):
     return gs_client.open_by_key(sheet_id).worksheet(tab_name)
 
+def ensure_dropbox_folder(path: str):
+    try:
+        dbx.files_get_metadata(path)
+    except dropbox.exceptions.ApiError as e:
+        if isinstance(e.error, dropbox.files.GetMetadataError) or "not_found" in str(e).lower():
+            dbx.files_create_folder_v2(path)
+
 def images_are_equal(img1: Image.Image, img2: Image.Image) -> bool:
     return list(img1.getdata()) == list(img2.getdata())
 
@@ -62,14 +69,11 @@ def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
 
 def save_image_to_dropbox(sku: str, filename: str, image: Image.Image):
     folder_path = f"/repository/{sku}"
+    ensure_dropbox_folder(folder_path)
     file_path = f"{folder_path}/{filename}"
     img_bytes = io.BytesIO()
     image.save(img_bytes, format="JPEG")
     img_bytes.seek(0)
-    try:
-        dbx.files_create_folder_v2(folder_path)
-    except dropbox.exceptions.ApiError:
-        pass
     dbx.files_upload(img_bytes.read(), file_path, mode=WriteMode("overwrite"))
 
 async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, session: aiohttp.ClientSession) -> (str, bool):
@@ -82,28 +86,32 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                     new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
 
                     if riscattare:
+                        folder_path = f"/repository/{sku}"
+                        ensure_dropbox_folder(folder_path)
+
                         old_name, old_img = get_dropbox_latest_image(sku)
                         if old_img and images_are_equal(new_img, old_img):
-                            return sku, False  # Uguale, nessuna azione
-                        # Rinominare vecchia
+                            return sku, False  # Nessuna azione
+
+                        # Rinominare vecchia immagine
                         if old_name:
                             date_suffix = datetime.now().strftime("%d%m%Y")
                             ext = old_name.split(".")[-1]
                             new_old_name = f"{sku}_{date_suffix}.{ext}"
                             dbx.files_move_v2(
-                                from_path=f"/repository/{sku}/{old_name}",
-                                to_path=f"/repository/{sku}/{new_old_name}",
+                                from_path=f"{folder_path}/{old_name}",
+                                to_path=f"{folder_path}/{new_old_name}",
                                 allow_shared_folder=True,
                                 autorename=True
                             )
-                        # Salva la nuova foto come {sku}.jpg
+
                         save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
 
                     return sku, False  # Foto esiste
                 else:
                     return sku, True  # Foto mancante
         except:
-            return sku, True  # Errore, considera come mancante
+            return sku, True
 
 async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx: int) -> Dict[str, bool]:
     results = {}
