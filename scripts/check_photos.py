@@ -94,35 +94,26 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
     url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
     async with sem:
         try:
-            # 1. HEAD check (facoltativo ma veloce)
-            try:
-                async with session.head(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as head_resp:
-                    if debug_count > 0:
-                        print(f"[HEAD] {sku} → status={head_resp.status}")
-                    if head_resp.status == 200:
-                        return sku, False
-            except Exception as e:
+            async with session.get(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as response:
                 if debug_count > 0:
-                    print(f"[HEAD ERROR] {sku} → {e}")
+                    print(f"📸 [{sku}] GET status = {response.status} | RISCATTARE = {riscattare}")
 
-            # 2. GET image
-            async with session.get(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as get_resp:
-                if debug_count > 0:
-                    print(f"[GET] {sku} → status={get_resp.status}")
-                if get_resp.status != 200:
-                    return sku, True  # mancante
+                if response.status != 200:
+                    print(f"❌ [{sku}] Immagine non trovata → segnato come mancante")
+                    return sku, True  # Foto mancante
 
-                img_bytes = await get_resp.read()
+                img_bytes = await response.read()
                 new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
 
                 if riscattare:
+                    print(f"▶️ [{sku}] richiesta RISCATTARE attiva")
+
                     old_name, old_img = get_dropbox_latest_image(sku)
                     if old_img and images_are_equal(new_img, old_img):
-                        if debug_count > 0:
-                            print(f"🟢 {sku}: immagine già presente e identica")
+                        print(f"🟢 [{sku}] Immagine identica già presente → nessuna azione")
                         return sku, False
 
-                    # Rinominare vecchia
+                    # Rinominare la vecchia se diversa
                     if old_name:
                         date_suffix = datetime.now().strftime("%d%m%Y")
                         ext = old_name.split(".")[-1]
@@ -133,37 +124,36 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                             allow_shared_folder=True,
                             autorename=True
                         )
-                        if debug_count > 0:
-                            print(f"📁 {sku}: vecchia immagine rinominata → {new_old_name}")
+                        print(f"♻️ [{sku}] Rinominata vecchia immagine → {new_old_name}")
 
-                    # Carica nuova immagine
-                    dropbox_path = f"/repository/{sku}/{sku}.jpg"
+                    # Salva nuova immagine
+                    folder_path = f"/repository/{sku}"
+                    dropbox_path = f"{folder_path}/{sku}.jpg"
                     img_io = io.BytesIO()
                     new_img.save(img_io, format="JPEG")
                     img_io.seek(0)
 
-                    # Crea cartella se non esiste
                     try:
-                        dbx.files_create_folder_v2(f"/repository/{sku}")
+                        dbx.files_create_folder_v2(folder_path)
                     except dropbox.exceptions.ApiError:
                         pass
 
                     dbx.files_upload(img_io.read(), dropbox_path, mode=WriteMode("overwrite"))
+                    print(f"✅ [{sku}] Immagine salvata su Dropbox")
 
-                    # URL pubblico
                     try:
                         shared = dbx.sharing_create_shared_link_with_settings(dropbox_path)
                         public_url = shared.url.replace("?dl=0", "?raw=1")
-                        if debug_count > 0:
-                            print(f"🔗 {sku}: immagine aggiornata su Dropbox → {public_url}")
-                    except dropbox.exceptions.ApiError:
-                        if debug_count > 0:
-                            print(f"⚠️ {sku}: errore nella creazione link pubblico Dropbox")
+                        print(f"🔗 [{sku}] Link pubblico: {public_url}")
+                    except dropbox.exceptions.ApiError as e:
+                        print(f"⚠️ [{sku}] Errore creazione link Dropbox: {e}")
+
+                else:
+                    print(f"🚫 [{sku}] RISCATTARE non attivo → nessuna azione Dropbox")
 
                 return sku, False  # Foto esiste
-        except Exception as final_error:
-            if debug_count > 0:
-                print(f"[UNHANDLED ERROR] {sku} → {final_error}")
+        except Exception as e:
+            print(f"❌ [{sku}] Errore imprevisto: {e}")
             return sku, True
 
 async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx: int) -> Dict[str, bool]:
