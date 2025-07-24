@@ -39,13 +39,6 @@ dbx = dropbox.Dropbox(DROPBOX_TOKEN)
 def get_sheet(sheet_id, tab_name):
     return gs_client.open_by_key(sheet_id).worksheet(tab_name)
 
-def ensure_dropbox_folder(path: str):
-    try:
-        dbx.files_get_metadata(path)
-    except dropbox.exceptions.ApiError as e:
-        if isinstance(e.error, dropbox.files.GetMetadataError) or "not_found" in str(e).lower():
-            dbx.files_create_folder_v2(path)
-
 def images_are_equal(img1: Image.Image, img2: Image.Image) -> bool:
     return list(img1.getdata()) == list(img2.getdata())
 
@@ -78,11 +71,10 @@ def save_image_to_dropbox(sku: str, filename: str, image: Image.Image):
     try:
         dbx.files_create_folder_v2(folder_path)
     except dropbox.exceptions.ApiError:
-        pass  # La cartella esiste già
+        pass
 
     dbx.files_upload(img_bytes.read(), file_path, mode=WriteMode("overwrite"))
 
-    # ✅ Ottieni link condivisibile
     try:
         shared_link = dbx.sharing_create_shared_link_with_settings(file_path)
         print(f"✅ Foto salvata: {file_path}")
@@ -90,92 +82,83 @@ def save_image_to_dropbox(sku: str, filename: str, image: Image.Image):
     except dropbox.exceptions.ApiError as e:
         print(f"⚠️ Impossibile creare link condiviso per {file_path}: {e}")
 
-async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, session: aiohttp.ClientSession, debug_count: int = 10) -> (str, bool):
+async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, session: aiohttp.ClientSession, debug_count: int = 10) -> (str, bool, bool):
     url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
     async with sem:
         try:
-            # 1. Tentativo HEAD
-            try:
-                async with session.head(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as head_resp:
-                    status = head_resp.status
-                    if debug_count > 0:
-                        print(f"[HEAD] {sku} → status={status}")
-                    if status == 200:
-                        return sku, False
-            except Exception as e:
+            async with session.get(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as get_resp:
+                status = get_resp.status
                 if debug_count > 0:
-                    print(f"[HEAD ERROR] {sku} → {e}")
+                    print(f"[GET] {sku} → status={status}")
+                if status == 200:
+                    img_bytes = await get_resp.read()
+                    new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+                    foto_salvata = False
 
-            # 2. Tentativo GET solo se HEAD ha fallito
-            try:
-                async with session.get(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as get_resp:
-                    status = get_resp.status
-                    if debug_count > 0:
-                        print(f"[GET] {sku} → status={status}")
-                    if status == 200:
-                        img_bytes = await get_resp.read()
-                        new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-
-                        if riscattare:
-                            old_name, old_img = get_dropbox_latest_image(sku)
-                            if old_img and images_are_equal(new_img, old_img):
-                                return sku, False
+                    if riscattare:
+                        old_name, old_img = get_dropbox_latest_image(sku)
+                        if not old_img or not images_are_equal(new_img, old_img):
                             if old_name:
                                 date_suffix = datetime.now().strftime("%d%m%Y")
                                 ext = old_name.split(".")[-1]
                                 new_old_name = f"{sku}_{date_suffix}.{ext}"
-                                dbx.files_move_v2(
-                                    from_path=f"/repository/{sku}/{old_name}",
-                                    to_path=f"/repository/{sku}/{new_old_name}",
-                                    allow_shared_folder=True,
-                                    autorename=True
-                                )
+                                try:
+                                    dbx.files_move_v2(
+                                        from_path=f"/repository/{sku}/{old_name}",
+                                        to_path=f"/repository/{sku}/{new_old_name}",
+                                        allow_shared_folder=True,
+                                        autorename=True
+                                    )
+                                except Exception as e:
+                                    print(f"⚠️ Errore nel rinominare {old_name} → {e}")
                             save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
-                        return sku, False
-                    else:
-                        return sku, True
-            except Exception as e:
-                if debug_count > 0:
-                    print(f"[GET ERROR] {sku} → {e}")
-                return sku, True
+                            foto_salvata = True
 
-        except Exception as final_error:
+                    return sku, False, foto_salvata
+                else:
+                    return sku, True, False
+        except Exception as e:
             if debug_count > 0:
-                print(f"[UNHANDLED ERROR] {sku} → {final_error}")
-            return sku, True
+                print(f"[ERROR] {sku} → {e}")
+            return sku, True, False
 
 async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx: int) -> Dict[str, bool]:
     results = {}
+    foto_salvate = 0
     sem = asyncio.Semaphore(MAX_CONCURRENT)
     async with aiohttp.ClientSession() as session:
         tasks = {}
-        for i, (row) in enumerate(data_rows):
+        for i, row in enumerate(data_rows):
             if len(row) > max(sku_idx, riscattare_idx):
                 sku = row[sku_idx].strip()
                 riscattare = row[riscattare_idx].strip().lower() == "true"
                 if sku:
-                    debug_count = max(0, 10 - i)  # solo primi 10 SKU
+                    debug_count = max(0, 10 - i)
                     tasks[sku] = asyncio.create_task(check_photo(sku, riscattare, sem, session, debug_count))
         for sku, task in tasks.items():
             try:
-                result = await task
-                results[result[0]] = result[1]
+                sku, mancante, salvata = await task
+                results[sku] = mancante
+                if salvata:
+                    foto_salvate += 1
             except:
                 results[sku] = True
-    return results
+    return results, foto_salvate
 
-async def retry_until_complete(data_rows, sku_idx, riscattare_idx) -> Dict[str, bool]:
+async def retry_until_complete(data_rows, sku_idx, riscattare_idx) -> (Dict[str, bool], int):
     checked = {}
+    foto_salvate_totali = 0
     retries = 0
     while retries < RETRY_LIMIT:
         pending = [row for row in data_rows if row[sku_idx].strip() not in checked]
         if not pending:
             break
         print(f"🔁 Retry {retries+1}: {len(pending)} SKU")
-        partial = await process_skus(pending, sku_idx, riscattare_idx)
+        partial, salvate = await process_skus(pending, sku_idx, riscattare_idx)
         checked.update(partial)
+        foto_salvate_totali += salvate
         retries += 1
-    return checked
+    return checked, foto_salvate_totali
 
 # -------------------------------
 # MAIN
@@ -198,23 +181,13 @@ async def main():
         return
 
     print(f"🔍 SKU totali: {len(rows)}")
-    results = await retry_until_complete(rows, sku_idx, riscattare_idx)
+    results, tot_foto_salvate = await retry_until_complete(rows, sku_idx, riscattare_idx)
     print(f"✅ Verificate: {len(results)}")
-    
-    # ✅ Log per le prime 10 SKU
-    print("📋 Log esistenza foto per le prime 10 SKU:")
-    for i, (sku, exists) in enumerate(results.items()):
-        print(f"  {sku}: {'MANCANTE' if exists else 'ESISTE'}")
-        if i >= 9:
-            break
 
     output_column = []
     for row in rows:
         sku = row[sku_idx].strip() if len(row) > sku_idx else ""
-        if sku in results:
-            output_column.append([str(results[sku])])  # True solo se mancante
-        else:
-            output_column.append([""])
+        output_column.append([str(results.get(sku, ""))])
 
     sheet.update(
         range_name=f"K3:K{len(output_column)+2}",
@@ -222,6 +195,8 @@ async def main():
         value_input_option="RAW"
     )
     print("✅ Google Sheet aggiornato")
+    print(f"📦 Aggiornate {len(results)} SKU")
+    print(f"🖼️ Foto scaricate su Dropbox: {tot_foto_salvate}")
 
 if __name__ == "__main__":
     asyncio.run(main())
