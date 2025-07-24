@@ -481,7 +481,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
             return pd.DataFrame()
 
         # ✅ Definizione corretta: 11 intestazioni per colonne A–K
-        headers = ["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "TGCAMP", "TGDISP", "SCATTARE", "ALT6", "ALT7", "DISPONIBILITE", "CONSEGNATA"]
+        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "TGCAMP", "TGDISP", "SCATTARE", "ALT6", "ALT7", "DISPONIBILITE", "CONSEGNATA"]
         df = pd.DataFrame(values, columns=headers)
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
@@ -491,7 +491,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         df["CONSEGNATA"] = df["CONSEGNATA"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
         df["CONSEGNATA"] = df["CONSEGNATA"].fillna(False)
 
-        return df[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "CONSEGNATA"]]
+        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "CONSEGNATA"]]
     except Exception as e:
         st.error(f"Errore durante il caricamento: {str(e)}")
         return pd.DataFrame()
