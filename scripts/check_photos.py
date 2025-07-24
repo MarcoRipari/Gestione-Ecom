@@ -9,6 +9,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from PIL import Image
 from typing import List, Dict
+from datetime import datetime
 
 # -------------------------------
 # CONFIGURAZIONE
@@ -90,12 +91,15 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                         if existing_file:
                             existing_img = download_drive_image(existing_file["id"]).convert("RGB")
                             if images_are_equal(existing_img, new_image):
-                                return sku, False  # immagine già presente e uguale
+                                return sku, False
                             else:
-                                # elimina e aggiorna
-                                drive_service.files().delete(fileId=existing_file["id"]).execute()
+                                today = datetime.now().strftime("%Y-%m-%d")
+                                archived_name = f"{today}_{sku}.jpg"
+                                drive_service.files().update(
+                                    fileId=existing_file["id"],
+                                    body={"name": archived_name}
+                                ).execute()
 
-                        # salva nuova immagine
                         fh = io.BytesIO()
                         new_image.save(fh, format="JPEG")
                         fh.seek(0)
@@ -105,9 +109,9 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                             media_body=media,
                             fields="id"
                         ).execute()
-                    return sku, False  # esiste
+                    return sku, False
                 else:
-                    return sku, True  # mancante
+                    return sku, True
         except:
             return sku, True
 
