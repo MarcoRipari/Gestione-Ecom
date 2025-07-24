@@ -481,7 +481,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
             return pd.DataFrame()
 
         # ✅ Definizione corretta: 11 intestazioni per colonne A–K
-        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "TGCAMP", "TGDISP", "SCATTARE", "ALT6", "RISCATTARE", "DISPONIBILITE", "CONSEGNATA"]
+        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "TGCAMP", "TGDISP", "SCATTARE", "ALT6", "DISPONIBILITE", "RISCATTARE", "CONSEGNATA"]
         df = pd.DataFrame(values, columns=headers)
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
