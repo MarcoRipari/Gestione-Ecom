@@ -832,11 +832,11 @@ elif page == "📸 Foto":
         
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("📝 Totale SKU", total)
-    c2.metric("🚚 Dal fotografo", consegnate)
-    c3.metric("📸 Da scattare", da_scattare)
-    c4.metric("✅ Già scattate", scattate)
+    c2.metric("✅ Già scattate", scattate)
+    c3.metric("🚚 Dal fotografo", consegnate)
+    c4.metric("📸 Da scattare", da_scattare)
+    
    
-
     # 🔽 Filtro visualizzazione
     filtro_foto = st.selectbox("📌 Filtro foto da fare", ["Tutti", "Solo da scattare", "Solo già scattate"])
 
