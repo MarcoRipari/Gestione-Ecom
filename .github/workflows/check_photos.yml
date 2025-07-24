@@ -4,9 +4,6 @@ on:
   workflow_dispatch:       # Avvio manuale
   schedule:
     - cron: '0 5 * * *'     # Ogni giorno alle 5:00 UTC
-  push:
-    branches:
-      - main                # In caso di push su main
 
 jobs:
   check-photos:
