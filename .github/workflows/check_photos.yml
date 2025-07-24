@@ -27,7 +27,7 @@ jobs:
         env:
           FOTO_GSHEET_ID: ${{ secrets.FOTO_GSHEET_ID }}
           SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
-          REPOSITORY_FOLDER_ID: ${{ secrets.REPOSITORY_FOLDER_ID }}
+          DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
         run: |
           echo "✅ Variabili segrete impostate"
 
@@ -35,5 +35,5 @@ jobs:
         env:
           FOTO_GSHEET_ID: ${{ secrets.FOTO_GSHEET_ID }}
           SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
-          REPOSITORY_FOLDER_ID: ${{ secrets.REPOSITORY_FOLDER_ID }}
+          DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
         run: python scripts/check_photos.py
