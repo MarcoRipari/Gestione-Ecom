@@ -4,13 +4,13 @@ import os
 import json
 import gspread
 import io
-from PIL import Image
+import hashlib
+from PIL import Image, ImageChops
 from datetime import datetime
 from typing import List, Dict
 from google.oauth2.service_account import Credentials
 import dropbox
 from dropbox.files import WriteMode
-import hashlib
 
 # -------------------------------
 # CONFIG
@@ -20,9 +20,9 @@ SERVICE_ACCOUNT_JSON = os.environ.get("SERVICE_ACCOUNT_JSON")
 DROPBOX_TOKEN = os.environ.get("DROPBOX_TOKEN")
 
 FOGLIO = "LISTA"
-MAX_CONCURRENT = 20
+MAX_CONCURRENT = 40
 RETRY_LIMIT = 3
-TIMEOUT_SECONDS = 30
+TIMEOUT_SECONDS = 10
 
 # -------------------------------
 # AUTENTICAZIONE
@@ -40,14 +40,16 @@ dbx = dropbox.Dropbox(DROPBOX_TOKEN)
 def get_sheet(sheet_id, tab_name):
     return gs_client.open_by_key(sheet_id).worksheet(tab_name)
 
-def image_hash(img: Image.Image) -> str:
-    """Genera un hash SHA256 dell'immagine salvata in JPEG in memoria."""
-    with io.BytesIO() as buffer:
-        img.save(buffer, format="JPEG", quality=90)  # qualità costante
-        return hashlib.sha256(buffer.getvalue()).hexdigest()
+def hash_image(image: Image.Image) -> str:
+    """Genera hash MD5 per un'immagine."""
+    img_bytes = io.BytesIO()
+    image.save(img_bytes, format="JPEG")
+    return hashlib.md5(img_bytes.getvalue()).hexdigest()
 
 def images_are_equal(img1: Image.Image, img2: Image.Image) -> bool:
-    return image_hash(img1) == image_hash(img2)
+    """Confronto visuale basato su differenza pixel."""
+    diff = ImageChops.difference(img1, img2)
+    return not diff.getbbox()
 
 def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
     folder_path = f"/repository/{sku}"
@@ -80,15 +82,7 @@ def save_image_to_dropbox(sku: str, filename: str, image: Image.Image):
     except dropbox.exceptions.ApiError:
         pass
 
-    try:
-        dbx.files_upload(img_bytes.read(), file_path, mode=WriteMode("overwrite"))
-        try:
-            shared_link = dbx.sharing_create_shared_link_with_settings(file_path)
-            print(f"📸 {sku} salvata → {shared_link.url.replace('?dl=0', '?raw=1')}")
-        except Exception as e:
-            print(f"⚠️ Errore link condiviso {sku}: {e}")
-    except Exception as e:
-        print(f"❌ Errore upload Dropbox per {sku}: {e}")
+    dbx.files_upload(img_bytes.read(), file_path, mode=WriteMode("overwrite"))
 
 async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, session: aiohttp.ClientSession) -> (str, bool, bool):
     url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
@@ -97,13 +91,9 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
             async with session.get(url, timeout=TIMEOUT_SECONDS, allow_redirects=True) as get_resp:
                 if get_resp.status == 200:
                     img_bytes = await get_resp.read()
-                    try:
-                        new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-                    except Exception as e:
-                        print(f"❌ Errore apertura immagine {sku}: {e}")
-                        return sku, True, False
-
+                    new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
                     foto_salvata = False
+
                     if riscattare:
                         old_name, old_img = get_dropbox_latest_image(sku)
                         if not old_img or not images_are_equal(new_img, old_img):
@@ -119,16 +109,15 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                                         autorename=True
                                     )
                                 except Exception as e:
-                                    print(f"⚠️ Errore rinomina {sku}: {e}")
+                                    print(f"⚠️ Errore rinominando {old_name}: {e}")
                             save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
                             foto_salvata = True
+
                     return sku, False, foto_salvata
                 else:
                     return sku, True, False
         except Exception as e:
-            import traceback
-            print(f"❌ Errore fetch immagine {sku}: {str(e)}")
-            traceback.print_exc()
+            print(f"❌ Errore fetch immagine {sku}: {e}")
             return sku, True, False
 
 async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx: int) -> Dict[str, bool]:
@@ -137,7 +126,7 @@ async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx:
     sem = asyncio.Semaphore(MAX_CONCURRENT)
     async with aiohttp.ClientSession() as session:
         tasks = {}
-        for row in data_rows:
+        for i, row in enumerate(data_rows):
             if len(row) > max(sku_idx, riscattare_idx):
                 sku = row[sku_idx].strip()
                 riscattare = row[riscattare_idx].strip().lower() == "true"
@@ -149,8 +138,7 @@ async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx:
                 results[sku] = mancante
                 if salvata:
                     foto_salvate += 1
-            except Exception as e:
-                print(f"❌ Errore task {sku}: {e}")
+            except:
                 results[sku] = True
     return results, foto_salvate
 
@@ -188,7 +176,9 @@ async def main():
         print(f"❌ Colonna mancante: {e}")
         return
 
+    print(f"🔍 SKU totali: {len(rows)}")
     results, tot_foto_salvate = await retry_until_complete(rows, sku_idx, riscattare_idx)
+    print(f"✅ Verificate: {len(results)}")
 
     output_column = []
     for row in rows:
@@ -200,10 +190,9 @@ async def main():
         values=output_column,
         value_input_option="RAW"
     )
-
     print("✅ Google Sheet aggiornato")
     print(f"📦 Aggiornate {len(results)} SKU")
-    print(f"🖼️ Foto salvate su Dropbox: {tot_foto_salvate}")
+    print(f"🖼️ Foto scaricate su Dropbox: {tot_foto_salvate}")
 
 if __name__ == "__main__":
     asyncio.run(main())
