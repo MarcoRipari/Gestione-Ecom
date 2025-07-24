@@ -69,12 +69,26 @@ def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
 
 def save_image_to_dropbox(sku: str, filename: str, image: Image.Image):
     folder_path = f"/repository/{sku}"
-    ensure_dropbox_folder(folder_path)
     file_path = f"{folder_path}/{filename}"
+
     img_bytes = io.BytesIO()
     image.save(img_bytes, format="JPEG")
     img_bytes.seek(0)
+
+    try:
+        dbx.files_create_folder_v2(folder_path)
+    except dropbox.exceptions.ApiError:
+        pass  # La cartella esiste già
+
     dbx.files_upload(img_bytes.read(), file_path, mode=WriteMode("overwrite"))
+
+    # ✅ Ottieni link condivisibile
+    try:
+        shared_link = dbx.sharing_create_shared_link_with_settings(file_path)
+        print(f"✅ Foto salvata: {file_path}")
+        print(f"🔗 Link: {shared_link.url.replace('?dl=0', '?raw=1')}")
+    except dropbox.exceptions.ApiError as e:
+        print(f"⚠️ Impossibile creare link condiviso per {file_path}: {e}")
 
 async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, session: aiohttp.ClientSession) -> (str, bool):
     url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
