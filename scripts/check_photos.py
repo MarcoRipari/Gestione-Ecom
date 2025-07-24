@@ -107,7 +107,9 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
 
                         save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
 
-                    return sku, False  # Foto esiste
+                    # restituisce True solo se la foto è realmente mancante
+                    missing = response.status != 200
+                    return sku, missing
                 else:
                     return sku, True  # Foto mancante
         except:
@@ -172,7 +174,10 @@ async def main():
     output_column = []
     for row in rows:
         sku = row[sku_idx].strip() if len(row) > sku_idx else ""
-        output_column.append([str(results.get(sku, ""))])
+        if sku in results:
+            output_column.append([str(results[sku])])  # True solo se mancante
+        else:
+            output_column.append([""])
 
     sheet.update(
         range_name=f"K3:K{len(output_column)+2}",
