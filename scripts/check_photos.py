@@ -10,6 +10,7 @@ from typing import List, Dict
 from google.oauth2.service_account import Credentials
 import dropbox
 from dropbox.files import WriteMode
+import hashlib
 
 # -------------------------------
 # CONFIG
@@ -39,8 +40,14 @@ dbx = dropbox.Dropbox(DROPBOX_TOKEN)
 def get_sheet(sheet_id, tab_name):
     return gs_client.open_by_key(sheet_id).worksheet(tab_name)
 
+def image_hash(img: Image.Image) -> str:
+    """Genera un hash SHA256 dell'immagine salvata in JPEG in memoria."""
+    with io.BytesIO() as buffer:
+        img.save(buffer, format="JPEG", quality=90)  # qualità costante
+        return hashlib.sha256(buffer.getvalue()).hexdigest()
+
 def images_are_equal(img1: Image.Image, img2: Image.Image) -> bool:
-    return list(img1.getdata()) == list(img2.getdata())
+    return image_hash(img1) == image_hash(img2)
 
 def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
     folder_path = f"/repository/{sku}"
