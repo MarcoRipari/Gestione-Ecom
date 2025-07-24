@@ -184,6 +184,13 @@ async def main():
     print(f"🔍 SKU totali: {len(rows)}")
     results = await retry_until_complete(rows, sku_idx, riscattare_idx)
     print(f"✅ Verificate: {len(results)}")
+    
+    # ✅ Log per le prime 10 SKU
+    print("📋 Log esistenza foto per le prime 10 SKU:")
+    for i, (sku, exists) in enumerate(results.items()):
+        print(f"  {sku}: {'MANCANTE' if exists else 'ESISTE'}")
+        if i >= 9:
+            break
 
     output_column = []
     for row in rows:
