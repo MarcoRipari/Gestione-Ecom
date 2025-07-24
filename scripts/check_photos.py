@@ -13,7 +13,7 @@ from google.oauth2.service_account import Credentials
 import dropbox
 from dropbox.files import WriteMode
 
-DEBUG = 1  # Imposta a 0 per eseguire lo script completo
+DEBUG = 0  # Imposta a 0 per eseguire lo script completo
 async def test_debug():
     sku = "2012889010C02"
     riscattare = True
