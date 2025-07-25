@@ -883,22 +883,17 @@ elif page == "📸 Foto":
     # ✅ Considera solo SKU che hanno già la foto (SCATTARE == False)
     df_foto_esistenti = df[df["SCATTARE"] == False]
     
-    if "ristampe_confermate" in st.session_state:
+    if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
         for riga in st.session_state["ristampe_confermate"]:
             st.markdown(f"- {riga}")
     else:
-        # Mostra il box di ricerca e selezione solo se non è già stato confermato
         sku_input = st.text_input("🔍 Inserisci SKU da cercare (solo con foto esistenti)")
-        if "ristampe_selezionate" not in st.session_state:
-            st.session_state["ristampe_selezionate"] = set()
-        
-        selected_ristampe = st.session_state["ristampe_selezionate"]
         
         if sku_input:
             sku_norm = sku_input.strip().upper()
             match = df_foto_esistenti[df_foto_esistenti["SKU"] == sku_norm]
-        
+    
             if match.empty:
                 st.warning("❌ SKU non trovata o la foto non esiste ancora.")
             else:
@@ -911,13 +906,13 @@ elif page == "📸 Foto":
                     st.markdown(f"**{row['DESCRIZIONE']}**")
                     st.markdown(f"*Canale*: {row['CANALE']}  \n*Collezione*: {row['COLLEZIONE']}")
                 with cols[2]:
-                    sku_selected = row["SKU"] in selected_ristampe
-                    ristampa_checkbox = st.checkbox("🔁 Ristampa", key=f"ristampa_{row['SKU']}", value=sku_selected)
-                    
+                    ristampa_checkbox = st.checkbox("🔁 Ristampa", key=f"ristampa_{row['SKU']}")
                     if ristampa_checkbox:
-                        selected_ristampe.add(row["SKU"])
+                        selected_ristampe.add(row['SKU'])
                     else:
-                        selected_ristampe.discard(row["SKU"])
+                        selected_ristampe.discard(row['SKU'])
+    
+        st.session_state["ristampe_selezionate"] = selected_ristampe
     
         # Stato per conferma e visibilità
         if "ristampe_confermate" not in st.session_state:
