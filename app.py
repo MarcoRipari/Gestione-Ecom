@@ -505,11 +505,11 @@ elif page == "📝 Descrizioni":
             st.session_state.generate = False
         st.success("✅ File caricato con successo!")
 
-# 📊 Anteprima dati
-if "df_input" in st.session_state:
-    df_input = st.session_state.df_input
-    st.subheader("🧾 Anteprima CSV")
-    st.dataframe(df_input.head())
+    # 📊 Anteprima dati
+    if "df_input" in st.session_state:
+        df_input = st.session_state.df_input
+        st.subheader("🧾 Anteprima CSV")
+        st.dataframe(df_input.head())
 
     # 🧩 Configurazione colonne
     with st.expander("⚙️ Configura colonne per il prompt", expanded=True):
