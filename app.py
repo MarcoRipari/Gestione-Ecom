@@ -885,7 +885,10 @@ elif page == "📸 Foto":
     
     sku_input = st.text_input("🔍 Inserisci SKU da cercare (solo con foto esistenti)")
     
-    selected_ristampe = st.session_state.get("ristampe_selezionate", set())
+    if "ristampe_selezionate" not in st.session_state:
+        st.session_state["ristampe_selezionate"] = set()
+    
+    selected_ristampe = st.session_state["ristampe_selezionate"]
     
     if sku_input:
         sku_norm = sku_input.strip().upper()
@@ -903,11 +906,13 @@ elif page == "📸 Foto":
                 st.markdown(f"**{row['DESCRIZIONE']}**")
                 st.markdown(f"*Canale*: {row['CANALE']}  \n*Collezione*: {row['COLLEZIONE']}")
             with cols[2]:
-                ristampa_checkbox = st.checkbox("🔁 Ristampa", key=f"ristampa_{row['SKU']}")
+                sku_selected = row["SKU"] in selected_ristampe
+                ristampa_checkbox = st.checkbox("🔁 Ristampa", key=f"ristampa_{row['SKU']}", value=sku_selected)
+                
                 if ristampa_checkbox:
-                    selected_ristampe.add(row['SKU'])
+                    selected_ristampe.add(row["SKU"])
                 else:
-                    selected_ristampe.discard(row['SKU'])
+                    selected_ristampe.discard(row["SKU"])
 
     # Stato per conferma e visibilità
     if "ristampe_confermate" not in st.session_state:
