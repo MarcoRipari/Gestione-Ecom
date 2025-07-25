@@ -800,6 +800,7 @@ elif page == "📝 Descrizioni":
                     benchmark_faiss(df_input, st.session_state.col_weights)
 
 elif page == "📸 Foto":
+    selected_ristampe = st.session_state.get("ristampe_selezionate", set())
     st.header("📸 Gestione Foto")
     tab_names = ["ECOM", "ZFS", "AMAZON"]
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
