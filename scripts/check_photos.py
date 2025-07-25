@@ -240,16 +240,32 @@ async def main():
     results, tot_foto_salvate = await retry_until_complete(rows, sku_idx, riscattare_idx)
     print(f"✅ Verificate: {len(results)}")
 
-    output_column = []
-    for row in rows:
+    output_col_k = []  # Colonna SCATTARE
+    output_col_n = []  # Colonna RISCATTARE
+    
+    for i, row in enumerate(rows):
         sku = row[sku_idx].strip() if len(row) > sku_idx else ""
-        output_column.append([str(results.get(sku, ""))])
-
-    sheet.update(
-        range_name=f"K3:K{len(output_column)+2}",
-        values=output_column,
-        value_input_option="RAW"
-    )
+        mancante, salvata = results.get(sku, (None, False))
+        output_col_k.append([str(mancante)])
+    
+        # Imposta RISCATTARE = FALSE solo se l'immagine è stata salvata effettivamente
+        if salvata and len(row) > riscattare_idx and row[riscattare_idx].strip().lower() == "true":
+            output_col_n.append(["FALSE"])
+        else:
+            output_col_n.append([""])
+    
+    # Aggiorna le due colonne nel foglio
+    sheet.batch_update([
+        {
+            "range": f"K3:K{len(output_col_k)+2}",
+            "values": output_col_k
+        },
+        {
+            "range": f"N3:N{len(output_col_n)+2}",
+            "values": output_col_n
+        }
+    ])
+    
     print("✅ Google Sheet aggiornato")
     print(f"📦 Aggiornate {len(results)} SKU")
     print(f"🖼️ Foto scaricate su Dropbox: {tot_foto_salvate}")
