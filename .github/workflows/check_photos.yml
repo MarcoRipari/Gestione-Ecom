@@ -29,6 +29,9 @@ jobs:
           SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
           DROPBOX_ROOT_PATH: ${{ secrets.DROPBOX_ROOT_PATH }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
         run: |
           echo "✅ Variabili segrete impostate"
 
@@ -38,4 +41,7 @@ jobs:
           SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
           DROPBOX_ROOT_PATH: ${{ secrets.DROPBOX_ROOT_PATH }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
         run: python scripts/check_photos.py
