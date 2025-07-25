@@ -69,6 +69,9 @@ async def test_debug():
 SHEET_ID = os.environ.get("FOTO_GSHEET_ID")
 SERVICE_ACCOUNT_JSON = os.environ.get("SERVICE_ACCOUNT_JSON")
 DROPBOX_TOKEN = os.environ.get("DROPBOX_TOKEN")
+DROPBOX_REFRESH_TOKEN = os.environ.get("DROPBOX_REFRESH_TOKEN")
+DROPBOX_APP_KEY = os.environ.get("DROPBOX_APP_KEY")
+DROPBOX_APP_SECRET = os.environ.get("DROPBOX_APP_SECRET")
 
 FOGLIO = "LISTA"
 MAX_CONCURRENT = 40
