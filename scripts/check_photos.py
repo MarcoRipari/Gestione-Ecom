@@ -195,9 +195,9 @@ async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx:
         for sku, task in tasks.items():
             try:
                 sku, mancante, salvata = await task
-                results[sku] = mancante
+                results[sku] = (mancante, salvata)
                 if salvata:
-                    foto_salvate += 1
+                    foto_salvate += 1    
             except:
                 results[sku] = True
     return results, foto_salvate
