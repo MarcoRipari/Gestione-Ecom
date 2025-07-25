@@ -83,7 +83,12 @@ credentials = Credentials.from_service_account_info(
     scopes=["https://www.googleapis.com/auth/spreadsheets"]
 )
 gs_client = gspread.authorize(credentials)
-dbx = dropbox.Dropbox(DROPBOX_TOKEN)
+#dbx = dropbox.Dropbox(DROPBOX_TOKEN)
+dbx = dropbox.Dropbox(
+    oauth2_refresh_token=DROPBOX_REFRESH_TOKEN,
+    app_key=DROPBOX_APP_KEY,
+    app_secret=DROPBOX_APP_SECRET
+)
 
 # -------------------------------
 # UTILS
