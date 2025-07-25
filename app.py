@@ -883,72 +883,81 @@ elif page == "📸 Foto":
     # ✅ Considera solo SKU che hanno già la foto (SCATTARE == False)
     df_foto_esistenti = df[df["SCATTARE"] == False]
     
-    sku_input = st.text_input("🔍 Inserisci SKU da cercare (solo con foto esistenti)")
+    if "ristampe_confermate" in st.session_state:
+        st.success("✅ Ristampe confermate per le seguenti SKU:")
+        for riga in st.session_state["ristampe_confermate"]:
+            st.markdown(f"- {riga}")
+    else:
+        # Mostra il box di ricerca e selezione solo se non è già stato confermato
+        sku_input = st.text_input("🔍 Inserisci SKU da cercare (solo con foto esistenti)")
+        if "ristampe_selezionate" not in st.session_state:
+            st.session_state["ristampe_selezionate"] = set()
+        
+        selected_ristampe = st.session_state["ristampe_selezionate"]
+        
+        if sku_input:
+            sku_norm = sku_input.strip().upper()
+            match = df_foto_esistenti[df_foto_esistenti["SKU"] == sku_norm]
+        
+            if match.empty:
+                st.warning("❌ SKU non trovata o la foto non esiste ancora.")
+            else:
+                row = match.iloc[0]
+                image_url = f"https://repository.falc.biz/fal001{row['SKU'].lower()}-1.jpg"
+                cols = st.columns([1, 3, 1])
+                with cols[0]:
+                    st.image(image_url, width=100, caption=row["SKU"])
+                with cols[1]:
+                    st.markdown(f"**{row['DESCRIZIONE']}**")
+                    st.markdown(f"*Canale*: {row['CANALE']}  \n*Collezione*: {row['COLLEZIONE']}")
+                with cols[2]:
+                    sku_selected = row["SKU"] in selected_ristampe
+                    ristampa_checkbox = st.checkbox("🔁 Ristampa", key=f"ristampa_{row['SKU']}", value=sku_selected)
+                    
+                    if ristampa_checkbox:
+                        selected_ristampe.add(row["SKU"])
+                    else:
+                        selected_ristampe.discard(row["SKU"])
     
-    if "ristampe_selezionate" not in st.session_state:
-        st.session_state["ristampe_selezionate"] = set()
+        # Stato per conferma e visibilità
+        if "ristampe_confermate" not in st.session_state:
+            st.session_state["ristampe_confermate"] = False
     
-    selected_ristampe = st.session_state["ristampe_selezionate"]
-    
-    if sku_input:
-        sku_norm = sku_input.strip().upper()
-        match = df_foto_esistenti[df_foto_esistenti["SKU"] == sku_norm]
-    
-        if match.empty:
-            st.warning("❌ SKU non trovata o la foto non esiste ancora.")
-        else:
-            row = match.iloc[0]
-            image_url = f"https://repository.falc.biz/fal001{row['SKU'].lower()}-1.jpg"
-            cols = st.columns([1, 3, 1])
-            with cols[0]:
-                st.image(image_url, width=100, caption=row["SKU"])
-            with cols[1]:
-                st.markdown(f"**{row['DESCRIZIONE']}**")
-                st.markdown(f"*Canale*: {row['CANALE']}  \n*Collezione*: {row['COLLEZIONE']}")
-            with cols[2]:
-                sku_selected = row["SKU"] in selected_ristampe
-                ristampa_checkbox = st.checkbox("🔁 Ristampa", key=f"ristampa_{row['SKU']}", value=sku_selected)
+        if not st.session_state["ristampe_confermate"]:
+            if selected_ristampe:
+                st.markdown(f"📦 SKU selezionate per ristampa: `{', '.join(sorted(selected_ristampe))}`")
+                if st.button("✅ Conferma selezione per ristampa"):
+                    try:
+                        sheet = get_sheet(sheet_id, "LISTA")
+                        all_rows = sheet.get_all_values()
+                        headers = all_rows[1]
+                        data_rows = all_rows[2:]
                 
-                if ristampa_checkbox:
-                    selected_ristampe.add(row["SKU"])
-                else:
-                    selected_ristampe.discard(row["SKU"])
-
-    # Stato per conferma e visibilità
-    if "ristampe_confermate" not in st.session_state:
-        st.session_state["ristampe_confermate"] = False
-
-    if not st.session_state["ristampe_confermate"]:
-        if selected_ristampe:
-            st.markdown(f"📦 SKU selezionate per ristampa: `{', '.join(sorted(selected_ristampe))}`")
-            if st.button("✅ Conferma selezione per ristampa"):
-                try:
-                    sheet = get_sheet(sheet_id, "LISTA")
-                    all_rows = sheet.get_all_values()
-                    headers = all_rows[1]
-                    data_rows = all_rows[2:]
-    
-                    col_sku = 0
-                    col_ristampare = 13  # colonna N
-    
-                    nuovi_valori = []
-                    descrizioni_aggiornate = []
-                    for row in data_rows:
-                        sku = row[col_sku].strip()
-                        val = "TRUE" if sku in selected_ristampe else row[col_ristampare] if len(row) > col_ristampare else ""
-                        nuovi_valori.append([val])
-                        if sku in selected_ristampe:
-                            descrizione = row[4] if len(row) > 4 else ""
-                            descrizioni_aggiornate.append(f"{sku} - {descrizione}")
-    
-                    range_update = f"N3:N{len(nuovi_valori) + 2}"
-                    sheet.update(values=nuovi_valori, range_name=range_update)
-    
-                    st.session_state["ristampe_confermate"] = True
-                    st.session_state["ristampe_selezionate"] = set()
-                    st.session_state["descrizioni_confermate"] = descrizioni_aggiornate
-                except Exception as e:
-                    st.error(f"❌ Errore aggiornamento: {str(e)}")
+                        col_sku = 0
+                        col_descrizione = 4
+                        col_ristampare = 13  # colonna N
+                
+                        nuovi_valori = []
+                        sku_descrizioni_confermate = []
+                
+                        for row in data_rows:
+                            sku = row[col_sku].strip()
+                            descrizione = row[col_descrizione].strip() if len(row) > col_descrizione else ""
+                            if sku in selected_ristampe:
+                                nuovi_valori.append(["TRUE"])
+                                sku_descrizioni_confermate.append(f"{sku} - {descrizione}")
+                            else:
+                                val = row[col_ristampare] if len(row) > col_ristampare else ""
+                                nuovi_valori.append([val])
+                
+                        range_update = f"N3:N{len(nuovi_valori) + 2}"
+                        sheet.update(values=nuovi_valori, range_name=range_update)
+                
+                        st.session_state["ristampe_confermate"] = sku_descrizioni_confermate
+                        st.session_state["ristampe_selezionate"] = set()
+                
+                    except Exception as e:
+                        st.error(f"❌ Errore aggiornamento: {str(e)}")
     else:
         st.success("✅ Ristampe aggiornate correttamente!")
         for riga in st.session_state.get("descrizioni_confermate", []):
