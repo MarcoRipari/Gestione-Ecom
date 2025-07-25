@@ -908,30 +908,43 @@ elif page == "📸 Foto":
                     selected_ristampe.add(row['SKU'])
                 else:
                     selected_ristampe.discard(row['SKU'])
+
+    # Stato per conferma e visibilità
+    if "ristampe_confermate" not in st.session_state:
+        st.session_state["ristampe_confermate"] = False
+
+    if not st.session_state["ristampe_confermate"]:
+        if selected_ristampe:
+            st.markdown(f"📦 SKU selezionate per ristampa: `{', '.join(sorted(selected_ristampe))}`")
+            if st.button("✅ Conferma selezione per ristampa"):
+                try:
+                    sheet = get_sheet(sheet_id, "LISTA")
+                    all_rows = sheet.get_all_values()
+                    headers = all_rows[1]
+                    data_rows = all_rows[2:]
     
-    st.session_state["ristampe_selezionate"] = selected_ristampe
+                    col_sku = 0
+                    col_ristampare = 13  # colonna N
     
-    if selected_ristampe:
-        st.markdown(f"📦 SKU selezionate per ristampa: `{', '.join(sorted(selected_ristampe))}`")
-        if st.button("✅ Conferma selezione per ristampa"):
-            try:
-                sheet = get_sheet(sheet_id, "LISTA")
-                all_rows = sheet.get_all_values()
-                headers = all_rows[1]
-                data_rows = all_rows[2:]
+                    nuovi_valori = []
+                    descrizioni_aggiornate = []
+                    for row in data_rows:
+                        sku = row[col_sku].strip()
+                        val = "TRUE" if sku in selected_ristampe else row[col_ristampare] if len(row) > col_ristampare else ""
+                        nuovi_valori.append([val])
+                        if sku in selected_ristampe:
+                            descrizione = row[4] if len(row) > 4 else ""
+                            descrizioni_aggiornate.append(f"{sku} - {descrizione}")
     
-                col_sku = 0
-                col_ristampare = 13  # colonna N
+                    range_update = f"N3:N{len(nuovi_valori) + 2}"
+                    sheet.update(values=nuovi_valori, range_name=range_update)
     
-                nuovi_valori = []
-                for row in data_rows:
-                    sku = row[col_sku].strip()
-                    val = "TRUE" if sku in selected_ristampe else row[col_ristampare] if len(row) > col_ristampare else ""
-                    nuovi_valori.append([val])
-    
-                range_update = f"N3:N{len(nuovi_valori) + 2}"
-                sheet.update(values=nuovi_valori, range_name=range_update)
-                st.success("✅ Ristampe aggiornate correttamente!")
-                st.session_state["ristampe_selezionate"] = set()
-            except Exception as e:
-                st.error(f"❌ Errore aggiornamento: {str(e)}")
+                    st.session_state["ristampe_confermate"] = True
+                    st.session_state["ristampe_selezionate"] = set()
+                    st.session_state["descrizioni_confermate"] = descrizioni_aggiornate
+                except Exception as e:
+                    st.error(f"❌ Errore aggiornamento: {str(e)}")
+    else:
+        st.success("✅ Ristampe aggiornate correttamente!")
+        for riga in st.session_state.get("descrizioni_confermate", []):
+            st.markdown(f"- {riga}")
