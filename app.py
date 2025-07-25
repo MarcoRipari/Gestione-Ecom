@@ -958,7 +958,7 @@ elif page == "📸 Foto":
                 
                     except Exception as e:
                         st.error(f"❌ Errore aggiornamento: {str(e)}")
-    else:
-        st.success("✅ Ristampe aggiornate correttamente!")
-        for riga in st.session_state.get("descrizioni_confermate", []):
-            st.markdown(f"- {riga}")
+        else:
+            st.success("✅ Ristampe aggiornate correttamente!")
+            for riga in st.session_state.get("descrizioni_confermate", []):
+                st.markdown(f"- {riga}")
