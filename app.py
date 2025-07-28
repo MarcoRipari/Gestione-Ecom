@@ -27,6 +27,7 @@ from openai import AsyncOpenAI
 from aiohttp import ClientTimeout
 from tenacity import retry, stop_after_attempt, wait_fixed
 import dropbox
+import base64
 
 logging.basicConfig(level=logging.INFO)
 
@@ -67,6 +68,27 @@ def get_sheet(sheet_id, tab):
     # Se non trovato, lo crea
     return spreadsheet.add_worksheet(title=tab, rows="10000", cols="50")
 
+def get_dropbox_access_token():
+    refresh_token = st.secrets["DROPBOX_REFRESH_TOKEN"]
+    client_id = st.secrets["DROPBOX_CLIENT_ID"]
+    client_secret = st.secrets["DROPBOX_CLIENT_SECRET"]
+
+    auth_header = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+
+    response = requests.post(
+        "https://api.dropbox.com/oauth2/token",
+        headers={
+            "Authorization": f"Basic {auth_header}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token
+        },
+    )
+    response.raise_for_status()
+    return response.json()["access_token"]
+    
 # ---------------------------
 # 📦 Embedding & FAISS Setup
 # ---------------------------
@@ -972,7 +994,8 @@ elif page == "📚 Foto - Storico":
         sku_query = sku_query.strip().upper()
         try:
             folder_path = f"/repository/{sku_query}"
-            dbx = dropbox.Dropbox(st.secrets["DROPBOX_TOKEN"])
+            access_token = get_dropbox_access_token()
+            dbx = dropbox.Dropbox(access_token)
             files = dbx.files_list_folder(folder_path).entries
 
             image_files = [f for f in files if f.name.lower().endswith(".jpg")]
@@ -999,7 +1022,7 @@ elif page == "📚 Foto - Storico":
                 for idx, info in enumerate(image_infos):
                     with cols[idx % 4]:
                         headers = {
-                            "Authorization": f"Bearer {st.secrets['DROPBOX_TOKEN']}",
+                            "Authorization": f"Bearer {access_token}",
                             "Dropbox-API-Arg": json.dumps({"path": info["path"]})
                         }
                         resp = requests.post("https://content.dropboxapi.com/2/files/download", headers=headers)
