@@ -996,9 +996,18 @@ elif page == "📚 Foto - Storico":
             folder_path = f"/repository/{sku_query}"
             access_token = get_dropbox_access_token()
             dbx = dropbox.Dropbox(access_token)
-            files = dbx.files_list_folder(folder_path).entries
-
-            image_files = [f for f in files if f.name.lower().endswith(".jpg")]
+            image_files = []
+            try:
+                files = dbx.files_list_folder(folder_path).entries
+                image_files = [f for f in files if f.name.lower().endswith(".jpg")]
+            except dropbox.exceptions.ApiError as e:
+                if (isinstance(e.error, dropbox.files.ListFolderError) and
+                    e.error.is_path() and
+                    e.error.get_path().is_not_found()):
+                    image_files = []
+                else:
+                    st.error(f"⚠️ Errore Dropbox: {e}")
+                    image_files = []
 
             if not image_files:
                 st.warning("❌ Nessuna immagine storica trovata su Dropbox per questa SKU.")
