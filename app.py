@@ -1001,7 +1001,18 @@ elif page == "📚 Foto - Storico":
             image_files = [f for f in files if f.name.lower().endswith(".jpg")]
 
             if not image_files:
-                st.warning("❌ Nessuna immagine trovata per questa SKU.")
+                st.warning("❌ Nessuna immagine storica trovata su Dropbox per questa SKU.")
+            
+                # Mostra immagine attuale da repository.falc.biz
+                image_url = f"https://repository.falc.biz/fal001{sku_query.lower()}-1.jpg"
+                try:
+                    resp = requests.get(image_url, timeout=5)
+                    if resp.status_code == 200:
+                        st.image(image_url, width=300, caption="📅 Attuale (da repository)")
+                    else:
+                        st.error("⚠️ Nemmeno la foto attuale è disponibile sul repository.")
+                except Exception as e:
+                    st.error(f"⚠️ Errore nel caricamento della foto attuale: {e}")
             else:
                 def extract_date(filename):
                     base = filename.replace(".jpg", "")
