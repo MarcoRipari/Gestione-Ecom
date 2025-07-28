@@ -26,6 +26,7 @@ import json
 from openai import AsyncOpenAI
 from aiohttp import ClientTimeout
 from tenacity import retry, stop_after_attempt, wait_fixed
+import dropbox
 
 logging.basicConfig(level=logging.INFO)
 
@@ -970,7 +971,6 @@ elif page == "📚 Foto - Storico":
     if sku_query:
         sku_query = sku_query.strip().upper()
         try:
-            import dropbox
             folder_path = f"/repository/{sku_query}"
             dbx = dropbox.Dropbox(st.secrets["DROPBOX_TOKEN"])
             files = dbx.files_list_folder(folder_path).entries
