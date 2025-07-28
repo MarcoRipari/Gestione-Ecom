@@ -1,4 +1,4 @@
-import streamlit as st
+    import streamlit as st
 import pandas as pd
 import openai
 import faiss
@@ -459,10 +459,10 @@ with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
     page = st.radio(
-    "Seleziona sezione",  # label visibile a lettori di schermo
-    ["🏠 Home", "📝 Descrizioni", "📸 Foto"],
-    label_visibility="collapsed"  # nasconde visivamente la label
-)
+        "Seleziona sezione",
+        ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "📚 Foto - Storico"],
+        label_visibility="collapsed"
+    )
 
 # ---------------------------
 # 🏠 HOME
@@ -799,7 +799,7 @@ elif page == "📝 Descrizioni":
                 with st.spinner("In corso..."):
                     benchmark_faiss(df_input, st.session_state.col_weights)
 
-elif page == "📸 Foto":
+elif page == "📸 Foto - Gestione":
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
     st.header("📸 Gestione Foto")
     tab_names = ["ECOM", "ZFS", "AMAZON"]
@@ -960,3 +960,53 @@ elif page == "📸 Foto":
             st.success("✅ Ristampe aggiornate correttamente!")
             for riga in st.session_state.get("descrizioni_confermate", []):
                 st.markdown(f"- {riga}")
+
+elif page == "📚 Foto - Storico":
+    st.header("📚 Storico Articolo")
+    st.markdown("Inserisci una SKU per visualizzare tutte le immagini storiche salvate su Dropbox per quell’articolo.")
+
+    sku_query = st.text_input("🔎 Inserisci SKU", key="storico_sku_input")
+
+    if sku_query:
+        sku_query = sku_query.strip().upper()
+        try:
+            import dropbox
+            folder_path = f"/repository/{sku_query}"
+            dbx = dropbox.Dropbox(st.secrets["DROPBOX_TOKEN"])
+            files = dbx.files_list_folder(folder_path).entries
+
+            image_files = [f for f in files if f.name.lower().endswith(".jpg")]
+
+            if not image_files:
+                st.warning("❌ Nessuna immagine trovata per questa SKU.")
+            else:
+                def extract_date(filename):
+                    base = filename.replace(".jpg", "")
+                    parts = base.split("_")
+                    return parts[1] if len(parts) == 2 else "Attuale"
+
+                image_infos = [{
+                    "name": f.name,
+                    "path": f.path_display,
+                    "date": extract_date(f.name)
+                } for f in image_files]
+
+                image_infos.sort(key=lambda x: (x["date"] != "Attuale", x["date"]))
+
+                st.markdown(f"📸 **{len(image_infos)} immagini trovate**")
+
+                cols = st.columns(4)
+                for idx, info in enumerate(image_infos):
+                    with cols[idx % 4]:
+                        headers = {
+                            "Authorization": f"Bearer {st.secrets['DROPBOX_TOKEN']}",
+                            "Dropbox-API-Arg": json.dumps({"path": info["path"]})
+                        }
+                        resp = requests.post("https://content.dropboxapi.com/2/files/download", headers=headers)
+                        if resp.status_code == 200:
+                            st.image(resp.content, use_column_width=True)
+                            st.caption(f"📅 {info['date']}")
+                        else:
+                            st.warning(f"⚠️ Errore immagine: {info['name']}")
+        except Exception as e:
+            st.error(f"Errore: {str(e)}")
