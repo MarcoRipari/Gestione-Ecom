@@ -1,0 +1,4 @@
+# FOTO
+- Avvio controllo (Github Actions) da streamlit tramite pulsante
+- Generazione Output in ordine di corridoio
+- Funzione genera lista disponibile solo per admin o con psw
