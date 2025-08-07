@@ -862,7 +862,7 @@ elif page == "📸 Foto - Gestione":
     
    
     # 🔽 Filtro visualizzazione
-    filtro_foto = st.selectbox("📌 Filtro foto da fare", ["Tutti", "Solo da scattare", "Solo già scattate"])
+    filtro_foto = st.selectbox("📌 Filtro foto da fare", ["Tutti", "Solo da scattare", "Solo già scattate", "Solo da riscattare"])
 
     if df.empty:
         st.warning("Nessuna SKU disponibile.")
@@ -872,6 +872,8 @@ elif page == "📸 Foto - Gestione":
             df = df[df["SCATTARE"] == True]
         elif filtro_foto == "Solo già scattate":
             df = df[df["SCATTARE"] == False]
+        elif filtro_foto == "Solo da riscattare":
+            df = df[df["RISCATTARE"] == True]
 
         # ✅ Visualizzazione con emoji
         def format_checkbox(val):
