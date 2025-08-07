@@ -2,3 +2,5 @@
 - Avvio controllo (Github Actions) da streamlit tramite pulsante
 - Generazione Output in ordine di corridoio
 - Funzione genera lista disponibile solo per admin o con psw
+- Funzione per aggiungere SKU alla lista
+- Gestione "RISCATTARE", la lista iniziale deve essere già popolata con le SKU con riscattare = TRUE. Quando si cerca una SKU da dover riscattare, se è già impostato su TRUE, avere la possibilità di toglierlo.
