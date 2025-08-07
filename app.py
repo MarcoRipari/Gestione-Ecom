@@ -1047,7 +1047,7 @@ elif page == "📚 Foto - Storico":
                         }
                         resp = requests.post("https://content.dropboxapi.com/2/files/download", headers=headers)
                         if resp.status_code == 200:
-                            st.image(resp.content, use_column_width=True)
+                            st.image(resp.content, use_container_width=True)
                             st.caption(f"📅 {info['date']}")
                         else:
                             st.warning(f"⚠️ Errore immagine: {info['name']}")
