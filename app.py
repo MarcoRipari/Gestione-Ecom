@@ -963,7 +963,7 @@ elif page == "📸 Foto - Gestione":
                             sku = row[col_sku].strip()
                             descrizione = row[col_descrizione].strip() if len(row) > col_descrizione else ""
                             if sku in selected_ristampe:
-                                nuovi_valori.append(["TRUE"])
+                                nuovi_valori.append(["True"])
                                 sku_descrizioni_confermate.append(f"{sku} - {descrizione}")
                             else:
                                 val = row[col_ristampare] if len(row) > col_ristampare else ""
