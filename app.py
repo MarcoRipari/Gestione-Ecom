@@ -915,7 +915,7 @@ elif page == "📸 Foto - Gestione":
             st.markdown(f"- {riga}")
         
         if st.button("Ricomincia lista ristampe"):
-            st.session_state["ristampe_confermate"] = False
+            del st.session_state["ristampe_confermate"]
     else:
         sku_input = st.text_input("🔍 Inserisci SKU da cercare (solo con foto esistenti)")
         
