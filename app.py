@@ -897,16 +897,6 @@ elif page == "📸 Foto - Gestione":
         
         # ✅ Visualizzazione
         st.dataframe(df_vista, use_container_width=True)
-
-        if st.button("Genera CSV"):
-            df_csv = df_vista.to_csv('file.csv', index=False)
-            st.download_button(
-               "Press to Download",
-               df_csv,
-               "file.csv",
-               "text/csv",
-               key='download-csv'
-            )
             
     # Foto da riscattare
     st.subheader("🔁 Ristampa foto specifica")
