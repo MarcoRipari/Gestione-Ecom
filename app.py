@@ -446,7 +446,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
             return pd.DataFrame()
 
         # ✅ Definizione corretta: 11 intestazioni per colonne A–K
-        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "TGCAMP", "TGDISP", "SCATTARE", "ALT6", "DISPONIBILITE", "RISCATTARE", "CONSEGNATA"]
+        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "TGCAMP", "TGDISP", "SCATTARE", "ALT6", "DISP", "RISCATTARE", "CONSEGNATA", "FOTOGRAFO", "COR", "LAT", "X", "Y"]
         df = pd.DataFrame(values, columns=headers)
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
@@ -465,7 +465,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         df["CONSEGNATA"] = normalize_bool(df["CONSEGNATA"])
         df["RISCATTARE"] = normalize_bool(df["RISCATTARE"])
 
-        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA"]]
+        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP", "FOTOGRAFO", "COR", "LAT", "X", "Y"]]
     except Exception as e:
         st.error(f"Errore durante il caricamento: {str(e)}")
         return pd.DataFrame()
@@ -862,7 +862,7 @@ elif page == "📸 Foto - Gestione":
     
    
     # 🔽 Filtro visualizzazione
-    filtro_foto = st.selectbox("📌 Filtro foto da fare", ["Tutti", "Solo da scattare", "Solo già scattate", "Solo da riscattare"])
+    filtro_foto = st.selectbox("📌 Filtro foto da fare", ["Tutti", "Solo da scattare", "Solo già scattate", "Solo da riscattare", "Disponibili da prelevare", "Disponibili per Matias", "Disponibili per Matteo"])
 
     if df.empty:
         st.warning("Nessuna SKU disponibile.")
@@ -874,6 +874,12 @@ elif page == "📸 Foto - Gestione":
             df = df[df["SCATTARE"] == False]
         elif filtro_foto == "Solo da riscattare":
             df = df[df["RISCATTARE"] == True]
+        elif filtro_foto == "Disponibili da prelevare":
+            df = df[df["DISP"] == True]
+        elif filtro_foto == "Disponibili per Matias":
+            df = df[df["FOTOGRAFO"] == "MATIAS"]
+        elif filtro_foto == "Disponibili per Matteo":
+            df = df[df["FOTOGRAFO"] == "MATTEO"]
 
         # ✅ Visualizzazione con emoji
         def format_checkbox(val):
