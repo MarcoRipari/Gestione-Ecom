@@ -50,12 +50,6 @@ credentials = service_account.Credentials.from_service_account_info(
 )
 gsheet_client = gspread.authorize(credentials)
 
-#def get_sheet(sheet_id, tab):
-#    try:
-#        return gsheet_client.open_by_key(sheet_id).worksheet(tab)
-#    except:
-#        return gsheet_client.open_by_key(sheet_id).add_worksheet(title=tab, rows="10000", cols="50")
-
 def get_sheet(sheet_id, tab):
     spreadsheet = gsheet_client.open_by_key(sheet_id)
     worksheets = spreadsheet.worksheets()
@@ -441,9 +435,8 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
     try:
         sheet = get_sheet(sheet_id, "LISTA")
-        values = sheet.get("A3:Z3500")
+        values = sheet.get("A3:U3500")
         if not values:
-            st.write("no values")
             return pd.DataFrame()
 
         st.write(values)
