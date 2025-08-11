@@ -899,7 +899,7 @@ elif page == "📸 Foto - Gestione":
         st.dataframe(df_vista, use_container_width=True)
 
         if st.button("Scarica"):
-            df_csv = df["COD", "VAR", "COL", "TG PICCOLA"].to_csv('out.csv', index=False)
+            df_csv = df[["COD", "VAR", "COL", "TG PICCOLA"]].to_csv('out.csv', index=False)
             
     # Foto da riscattare
     st.subheader("🔁 Ristampa foto specifica")
