@@ -441,7 +441,7 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
     try:
         sheet = get_sheet(sheet_id, "LISTA")
-        values = sheet.get("A3:U5000")
+        values = sheet.get("A3:U3500")
         if not values:
             return pd.DataFrame()
 
