@@ -453,7 +453,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         df["RISCATTARE"] = normalize_bool(df["RISCATTARE"])
         df["DISP"] = normalize_bool(df["DISP"])
 
-        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP", "FOTOGRAFO", "COR", "LAT", "X", "Y"]]
+        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP", "COD", "VAR", "COL", "TG PIC", "FOTOGRAFO", "COR", "LAT", "X", "Y"]]
     except Exception as e:
         st.error(f"Errore durante il caricamento: {str(e)}")
         return pd.DataFrame()
@@ -899,7 +899,7 @@ elif page == "📸 Foto - Gestione":
         st.dataframe(df_vista, use_container_width=True)
 
         if st.button("Scarica"):
-            df_csv = df[["COD", "VAR", "COL", "TG PICCOLA"]].to_csv('out.csv', index=False)
+            df_csv = df[["COD", "VAR", "COL", "TG PIC"]].to_csv('out.csv', index=False)
             
     # Foto da riscattare
     st.subheader("🔁 Ristampa foto specifica")
