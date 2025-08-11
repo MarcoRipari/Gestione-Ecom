@@ -451,6 +451,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         df["SCATTARE"] = normalize_bool(df["SCATTARE"])
         df["CONSEGNATA"] = normalize_bool(df["CONSEGNATA"])
         df["RISCATTARE"] = normalize_bool(df["RISCATTARE"])
+        df["DISP"] = normalize_bool(df["DISP"])
 
         return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP", "FOTOGRAFO", "COR", "LAT", "X", "Y"]]
     except Exception as e:
