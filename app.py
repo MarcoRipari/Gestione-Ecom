@@ -443,6 +443,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         sheet = get_sheet(sheet_id, "LISTA")
         values = sheet.get("A3:U3500")
         if not values:
+            st.write("no values")
             return pd.DataFrame()
 
         st.write(values)
