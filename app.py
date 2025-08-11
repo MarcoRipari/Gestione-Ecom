@@ -446,18 +446,11 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
             return pd.DataFrame()
 
         # ✅ Definizione corretta: 11 intestazioni per colonne A–K
-        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "ALT1", "ALT2", "ALT3", "TGCAMP", "TGDISP", "SCATTARE", "ALT6", "DISP", "RISCATTARE", "CONSEGNATA", "REPO", "FOTOGRAFO", "COR", "LAT", "X", "Y"]
+        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "COD", "VAR", "COL", "TG CAMP", "TG PIC", "SCATTARE", "CONTROLLO", "DISP", "RISCATTARE", "CONSEGNATA", "REPO", "FOTOGRAFO", "COR", "LAT", "X", "Y"]
         df = pd.DataFrame(values, columns=headers)
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
         # 🧹 Normalizza booleani
-        #df["SCATTARE"] = df["SCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
-        #df["SCATTARE"] = df["SCATTARE"].fillna(False)
-        #df["CONSEGNATA"] = df["CONSEGNATA"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
-        #df["CONSEGNATA"] = df["CONSEGNATA"].fillna(False)
-        #df["RISCATTARE"] = df["RISCATTARE"].astype(str).str.strip().str.lower().map({"true": True, "false": False})
-        #df["RISCATTARE"] = df["RISCATTARE"].fillna(False)
-
         def normalize_bool(col):
             return col.astype(str).str.strip().str.lower().map({"true": True, "false": False}).fillna(False)
         
