@@ -899,7 +899,7 @@ elif page == "📸 Foto - Gestione":
         st.dataframe(df_vista, use_container_width=True)
 
         if st.button("Genera CSV"):
-            df_csv = df[["COD", "VAR", "COL", "TG PIC"]].to_csv('file.csv', index=False)
+            df_csv = df_vista.to_csv('file.csv', index=False)
             st.download_button(
                "Press to Download",
                df_csv,
