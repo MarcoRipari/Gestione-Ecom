@@ -435,14 +435,12 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
     try:
         sheet = get_sheet(sheet_id, "LISTA")
-        values = sheet.get("A3:U3500")
+        values = sheet.get("A3:T3500")
         if not values:
             return pd.DataFrame()
-
-        st.write(values)
         
         # ✅ Definizione corretta: 21 intestazioni per colonne A–U
-        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "COD", "VAR", "COL", "TG CAMP", "TG PIC", "SCATTARE", "CONTROLLO", "DISP", "RISCATTARE", "CONSEGNATA"]
+        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "COD", "VAR", "COL", "TG CAMP", "TG PIC", "SCATTARE", "CONTROLLO", "DISP", "RISCATTARE", "CONSEGNATA", "FOTOGRAFO", "COR", "LAT", "X", "Y"]
         df = pd.DataFrame(values, columns=headers)
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
@@ -454,7 +452,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         df["CONSEGNATA"] = normalize_bool(df["CONSEGNATA"])
         df["RISCATTARE"] = normalize_bool(df["RISCATTARE"])
 
-        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP"]]
+        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP", "FOTOGRAFO" ,"COR", "LAT", "X", "Y"]]
     except Exception as e:
         st.error(f"Errore durante il caricamento: {str(e)}")
         return pd.DataFrame()
