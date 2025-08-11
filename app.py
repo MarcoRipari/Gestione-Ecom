@@ -902,7 +902,7 @@ elif page == "📸 Foto - Gestione":
             df_csv = df[["COD", "VAR", "COL", "TG PIC"]].to_csv('out.csv', index=False)
             st.download_button(
                "Press to Download",
-               csv,
+               df_csv,
                "file.csv",
                "text/csv",
                key='download-csv'
