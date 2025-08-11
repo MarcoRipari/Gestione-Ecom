@@ -435,12 +435,12 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
     try:
         sheet = get_sheet(sheet_id, "LISTA")
-        values = sheet.get("A3:T5000")
+        values = sheet.get("A3:V5000")
         if not values:
             return pd.DataFrame()
         
-        # ✅ Definizione corretta: 20 intestazioni per colonne A–T
-        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "COD", "VAR", "COL", "TG CAMP", "TG PIC", "SCATTARE", "CONTROLLO", "DISP", "RISCATTARE", "CONSEGNATA", "FOTOGRAFO", "COR", "LAT", "X", "Y"]
+        # ✅ Definizione corretta: 22 intestazioni per colonne A–V
+        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "COD", "VAR", "COL", "TG CAMP", "TG PIC", "SCATTARE", "CONTROLLO", "DISP", "RISCATTARE", "CONSEGNATA", "FOTOGRAFO", "COR", "LAT", "X", "Y", "REPO", "END"]
         df = pd.DataFrame(values, columns=headers)
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
