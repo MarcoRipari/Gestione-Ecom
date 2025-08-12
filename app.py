@@ -998,6 +998,7 @@ elif page == "📸 Foto - Gestione":
                         valori.append([""])
                         
                     sheet.update(values=valori, range_name=range)
+                    st.success("✅ Ristampe aggiornate correttamente!")
                 except Exception as e:
                     st.write(e)
 
