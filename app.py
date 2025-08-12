@@ -989,11 +989,14 @@ elif page == "📸 Foto - Gestione":
             st.session_state["ristampe_confermate"] = False
 
         if len(selected_ristampe) != start_riscattare and len(selected_ristampe) == 0:
-            st.write("Zero elementi, diverso da inizio")
-        else:
-            st.write("Più elementi o uguale a inizio")
-                     
-    
+            if st.button("✅ Conferma selezione per ristampa"):
+                try:
+                    sheet = get_Sheet(sheet_id, "LISTA")
+                    column = sheet.get("N3:N")
+                    column.clear()
+                except Exception as e:
+                    st.write(e)
+
         if not st.session_state["ristampe_confermate"]:
             if selected_ristampe:
                 st.markdown(f"📦 SKU selezionate per ristampa: `{', '.join(sorted(selected_ristampe))}`")
