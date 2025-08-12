@@ -991,6 +991,7 @@ elif page == "📸 Foto - Gestione":
         if len(selected_ristampe) != start_riscattare and len(selected_ristampe) == 0:
             if st.button("✅ Conferma selezione per ristampa"):
                 try:
+                    valori = []
                     sheet = get_sheet(sheet_id, "LISTA")
                     range = f"N3:{len(df)}"
                     for index, row in df.iterrows():
@@ -1015,7 +1016,6 @@ elif page == "📸 Foto - Gestione":
                         col_ristampare = 13  # colonna N
                 
                         nuovi_valori = []
-                        valori = []
                         sku_descrizioni_confermate = []
                 
                         for row in data_rows:
