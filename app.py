@@ -527,17 +527,6 @@ if page == "Login":
 
     if not st.session_state.get("password_ok"):
         password = st.text_input("Password", key="password_input", type="password", on_change=None)
-        st.components.v1.html(
-            f"""
-            <script>
-                var input = window.parent.document.querySelectorAll("input[type=text]");
-                for (var i = 0; i < input.length; ++i) {{
-                    input[i].focus();
-                }}
-            </script>
-            """,
-            height=150
-        )
         if password:
             if password != "Supr3m4@00":
                 st.warning("Password errata!")
