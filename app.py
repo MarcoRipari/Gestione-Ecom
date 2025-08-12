@@ -520,24 +520,6 @@ if page == "🏠 Home":
 # 🏠 LOGIN
 # ---------------------------
 if page == "Login":
-    st.components.v1.html(
-        f"""
-        <script>
-            function focusInput() {{
-                const input = window.parent.document.querySelector('textarea');
-                if (input) {{
-                    console.log('Input found. Focusing...');
-                    input.focus();
-                }} else {{
-                    console.log('Input not found. Retrying in 100ms...');
-                    setTimeout(focusInput, 100);
-                }}
-            }}
-            focusInput();
-        </script>
-        """,
-        height=0,
-    )
     st.subheader("📌 Login")
     st.markdown("""
     Inserisci il nome per poter eseguire azioni.
@@ -556,6 +538,25 @@ if page == "Login":
         login = st.text_input("Nome", key="login_input")
         if login:
             login_as(login)
+
+    st.components.v1.html(
+        f"""
+        <script>
+            function focusInput() {{
+                const input = window.parent.document.querySelector('textarea');
+                if (input) {{
+                    console.log('Input found. Focusing...');
+                    input.focus();
+                }} else {{
+                    console.log('Input not found. Retrying in 100ms...');
+                    setTimeout(focusInput, 100);
+                }}
+            }}
+            focusInput();
+        </script>
+        """,
+        height=0,
+    )
         
 # ---------------------------
 # 📝 GENERAZIONE DESCRIZIONI
