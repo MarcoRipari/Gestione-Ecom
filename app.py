@@ -1015,6 +1015,7 @@ elif page == "📸 Foto - Gestione":
                         col_ristampare = 13  # colonna N
                 
                         nuovi_valori = []
+                        valori = []
                         sku_descrizioni_confermate = []
                 
                         for row in data_rows:
