@@ -524,7 +524,7 @@ if page == "Login":
     Inserisci il nome per poter eseguire azioni.
     """)
 
-    password = st.text_input("Password", key="password_input", type="password")
+    password = st.text_input("Password", key="password_input", type="password", on_change=None)
     if password:
         if password != "Supr3m4@00":
             st.warning("Password errata!")
