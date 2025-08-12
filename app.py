@@ -946,7 +946,6 @@ elif page == "📸 Foto - Gestione":
 
     start_riscattare = len(df[df["RISCATTARE"] == True].index)
     
-    st.write(start_riscattare)
     for index, row in df[df["RISCATTARE"] == True].iterrows():
         selected_ristampe.add(row["SKU"])
         
@@ -988,6 +987,12 @@ elif page == "📸 Foto - Gestione":
         # Stato per conferma e visibilità
         if "ristampe_confermate" not in st.session_state:
             st.session_state["ristampe_confermate"] = False
+
+        if len(selected_ristampe) != sart_riscattare and len(selected_ristampe) == 0:
+            st.write("Zero elementi, diverso da inizio")
+        else:
+            st.write("Più elementi o uguale a inizio")
+                     
     
         if not st.session_state["ristampe_confermate"]:
             if selected_ristampe:
