@@ -926,14 +926,6 @@ elif page == "📸 Foto - Gestione":
                 return "❌"
             return "⛔️"
 
-        #df_vista = df.copy()
-        #df_vista = df_vista[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE"]]
-        #df_vista["Foto da fare"] = df_vista["SCATTARE"].apply(format_checkbox)
-        #df_vista = df_vista.drop(columns=["SCATTARE"])
-
-        # ✅ Rinomina colonne
-        #df_vista.columns = ["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "📷"]
-
         # ✅ Costruzione vista tabellare con emoji
         df_vista = df.copy()
         df_vista = df_vista[["SKU", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE"]]
