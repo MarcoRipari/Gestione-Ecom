@@ -529,6 +529,7 @@ if page == "Login":
         if password != "Supr3m4@00":
             st.warning("Password errata!")
         else:
+            password.empty()
             login = st.text_input("Nome", key="login_input")
             if login:
                 login_as(login)
