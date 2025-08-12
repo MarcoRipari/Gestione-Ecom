@@ -859,7 +859,8 @@ elif page == "📝 Descrizioni":
                     benchmark_faiss(df_input, st.session_state.col_weights)
 
 elif page == "📸 Foto - Gestione":
-    selected_ristampe = st.session_state.get("ristampe_selezionate", set())
+    #selected_ristampe = st.session_state.get("ristampe_selezionate", set())
+    selected_ristampe = st.session_state.get("ristampe_confermate", set())
 
     new_sku = st.session_state.get("aggiunta_confermata", set())
     st.header("📸 Gestione Foto")
