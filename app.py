@@ -1040,7 +1040,7 @@ elif page == "📸 Foto - Gestione":
                 
                         #st.session_state["ristampe_confermate"] = selected_ristampe
                         st.session_state["ristampe_selezionate"] = set()
-                        
+                        st.session_state["refresh_foto_token"] = str(time.time())
                         st.rerun()  # 🔄 Forza il refresh della UI
                 
                     except Exception as e:
