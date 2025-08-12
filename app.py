@@ -515,6 +515,9 @@ if page == "🏠 Home":
 # 🏠 LOGIN
 # ---------------------------
 if page == "Login":
+    if "logged_as" not in st.session_state:
+            st.session_state.logged_as = False
+        
     st.subheader("📌 Login")
     st.markdown("""
     Inserisci il nome per poter eseguire azioni.
