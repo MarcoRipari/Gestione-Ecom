@@ -946,7 +946,6 @@ elif page == "📸 Foto - Gestione":
 
     for index, row in df[df["RISCATTARE"] == True].iterrows():
         selected_ristampe.add(row["SKU"])
-        st.session_state[f"ristampa_{row["SKU"]}"] = True
         
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
@@ -971,7 +970,11 @@ elif page == "📸 Foto - Gestione":
                     st.markdown(f"**{row['DESCRIZIONE']}**")
                     st.markdown(f"*Canale*: {row['CANALE']}  \n*Collezione*: {row['COLLEZIONE']}")
                 with cols[2]:
-                    ristampa_checkbox = st.checkbox("🔁 Ristampa", key=f"ristampa_{row['SKU']}")
+                    if row['SKU'] in df[df["RISCATTARE"] == True]:
+                        ristampa_checkbox = st.checkbox("🔁 Ristampa", value=True, key=f"ristampa_{row['SKU']}")
+                    else:
+                        ristampa_checkbox = st.checkbox("🔁 Ristampa", key=f"ristampa_{row['SKU']}")
+                        
                     if ristampa_checkbox:
                         selected_ristampe.add(row['SKU'])
                     else:
