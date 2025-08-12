@@ -92,6 +92,7 @@ def login_as(name: str):
 
 def logout():
     del st.session_state.logged_as
+    del st.session_state.password_ok
     st.rerun()
 
 # ---------------------------
