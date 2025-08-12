@@ -1051,7 +1051,7 @@ elif page == "Foto - Aggiungi SKU":
         add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
         new_sku = add_sku_input.upper()
         if add_sku_input:
-            if add_sku_input not in df["SKU"].values.tolist():
+            if new_sku not in df["SKU"].values.tolist():
                 aggiungi_sku(sheet_id, new_sku)
                 st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
                 st.rerun()
