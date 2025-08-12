@@ -474,7 +474,7 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
-    if st.session_state.get("logged"):
+    if st.session_state.get("logged_as"):
         page = st.radio(
             "Seleziona sezione",
             ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "📚 Foto - Storico"],
@@ -502,6 +502,15 @@ if page == "🏠 Home":
     - Captioning automatico immagine (BLIP)
     - Logging su Google Sheets
     - Salvataggio ZIP con CSV multilingua
+    """)
+
+# ---------------------------
+# 🏠 LOGIN
+# ---------------------------
+if page == "Login":
+    st.subheader("📌 Login")
+    st.markdown("""
+    Inserisci il nome per poter eseguire azioni.
     """)
 
 # ---------------------------
