@@ -992,8 +992,11 @@ elif page == "📸 Foto - Gestione":
             if st.button("✅ Conferma selezione per ristampa"):
                 try:
                     sheet = get_sheet(sheet_id, "LISTA")
-                    column = sheet.get("N3:N")
-                    column.clear()
+                    range = f"N3:{len(df)}"
+                    for index, row in df.iterrows():
+                        valori.append("")
+                        
+                    sheet.update(values=valori, range_name=range)
                 except Exception as e:
                     st.write(e)
 
