@@ -995,7 +995,7 @@ elif page == "📸 Foto - Gestione":
                     sheet = get_sheet(sheet_id, "LISTA")
                     range = f"N3:{len(df)}"
                     for index, row in df.iterrows():
-                        valori.append("")
+                        valori.append([""])
                         
                     sheet.update(values=valori, range_name=range)
                 except Exception as e:
