@@ -1056,7 +1056,10 @@ elif page == "Foto - Aggiungi SKU":
                 st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
                 st.rerun()
             else:
-                st.warning(f"SKU {new_sku} già presente in lista")
+                warning = st.warning(f"SKU {new_sku} già presente in lista")
+                time.sleep(2)
+                warning.empty()
+                
                 
 elif page == "📚 Foto - Storico":
     st.header("📚 Storico Articolo")
