@@ -90,6 +90,10 @@ def login_as(name: str):
     st.session_state["logged_as"] = name
     st.rerun()
 
+def logout():
+    st.session_state["logged_as"].empty()
+    st.rerun()
+
 # ---------------------------
 # 📦 Embedding & FAISS Setup
 # ---------------------------
@@ -484,7 +488,7 @@ with st.sidebar:
         st.write(f"Accesso eseguito come: {st.session_state.get("logged_as")}")
         page = st.radio(
             "Seleziona sezione",
-            ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "📚 Foto - Storico"],
+            ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "📚 Foto - Storico", "Logout"],
             label_visibility="collapsed"
         )
     else:
@@ -1101,3 +1105,5 @@ elif page == "📚 Foto - Storico":
                             st.warning(f"⚠️ Errore immagine: {info['name']}")
         except Exception as e:
             st.error(f"Errore: {str(e)}")
+elif page == "Logout":
+    logout()
