@@ -962,7 +962,7 @@ elif page == "📸 Foto - Gestione":
         add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
         new_sku = add_sku_input.strip().upper()
         if add_sku_input:
-            if add_sku_input not in df[["SKU"]]:
+            if add_sku_input not in df[["SKU"]].tolist():
                 aggiungi_sku(sheet_id, new_sku)
                 st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
                 st.rerun()
