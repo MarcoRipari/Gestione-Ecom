@@ -520,6 +520,19 @@ if page == "🏠 Home":
 # 🏠 LOGIN
 # ---------------------------
 if page == "Login":
+    components.html(
+        f"""
+        <div>some hidden container</div>
+        <p>{st.session_state.counter}</p>
+        <script>
+            var input = window.parent.document.querySelectorAll("input[type=text]");
+            for (var i = 0; i < input.length; ++i) {{
+                input[i].focus();
+            }}
+        </script>
+        """,
+        height=0,
+    )
     st.subheader("📌 Login")
     st.markdown("""
     Inserisci il nome per poter eseguire azioni.
