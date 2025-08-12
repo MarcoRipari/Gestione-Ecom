@@ -984,8 +984,10 @@ elif page == "📸 Foto - Gestione":
                         
                     if ristampa_checkbox:
                         selected_ristampe.add(row['SKU'])
+                        st.rerun()
                     else:
                         selected_ristampe.discard(row['SKU'])
+                        st.rerun()
     
         st.session_state["ristampe_selezionate"] = selected_ristampe
     
