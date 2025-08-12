@@ -859,8 +859,7 @@ elif page == "📝 Descrizioni":
                     benchmark_faiss(df_input, st.session_state.col_weights)
 
 elif page == "📸 Foto - Gestione":
-    #selected_ristampe = st.session_state.get("ristampe_selezionate", set())
-    selected_ristampe = st.session_state.get("ristampe_confermate", set())
+    selected_ristampe = st.session_state.get("ristampe_selezionate", set())
 
     new_sku = st.session_state.get("aggiunta_confermata", set())
     st.header("📸 Gestione Foto")
@@ -1032,7 +1031,7 @@ elif page == "📸 Foto - Gestione":
                             else:
                                 val = row[col_ristampare] if len(row) > col_ristampare else ""
                                 nuovi_valori.append([val])
-                
+                            selected_ristampe.add(sku)
                         range_update = f"N3:N{len(nuovi_valori) + 2}"
                         sheet.update(values=nuovi_valori, range_name=range_update)
                 
