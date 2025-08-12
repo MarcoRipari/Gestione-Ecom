@@ -86,7 +86,7 @@ def get_dropbox_access_token():
 # ---------------------------
 # Auth system
 # ---------------------------
-@st.cache_resource
+@st.cache_data(ttl=300)
 def login_as(name: str):
     st.session_state["logged_as"] = name
 
