@@ -908,8 +908,10 @@ elif page == "📸 Foto - Gestione":
     # Aggiungi nuova SKU
     st.subheader("🔁 Aggiungi nuova SKU")
     if st.session_state.get("aggiunta_confermata"):
-        st.success("✅ SKU Aggiunta con successo")
+        st.success(f"✅ SKU Aggiunta con successo: {st.session_state.get("aggiunta_confermata")}")
+        time.sleep(2)
         st.session_state.input_sku = ""
+        st.session_state["aggiunta_confermata"] = False
     else:
         add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
         new_sku = add_sku_input.strip().upper()
