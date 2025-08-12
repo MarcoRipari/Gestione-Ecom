@@ -431,6 +431,11 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
     range_update = f"A3:B{len(new_rows)+2}"
     sheet_lista.update(range_update, new_rows, value_input_option="RAW")
 
+def aggiungi_sku(sheet_id: str, sku: str):
+    sheet_lista = get_sheet(sheet_id, "LISTA")
+    new_sku = [[sku, "MANUALE"]]
+    sheet_lista.append_row([sku, "MANUALE"])
+
 @st.cache_data(ttl=300)
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
     try:
@@ -902,7 +907,11 @@ elif page == "📸 Foto - Gestione":
     st.subheader("🔁 Riscatta foto specifica")
     # ✅ Considera solo SKU che hanno già la foto (SCATTARE == False)
     df_foto_esistenti = df[df["SCATTARE"] == False]
-    
+
+    add_sku_input = st.text_input("Aggiungi una nuova SKU")
+    if add_sku_input:
+        aggiungi_sku(sheet_id, add_sku_input.strip().upper()
+                     
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
         for riga in st.session_state["ristampe_confermate"]:
