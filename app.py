@@ -474,7 +474,7 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
-    if st.session_state["logged"]:
+    if st.session_state.logged:
         page = st.radio(
             "Seleziona sezione",
             ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "📚 Foto - Storico"],
