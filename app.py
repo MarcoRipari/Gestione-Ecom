@@ -965,6 +965,7 @@ elif page == "📸 Foto - Gestione":
             if add_sku_input not in df["SKU"].values.tolist():
                 aggiungi_sku(sheet_id, new_sku)
                 st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
+                df = carica_lista_foto(sheet_id, cache_key=cache_token)
                 st.rerun()
             else:
                 st.warning(f"SKU {new_sku} già presente in lista")
