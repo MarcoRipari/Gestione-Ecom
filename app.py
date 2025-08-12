@@ -913,7 +913,8 @@ elif page == "📸 Foto - Gestione":
         add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
         if add_sku_input:
             aggiungi_sku(sheet_id, add_sku_input.strip().upper())
-            st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
+            
+    st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
         
     # Foto da riscattare
     st.subheader("🔁 Riscatta foto specifica")
