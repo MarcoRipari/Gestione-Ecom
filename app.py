@@ -860,7 +860,7 @@ elif page == "📝 Descrizioni":
 
 elif page == "📸 Foto - Gestione":
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
-    selected_ristampe = st.session_state.get("ristampe_confermate", set())
+
     new_sku = st.session_state.get("aggiunta_confermata", set())
     st.header("📸 Gestione Foto")
     tab_names = ["ECOM", "ZFS", "AMAZON"]
