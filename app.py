@@ -993,7 +993,7 @@ elif page == "📸 Foto - Gestione":
                 try:
                     valori = []
                     sheet = get_sheet(sheet_id, "LISTA")
-                    range = f"N3:{len(df)}"
+                    range = f"N3:N{len(df)}"
                     for index, row in df.iterrows():
                         valori.append([""])
                         
