@@ -950,6 +950,7 @@ elif page == "📸 Foto - Gestione":
 
     # Aggiungi nuova SKU
     st.subheader("🔁 Aggiungi nuova SKU")
+    st.write(df["SKU"])
     if st.session_state.get("aggiunta_confermata"):
         sku_added = st.session_state["aggiunta_confermata"]
         success = st.success(f"✅ SKU Aggiunta con successo: {sku_added}")
