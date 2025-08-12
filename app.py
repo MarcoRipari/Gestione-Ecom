@@ -912,7 +912,7 @@ elif page == "📸 Foto - Gestione":
         success = st.success(f"✅ SKU Aggiunta con successo: {sku_added}")
         time.sleep(2)
         success.empty();
-        st.session_state["aggiunta_confermata"] = False
+        st.session_state["aggiunta_confermata"].empty()
         st.session_state.input_sku = ""
     else:
         add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
