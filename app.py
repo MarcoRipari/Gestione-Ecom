@@ -1038,7 +1038,7 @@ elif page == "📸 Foto - Gestione":
                 
                         st.session_state["ristampe_confermate"] = sku_descrizioni_confermate
                         st.session_state["ristampe_selezionate"] = set()
-                        st.success("✅ Ristampe aggiornate correttamente!")
+                        #st.success("✅ Ristampe aggiornate correttamente!")
                         st.rerun()  # 🔄 Forza il refresh della UI
                 
                     except Exception as e:
