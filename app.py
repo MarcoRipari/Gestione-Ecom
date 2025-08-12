@@ -87,7 +87,7 @@ def get_dropbox_access_token():
 # Auth system
 # ---------------------------
 @st.cache_resource
-def login(name: str):
+def login_as(name: str):
     st.session_state["logged_as"] = name
 
 # ---------------------------
@@ -523,9 +523,9 @@ if page == "Login":
     Inserisci il nome per poter eseguire azioni.
     """)
 
-    login_txt = st.text_input("Insersci il nome", key="login_input")
+    login = st.text_input("Insersci il nome", key="login_input")
     if login:
-        login(login_txt)
+        login_as(login)
         st.rerun()
         
 # ---------------------------
