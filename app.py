@@ -1021,14 +1021,12 @@ elif page == "📸 Foto - Gestione":
                         col_ristampare = 13  # colonna N
                 
                         nuovi_valori = []
-                        sku_descrizioni_confermate = []
                 
                         for row in data_rows:
                             sku = row[col_sku].strip()
                             descrizione = row[col_descrizione].strip() if len(row) > col_descrizione else ""
                             if sku in selected_ristampe:
                                 nuovi_valori.append(["True"])
-                                sku_descrizioni_confermate.append(f"{sku} - {descrizione}")
                             else:
                                 val = row[col_ristampare] if len(row) > col_ristampare else ""
                                 nuovi_valori.append([val])
@@ -1036,7 +1034,7 @@ elif page == "📸 Foto - Gestione":
                         range_update = f"N3:N{len(nuovi_valori) + 2}"
                         sheet.update(values=nuovi_valori, range_name=range_update)
                 
-                        st.session_state["ristampe_confermate"] = sku_descrizioni_confermate
+                        st.session_state["ristampe_confermate"] = selected_ristampe
                         st.session_state["ristampe_selezionate"] = set()
                         #st.success("✅ Ristampe aggiornate correttamente!")
                         st.rerun()  # 🔄 Forza il refresh della UI
