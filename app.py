@@ -902,15 +902,23 @@ elif page == "📸 Foto - Gestione":
         
         # ✅ Visualizzazione
         st.dataframe(df_vista, use_container_width=True)
-            
+
+
+    # Aggiungi nuova SKU
+    st.subheader("🔁 Aggiungi nuova SKU")
+    if st.session_state.get("aggiunta_confermata"):
+        st.success(f"✅ SKU Aggiunta con successo: {sku}")
+        st.session_state.input_sku = ""
+    else:
+        add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
+        if add_sku_input:
+            aggiungi_sku(sheet_id, add_sku_input.strip().upper())
+            st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
+        
     # Foto da riscattare
     st.subheader("🔁 Riscatta foto specifica")
     # ✅ Considera solo SKU che hanno già la foto (SCATTARE == False)
     df_foto_esistenti = df[df["SCATTARE"] == False]
-
-    add_sku_input = st.text_input("Aggiungi una nuova SKU")
-    if add_sku_input:
-        aggiungi_sku(sheet_id, add_sku_input.strip().upper())
                      
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
