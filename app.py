@@ -860,6 +860,7 @@ elif page == "📝 Descrizioni":
 
 elif page == "📸 Foto - Gestione":
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
+    start_riscattare = st.session_state.get("ristampe_selezionate", set())
 
     new_sku = st.session_state.get("aggiunta_confermata", set())
     st.header("📸 Gestione Foto")
