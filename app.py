@@ -433,8 +433,7 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 
 def aggiungi_sku(sheet_id: str, sku: str):
     sheet_lista = get_sheet(sheet_id, "LISTA")
-    new_sku = [[sku, st.session_state.get("logged_as")]]
-    sheet_lista.append_row([sku, "MANUALE"])
+    sheet_lista.append_row([sku, st.session_state.get("logged_as")])
 
 @st.cache_data(ttl=300)
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
