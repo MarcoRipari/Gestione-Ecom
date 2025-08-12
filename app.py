@@ -947,7 +947,7 @@ elif page == "📸 Foto - Gestione":
 
     start_riscattare = len(df[df["RISCATTARE"] == True].index)
 
-    start_seleziona = []
+    start_selezione = []
     for index, row in df[df["RISCATTARE"] == True].iterrows():
         start_selezione.add(row["SKU"])
 
