@@ -433,7 +433,7 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 
 def aggiungi_sku(sheet_id: str, sku: str):
     sheet_lista = get_sheet(sheet_id, "LISTA")
-    new_sku = [[sku, "MANUALE"]]
+    new_sku = [[sku, st.session_state.get("logged_as")]]
     sheet_lista.append_row([sku, "MANUALE"])
 
 @st.cache_data(ttl=300)
