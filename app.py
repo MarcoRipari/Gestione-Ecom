@@ -948,10 +948,10 @@ elif page == "📸 Foto - Gestione":
         st.dataframe(df_vista, use_container_width=True)
 
     # Foto da riscattare
-    st.subheader("🔁 Riscatta foto specifica")
+    st.subheader("🔁 Ristampa foto specifica")
     # ✅ Considera solo SKU che hanno già la foto (SCATTARE == False)
     df_foto_esistenti = df[df["SCATTARE"] == False]
-                     
+    
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
         for riga in st.session_state["ristampe_confermate"]:
