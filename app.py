@@ -474,7 +474,7 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
-    st.write(f"Accesso eseguito come: {st.session_state["logged_as"]}")
+    st.write(f"Accesso eseguito come: {st.session_state.get("logged_as")}")
     if st.session_state.get("logged_as"):
         page = st.radio(
             "Seleziona sezione",
