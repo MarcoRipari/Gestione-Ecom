@@ -86,9 +86,9 @@ def get_dropbox_access_token():
 # ---------------------------
 # Auth system
 # ---------------------------
-@st.cache_data(ttl=300)
 def login_as(name: str):
     st.session_state["logged_as"] = name
+    st.rerun()
 
 # ---------------------------
 # 📦 Embedding & FAISS Setup
@@ -526,7 +526,6 @@ if page == "Login":
     login = st.text_input("Insersci il nome", key="login_input")
     if login:
         login_as(login)
-        st.rerun()
         
 # ---------------------------
 # 📝 GENERAZIONE DESCRIZIONI
