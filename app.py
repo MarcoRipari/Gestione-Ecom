@@ -91,7 +91,7 @@ def login_as(name: str):
     st.rerun()
 
 def logout():
-    st.session_state["logged_as"].empty()
+    del st.session_state.logged_as
     st.rerun()
 
 # ---------------------------
