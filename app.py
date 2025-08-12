@@ -974,7 +974,7 @@ elif page == "📸 Foto - Gestione":
                     st.markdown(f"**{row['DESCRIZIONE']}**")
                     st.markdown(f"*Canale*: {row['CANALE']}  \n*Collezione*: {row['COLLEZIONE']}")
                 with cols[2]:
-                    if row['SKU'] in df[df["SCATTARE"] == True]:
+                    if row['SKU'] in df[df["SCATTARE"] == True].iterrows():
                         ristampa_checkbox = st.checkbox("🔁 Ristampa", value=True, key=f"ristampa_{row['SKU']}")
                     else:
                         ristampa_checkbox = st.checkbox("🔁 Ristampa", value=False, key=f"ristampa_{row['SKU']}")
