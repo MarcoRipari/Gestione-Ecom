@@ -951,7 +951,7 @@ elif page == "📸 Foto - Gestione":
     for index, row in df[df["RISCATTARE"] == True].iterrows():
         start_selezione.add(row["SKU"])
 
-    st.session_state["ristampe_selezionate"] = start_selezione
+    selected_ristampe = start_selezione
         
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
@@ -991,7 +991,6 @@ elif page == "📸 Foto - Gestione":
                         selected_ristampe.discard(row['SKU'])
 
         st.session_state["ristampe_selezionate"] = selected_ristampe
-        selected_ristampe = start_selezione
     
         # Stato per conferma e visibilità
         if "ristampe_confermate" not in st.session_state:
