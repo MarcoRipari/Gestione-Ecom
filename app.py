@@ -954,7 +954,7 @@ elif page == "📸 Foto - Gestione":
         for riga in st.session_state["ristampe_confermate"]:
             st.markdown(f"- {riga}")
     else:
-        sku_input = st.text_input("🔍 Inserisci SKU da cercare (solo con foto esistenti)")
+        sku_input = st.text_input("🔍 Inserisci SKU da cercare (solo con foto esistenti)", key="ristampa_input")
         
         if sku_input:
             sku_norm = sku_input.strip().upper()
@@ -1043,6 +1043,11 @@ elif page == "📸 Foto - Gestione":
             st.success("✅ Ristampe aggiornate correttamente!")
             for riga in st.session_state.get("descrizioni_confermate", []):
                 st.markdown(f"- {riga}")
+            time.sleep(5)
+            st.session_state["ristampe_confermate"] = False
+            st.rerun()
+            st.session_state.ristampa_input = ""
+            
 
 elif page == "Foto - Aggiungi SKU":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
