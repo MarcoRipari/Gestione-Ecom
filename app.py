@@ -489,7 +489,7 @@ with st.sidebar:
         st.write(f"Accesso eseguito come: {st.session_state.get("logged_as")}")
         page = st.radio(
             "Seleziona sezione",
-            ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "📚 Foto - Storico", "Logout"],
+            ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "Foto - Aggiungi SKU", "📚 Foto - Storico", "Logout"],
             label_visibility="collapsed"
         )
     else:
@@ -947,29 +947,6 @@ elif page == "📸 Foto - Gestione":
         # ✅ Visualizzazione
         st.dataframe(df_vista, use_container_width=True)
 
-
-    # Aggiungi nuova SKU
-    st.subheader("🔁 Aggiungi nuova SKU")
-    if st.session_state.get("aggiunta_confermata"):
-        sku_added = st.session_state["aggiunta_confermata"]
-        success = st.success(f"✅ SKU Aggiunta con successo: {sku_added}")
-        time.sleep(2)
-        success.empty();
-        st.session_state["aggiunta_confermata"] = False
-        st.session_state.input_sku = ""
-        st.rerun()
-    else:
-        add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
-        new_sku = add_sku_input.upper()
-        if add_sku_input:
-            if add_sku_input not in df["SKU"].values.tolist():
-                aggiungi_sku(sheet_id, new_sku)
-                st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
-                df = carica_lista_foto(sheet_id, cache_key=cache_token)
-                st.rerun()
-            else:
-                st.warning(f"SKU {new_sku} già presente in lista")
-        
     # Foto da riscattare
     st.subheader("🔁 Riscatta foto specifica")
     # ✅ Considera solo SKU che hanno già la foto (SCATTARE == False)
@@ -1052,6 +1029,42 @@ elif page == "📸 Foto - Gestione":
             for riga in st.session_state.get("descrizioni_confermate", []):
                 st.markdown(f"- {riga}")
 
+elif page == "Foto - Aggiungi SKU":
+    refresh = st.session_state.get("refresh_lista", set())
+    new_sku = st.session_state.get("aggiunta_confermata", set())
+
+    if st.session_state.get("refesh_lista"):
+        cache_token = str(st.session_state.get("refresh_foto_token", "static"))
+        df = carica_lista_foto(sheet_id, cache_key=cache_token)
+    else:
+        cache_token = str(st.session_state.get("refresh_foto_token", "static"))
+        df = carica_lista_foto(sheet_id, cache_key=cache_token)
+        
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    
+    # Aggiungi nuova SKU
+    st.subheader("🔁 Aggiungi nuova SKU")
+    if st.session_state.get("aggiunta_confermata"):
+        sku_added = st.session_state["aggiunta_confermata"]
+        success = st.success(f"✅ SKU Aggiunta con successo: {sku_added}")
+        time.sleep(2)
+        success.empty();
+        st.session_state["aggiunta_confermata"] = False
+        st.session_state["refresh_lista"] = False
+        st.session_state.input_sku = ""
+        st.rerun()
+    else:
+        add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
+        new_sku = add_sku_input.upper()
+        if add_sku_input:
+            if add_sku_input not in df["SKU"].values.tolist():
+                aggiungi_sku(sheet_id, new_sku)
+                st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
+                st.session_state["refresh_lista"] = True
+                st.rerun()
+            else:
+                st.warning(f"SKU {new_sku} già presente in lista")
+                
 elif page == "📚 Foto - Storico":
     st.header("📚 Storico Articolo")
     st.markdown("Inserisci una SKU per visualizzare tutte le immagini storiche salvate su Dropbox per quell’articolo.")
