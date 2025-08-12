@@ -945,7 +945,7 @@ elif page == "📸 Foto - Gestione":
     df_foto_esistenti = df[df["SCATTARE"] == False]
 
     for index, row in df[df["RISCATTARE"] == True].iterrows():
-        st.markdown(row["SKU"])
+        selected_ristampe.add(row["SKU"])
         
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
