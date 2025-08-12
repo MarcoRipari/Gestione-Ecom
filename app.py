@@ -912,8 +912,9 @@ elif page == "📸 Foto - Gestione":
         success = st.success(f"✅ SKU Aggiunta con successo: {sku_added}")
         time.sleep(2)
         success.empty();
-        st.session_state["aggiunta_confermata"].empty()
+        st.session_state["aggiunta_confermata"] = False
         st.session_state.input_sku = ""
+        st.rerun()
     else:
         add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
         new_sku = add_sku_input.strip().upper()
@@ -921,6 +922,7 @@ elif page == "📸 Foto - Gestione":
             aggiungi_sku(sheet_id, new_sku)
             
         st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
+        st.rerun()
         
     # Foto da riscattare
     st.subheader("🔁 Riscatta foto specifica")
