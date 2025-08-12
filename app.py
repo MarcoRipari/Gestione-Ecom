@@ -860,7 +860,6 @@ elif page == "📝 Descrizioni":
 
 elif page == "📸 Foto - Gestione":
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
-    start_selezione = st.session_state.get("ristampe_selezionate", set())
 
     new_sku = st.session_state.get("aggiunta_confermata", set())
     st.header("📸 Gestione Foto")
@@ -887,6 +886,12 @@ elif page == "📸 Foto - Gestione":
     df = carica_lista_foto(sheet_id, cache_key=cache_token)
     st.session_state["df_lista_foto"] = df
 
+    start_selezione = st.session_state.get("ristampe_selezionate", set())
+    for index, row in df[df["RISCATTARE"] == True].iterrows():
+        start_selezione.add(row["SKU"])
+    
+    selected_ristampe = start_selezione
+    
     # 📊 Riepilogo
     total = len(df)
     consegnate = df["CONSEGNATA"].sum()
@@ -948,11 +953,6 @@ elif page == "📸 Foto - Gestione":
 
     start_riscattare = len(df[df["RISCATTARE"] == True].index)
 
-    for index, row in df[df["RISCATTARE"] == True].iterrows():
-        start_selezione.add(row["SKU"])
-
-    selected_ristampe = start_selezione
-        
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
         for riga in st.session_state["ristampe_confermate"]:
