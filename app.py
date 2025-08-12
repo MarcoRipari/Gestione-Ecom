@@ -952,7 +952,8 @@ elif page == "📸 Foto - Gestione":
     # ✅ Considera solo SKU che hanno già la foto (SCATTARE == False)
     df_foto_esistenti = df[df["SCATTARE"] == False]
     df_da_riscattare = df[df["SCATTARE"] == True]
-    selected_ristampe = df_da_riscattare["SKU"]
+    for row in df_da_riscattare
+        selected_ristampe.add(row['SKU'])
                      
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
