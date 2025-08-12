@@ -484,7 +484,7 @@ with st.sidebar:
         page = st.radio(
             "Seleziona sezione",
             ["Login"],
-            label_visiblity="collapsed"
+            label_visibility="collapsed"
         )
 
 # ---------------------------
