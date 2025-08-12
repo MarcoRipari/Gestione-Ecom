@@ -991,7 +991,7 @@ elif page == "📸 Foto - Gestione":
         if len(selected_ristampe) != start_riscattare and len(selected_ristampe) == 0:
             if st.button("✅ Conferma selezione per ristampa"):
                 try:
-                    sheet = get_Sheet(sheet_id, "LISTA")
+                    sheet = get_sheet(sheet_id, "LISTA")
                     column = sheet.get("N3:N")
                     column.clear()
                 except Exception as e:
