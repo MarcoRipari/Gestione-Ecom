@@ -817,6 +817,7 @@ elif page == "📝 Descrizioni":
 
 elif page == "📸 Foto - Gestione":
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
+    aggiunta_confermata = st.session_state.get("aggiunta_confermata", set())
     st.header("📸 Gestione Foto")
     tab_names = ["ECOM", "ZFS", "AMAZON"]
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
@@ -911,8 +912,9 @@ elif page == "📸 Foto - Gestione":
         st.session_state.input_sku = ""
     else:
         add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
+        new_sku = add_sku_input.strip().upper()
         if add_sku_input:
-            aggiungi_sku(sheet_id, add_sku_input.strip().upper())
+            aggiungi_sku(sheet_id, new_sku)
             
     st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
         
