@@ -956,8 +956,8 @@ elif page == "📸 Foto - Gestione":
             st.markdown(f"- {riga}")
         time.sleep(5)
         st.session_state["ristampe_confermate"] = False
-        st.rerun()
         st.session_state.ristampa_input = ""
+        st.rerun()
     else:
         sku_input = st.text_input("🔍 Inserisci SKU da cercare (solo con foto esistenti)", key="ristampa_input")
         
@@ -984,10 +984,8 @@ elif page == "📸 Foto - Gestione":
                         
                     if ristampa_checkbox:
                         selected_ristampe.add(row['SKU'])
-                        st.rerun()
                     else:
                         selected_ristampe.discard(row['SKU'])
-                        st.rerun()
     
         st.session_state["ristampe_selezionate"] = selected_ristampe
     
@@ -1049,8 +1047,8 @@ elif page == "📸 Foto - Gestione":
                 st.markdown(f"- {riga}")
             time.sleep(5)
             st.session_state["ristampe_confermate"] = False
-            st.rerun()
             st.session_state.ristampa_input = ""
+            st.rerun()
             
 
 elif page == "Foto - Aggiungi SKU":
