@@ -988,7 +988,7 @@ elif page == "📸 Foto - Gestione":
         if "ristampe_confermate" not in st.session_state:
             st.session_state["ristampe_confermate"] = False
 
-        if len(selected_ristampe) != sart_riscattare and len(selected_ristampe) == 0:
+        if len(selected_ristampe) != start_riscattare and len(selected_ristampe) == 0:
             st.write("Zero elementi, diverso da inizio")
         else:
             st.write("Più elementi o uguale a inizio")
