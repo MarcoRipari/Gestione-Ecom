@@ -947,8 +947,11 @@ elif page == "📸 Foto - Gestione":
 
     start_riscattare = len(df[df["RISCATTARE"] == True].index)
 
+    start_seleziona = []
     for index, row in df[df["RISCATTARE"] == True].iterrows():
-        st.session_state["ristampe_selezionate"].add(row["SKU"])
+        start_selezione.add(row["SKU"])
+
+    st.session_state["ristampe_selezionate"] = start_selezione
         
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
