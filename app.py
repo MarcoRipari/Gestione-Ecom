@@ -950,7 +950,6 @@ elif page == "📸 Foto - Gestione":
 
     # Aggiungi nuova SKU
     st.subheader("🔁 Aggiungi nuova SKU")
-    st.write(df["SKU"])
     if st.session_state.get("aggiunta_confermata"):
         sku_added = st.session_state["aggiunta_confermata"]
         success = st.success(f"✅ SKU Aggiunta con successo: {sku_added}")
@@ -963,7 +962,7 @@ elif page == "📸 Foto - Gestione":
         add_sku_input = st.text_input("Aggiungi una nuova SKU", key="input_sku")
         new_sku = add_sku_input.strip().upper()
         if add_sku_input:
-            if add_sku_input not in df[["SKU"]].values.tolist():
+            if add_sku_input not in df["SKU"]:
                 aggiungi_sku(sheet_id, new_sku)
                 st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
                 st.rerun()
