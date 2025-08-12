@@ -956,6 +956,7 @@ elif page == "📸 Foto - Gestione":
             st.markdown(f"- {riga}")
         time.sleep(5)
         st.session_state["ristampe_confermate"] = False
+        st.session_state["refresh_foto_token"] = str(time.time())
         st.rerun()
         st.session_state.ristampa_input = ""
     else:
@@ -1028,16 +1029,16 @@ elif page == "📸 Foto - Gestione":
                             descrizione = row[col_descrizione].strip() if len(row) > col_descrizione else ""
                             if sku in selected_ristampe:
                                 nuovi_valori.append(["True"])
+                                selected_ristampe.add(sku)
                             else:
                                 val = row[col_ristampare] if len(row) > col_ristampare else ""
                                 nuovi_valori.append([val])
-                            selected_ristampe.add(sku)
                         range_update = f"N3:N{len(nuovi_valori) + 2}"
                         sheet.update(values=nuovi_valori, range_name=range_update)
                 
                         st.session_state["ristampe_confermate"] = selected_ristampe
                         st.session_state["ristampe_selezionate"] = set()
-                        #st.success("✅ Ristampe aggiornate correttamente!")
+                        
                         st.rerun()  # 🔄 Forza il refresh della UI
                 
                     except Exception as e:
@@ -1048,6 +1049,7 @@ elif page == "📸 Foto - Gestione":
                 st.markdown(f"- {riga}")
             time.sleep(5)
             st.session_state["ristampe_confermate"] = False
+            st.session_state["refresh_foto_token"] = str(time.time())
             st.rerun()
             st.session_state.ristampa_input = ""
             
