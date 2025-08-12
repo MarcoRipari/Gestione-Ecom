@@ -1031,16 +1031,10 @@ elif page == "📸 Foto - Gestione":
 
 elif page == "Foto - Aggiungi SKU":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    refresh = st.session_state.get("refresh_lista", set())
     new_sku = st.session_state.get("aggiunta_confermata", set())
 
-    if st.session_state.get("refesh_lista"):
-        cache_token = str(st.session_state.get("refresh_foto_token", "static"))
-        df = carica_lista_foto(sheet_id, cache_key=cache_token)
-    else:
-        cache_token = str(st.session_state.get("refresh_foto_token", "static"))
-        df = carica_lista_foto(sheet_id, cache_key=cache_token)
-        
+    cache_token = str(st.session_state.get("refresh_foto_token", "static"))
+    df = carica_lista_foto(sheet_id, cache_key=cache_token)
     
     # Aggiungi nuova SKU
     st.subheader("🔁 Aggiungi nuova SKU")
@@ -1050,7 +1044,7 @@ elif page == "Foto - Aggiungi SKU":
         time.sleep(2)
         success.empty();
         st.session_state["aggiunta_confermata"] = False
-        st.session_state["refresh_lista"] = False
+        st.session_state["refresh_foto_token"] = str(time.time())
         st.session_state.input_sku = ""
         st.rerun()
     else:
@@ -1060,7 +1054,6 @@ elif page == "Foto - Aggiungi SKU":
             if add_sku_input not in df["SKU"].values.tolist():
                 aggiungi_sku(sheet_id, new_sku)
                 st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
-                st.session_state["refresh_lista"] = True
                 st.rerun()
             else:
                 st.warning(f"SKU {new_sku} già presente in lista")
