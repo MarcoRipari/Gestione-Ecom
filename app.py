@@ -474,6 +474,7 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
+    st.write(f"Accesso eseguito come: {st.session_state["logged_as"]}")
     if st.session_state.get("logged_as"):
         page = st.radio(
             "Seleziona sezione",
@@ -513,6 +514,11 @@ if page == "Login":
     Inserisci il nome per poter eseguire azioni.
     """)
 
+    login = st.text_input("Insersci il nome", key="login_input")
+    if login:
+        st.session_state["logged_as"] = login
+        st.rerun()
+        
 # ---------------------------
 # 📝 GENERAZIONE DESCRIZIONI
 # ---------------------------
