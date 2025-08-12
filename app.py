@@ -910,7 +910,7 @@ elif page == "📸 Foto - Gestione":
 
     add_sku_input = st.text_input("Aggiungi una nuova SKU")
     if add_sku_input:
-        aggiungi_sku(sheet_id, add_sku_input.strip().upper()
+        aggiungi_sku(sheet_id, add_sku_input.strip().upper())
                      
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
