@@ -948,8 +948,10 @@ elif page == "📸 Foto - Gestione":
 
     start_riscattare = len(df[df["RISCATTARE"] == True].index)
     
-    for index, row in df[df["RISCATTARE"] == True].iterrows():
-        selected_ristampe.add(row["SKU"])
+    if "ristampe_selezionate" not in st.session_state or not st.session_state["ristampe_selezionate"]:
+        st.session_state["ristampe_selezionate"] = set(df[df["RISCATTARE"] == True]["SKU"])
+    
+    selected_ristampe = st.session_state["ristampe_selezionate"]
         
     if st.session_state.get("ristampe_confermate"):
         st.success("✅ Ristampe confermate per le seguenti SKU:")
