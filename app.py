@@ -994,6 +994,8 @@ elif page == "📸 Foto - Gestione":
         if "ristampe_confermate" not in st.session_state:
             st.session_state["ristampe_confermate"] = False
 
+        st.write(len(selected_ristampe))
+        st.write(start_riscattare)
         if len(selected_ristampe) != start_riscattare and len(selected_ristampe) == 0:
             if st.button("✅ Conferma selezione per ristampa"):
                 try:
