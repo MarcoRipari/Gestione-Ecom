@@ -524,18 +524,14 @@ if page == "Login":
     Inserisci il nome per poter eseguire azioni.
     """)
 
-    password = st.text_input("Inserisci la password", key="password_input")
-    login = st.text_input("Insersci il nome", key="login_input")
+    password = st.text_input("Password", key="password_input")
     if password:
         if password != "Supr3m4@00":
             st.warning("Password errata!")
         else:
+            login = st.text_input("Nome", key="login_input")
             if login:
                 login_as(login)
-            else:
-                st.warning("Inserisci il nome")
-    else:
-        st.warning("Inserisci la password")
         
 # ---------------------------
 # 📝 GENERAZIONE DESCRIZIONI
