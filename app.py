@@ -953,6 +953,10 @@ elif page == "📸 Foto - Gestione":
         st.success("✅ Ristampe confermate per le seguenti SKU:")
         for riga in st.session_state["ristampe_confermate"]:
             st.markdown(f"- {riga}")
+        time.sleep(5)
+        st.session_state["ristampe_confermate"] = False
+        st.rerun()
+        st.session_state.ristampa_input = ""
     else:
         sku_input = st.text_input("🔍 Inserisci SKU da cercare (solo con foto esistenti)", key="ristampa_input")
         
@@ -988,6 +992,9 @@ elif page == "📸 Foto - Gestione":
         if "ristampe_confermate" not in st.session_state:
             st.session_state["ristampe_confermate"] = False
 
+        st.write(len(selected_ristampe))
+        st.write(start_riscattare)
+        
         if len(selected_ristampe) != start_riscattare and len(selected_ristampe) == 0:
             if st.button("✅ Conferma selezione per ristampa"):
                 try:
