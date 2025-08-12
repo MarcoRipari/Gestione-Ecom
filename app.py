@@ -520,7 +520,7 @@ if page == "🏠 Home":
 # 🏠 LOGIN
 # ---------------------------
 if page == "Login":
-    components.html(
+    st.components.v1.html(
         f"""
         <div>some hidden container</div>
         <p>{st.session_state.counter}</p>
