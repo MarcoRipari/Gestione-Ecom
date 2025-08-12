@@ -944,6 +944,8 @@ elif page == "📸 Foto - Gestione":
     # ✅ Considera solo SKU che hanno già la foto (SCATTARE == False)
     df_foto_esistenti = df[df["SCATTARE"] == False]
 
+    start_riscattare = df[df["RISCATTARE"] == True].length
+    st.write(start_riscattare)
     for index, row in df[df["RISCATTARE"] == True].iterrows():
         selected_ristampe.add(row["SKU"])
         
