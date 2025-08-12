@@ -1030,6 +1030,7 @@ elif page == "📸 Foto - Gestione":
                 st.markdown(f"- {riga}")
 
 elif page == "Foto - Aggiungi SKU":
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
     refresh = st.session_state.get("refresh_lista", set())
     new_sku = st.session_state.get("aggiunta_confermata", set())
 
@@ -1040,7 +1041,6 @@ elif page == "Foto - Aggiungi SKU":
         cache_token = str(st.session_state.get("refresh_foto_token", "static"))
         df = carica_lista_foto(sheet_id, cache_key=cache_token)
         
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
     
     # Aggiungi nuova SKU
     st.subheader("🔁 Aggiungi nuova SKU")
