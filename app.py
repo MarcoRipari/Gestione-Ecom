@@ -527,6 +527,17 @@ if page == "Login":
 
     if not st.session_state.get("password_ok"):
         password = st.text_input("Password", key="password_input", type="password", on_change=None)
+        st.components.v1.html(
+            f"""
+            <script>
+                var input = window.parent.document.querySelectorAll("input[type=text]");
+                for (var i = 0; i < input.length; ++i) {{
+                    input[i].focus();
+                }}
+            </script>
+            """,
+            height=150
+        )
         if password:
             if password != "Supr3m4@00":
                 st.warning("Password errata!")
@@ -539,24 +550,6 @@ if page == "Login":
         if login:
             login_as(login)
 
-    st.components.v1.html(
-        f"""
-        <script>
-            function focusInput() {{
-                const input = window.parent.document.querySelector('textarea');
-                if (input) {{
-                    console.log('Input found. Focusing...');
-                    input.focus();
-                }} else {{
-                    console.log('Input not found. Retrying in 100ms...');
-                    setTimeout(focusInput, 100);
-                }}
-            }}
-            focusInput();
-        </script>
-        """,
-        height=0,
-    )
         
 # ---------------------------
 # 📝 GENERAZIONE DESCRIZIONI
