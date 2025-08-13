@@ -540,7 +540,7 @@ with st.sidebar:
         if main_page == "Foto":
             sub_page = st.radio(
                 "Seleziona sottosezione Foto",
-                ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico"],
+                ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "Importa Giacenze"],
                 label_visibility="collapsed"
             )
             page = f"Foto - {sub_page.split(' ', 1)[1]}"
@@ -1229,5 +1229,8 @@ elif page == "Foto - Storico":
                             st.warning(f"⚠️ Errore immagine: {info['name']}")
         except Exception as e:
             st.error(f"Errore: {str(e)}")
+elif page == "Foto - Importa giacenze":
+    st.header("Importa giacenze")
+    st.markdown("Importa le giacenze da file CSV.")
 elif page == "Logout":
     logout()
