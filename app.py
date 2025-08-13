@@ -1253,7 +1253,20 @@ elif page == "Foto - Importa giacenze":
         df_input = df_input.where(pd.notna(df_input), None)
         
         # Trasforma tutti i valori in tipi nativi Python
-        data_to_write = [df_input.columns.tolist()] + df_input.astype(object).values.tolist()
+        def to_native_python(val):
+            if pd.isna(val):
+                return None
+            if isinstance(val, (np.integer, np.int64, np.int32)):
+                return int(val)
+            if isinstance(val, (np.floating, np.float64, np.float32)):
+                return float(val)
+            if isinstance(val, (np.bool_)):
+                return bool(val)
+            return val
+        
+        data_to_write = [
+            df_input.columns.tolist()
+        ] + df_input.applymap(to_native_python).values.tolist()
 
         st.write(df_input)
 
