@@ -492,6 +492,12 @@ with st.sidebar:
             ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "Foto - Riscatta", "Foto - Aggiungi SKU", "📚 Foto - Storico", "Logout"],
             label_visibility="collapsed"
         )
+    elif page == "📸 Foto - Gestione":
+        page = st.radio(
+            "Seleziona sezione",
+            ["📸 Foto - Gestione", "SKU da riscattare", "Aggiungi SKU", "Storico", "🏠 Home"],
+            label_visibility="collapsed"
+        )
     else:
         page = st.radio(
             "Seleziona sezione",
