@@ -1320,18 +1320,29 @@ elif page == "Foto - Aggiungi prelevate":
     st.header("Aggiungi prelevate")
     st.markdown("Aggiungi la lista delle paia prelevate")
 
-    text_input = st.text_area("Lista paia prelevate", height=200, width=500)
-
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "PRELEVATE")
+    
+    text_input = st.text_area("Lista paia prelevate", height=400, width=800)
+    
     if text_input:
         # Regex per SKU: 7 numeri, spazio, 2 numeri, spazio, 4 caratteri alfanumerici
         pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
-        skus = re.findall(pattern, text_input)
+        skus_raw = re.findall(pattern, text_input)
     
-        if skus:
-            st.subheader("SKU trovate:")
-            st.write(skus)
-        else:
-            st.warning("Nessuna SKU trovata.")
+        # Rimuovi spazi interni
+        skus = [sku.replace(" ", "") for sku in skus_raw]
+    
+        st.subheader(f"SKU trovate: {len(skus)}")
+
+        if st.button("Carica su GSheet"):
+            # Prepara i dati da appendere (ogni SKU in una riga singola, colonna 1)
+            rows_to_append = [[sku] for sku in skus]
+    
+            # Append a partire dall'ultima riga disponibile
+            sheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
+    
+            st.success(f"✅ {len(skus)} SKU aggiunte al foglio PRELEVATE!")
 
 elif page == "Logout":
     logout()
