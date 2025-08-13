@@ -29,4 +29,3 @@ aiohttp
 httpx
 tenacity
 dropbox
-reportlab
