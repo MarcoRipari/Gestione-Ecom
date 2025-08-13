@@ -502,10 +502,11 @@ with st.sidebar:
         if main_page == "📸 Foto":
             sub_page = st.radio(
                 "Seleziona sottosezione Foto",
-                ["📦 Gestione", "🔁 Riscattare", "➕ Aggiungi SKU", "📚 Storico"],
+                ["📦 Gestione", "🔁 Riscatta", "➕ Aggiungi SKU", "📚 Storico"],
                 label_visibility="collapsed"
             )
-            page = f"Foto - {sub_page.split(' ', 1)[1]}"  # es. "Foto - Gestione"
+            page = f"📸 Foto - {sub_page.split(' ', 1)[1]}"  # es. "Foto - Gestione"
+            st.write(page)
     
     else:
         page = "Login"
