@@ -1015,29 +1015,29 @@ elif page == "📸 Foto - Gestione":
                 for row in data_rows:
                     sku = row[col_sku].strip() if len(row) > col_sku else ""
                     descrizione = row[col_descrizione].strip() if len(row) > col_descrizione else ""
-        
                     if sku in selected_ristampe:
                         nuovi_valori.append(["True"])
                         sku_descrizioni_confermate.append(f"{sku} - {descrizione}")
                     else:
-                        nuovi_valori.append([""])
+                        nuovi_valori.append(["False"])
         
                 range_update = f"N3:N{len(nuovi_valori) + 2}"
                 sheet.update(values=nuovi_valori, range_name=range_update)
-
-                # 🔄 Aggiorno la lista in session_state dai nuovi valori
-                st.session_state["ristampe_selezionate"] = set(df[df["RISCATTARE"] == True]["SKU"])
+        
+                # 🔄 Aggiorno direttamente il df in memoria
+                df_mem = st.session_state["df_lista_foto"]
+                df_mem["RISCATTARE"] = df_mem["SKU"].apply(lambda sku: sku in selected_ristampe)
+                st.session_state["df_lista_foto"] = df_mem
+        
+                # 🔄 Aggiorno la selezione da df modificato
+                st.session_state["ristampe_selezionate"] = set(df_mem[df_mem["RISCATTARE"] == True]["SKU"])
         
                 # Salvo anche le confermate
                 st.session_state["ristampe_confermate"] = sku_descrizioni_confermate
-                #st.success("✅ Ristampe aggiornate correttamente!")
-                
-                # 🔄 Ricarico il DataFrame dal Google Sheet (stesso metodo usato sopra)
-                df = carica_lista_foto(sheet_id, cache_key=str(time.time()))
-                st.session_state["df_lista_foto"] = df
-
+        
+                st.success("✅ Ristampe aggiornate correttamente!")
                 st.rerun()
-                
+        
             except Exception as e:
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
 
