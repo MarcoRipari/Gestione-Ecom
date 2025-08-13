@@ -1251,11 +1251,13 @@ elif page == "Foto - Importa giacenze":
         if st.button("Importa"):
             sheet.clear()
             sheet.update("A1", data_to_write)
-            sheet.format("D2:D", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
-            sheet.format("L2:L", {"numberFormat": {"type": "NUMBER", "pattern": "000"}})
-            sheet.format("N2:N", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
-            sheet.format("O2:O", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
-            sheet.format("Q2:AE", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
+            last_row = len(df_input) + 1  # +1 perché la prima riga è l'intestazion
+            
+            sheet.format(f"D2:D{last_row}", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
+            sheet.format(f"L2:L{last_row}", {"numberFormat": {"type": "NUMBER", "pattern": "000"}})
+            sheet.format(f"N2:N{last_row}", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
+            sheet.format(f"O2:O{last_row}", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
+            sheet.format(f"Q2:AE{last_row}", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
             st.success("✅ Giacenze importate con successo!")
         
 elif page == "Logout":
