@@ -1244,9 +1244,9 @@ elif page == "Foto - Importa giacenze":
         df_input = read_csv_auto_encoding(csv_import, "\t")
         data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
 
-        df_input["TAGLIA"] = df_input["TAGLIA"].apply(pd.to_numeric, errors='coerce').where(df_input[ultime_15].notna(), None)
-        df_input["X"] = df_input["X"].apply(pd.to_numeric, errors='coerce').where(df_input[ultime_15].notna(), None)
-        df_input["Y"] = df_input["Y"].apply(pd.to_numeric, errors='coerce').where(df_input[ultime_15].notna(), None)
+        df_input["TAGLIA"] = df_input["TAGLIA"].apply(pd.to_numeric, errors='coerce').where(df_input["TAGLIA"].notna(), None)
+        df_input["X"] = df_input["X"].apply(pd.to_numeric, errors='coerce').where(df_input["X"].notna(), None)
+        df_input["Y"] = df_input["Y"].apply(pd.to_numeric, errors='coerce').where(df_input["Y"].notna(), None)
 
         ultime_15 = df_input.columns[-15:]
         df_input[ultime_15] = df_input[ultime_15].apply(pd.to_numeric, errors='coerce').where(df_input[ultime_15].notna(), None)
