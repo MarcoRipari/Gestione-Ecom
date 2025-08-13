@@ -485,25 +485,15 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
-    page = "🏠 Home"
-    st.session_state["navigation_page"] = "🏠 Home"
-        
+    
     if st.session_state.get("logged_as"):
-        if not page or page == "🏠 Home":
-            st.write(f"Accesso eseguito come: {st.session_state.get("logged_as")}")
-            page = st.radio(
-                "Seleziona sezione",
-                ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "Foto - Riscatta", "Foto - Aggiungi SKU", "📚 Foto - Storico", "Logout"],
-                label_visibility="collapsed",
-                on_change=st.rerun()
-            )
-        elif page == "📸 Foto - Gestione":
-            page = st.radio(
-                "Seleziona sezione",
-                ["📸 Foto - Gestione", "SKU da riscattare", "Aggiungi SKU", "Storico", "🏠 Home"],
-                label_visibility="collapsed",
-                on_change=st.rerun()
-            )
+        st.write(f"Accesso eseguito come: {st.session_state.get("logged_as")}")
+        page = st.radio(
+            "Seleziona sezione",
+            ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "Foto - Riscatta", "Foto - Aggiungi SKU", "📚 Foto - Storico", "Logout"],
+            label_visibility="collapsed",
+            on_change=st.rerun()
+        )
     else:
         page = st.radio(
             "Seleziona sezione",
