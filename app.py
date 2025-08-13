@@ -898,7 +898,7 @@ elif page == "Foto - Gestione":
         if st.button("📄 Scarica PDF DISP"):
             # 1️⃣ Filtra il dataframe
             df_disp = df[df["DISP"] == True]
-            df_disp = df_disp["COD","VAR","COL","TG PIC","COR","LAT","X","Y","FOTOGRAFO"]            
+            df_disp = df_disp[["COD","VAR","COL","TG PIC","COR","LAT","X","Y","FOTOGRAFO"]]
             
             if df_disp.empty:
                 st.warning("Nessuna SKU disponibile per DISP.")
