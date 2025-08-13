@@ -1318,6 +1318,8 @@ elif page == "Foto - Importa giacenze":
 elif page == "Foto - Aggiungi prelevate":
     st.header("Aggiungi prelevate")
     st.markdown("Aggiungi la lista delle paia prelevate")
-    
+
+    st.text_area("Lista paia prelevate", height=200, width=500)
+
 elif page == "Logout":
     logout()
