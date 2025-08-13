@@ -990,72 +990,53 @@ elif page == "📸 Foto - Gestione":
                     else:
                         selected_ristampe.discard(row['SKU'])
 
-        st.session_state["ristampe_selezionate"] = selected_ristampe
+        # Assicurati che lo stato iniziale esista (solo alla prima run)
+        if "ristampe_selezionate" not in st.session_state:
+            st.session_state["ristampe_selezionate"] = set(df[df["RISCATTARE"] == True]["SKU"].astype(str).tolist())
         
-        # Stato per conferma e visibilità
-        if "ristampe_confermate" not in st.session_state:
-            st.session_state["ristampe_confermate"] = False
-
-        st.write(len(selected_ristampe))
-        st.write(start_riscattare)
-        if len(selected_ristampe) != start_riscattare and len(selected_ristampe) == 0:
-            if st.button("✅ Conferma selezione per ristampa"):
-                try:
-                    valori = []
-                    sheet = get_sheet(sheet_id, "LISTA")
-                    range = f"N3:N{len(df)+2}"
-                    for index, row in df.iterrows():
-                        valori.append([""])
-                        
-                    sheet.update(values=valori, range_name=range)
-                    st.success("✅ Ristampe aggiornate correttamente!")
-                except Exception as e:
-                    st.write(e)
-
-        if not st.session_state["ristampe_confermate"]:
-            if selected_ristampe:
-                st.markdown(f"📦 SKU selezionate per ristampa: `{', '.join(sorted(selected_ristampe))}`")
-                if st.button("✅ Conferma selezione per ristampa"):
-                    try:
-                        sheet = get_sheet(sheet_id, "LISTA")
-                        all_rows = sheet.get_all_values()
-                        headers = all_rows[1]
-                        data_rows = all_rows[2:]
-                
-                        col_sku = 0
-                        col_descrizione = 4
-                        col_ristampare = 13  # colonna N
-                
-                        nuovi_valori = []
-                        sku_descrizioni_confermate = []
-                
-                        for row in data_rows:
-                            sku = row[col_sku].strip()
-                            descrizione = row[col_descrizione].strip() if len(row) > col_descrizione else ""
-                            if sku in selected_ristampe:
-                                nuovi_valori.append(["True"])
-                                sku_descrizioni_confermate.append(f"{sku} - {descrizione}")
-                            else:
-                                val = row[col_ristampare] if len(row) > col_ristampare else ""
-                                nuovi_valori.append([val])
-                        range_update = f"N3:N{len(nuovi_valori) + 2}"
-                        sheet.update(values=nuovi_valori, range_name=range_update)
-                        
-                        st.session_state["ristampe_confermate"] = sku_descrizioni_confermate
-                        st.session_state["ristampe_selezionate"] = set()
-                        st.rerun()  # 🔄 Forza il refresh della UI
-                
-                    except Exception as e:
-                        st.error(f"❌ Errore aggiornamento: {str(e)}")
-        else:
-            st.success("✅ Ristampe aggiornate correttamente!")
-            for riga in st.session_state.get("descrizioni_confermate", []):
-                st.markdown(f"- {riga}")
-            time.sleep(5)
-            st.session_state["ristampe_confermate"] = False
-            st.session_state.ristampa_input = ""
-            st.rerun()
-            
+        selected_ristampe = st.session_state["ristampe_selezionate"]
+        
+        # Qui mostri la lista selezionata (se ce ne sono)
+        if selected_ristampe:
+            st.markdown(f"📦 SKU selezionate per ristampa: `{', '.join(sorted(selected_ristampe))}`")
+        
+        # Unico pulsante di conferma (chiave esplicita per evitare collisioni)
+        if st.button("✅ Conferma selezione per ristampa", key="conferma_ristampa"):
+            try:
+                sheet = get_sheet(sheet_id, "LISTA")
+                all_rows = sheet.get_all_values()
+                data_rows = all_rows[2:]  # parte dei dati effettivi
+        
+                col_sku = 0
+                col_descrizione = 4
+                # Prepariamo i valori da scrivere (una riga per ogni riga dati)
+                nuovi_valori = []
+                sku_descrizioni_confermate = []
+        
+                for row in data_rows:
+                    sku = row[col_sku].strip() if len(row) > col_sku else ""
+                    descrizione = row[col_descrizione].strip() if len(row) > col_descrizione else ""
+        
+                    if sku in selected_ristampe:
+                        nuovi_valori.append(["True"])
+                        sku_descrizioni_confermate.append(f"{sku} - {descrizione}")
+                    else:
+                        # forza sempre False per le non selezionate: sovrascrive valori precedenti
+                        nuovi_valori.append(["False"])
+        
+                range_update = f"N3:N{len(nuovi_valori) + 2}"
+                # (Facoltativo: st.write("Preview:", nuovi_valori[:10]) per debug)
+                sheet.update(values=nuovi_valori, range_name=range_update)
+        
+                # Salvo il risultato in session_state in modo coerente (lista, mai booleano)
+                st.session_state["ristampe_confermate"] = sku_descrizioni_confermate
+                # Svuoto la selezione
+                st.session_state["ristampe_selezionate"] = set()
+                st.success("✅ Ristampe aggiornate correttamente!")
+                st.rerun()
+        
+            except Exception as e:
+                st.error(f"❌ Errore aggiornamento: {str(e)}")
 
 elif page == "Foto - Aggiungi SKU":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
