@@ -485,6 +485,7 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
+    page == "🏠 Home"
     if st.session_state.get("logged_as"):
         if not page or page == "🏠 Home":
             st.write(f"Accesso eseguito come: {st.session_state.get("logged_as")}")
