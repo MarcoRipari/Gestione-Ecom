@@ -897,15 +897,14 @@ elif page == "Foto - Gestione":
     with col2:
         # 1️⃣ Filtra il dataframe
         df_disp = df[df["DISP"] == True]
-        
+        #df_disp = df_disp[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y","FOTOGRAFO"]]
+        df_disp = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
+
         df_matias = df_disp[df_disp["FOTOGRAFO"] == "MATIAS"]
         df_matteo = df_disp[df_disp["FOTOGRAFO"] == "MATTEO"]
-        
-        df_matias = df_matias[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
-        df_matias = df_matias.sort_values(by=["COR", "X", "Y", "LAT"])
 
-        df_matteo = df_matias[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
-        df_matteo = df_matias.sort_values(by=["COR", "X", "Y", "LAT"])
+        df_matias = df_matias[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+        df_matteo = df_matteo[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
         
         if df_disp.empty:
             st.warning("Nessuna SKU disponibile per DISP.")
