@@ -487,9 +487,6 @@ with st.sidebar:
     st.markdown("## 📋 Menu")
     page = "🏠 Home"
     st.session_state["navigation_page"] = "🏠 Home"
-    
-    def refresh_page():
-        st.rerun();
         
     if st.session_state.get("logged_as"):
         if not page or page == "🏠 Home":
@@ -498,14 +495,14 @@ with st.sidebar:
                 "Seleziona sezione",
                 ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "Foto - Riscatta", "Foto - Aggiungi SKU", "📚 Foto - Storico", "Logout"],
                 label_visibility="collapsed",
-                on_change=refesh_page()
+                on_change=st.rerun()
             )
         elif page == "📸 Foto - Gestione":
             page = st.radio(
                 "Seleziona sezione",
                 ["📸 Foto - Gestione", "SKU da riscattare", "Aggiungi SKU", "Storico", "🏠 Home"],
                 label_visibility="collapsed",
-                on_change=refesh_page()
+                on_change=st.rerun()
             )
     else:
         page = st.radio(
