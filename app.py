@@ -877,7 +877,12 @@ elif page == "Descrizioni":
 
 elif page == "Foto - Gestione":
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
-
+    
+    # 🔽 Caricamento dati con chiave cache dinamica
+    cache_token = str(st.session_state.get("refresh_foto_token", "static"))
+    df = carica_lista_foto(sheet_id, cache_key=cache_token)
+    st.session_state["df_lista_foto"] = df
+    
     st.header("📸 Gestione Foto")
     tab_names = ["ECOM", "ZFS", "AMAZON"]
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
@@ -932,11 +937,6 @@ elif page == "Foto - Gestione":
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
     
-    # 🔽 Caricamento dati con chiave cache dinamica
-    cache_token = str(st.session_state.get("refresh_foto_token", "static"))
-    df = carica_lista_foto(sheet_id, cache_key=cache_token)
-    st.session_state["df_lista_foto"] = df
-
     # 📊 Riepilogo
     total = len(df)
     consegnate = df["CONSEGNATA"].sum()
