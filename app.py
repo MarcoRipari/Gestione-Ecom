@@ -487,18 +487,28 @@ with st.sidebar:
     st.markdown("## 📋 Menu")
     
     if st.session_state.get("logged_as"):
-        st.write(f"Accesso eseguito come: {st.session_state.get("logged_as")}")
-        page = st.radio(
+        st.write(f"Accesso eseguito come: {st.session_state.get('logged_as')}")
+    
+        # --- Menu principale ---
+        main_page = st.radio(
             "Seleziona sezione",
-            ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "Foto - Riscatta", "Foto - Aggiungi SKU", "📚 Foto - Storico", "Logout"],
+            ["🏠 Home", "📝 Descrizioni", "📸 Foto", "Logout"],
             label_visibility="collapsed"
         )
+    
+        # --- Sottomenu ---
+        page = main_page  # default, se non ha sottosezioni
+    
+        if main_page == "📸 Foto":
+            sub_page = st.radio(
+                "Seleziona sottosezione Foto",
+                ["📦 Gestione", "🔁 Riscattare", "➕ Aggiungi SKU", "📚 Storico"],
+                label_visibility="collapsed"
+            )
+            page = f"Foto - {sub_page.split(' ', 1)[1]}"  # es. "Foto - Gestione"
+    
     else:
-        page = st.radio(
-            "Seleziona sezione",
-            ["Login"],
-            label_visibility="collapsed"
-        )
+        page = "Login"
 
 # ---------------------------
 # 🏠 HOME
