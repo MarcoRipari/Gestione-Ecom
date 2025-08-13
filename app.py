@@ -1019,7 +1019,7 @@ elif page == "📸 Foto - Gestione":
                         nuovi_valori.append(["True"])
                         sku_descrizioni_confermate.append(f"{sku} - {descrizione}")
                     else:
-                        nuovi_valori.append(["False"])
+                        nuovi_valori.append([""])
         
                 range_update = f"N3:N{len(nuovi_valori) + 2}"
                 sheet.update(values=nuovi_valori, range_name=range_update)
