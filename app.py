@@ -1239,11 +1239,11 @@ elif page == "Foto - Importa giacenze":
     st.markdown("Importa le giacenze da file CSV.")
     
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "GIACENZE")
+    sheet = get_sheet(sheet_id, "GIACENZE")  # La tua funzione per ottenere il foglio
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
     
     if csv_import:
-        df_input = read_csv_auto_encoding(csv_import, "\t")
+        df_input = read_csv_auto_encoding(csv_import, "\t")  # La tua funzione per leggere CSV
     
         # Lista delle colonne da formattare come numeriche con pattern
         numeric_cols_info = {
@@ -1256,6 +1256,22 @@ elif page == "Foto - Importa giacenze":
         for i in range(17, 32):  # Q=17, AE=31
             col_letter = gspread.utils.rowcol_to_a1(1, i)[0]
             numeric_cols_info[col_letter] = "0"
+    
+        # Funzione bulletproof: converte in numero solo valori numerici
+        def to_number_safe(x):
+            try:
+                if pd.isna(x) or x == "":
+                    return None
+                return float(x)
+            except:
+                return x  # testo rimane testo
+    
+        # Applica la conversione solo alle colonne target
+        for col_letter in numeric_cols_info.keys():
+            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1  # indice zero-based
+            if df_input.columns.size >= col_idx + 1:
+                col_name = df_input.columns[col_idx]
+                df_input[col_name] = df_input[col_name].apply(to_number_safe)
     
         # Trasforma tutto in tipi Python nativi e sostituisci NaN con ""
         data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
