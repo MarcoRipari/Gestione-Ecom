@@ -1319,8 +1319,11 @@ elif page == "Foto - Importa giacenze":
 elif page == "Foto - Aggiungi prelevate":
     st.header("Aggiungi prelevate")
     st.markdown("Aggiungi la lista delle paia prelevate")
+
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "GIACENZE")
     
-    text_input = st.text_area("Lista paia prelevate", height=200, width=500)
+    text_input = st.text_area("Lista paia prelevate", height=400, width=800)
     
     if text_input:
         # Regex per SKU: 7 numeri, spazio, 2 numeri, spazio, 4 caratteri alfanumerici
@@ -1331,14 +1334,8 @@ elif page == "Foto - Aggiungi prelevate":
         skus = [str(sku.replace(" ", "")) for sku in skus_raw]
     
         st.subheader(f"SKU trovate: {len(skus)}")
-        st.write(skus)
     
         if st.button("Carica su GSheet"):
-            # Connetti al foglio
-            sheet_id = st.secrets["FOTO_GSHEET_ID"]
-            gc = gspread.service_account_from_dict(st.secrets["gcp_service_account"])
-            sheet = gc.open_by_key(sheet_id).worksheet("PRELEVATE")
-    
             # Leggi SKU già presenti nel foglio
             existing_skus = sheet.col_values(1)
             existing_skus = [str(sku) for sku in existing_skus]  # assicura str
