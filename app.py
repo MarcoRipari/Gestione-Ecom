@@ -497,15 +497,15 @@ with st.sidebar:
         )
     
         # --- Sottomenu ---
-        page = main_page  # default, se non ha sottosezioni
+        page = main_page.split(' ', 1)[1]  # default, se non ha sottosezioni
     
-        if main_page == "📸 Foto":
+        if main_page == "Foto":
             sub_page = st.radio(
                 "Seleziona sottosezione Foto",
                 ["📦 Gestione", "🔁 Riscatta", "➕ Aggiungi SKU", "📚 Storico"],
                 label_visibility="collapsed"
             )
-            page = f"📸 Foto - {sub_page.split(' ', 1)[1]}"  # es. "Foto - Gestione"
+            page = f"Foto - {sub_page.split(' ', 1)[1]}"  # es. "Foto - Gestione"
             st.write(page)
     
     else:
@@ -514,7 +514,7 @@ with st.sidebar:
 # ---------------------------
 # 🏠 HOME
 # ---------------------------
-if page == "🏠 Home":
+if page == "Home":
     st.subheader("📌 Benvenuto")
     st.markdown("""
     Benvenuto nell'app di generazione descrizioni prodotto per calzature.  
@@ -555,7 +555,7 @@ if page == "Login":
 # ---------------------------
 # 📝 GENERAZIONE DESCRIZIONI
 # ---------------------------
-elif page == "📝 Descrizioni":
+elif page == "Descrizioni":
     st.header("📥 Caricamento CSV dei prodotti")
     sheet_id = st.secrets["DESC_GSHEET_ID"]
     uploaded = st.file_uploader("Carica un file CSV", type="csv")
@@ -870,7 +870,7 @@ elif page == "📝 Descrizioni":
                 with st.spinner("In corso..."):
                     benchmark_faiss(df_input, st.session_state.col_weights)
 
-elif page == "📸 Foto - Gestione":
+elif page == "Foto - Gestione":
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
 
     st.header("📸 Gestione Foto")
@@ -951,7 +951,7 @@ elif page == "📸 Foto - Gestione":
         # ✅ Visualizzazione
         st.dataframe(df_vista, use_container_width=True)
 
-elif page == "📸 Foto - Riscatta":
+elif page == "Foto - SKU da riscattare":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
 
@@ -1058,7 +1058,7 @@ elif page == "📸 Foto - Riscatta":
             except Exception as e:
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
                 
-elif page == "📸 Foto - Aggiungi SKU":
+elif page == "Foto - Aggiungi SKU":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     new_sku = st.session_state.get("aggiunta_confermata", set())
 
@@ -1090,7 +1090,7 @@ elif page == "📸 Foto - Aggiungi SKU":
                 warning.empty()
                 
                 
-elif page == "📸 Foto - Storico":
+elif page == "Foto - Storico":
     st.header("📚 Storico Articolo")
     st.markdown("Inserisci una SKU per visualizzare tutte le immagini storiche salvate su Dropbox per quell’articolo.")
 
