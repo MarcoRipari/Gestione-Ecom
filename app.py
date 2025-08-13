@@ -1244,7 +1244,7 @@ elif page == "Foto - Importa giacenze":
         df_input = read_csv_auto_encoding(csv_import, "\t")
         data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
 
-        df_input["TAGLIA"] = df_input["TAGLIA"].astype(int)
+        df_input["TAGLIA"] = df_input["TAGLIA"].apply(pd.to_numeric, errors='coerce')
         df_input["X"] = df_input["X"].apply(pd.to_numeric, errors='coerce')
         df_input["Y"] = df_input["Y"].apply(pd.to_numeric, errors='coerce')
 
