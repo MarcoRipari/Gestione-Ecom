@@ -1236,13 +1236,13 @@ elif page == "Foto - Importa giacenze":
     st.header("Importa giacenze")
     st.markdown("Importa le giacenze da file CSV.")
     
-    sheet_id = st.secrets["DESC_GSHEET_ID"]
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "GIACENZE")
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
     
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
-        data_to_write = [df_input.columns.astype(str).tolist()] + df_input.astype(str).fillna("").values.tolist()
+        data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
         st.write(df_input)
 
         if st.button("Importa"):
