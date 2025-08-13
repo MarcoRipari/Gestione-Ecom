@@ -28,7 +28,7 @@ from aiohttp import ClientTimeout
 from tenacity import retry, stop_after_attempt, wait_fixed
 import dropbox
 import base64
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
@@ -899,6 +899,7 @@ elif page == "Foto - Gestione":
             # 1️⃣ Filtra il dataframe
             df_disp = df[df["DISP"] == True]
             df_disp = df_disp[["COD","VAR","COL","TG PIC","COR","LAT","X","Y","FOTOGRAFO"]]
+            df_disp = df_disp.sort_values(by=["FOTOGRAFO", "COR", "X", "Y", "LAT"])
             
             if df_disp.empty:
                 st.warning("Nessuna SKU disponibile per DISP.")
