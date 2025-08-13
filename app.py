@@ -344,12 +344,15 @@ def append_to_sheet(sheet_id, tab, df):
 # ---------------------------
 # Funzioni varie
 # ---------------------------
-def read_csv_auto_encoding(uploaded_file):
+def read_csv_auto_encoding(uploaded_file, **sep):
     raw_data = uploaded_file.read()
     result = chardet.detect(raw_data)
     encoding = result['encoding'] or 'utf-8'
     uploaded_file.seek(0)  # Rewind after read
-    return pd.read_csv(uploaded_file, encoding=encoding)
+    if separatore:
+        return pd.read_csv(uploaded_file, sep=separatore, encoding=encoding)
+    else:
+        return pd.read_csv(uploaded_file, encoding=encoding)
 
 def not_in_array(array, list):
     missing = not all(col in array for col in list)
@@ -1238,7 +1241,7 @@ elif page == "Foto - Importa giacenze":
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
     
     if csv_import:
-        df_input = pd.read_csv(csv_import, sep="\t")
+        df_input = read_csv_auto_encoding(csv_import, "\t")
         st.write(df_input)
         sheet.clear()
         set_with_dataframe(sheet, df_input)
