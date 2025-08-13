@@ -32,6 +32,8 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
+from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
+import gspread.utils
 
 logging.basicConfig(level=logging.INFO)
 
@@ -1239,11 +1241,39 @@ elif page == "Foto - Importa giacenze":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "GIACENZE")
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
-        
+    
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
     
-        # Trasforma tutto in tipi Python nativi
+        # Lista delle colonne da convertire in numerico
+        numeric_cols_info = {
+            "D": "0",
+            "L": "000",
+            "N": "0",
+            "O": "0",
+        }
+        # Q-AE
+        for i in range(17, 32):  # Q=17, AE=31
+            col_letter = gspread.utils.rowcol_to_a1(1, i)[0]
+            numeric_cols_info[col_letter] = "0"
+    
+        # Funzione bulletproof: converte testo numerico in numero, mantiene testo non numerico
+        def to_number_safe(x):
+            try:
+                if pd.isna(x) or x == "":
+                    return None
+                return float(x)
+            except:
+                return x  # testo rimane testo
+    
+        # Applica la conversione alle colonne target
+        for col_letter in numeric_cols_info.keys():
+            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1  # indice zero-based
+            if df_input.columns.size >= col_idx + 1:
+                col_name = df_input.columns[col_idx]
+                df_input[col_name] = df_input[col_name].apply(to_number_safe)
+    
+        # Trasforma tutto in tipi Python nativi e sostituisci NaN con ""
         data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
     
         st.write(df_input)
@@ -1251,13 +1281,19 @@ elif page == "Foto - Importa giacenze":
         if st.button("Importa"):
             sheet.clear()
             sheet.update("A1", data_to_write)
-            last_row = len(df_input) + 1  # +1 perché la prima riga è l'intestazion
-            
-            sheet.format(f"D2:D{last_row}", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
-            sheet.format(f"L2:L{last_row}", {"numberFormat": {"type": "NUMBER", "pattern": "000"}})
-            sheet.format(f"N2:N{last_row}", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
-            sheet.format(f"O2:O{last_row}", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
-            sheet.format(f"Q2:AE{last_row}", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
+            last_row = len(df_input) + 1  # +1 per intestazione
+    
+            # Prepara la lista di range da formattare
+            ranges_to_format = []
+            for col_letter, pattern in numeric_cols_info.items():
+                ranges_to_format.append(
+                    (f"{col_letter}2:{col_letter}{last_row}",
+                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                )
+    
+            # Applica tutto in un colpo solo
+            format_cell_ranges(sheet, ranges_to_format)
+    
             st.success("✅ Giacenze importate con successo!")
         
 elif page == "Logout":
