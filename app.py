@@ -965,12 +965,16 @@ elif page == "Foto - Gestione":
     consegnate = df["CONSEGNATA"].sum()
     da_scattare = df["SCATTARE"].sum()
     scattate = total - da_scattare
+    matias = df[df["FOTOGRAFO"] == "MATIAS"].sum()
+    matteo = df[df["FOTOGRAFO"] == "MATTEO"].sum()
         
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("📝 Totale SKU", total)
     c2.metric("✅ Già scattate", scattate)
     c3.metric("🚚 Dal fotografo", consegnate)
     c4.metric("📸 Da scattare", da_scattare)
+    c5.metric("Disponibili Matias", matias)
+    c6.metric("Disponibili Matteo", matteo)
     
    
     # 🔽 Filtro visualizzazione
