@@ -1242,11 +1242,13 @@ elif page == "Foto - Importa giacenze":
     
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
+        data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
         st.write(df_input)
-        sheet.clear()
-        set_with_dataframe(sheet, df_input)
 
-        st.success("✅ Giacenze importate con successo!")
+        if st.button("Importa"):
+            sheet.clear()
+            sheet.update("A1",data_to_write)
+            st.success("✅ Giacenze importate con successo!")
         
 elif page == "Logout":
     logout()
