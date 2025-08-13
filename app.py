@@ -933,18 +933,19 @@ elif page == "Foto - Gestione":
                 
                 elements = [table]
                 doc.build(elements)
-                return buffer.seek(0)
+                buffer.seek(0)
+                return buffer
             
             # 3️⃣ Pulsante di download
             st.download_button(
                 label="📥 Lista Matias",
-                data=genera_pdf(df_matias).getvalue(),
+                data=genera_pdf(df_matias),
                 file_name="lista_disp_matias.pdf",
                 mime="application/pdf"
             )
             st.download_button(
                 label="📥 Lista Matteo",
-                data=genera_pdf(df_matteo).getvalue(),
+                data=genera_pdf(df_matteo),
                 file_name="lista_disp_matteo.pdf",
                 mime="application/pdf"
             )
