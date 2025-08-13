@@ -1035,7 +1035,7 @@ elif page == "📸 Foto - Gestione":
                 # Salvo anche le confermate
                 st.session_state["ristampe_confermate"] = sku_descrizioni_confermate
         
-                st.success("✅ Ristampe aggiornate correttamente!")
+                #st.success("✅ Ristampe aggiornate correttamente!")
                 st.rerun()
         
             except Exception as e:
