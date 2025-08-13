@@ -1245,11 +1245,11 @@ elif page == "Foto - Importa giacenze":
         data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
 
         df_input["TAGLIA"] = df_input["TAGLIA"].astype(int)
-        df_input["X"] = df_input["X"].astype(int)
-        df_input["Y"] = df_input["Y"].astype(int)
+        df_input["X"] = df_input["X"].apply(pd.to_numeric, errors='coerce')
+        df_input["Y"] = df_input["Y"].apply(pd.to_numeric, errors='coerce')
 
         ultime_15 = df_input.columns[-15:]
-        df_imput[ultime_15] = df_input[ultime_15].astype(int)
+        df_imput[ultime_15] = df_input[ultime_15].apply(pd.to_numeric, errors='coerce')
         
         st.write(df_input)
 
