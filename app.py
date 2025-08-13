@@ -926,7 +926,7 @@ elif page == "Foto - Gestione":
     df_matias = df_matias[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
     df_matteo = df_matteo[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
 
-    col1, col2, col3, col4, col5, col6 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
         if st.button("📦 Genera lista SKU"):
             try:
