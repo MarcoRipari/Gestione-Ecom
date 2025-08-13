@@ -1252,11 +1252,12 @@ elif page == "Foto - Importa giacenze":
             "N": "0",
             "O": "0",
         }
+        st.write(numeric_cols_info.keys())
         # Colonne Q-AE
         for i in range(17, 32):  # Q=17, AE=31
             col_letter = gspread.utils.rowcol_to_a1(1, i)[0]
             numeric_cols_info[col_letter] = "0"
-    
+        st.write(numeric_cols_info.keys())
         # Funzione bulletproof: converte solo valori numerici, testo rimane testo
         def to_number_safe(x):
             try:
@@ -1272,7 +1273,7 @@ elif page == "Foto - Importa giacenze":
             if df_input.columns.size > col_idx:
                 col_name = df_input.columns[col_idx]
                 df_input[col_name] = df_input[col_name].apply(to_number_safe)
-    
+        st.write(numeric_cols_info.keys())
         # Tutte le altre colonne → forzale a stringa per evitare conversioni indesiderate
         target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
         test = []
@@ -1280,10 +1281,7 @@ elif page == "Foto - Importa giacenze":
             if idx not in target_indices:
                 test.append(idx)
                 df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
-        st.write(numeric_cols_info)
-        st.write("-")
-        st.write(numeric_cols_info.keys())
-        st.write(target_indices)
+
         # Trasforma tutto in lista per Google Sheet
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
     
