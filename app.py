@@ -1319,7 +1319,18 @@ elif page == "Foto - Aggiungi prelevate":
     st.header("Aggiungi prelevate")
     st.markdown("Aggiungi la lista delle paia prelevate")
 
-    st.text_area("Lista paia prelevate", height=200, width=500)
+    text_input = st.text_area("Lista paia prelevate", height=200, width=500)
+
+    if text_input:
+        # Regex per SKU: 7 numeri, spazio, 2 numeri, spazio, 4 caratteri alfanumerici
+        pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
+        skus = re.findall(pattern, text_input)
+    
+        if skus:
+            st.subheader("SKU trovate:")
+            st.write(skus)
+        else:
+            st.warning("Nessuna SKU trovata.")
 
 elif page == "Logout":
     logout()
