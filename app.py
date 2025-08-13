@@ -1321,7 +1321,7 @@ elif page == "Foto - Aggiungi prelevate":
     st.markdown("Aggiungi la lista delle paia prelevate")
 
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "GIACENZE")
+    sheet = get_sheet(sheet_id, "PRELEVATE")
     
     text_input = st.text_area("Lista paia prelevate", height=400, width=800)
     
