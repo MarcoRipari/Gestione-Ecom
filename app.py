@@ -928,7 +928,7 @@ elif page == "Foto - Gestione":
                     ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
                 ]))
                 
-                elements = [Paragraph("Elenco DISP", style_header), Spacer(1, 12), table]
+                elements = [table]
                 doc.build(elements)
                 buffer.seek(0)
                 
