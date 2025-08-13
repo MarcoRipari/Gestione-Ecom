@@ -891,7 +891,8 @@ elif page == "Foto - Gestione":
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
     with col2:
-
+        if st.button("Test"):
+            st.write("Test")
     with col3:
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
