@@ -1031,12 +1031,13 @@ elif page == "📸 Foto - Gestione":
                 # Salvo anche le confermate
                 st.session_state["ristampe_confermate"] = sku_descrizioni_confermate
                 #st.success("✅ Ristampe aggiornate correttamente!")
-                st.rerun()
                 
                 # 🔄 Ricarico il DataFrame dal Google Sheet (stesso metodo usato sopra)
                 df = carica_lista_foto(sheet_id, cache_key=str(time.time()))
                 st.session_state["df_lista_foto"] = df
-        
+
+                st.rerun()
+                
             except Exception as e:
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
 
