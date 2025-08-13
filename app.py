@@ -1259,14 +1259,12 @@ elif page == "Foto - Importa giacenze":
     
         numeric_cols = list(numeric_cols_info.keys())
     
-        # Funzione bulletproof: numeri rimangono numeri, testo rimane testo
+        # Funzione bulletproof: numeri rimangono numeri, testo rimane testo, vuoti diventano ""
         def safe_value(x):
+            if pd.isna(x) or x == "":
+                return ""
             try:
-                if pd.isna(x) or x == "":
-                    return ""
-                # Prova a convertire in float
-                val = float(x)
-                return val
+                return float(x)
             except:
                 return str(x)
     
@@ -1276,15 +1274,14 @@ elif page == "Foto - Importa giacenze":
             if col_letter in numeric_cols:
                 df_input[col_name] = df_input[col_name].apply(safe_value)
             else:
-                # Colonne non target: forziamo stringa
-                df_input[col_name] = df_input[col_name].astype(str)
+                # Colonne non target: sostituiamo solo i NaN con ""
+                df_input[col_name] = df_input[col_name].fillna("")
     
         # Prepara i dati da scrivere
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
         st.write(df_input)
     
         if st.button("Importa"):
-            # Svuota e aggiorna
             sheet.clear()
             sheet.update("A1", data_to_write)
             last_row = len(df_input) + 1  # +1 per intestazione
