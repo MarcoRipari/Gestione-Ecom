@@ -1241,7 +1241,7 @@ elif page == "Foto - Importa giacenze":
         df_input = pd.read_csv(csv_import, sep="\t")
         st.write(df_input)
         sheet.clear()
-        set_with_dataframe(worksheet, df_input)
+        set_with_dataframe(sheet, df_input)
 
         st.success("✅ Giacenze importate con successo!")
         
