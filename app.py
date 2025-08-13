@@ -1319,30 +1319,42 @@ elif page == "Foto - Importa giacenze":
 elif page == "Foto - Aggiungi prelevate":
     st.header("Aggiungi prelevate")
     st.markdown("Aggiungi la lista delle paia prelevate")
-
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "PRELEVATE")
     
-    text_input = st.text_area("Lista paia prelevate", height=400, width=800)
+    text_input = st.text_area("Lista paia prelevate", height=200, width=500)
     
     if text_input:
         # Regex per SKU: 7 numeri, spazio, 2 numeri, spazio, 4 caratteri alfanumerici
         pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
         skus_raw = re.findall(pattern, text_input)
     
-        # Rimuovi spazi interni
-        skus = [sku.replace(" ", "") for sku in skus_raw]
+        # Rimuovi spazi interni e converti in stringa
+        skus = [str(sku.replace(" ", "")) for sku in skus_raw]
     
         st.subheader(f"SKU trovate: {len(skus)}")
-
+        st.write(skus)
+    
         if st.button("Carica su GSheet"):
-            # Prepara i dati da appendere (ogni SKU in una riga singola, colonna 1)
-            rows_to_append = [[sku] for sku in skus]
+            # Connetti al foglio
+            sheet_id = st.secrets["FOTO_GSHEET_ID"]
+            gc = gspread.service_account_from_dict(st.secrets["gcp_service_account"])
+            sheet = gc.open_by_key(sheet_id).worksheet("PRELEVATE")
     
-            # Append a partire dall'ultima riga disponibile
-            sheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
+            # Leggi SKU già presenti nel foglio
+            existing_skus = sheet.col_values(1)
+            existing_skus = [str(sku) for sku in existing_skus]  # assicura str
     
-            st.success(f"✅ {len(skus)} SKU aggiunte al foglio PRELEVATE!")
+            # Filtra SKU nuove
+            skus_to_append = [sku for sku in skus if sku not in existing_skus]
+    
+            if skus_to_append:
+                # Prepara i dati da appendere (ogni SKU in una riga singola, colonna 1)
+                rows_to_append = [[sku] for sku in skus_to_append]
+    
+                # Append a partire dall'ultima riga disponibile
+                sheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
+                st.success(f"✅ {len(skus_to_append)} nuove SKU aggiunte al foglio PRELEVATE!")
+            else:
+                st.info("⚠️ Tutte le SKU inserite sono già presenti nel foglio.")
 
 elif page == "Logout":
     logout()
