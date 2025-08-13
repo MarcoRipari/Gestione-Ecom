@@ -1026,8 +1026,9 @@ elif page == "📸 Foto - Gestione":
                 sheet.update(values=nuovi_valori, range_name=range_update)
         
                 # 🔄 Ricarico il DataFrame dal Google Sheet (stesso metodo usato sopra)
-                df = carica_lista_foto(sheet_id, cache_key=str(time.time()))
-                st.session_state["df_lista_foto"] = df
+                #df = carica_lista_foto(sheet_id, cache_key=str(time.time()))
+                st.session_state["refresh_foto_token"] = str(time.time())
+                #st.session_state["df_lista_foto"] = df
         
                 # 🔄 Aggiorno la lista in session_state dai nuovi valori
                 st.session_state["ristampe_selezionate"] = set(df[df["RISCATTARE"] == True]["SKU"])
