@@ -545,7 +545,7 @@ with st.sidebar:
         if main_page == "Foto":
             sub_page = st.radio(
                 "Seleziona sottosezione Foto",
-                ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "📥 Importa giacenze"],
+                ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "📥 Importa giacenze", "🫳🏻 Aggiungi prelevate"],
                 label_visibility="collapsed"
             )
             page = f"Foto - {sub_page.split(' ', 1)[1]}"
@@ -1314,6 +1314,10 @@ elif page == "Foto - Importa giacenze":
             format_cell_ranges(sheet, ranges_to_format)
     
             st.success("✅ Giacenze importate con successo!")
-        
+
+elif page == "🫳🏻 Aggiungi prelevate":
+    st.header("Aggiungi prelevate")
+    st.markdown("Aggiungi la lista delle paia prelevate")
+    
 elif page == "Logout":
     logout()
