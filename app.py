@@ -1277,7 +1277,7 @@ elif page == "Foto - Importa giacenze":
         target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
         test = []
         for idx, col_name in enumerate(df_input.columns):
-            test.add(idx)
+            test.append(idx)
             if idx not in target_indices:
                 df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
 
