@@ -1232,5 +1232,12 @@ elif page == "Foto - Storico":
 elif page == "Foto - Importa giacenze":
     st.header("Importa giacenze")
     st.markdown("Importa le giacenze da file CSV.")
+    
+    sheet_id = st.secrets["DESC_GSHEET_ID"]
+    csv_import = st.file_uploader("Carica un file CSV", type="csv")
+    
+    if uploaded:
+        df_input = read_csv_auto_encoding(csv_import)
+        st.write(df_input)
 elif page == "Logout":
     logout()
