@@ -491,8 +491,7 @@ with st.sidebar:
         page = st.radio(
             "Seleziona sezione",
             ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "Foto - Riscatta", "Foto - Aggiungi SKU", "📚 Foto - Storico", "Logout"],
-            label_visibility="collapsed",
-            on_change=st.rerun()
+            label_visibility="collapsed"
         )
     else:
         page = st.radio(
