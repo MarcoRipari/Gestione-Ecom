@@ -28,10 +28,7 @@ from aiohttp import ClientTimeout
 from tenacity import retry, stop_after_attempt, wait_fixed
 import dropbox
 import base64
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet
+
 
 logging.basicConfig(level=logging.INFO)
 
