@@ -1245,7 +1245,7 @@ elif page == "Foto - Importa giacenze":
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
     
-        # Lista colonne da formattare come numeriche
+        # Lista delle colonne da formattare come numeriche con pattern
         numeric_cols_info = {
             "D": "0",
             "L": "000",
@@ -1257,28 +1257,31 @@ elif page == "Foto - Importa giacenze":
             col_letter = gspread.utils.rowcol_to_a1(1, i)[0]
             numeric_cols_info[col_letter] = "0"
     
-        numeric_cols = list(numeric_cols_info.keys())
-    
-        # Funzione bulletproof: numeri rimangono numeri, testo rimane testo, vuoti diventano ""
-        def safe_value(x):
-            if pd.isna(x) or x == "":
-                return ""
+        # Funzione bulletproof: converte solo valori numerici, testo rimane testo
+        def to_number_safe(x):
             try:
+                if pd.isna(x) or x == "":
+                    return ""
                 return float(x)
             except:
                 return str(x)
     
-        # Applica solo alle colonne target
-        for idx, col_name in enumerate(df_input.columns):
-            col_letter = gspread.utils.rowcol_to_a1(1, idx + 1)[0]
-            if col_letter in numeric_cols:
-                df_input[col_name] = df_input[col_name].apply(safe_value)
-            else:
-                # Colonne non target: sostituiamo solo i NaN con ""
-                df_input[col_name] = df_input[col_name].fillna("")
+        # Applica conversione solo alle colonne target
+        for col_letter in numeric_cols_info.keys():
+            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1  # indice zero-based
+            if df_input.columns.size > col_idx:
+                col_name = df_input.columns[col_idx]
+                df_input[col_name] = df_input[col_name].apply(to_number_safe)
     
-        # Prepara i dati da scrivere
+        # Tutte le altre colonne → forzale a stringa per evitare conversioni indesiderate
+        target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
+        for idx, col_name in enumerate(df_input.columns):
+            if idx not in target_indices:
+                df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
+    
+        # Trasforma tutto in lista per Google Sheet
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
+    
         st.write(df_input)
     
         if st.button("Importa"):
@@ -1286,16 +1289,17 @@ elif page == "Foto - Importa giacenze":
             sheet.update("A1", data_to_write)
             last_row = len(df_input) + 1  # +1 per intestazione
     
-            # Prepara formattazione solo per le colonne numeriche
-            ranges_to_format = [
-                (
-                    f"{col_letter}2:{col_letter}{last_row}",
-                    CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern))
+            # Prepara la lista di range da formattare
+            ranges_to_format = []
+            for col_letter, pattern in numeric_cols_info.items():
+                ranges_to_format.append(
+                    (f"{col_letter}2:{col_letter}{last_row}",
+                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
                 )
-                for col_letter, pattern in numeric_cols_info.items()
-            ]
     
+            # Applica il formato in un colpo solo
             format_cell_ranges(sheet, ranges_to_format)
+    
             st.success("✅ Giacenze importate con successo!")
         
 elif page == "Logout":
