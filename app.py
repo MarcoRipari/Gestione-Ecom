@@ -387,7 +387,36 @@ def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, 
         st.markdown(f"💸 **Costo stimato per riga**: ${cost_est:.6f}")
 
     return token_est, cost_est, prompt
-
+def genera_pdf(df_disp):
+    # 2️⃣ Genera il PDF in memoria
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=20)
+    styles = getSampleStyleSheet()
+    style_header = styles["Heading1"]
+    style_header.alignment = 1  # centrato
+    
+    # Prepara i dati per la tabella
+    data = [list(df_disp.columns)] + df_disp.values.tolist()
+    table = Table(data, repeatRows=1, hAlign='CENTER')
+    
+    # Stile della tabella
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+        ("ALIGN", (0, 1), (-1, -1), "LEFT"),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
+    ]))
+    
+    elements = [table]
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+    
 # ---------------------------
 # Async
 # ---------------------------
@@ -886,6 +915,17 @@ elif page == "Foto - Gestione":
     df = carica_lista_foto(sheet_id, cache_key=cache_token)
     st.session_state["df_lista_foto"] = df
 
+    # 1️⃣ Genero le liste per i fotografi
+    df_disp = df[df["DISP"] == True]
+    #df_disp = df_disp[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y","FOTOGRAFO"]]
+    df_disp = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
+
+    df_matias = df_disp[df_disp["FOTOGRAFO"] == "MATIAS"]
+    df_matteo = df_disp[df_disp["FOTOGRAFO"] == "MATTEO"]
+
+    df_matias = df_matias[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+    df_matteo = df_matteo[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+
     col1, col2, col3, spacer2, col5 = st.columns(5)
     with col1:
         if st.button("📦 Genera lista SKU"):
@@ -895,50 +935,9 @@ elif page == "Foto - Gestione":
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
     with col2:
-        # 1️⃣ Filtra il dataframe
-        df_disp = df[df["DISP"] == True]
-        #df_disp = df_disp[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y","FOTOGRAFO"]]
-        df_disp = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
-
-        df_matias = df_disp[df_disp["FOTOGRAFO"] == "MATIAS"]
-        df_matteo = df_disp[df_disp["FOTOGRAFO"] == "MATTEO"]
-
-        df_matias = df_matias[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
-        df_matteo = df_matteo[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
-        
         if df_disp.empty:
             st.warning("Nessuna SKU disponibile per DISP.")
         else:
-            def genera_pdf(df_disp):
-                # 2️⃣ Genera il PDF in memoria
-                buffer = BytesIO()
-                doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=20)
-                styles = getSampleStyleSheet()
-                style_header = styles["Heading1"]
-                style_header.alignment = 1  # centrato
-                
-                # Prepara i dati per la tabella
-                data = [list(df_disp.columns)] + df_disp.values.tolist()
-                table = Table(data, repeatRows=1, hAlign='CENTER')
-                
-                # Stile della tabella
-                table.setStyle(TableStyle([
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-                    ("ALIGN", (0, 1), (-1, -1), "LEFT"),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 9),
-                    ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
-                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-                    ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
-                ]))
-                
-                elements = [table]
-                doc.build(elements)
-                buffer.seek(0)
-                return buffer
-            
             # 3️⃣ Pulsante di download
             st.download_button(
                 label="📥 Lista Matias",
@@ -946,6 +945,11 @@ elif page == "Foto - Gestione":
                 file_name="lista_disp_matias.pdf",
                 mime="application/pdf"
             )
+    with col3:
+        if df_disp.empty:
+            st.warning("Nessuna SKU disponibile per DISP.")
+        else:
+            # 3️⃣ Pulsante di download
             st.download_button(
                 label="📥 Lista Matteo",
                 data=genera_pdf(df_matteo),
