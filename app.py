@@ -1319,7 +1319,7 @@ elif page == "Foto - Importa giacenze":
 elif page == "Foto - Aggiungi prelevate":
     st.header("Aggiungi prelevate")
     st.markdown("Aggiungi la lista delle paia prelevate")
-
+    
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "PRELEVATE")
     
@@ -1330,10 +1330,11 @@ elif page == "Foto - Aggiungi prelevate":
         pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
         skus_raw = re.findall(pattern, text_input)
     
-        # Rimuovi spazi interni e converti in stringa
-        skus = [str(sku.replace(" ", "")) for sku in skus_raw]
+        # Rimuovi spazi interni, converti in stringa e aggiungi apostrofo per forzare testo su GSheet
+        skus = [f"'{str(sku.replace(' ', ''))}" for sku in skus_raw]
     
         st.subheader(f"SKU trovate: {len(skus)}")
+        st.write(skus)
     
         if st.button("Carica su GSheet"):
             # Leggi SKU già presenti nel foglio
