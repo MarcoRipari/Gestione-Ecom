@@ -1315,7 +1315,7 @@ elif page == "Foto - Importa giacenze":
     
             st.success("✅ Giacenze importate con successo!")
 
-elif page == "🫳🏻 Aggiungi prelevate":
+elif page == "Foto - Aggiungi prelevate":
     st.header("Aggiungi prelevate")
     st.markdown("Aggiungi la lista delle paia prelevate")
     
