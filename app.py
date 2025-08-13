@@ -1243,15 +1243,6 @@ elif page == "Foto - Importa giacenze":
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
     
-        # Converti colonne specifiche in numerico
-        df_input["TAGLIA"] = pd.to_numeric(df_input["TAGLIA"], errors='coerce')
-        df_input["X"] = pd.to_numeric(df_input["X"], errors='coerce')
-        df_input["Y"] = pd.to_numeric(df_input["Y"], errors='coerce')
-    
-        # Ultime 15 colonne in numerico
-        ultime_15 = df_input.columns[-15:]
-        df_input[ultime_15] = df_input[ultime_15].apply(pd.to_numeric, errors='coerce')
-    
         # Trasforma tutto in tipi Python nativi
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
     
@@ -1260,6 +1251,11 @@ elif page == "Foto - Importa giacenze":
         if st.button("Importa"):
             sheet.clear()
             sheet.update("A1", data_to_write)
+            sheet.format("D2:D", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
+            sheet.format("L2:L", {"numberFormat": {"type": "NUMBER", "pattern": "000"}})
+            sheet.format("N2:N", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
+            sheet.format("O2:O", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
+            sheet.format("Q2:AE", {"numberFormat": {"type": "NUMBER", "pattern": "0"}})
             st.success("✅ Giacenze importate con successo!")
         
 elif page == "Logout":
