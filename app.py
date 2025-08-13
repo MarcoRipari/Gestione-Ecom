@@ -1245,7 +1245,7 @@ elif page == "Foto - Importa giacenze":
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
     
-        # Lista delle colonne da formattare come numeriche
+        # Lista delle colonne da formattare come numeriche con pattern
         numeric_cols_info = {
             "D": "0",
             "L": "000",
@@ -1257,42 +1257,34 @@ elif page == "Foto - Importa giacenze":
             col_letter = gspread.utils.rowcol_to_a1(1, i)[0]
             numeric_cols_info[col_letter] = "0"
     
-        # Funzione bulletproof: converte solo numeri, lascia testo
-        def to_number_safe(x):
-            try:
-                if pd.isna(x) or x == "":
-                    return None
-                return float(x)
-            except:
-                return x
+        numeric_cols = list(numeric_cols_info.keys())
     
-        # Applica la conversione solo alle colonne target
-        for col_letter in numeric_cols_info.keys():
-            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1  # indice zero-based
-            if df_input.columns.size > col_idx:
-                col_name = df_input.columns[col_idx]
-                df_input[col_name] = df_input[col_name].apply(to_number_safe)
+        # Trasforma **tutte le colonne non target in stringa** per evitare conversioni indesiderate
+        for idx, col_name in enumerate(df_input.columns):
+            col_letter = gspread.utils.rowcol_to_a1(1, idx + 1)[0]
+            if col_letter not in numeric_cols:
+                df_input[col_name] = df_input[col_name].astype(str)
     
-        # Prepara i dati da scrivere
+        # Trasforma tutto in tipi Python nativi e sostituisci NaN con ""
         data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
+    
         st.write(df_input)
     
         if st.button("Importa"):
             # Svuota il foglio e scrivi i dati
             sheet.clear()
             sheet.update("A1", data_to_write)
-            last_row = len(df_input) + 1
+            last_row = len(df_input) + 1  # +1 per intestazione
     
-            # Prepara i range da formattare
-            ranges_to_format = [
-                (
-                    f"{col_letter}2:{col_letter}{last_row}",
-                    CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern))
+            # Prepara la lista di range da formattare solo per le colonne target
+            ranges_to_format = []
+            for col_letter, pattern in numeric_cols_info.items():
+                ranges_to_format.append(
+                    (f"{col_letter}2:{col_letter}{last_row}",
+                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
                 )
-                for col_letter, pattern in numeric_cols_info.items()
-            ]
     
-            # Applica formattazione solo sui range specificati
+            # Applica il formato numerico
             format_cell_ranges(sheet, ranges_to_format)
     
             st.success("✅ Giacenze importate con successo!")
