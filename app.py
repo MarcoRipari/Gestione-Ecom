@@ -1234,10 +1234,16 @@ elif page == "Foto - Importa giacenze":
     st.markdown("Importa le giacenze da file CSV.")
     
     sheet_id = st.secrets["DESC_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "GIACENZE")
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
     
     if csv_import:
-        df_input = list(read_csv_auto_encoding(csv_import), delimiter='\t')
+        df_input = pd.read_csv(csv_import, sep="\t")
         st.write(df_input)
+        sheet.clear()
+        set_with_dataframe(worksheet, df_input)
+
+        st.success("✅ Giacenze importate con successo!")
+        
 elif page == "Logout":
     logout()
