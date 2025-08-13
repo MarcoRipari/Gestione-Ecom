@@ -1005,11 +1005,10 @@ elif page == "📸 Foto - Gestione":
             try:
                 sheet = get_sheet(sheet_id, "LISTA")
                 all_rows = sheet.get_all_values()
-                data_rows = all_rows[2:]  # parte dei dati effettivi
+                data_rows = all_rows[2:]
         
                 col_sku = 0
                 col_descrizione = 4
-                # Prepariamo i valori da scrivere (una riga per ogni riga dati)
                 nuovi_valori = []
                 sku_descrizioni_confermate = []
         
@@ -1021,17 +1020,21 @@ elif page == "📸 Foto - Gestione":
                         nuovi_valori.append(["True"])
                         sku_descrizioni_confermate.append(f"{sku} - {descrizione}")
                     else:
-                        # forza sempre False per le non selezionate: sovrascrive valori precedenti
-                        nuovi_valori.append(["False"])
+                        nuovi_valori.append([""])
         
                 range_update = f"N3:N{len(nuovi_valori) + 2}"
-                # (Facoltativo: st.write("Preview:", nuovi_valori[:10]) per debug)
                 sheet.update(values=nuovi_valori, range_name=range_update)
         
-                # Salvo il risultato in session_state in modo coerente (lista, mai booleano)
+                # 🔄 Ricarico il DataFrame dal Google Sheet (stesso metodo usato sopra)
+                df = carica_lista_foto(sheet_id, cache_key=str(time.time()))
+                st.session_state["df_lista_foto"] = df
+        
+                # 🔄 Aggiorno la lista in session_state dai nuovi valori
+                st.session_state["ristampe_selezionate"] = set(df[df["RISCATTARE"] == True]["SKU"])
+        
+                # Salvo anche le confermate
                 st.session_state["ristampe_confermate"] = sku_descrizioni_confermate
-                # Svuoto la selezione
-                st.session_state["ristampe_selezionate"] = set()
+        
                 st.success("✅ Ristampe aggiornate correttamente!")
                 st.rerun()
         
