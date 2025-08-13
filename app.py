@@ -1239,37 +1239,38 @@ elif page == "Foto - Importa giacenze":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "GIACENZE")
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
-    
+
+    # Trasforma tutti i valori in tipi nativi Python
+    def to_native_python(val):
+        if pd.isna(val):
+            return None
+        if isinstance(val, (np.integer, np.int64, np.int32)):
+            return int(val)
+        if isinstance(val, (np.floating, np.float64, np.float32)):
+            return float(val)
+        if isinstance(val, (np.bool_)):
+            return bool(val)
+        if isinstance(val, pd.Timestamp):
+            return val.isoformat()  # oppure str(val)
+        return val
+        
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
-
-        df_input["TAGLIA"] = df_input["TAGLIA"].apply(pd.to_numeric, errors='coerce').where(df_input["TAGLIA"].notna(), None)
-        df_input["X"] = df_input["X"].apply(pd.to_numeric, errors='coerce').where(df_input["X"].notna(), None)
-        df_input["Y"] = df_input["Y"].apply(pd.to_numeric, errors='coerce').where(df_input["Y"].notna(), None)
-
+    
+        # Converti colonne specifiche in numerico
+        df_input["TAGLIA"] = pd.to_numeric(df_input["TAGLIA"], errors='coerce')
+        df_input["X"] = pd.to_numeric(df_input["X"], errors='coerce')
+        df_input["Y"] = pd.to_numeric(df_input["Y"], errors='coerce')
+    
+        # Ultime 15 colonne in numerico
         ultime_15 = df_input.columns[-15:]
-        df_input[ultime_15] = df_input[ultime_15].apply(pd.to_numeric, errors='coerce').where(df_input[ultime_15].notna(), None)
-
-        df_input = df_input.where(pd.notna(df_input), None)
-        
-        # Trasforma tutti i valori in tipi nativi Python
-        def to_native_python(val):
-            if pd.isna(val):
-                return None
-            if isinstance(val, (np.integer, np.int64, np.int32)):
-                return int(val)
-            if isinstance(val, (np.floating, np.float64, np.float32)):
-                return float(val)
-            if isinstance(val, (np.bool_)):
-                return bool(val)
-            return val
-        
-        data_to_write = [
-            df_input.columns.tolist()
-        ] + df_input.applymap(to_native_python).values.tolist()
-
+        df_input[ultime_15] = df_input[ultime_15].apply(pd.to_numeric, errors='coerce')
+    
+        # Trasforma tutto in tipi Python nativi
+        data_to_write = [df_input.columns.tolist()] + df_input.applymap(to_native_python).values.tolist()
+    
         st.write(df_input)
-
+    
         if st.button("Importa"):
             sheet.clear()
             sheet.update("A1", data_to_write)
