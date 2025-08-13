@@ -1242,7 +1242,6 @@ elif page == "Foto - Importa giacenze":
     
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
-        data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
 
         df_input["TAGLIA"] = df_input["TAGLIA"].apply(pd.to_numeric, errors='coerce').where(df_input["TAGLIA"].notna(), None)
         df_input["X"] = df_input["X"].apply(pd.to_numeric, errors='coerce').where(df_input["X"].notna(), None)
@@ -1251,11 +1250,10 @@ elif page == "Foto - Importa giacenze":
         ultime_15 = df_input.columns[-15:]
         df_input[ultime_15] = df_input[ultime_15].apply(pd.to_numeric, errors='coerce').where(df_input[ultime_15].notna(), None)
 
-        df_text = df_input.select_dtypes(include='object').fillna("")
-
-        # Combina con le colonne numeriche senza fillna
-        df_to_write = pd.concat([df_input.select_dtypes(exclude='object'), df_text], axis=1)
-        data_to_write = [df_to_write.columns.tolist()] + df_to_write.values.tolist()
+        df_input = df_input.where(pd.notna(df_input), None)
+        
+        # Trasforma tutti i valori in tipi nativi Python
+        data_to_write = [df_input.columns.tolist()] + df_input.astype(object).values.tolist()
 
         st.write(df_input)
 
