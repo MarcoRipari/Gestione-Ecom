@@ -1024,19 +1024,18 @@ elif page == "📸 Foto - Gestione":
         
                 range_update = f"N3:N{len(nuovi_valori) + 2}"
                 sheet.update(values=nuovi_valori, range_name=range_update)
-        
-                # 🔄 Ricarico il DataFrame dal Google Sheet (stesso metodo usato sopra)
-                df = carica_lista_foto(sheet_id, cache_key=str(time.time()))
-                st.session_state["df_lista_foto"] = df
-        
+
                 # 🔄 Aggiorno la lista in session_state dai nuovi valori
                 st.session_state["ristampe_selezionate"] = set(df[df["RISCATTARE"] == True]["SKU"])
         
                 # Salvo anche le confermate
                 st.session_state["ristampe_confermate"] = sku_descrizioni_confermate
-        
-                st.success("✅ Ristampe aggiornate correttamente!")
+                #st.success("✅ Ristampe aggiornate correttamente!")
                 st.rerun()
+                
+                # 🔄 Ricarico il DataFrame dal Google Sheet (stesso metodo usato sopra)
+                df = carica_lista_foto(sheet_id, cache_key=str(time.time()))
+                st.session_state["df_lista_foto"] = df
         
             except Exception as e:
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
