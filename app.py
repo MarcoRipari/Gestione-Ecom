@@ -489,7 +489,7 @@ with st.sidebar:
         st.write(f"Accesso eseguito come: {st.session_state.get("logged_as")}")
         page = st.radio(
             "Seleziona sezione",
-            ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "Foto - Aggiungi SKU", "📚 Foto - Storico", "Logout"],
+            ["🏠 Home", "📝 Descrizioni", "📸 Foto - Gestione", "Foto - Riscatta", "Foto - Aggiungi SKU", "📚 Foto - Storico", "Logout"],
             label_visibility="collapsed"
         )
     else:
@@ -860,9 +860,7 @@ elif page == "📝 Descrizioni":
 
 elif page == "📸 Foto - Gestione":
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
-    start_selezione = st.session_state.get("ristampe_selezionate", set())
-    
-    new_sku = st.session_state.get("aggiunta_confermata", set())
+
     st.header("📸 Gestione Foto")
     tab_names = ["ECOM", "ZFS", "AMAZON"]
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
@@ -940,6 +938,13 @@ elif page == "📸 Foto - Gestione":
         
         # ✅ Visualizzazione
         st.dataframe(df_vista, use_container_width=True)
+
+elif page == "Foto - Riscatta":
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    selected_ristampe = st.session_state.get("ristampe_selezionate", set())
+
+    cache_token = str(st.session_state.get("refresh_foto_token", "static"))
+    df = carica_lista_foto(sheet_id, cache_key=cache_token)
 
     # Foto da riscattare
     st.subheader("🔁 Ristampa foto specifica")
@@ -1026,9 +1031,8 @@ elif page == "📸 Foto - Gestione":
                 sheet.update(values=nuovi_valori, range_name=range_update)
         
                 # 🔄 Ricarico il DataFrame dal Google Sheet (stesso metodo usato sopra)
-                #df = carica_lista_foto(sheet_id, cache_key=str(time.time()))
-                st.session_state["refresh_foto_token"] = str(time.time())
-                #st.session_state["df_lista_foto"] = df
+                df = carica_lista_foto(sheet_id, cache_key=str(time.time()))
+                st.session_state["df_lista_foto"] = df
         
                 # 🔄 Aggiorno la lista in session_state dai nuovi valori
                 st.session_state["ristampe_selezionate"] = set(df[df["RISCATTARE"] == True]["SKU"])
@@ -1041,7 +1045,7 @@ elif page == "📸 Foto - Gestione":
         
             except Exception as e:
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
-
+                
 elif page == "Foto - Aggiungi SKU":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     new_sku = st.session_state.get("aggiunta_confermata", set())
