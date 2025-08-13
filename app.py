@@ -1275,11 +1275,13 @@ elif page == "Foto - Importa giacenze":
     
         # Tutte le altre colonne → forzale a stringa per evitare conversioni indesiderate
         target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
-        st.write(target_indices)
+        test = []
         for idx, col_name in enumerate(df_input.columns):
+            test.add(idx)
             if idx not in target_indices:
                 df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
-    
+
+        st.write(test)
         # Trasforma tutto in lista per Google Sheet
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
     
