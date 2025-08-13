@@ -533,7 +533,7 @@ if page == "Home":
 # ---------------------------
 # 🏠 LOGIN
 # ---------------------------
-if page == "Login":
+if page == "🔑 Login":
     st.subheader("📌 Login")
     st.markdown("""
     Inserisci il nome per poter eseguire azioni.
