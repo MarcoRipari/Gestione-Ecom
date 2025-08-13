@@ -29,7 +29,6 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 import dropbox
 import base64
 
-
 logging.basicConfig(level=logging.INFO)
 
 LANG_NAMES = {
@@ -508,7 +507,8 @@ with st.sidebar:
                 ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico"],
                 label_visibility="collapsed"
             )
-            page = f"Foto - {sub_page.split(' ', 1)[1]}"
+            page = f"Foto - {sub_page.split(' ', 1)[1]}"  # es. "Foto - Gestione"
+            st.write(page)
     
     else:
         page = "🔑 Login"
@@ -888,8 +888,8 @@ elif page == "Foto - Gestione":
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
     with col2:
-        if st.button("Test"):
-            st.write("Test")
+        if st.button("🔍 Test"):
+            st.write("Pulsante test")
     with col3:
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
