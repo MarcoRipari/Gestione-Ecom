@@ -497,8 +497,10 @@ with st.sidebar:
         )
     
         # --- Sottomenu ---
-        page = main_page.split(' ', 1)[1]  # default, se non ha sottosezioni
-    
+        main_page = main_page.split(' ', 1)[1]
+        page = main_page  # default, se non ha sottosezioni
+        
+        
         if main_page == "Foto":
             sub_page = st.radio(
                 "Seleziona sottosezione Foto",
