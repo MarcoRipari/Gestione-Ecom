@@ -1280,8 +1280,10 @@ elif page == "Foto - Importa giacenze":
             if idx not in target_indices:
                 test.append(idx)
                 df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
-
-        st.write(test)
+        st.write(numeric_cols_info)
+        st.write("-")
+        st.write(numeric_cols_info.keys())
+        st.write(target_indices)
         # Trasforma tutto in lista per Google Sheet
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
     
