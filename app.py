@@ -926,7 +926,7 @@ elif page == "Foto - Gestione":
     df_matias = df_matias[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
     df_matteo = df_matteo[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
 
-    col1, col2, col3, spacer2, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(5)
     with col1:
         if st.button("📦 Genera lista SKU"):
             try:
@@ -934,7 +934,7 @@ elif page == "Foto - Gestione":
                 st.toast("✅ Lista SKU aggiornata!")
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
-    with col2:
+    with col3:
         if df_disp.empty:
             st.warning("Nessuna SKU disponibile per DISP.")
         else:
@@ -945,7 +945,7 @@ elif page == "Foto - Gestione":
                 file_name="lista_disp_matias.pdf",
                 mime="application/pdf"
             )
-    with col3:
+    with col4:
         if df_disp.empty:
             st.warning("Nessuna SKU disponibile per DISP.")
         else:
@@ -956,7 +956,7 @@ elif page == "Foto - Gestione":
                 file_name="lista_disp_matteo.pdf",
                 mime="application/pdf"
             )
-    with col5:
+    with col6:
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
     
