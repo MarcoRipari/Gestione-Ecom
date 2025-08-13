@@ -1244,7 +1244,7 @@ elif page == "Foto - Importa giacenze":
         df_input = read_csv_auto_encoding(csv_import, "\t")
     
         # Trasforma tutto in tipi Python nativi
-        data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
+        data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
     
         st.write(df_input)
     
