@@ -1245,18 +1245,19 @@ elif page == "Foto - Importa giacenze":
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
     
-        # Lista delle colonne da convertire in numerico
+        # Lista delle colonne da convertire in numerico con pattern
         numeric_cols_info = {
             "D": "0",
             "L": "000",
             "N": "0",
             "O": "0",
         }
-        # Q-AE
-        for i in range(17, 32):  # Q=17, AE=31
-            col_letter = gspread.utils.rowcol_to_a1(1, i)[0]
-            numeric_cols_info[col_letter] = "0"
-    
+        
+        # Q-AE: usa i nomi delle colonne reali
+        q_ae_cols = df_input.columns[16:31]  # zero-based: 17-32
+        for col_name in q_ae_cols:
+            numeric_cols_info[col_name] = "0"
+        
         # Funzione bulletproof: converte testo numerico in numero, mantiene testo non numerico
         def to_number_safe(x):
             try:
@@ -1265,13 +1266,12 @@ elif page == "Foto - Importa giacenze":
                 return float(x)
             except:
                 return x  # testo rimane testo
-    
-        # Applica la conversione alle colonne target
-        for col_letter in numeric_cols_info.keys():
-            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1  # indice zero-based
-            if df_input.columns.size >= col_idx + 1:
-                col_name = df_input.columns[col_idx]
-                df_input[col_name] = df_input[col_name].apply(to_number_safe)
+        
+        # Applica la conversione solo alle colonne realmente presenti nel df
+        for col_key in numeric_cols_info.keys():
+            if col_key in df_input.columns:  # controlla il nome reale
+                df_input[col_key] = df_input[col_key].apply(to_number_safe)
+
     
         # Trasforma tutto in tipi Python nativi e sostituisci NaN con ""
         data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
@@ -1285,11 +1285,14 @@ elif page == "Foto - Importa giacenze":
     
             # Prepara la lista di range da formattare
             ranges_to_format = []
-            for col_letter, pattern in numeric_cols_info.items():
-                ranges_to_format.append(
-                    (f"{col_letter}2:{col_letter}{last_row}",
-                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
-                )
+            for col_name, pattern in numeric_cols_info.items():
+                if col_name in df_input.columns:
+                    col_idx = df_input.columns.get_loc(col_name) + 1
+                    col_letter = gspread.utils.rowcol_to_a1(1, col_idx)[:-1]  # prendi solo la lettera
+                    ranges_to_format.append(
+                        (f"{col_letter}2:{col_letter}{last_row}",
+                         CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                    )
     
             # Applica tutto in un colpo solo
             format_cell_ranges(sheet, ranges_to_format)
