@@ -540,7 +540,7 @@ with st.sidebar:
         if main_page == "Foto":
             sub_page = st.radio(
                 "Seleziona sottosezione Foto",
-                ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "Importa Giacenze"],
+                ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "Importa giacenze"],
                 label_visibility="collapsed"
             )
             page = f"Foto - {sub_page.split(' ', 1)[1]}"
