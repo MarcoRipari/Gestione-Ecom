@@ -34,6 +34,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
 import gspread.utils
+import re
 
 logging.basicConfig(level=logging.INFO)
 
