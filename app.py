@@ -1330,27 +1330,27 @@ elif page == "Foto - Aggiungi prelevate":
         pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
         skus_raw = re.findall(pattern, text_input)
     
-        # Rimuovi spazi interni, converti in stringa e aggiungi apostrofo per forzare testo su GSheet
-        skus = [f"'{str(sku.replace(' ', ''))}" for sku in skus_raw]
+        # Rimuovi spazi interni e converti in stringa (senza apostrofo per confronto)
+        skus_clean = [str(sku.replace(" ", "")) for sku in skus_raw]
     
-        st.subheader(f"SKU trovate: {len(skus)}")
-        st.write(skus)
+        st.subheader(f"SKU trovate: {len(skus_clean)}")
     
         if st.button("Carica su GSheet"):
             # Leggi SKU già presenti nel foglio
             existing_skus = sheet.col_values(1)
-            existing_skus = [str(sku) for sku in existing_skus]  # assicura str
+            # Rimuovi eventuali apostrofi e converti in str per confronto
+            existing_skus_clean = [str(sku).lstrip("'") for sku in existing_skus]
     
             # Filtra SKU nuove
-            skus_to_append = [sku for sku in skus if sku not in existing_skus]
+            skus_to_append_clean = [sku for sku in skus_clean if sku not in existing_skus_clean]
     
-            if skus_to_append:
-                # Prepara i dati da appendere (ogni SKU in una riga singola, colonna 1)
-                rows_to_append = [[sku] for sku in skus_to_append]
+            if skus_to_append_clean:
+                # Aggiungi apostrofo solo al momento dell'append per forzare formato testo
+                rows_to_append = [[f"'{sku}"] for sku in skus_to_append_clean]
     
                 # Append a partire dall'ultima riga disponibile
                 sheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
-                st.success(f"✅ {len(skus_to_append)} nuove SKU aggiunte al foglio PRELEVATE!")
+                st.success(f"✅ {len(skus_to_append_clean)} nuove SKU aggiunte al foglio PRELEVATE!")
             else:
                 st.info("⚠️ Tutte le SKU inserite sono già presenti nel foglio.")
 
