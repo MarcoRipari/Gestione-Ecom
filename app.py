@@ -905,27 +905,32 @@ elif page == "Foto - Gestione":
             else:
                 # 2️⃣ Genera il PDF in memoria
                 buffer = BytesIO()
-                doc = SimpleDocTemplate(buffer, pagesize=A4)
+                doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=20)
                 styles = getSampleStyleSheet()
-    
+                style_header = styles["Heading1"]
+                style_header.alignment = 1  # centrato
+                
+                # Prepara i dati per la tabella
                 data = [list(df_disp.columns)] + df_disp.values.tolist()
-                table = Table(data, repeatRows=1)
+                table = Table(data, repeatRows=1, hAlign='CENTER')
+                
+                # Stile della tabella
                 table.setStyle(TableStyle([
                     ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
                     ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+                    ("ALIGN", (0, 1), (-1, -1), "LEFT"),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
                     ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
                     ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
                     ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
                 ]))
-    
-                elements = [Paragraph("Elenco DISP", styles["Heading1"]), table]
+                
+                elements = [Paragraph("Elenco DISP", style_header), Spacer(1, 12), table]
                 doc.build(elements)
-    
                 buffer.seek(0)
-    
+                
                 # 3️⃣ Pulsante di download
                 st.download_button(
                     label="📥 Scarica PDF",
