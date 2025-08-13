@@ -1239,20 +1239,6 @@ elif page == "Foto - Importa giacenze":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "GIACENZE")
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
-
-    # Trasforma tutti i valori in tipi nativi Python
-    def to_native_python(val):
-        if pd.isna(val):
-            return None
-        if isinstance(val, (np.integer, np.int64, np.int32)):
-            return int(val)
-        if isinstance(val, (np.floating, np.float64, np.float32)):
-            return float(val)
-        if isinstance(val, (np.bool_)):
-            return bool(val)
-        if isinstance(val, pd.Timestamp):
-            return val.isoformat()  # oppure str(val)
-        return val
         
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
@@ -1267,7 +1253,7 @@ elif page == "Foto - Importa giacenze":
         df_input[ultime_15] = df_input[ultime_15].apply(pd.to_numeric, errors='coerce')
     
         # Trasforma tutto in tipi Python nativi
-        data_to_write = [df_input.columns.tolist()] + df_input.applymap(to_native_python).values.tolist()
+        data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
     
         st.write(df_input)
     
