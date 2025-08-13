@@ -1245,30 +1245,30 @@ elif page == "Foto - Importa giacenze":
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
     
+        # Lista delle colonne da formattare come numeriche con pattern
+        numeric_cols_info = {
+            "D": "0",
+            "L": "000",
+            "N": "0",
+            "O": "0",
+        }
+        # Colonne Q-AE
+        for i in range(17, 32):  # Q=17, AE=31
+            col_letter = gspread.utils.rowcol_to_a1(1, i)[0]
+            numeric_cols_info[col_letter] = "0"
+    
         # Trasforma tutto in tipi Python nativi e sostituisci NaN con ""
         data_to_write = [df_input.columns.tolist()] + df_input.fillna("").values.tolist()
     
         st.write(df_input)
     
         if st.button("Importa"):
+            # Svuota il foglio e scrivi i dati
             sheet.clear()
             sheet.update("A1", data_to_write)
             last_row = len(df_input) + 1  # +1 per intestazione
     
-            # Lista colonne da convertire in numero: {lettera_colonna: pattern}
-            numeric_cols_info = {
-                "D": "0",
-                "L": "000",
-                "N": "0",
-                "O": "0",
-            }
-    
-            # Q-AE
-            for i in range(17, 32):  # Q=17, AE=31
-                col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]  # prendi solo lettera
-                numeric_cols_info[col_letter] = "0"
-    
-            # Prepara i range da formattare
+            # Prepara la lista di range da formattare
             ranges_to_format = []
             for col_letter, pattern in numeric_cols_info.items():
                 ranges_to_format.append(
@@ -1276,7 +1276,7 @@ elif page == "Foto - Importa giacenze":
                      CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
                 )
     
-            # Applica la formattazione in un colpo solo
+            # Applica il formato in un colpo solo
             format_cell_ranges(sheet, ranges_to_format)
     
             st.success("✅ Giacenze importate con successo!")
