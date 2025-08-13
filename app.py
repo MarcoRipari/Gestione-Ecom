@@ -1249,7 +1249,7 @@ elif page == "Foto - Importa giacenze":
         df_input["Y"] = df_input["Y"].apply(pd.to_numeric, errors='coerce')
 
         ultime_15 = df_input.columns[-15:]
-        df_imput[ultime_15] = df_input[ultime_15].apply(pd.to_numeric, errors='coerce')
+        df_input[ultime_15] = df_input[ultime_15].apply(pd.to_numeric, errors='coerce')
         
         st.write(df_input)
 
