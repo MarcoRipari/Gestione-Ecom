@@ -965,10 +965,8 @@ elif page == "Foto - Gestione":
     consegnate = df["CONSEGNATA"].sum()
     da_scattare = df["SCATTARE"].sum()
     scattate = total - da_scattare
-    matias = df[df["FOTOGRAFO"] == "MATIAS"]
-    matias = matias["SKU"].sum()
-    matteo = df[df["FOTOGRAFO"] == "MATTEO"].sum()
-    matteo = matteo["SKU"].sum()
+    matias = df[df["FOTOGRAFO"] == "MATIAS"].shape[0]
+    matteo = df[df["FOTOGRAFO"] == "MATTEO"].shape[0]
         
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("📝 Totale SKU", total)
