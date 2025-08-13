@@ -1237,7 +1237,7 @@ elif page == "Foto - Importa giacenze":
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
     
     if csv_import:
-        df_input = lista(read_csv_auto_encoding(csv_import), delimiter='\t')
+        df_input = list(read_csv_auto_encoding(csv_import), delimiter='\t')
         st.write(df_input)
 elif page == "Logout":
     logout()
