@@ -876,16 +876,15 @@ elif page == "Descrizioni":
                     benchmark_faiss(df_input, st.session_state.col_weights)
 
 elif page == "Foto - Gestione":
+    st.header("📸 Gestione Foto")
+    tab_names = ["ECOM", "ZFS", "AMAZON"]
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
     
     # 🔽 Caricamento dati con chiave cache dinamica
     cache_token = str(st.session_state.get("refresh_foto_token", "static"))
     df = carica_lista_foto(sheet_id, cache_key=cache_token)
     st.session_state["df_lista_foto"] = df
-    
-    st.header("📸 Gestione Foto")
-    tab_names = ["ECOM", "ZFS", "AMAZON"]
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
 
     col1, col2, spacer1, spacer2, col3 = st.columns(5)
     with col1:
