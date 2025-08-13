@@ -1236,7 +1236,7 @@ elif page == "Foto - Importa giacenze":
     sheet_id = st.secrets["DESC_GSHEET_ID"]
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
     
-    if uploaded:
+    if csv_import:
         df_input = read_csv_auto_encoding(csv_import)
         st.write(df_input)
 elif page == "Logout":
