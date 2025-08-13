@@ -899,43 +899,53 @@ elif page == "Foto - Gestione":
         df_disp = df[df["DISP"] == True]
         df_disp = df_disp[["COD","VAR","COL","TG PIC","COR","LAT","X","Y","FOTOGRAFO"]]
         df_disp = df_disp.sort_values(by=["FOTOGRAFO", "COR", "X", "Y", "LAT"])
+
+        df_matias = df_disp[df_disp["FOTOGRAFO"] == "MATIAS"]
+        df_matteo = df_disp[df_disp["FOTOGRAFO"] == "MATTEO"]
         
         if df_disp.empty:
             st.warning("Nessuna SKU disponibile per DISP.")
         else:
-            # 2️⃣ Genera il PDF in memoria
-            buffer = BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=20)
-            styles = getSampleStyleSheet()
-            style_header = styles["Heading1"]
-            style_header.alignment = 1  # centrato
-            
-            # Prepara i dati per la tabella
-            data = [list(df_disp.columns)] + df_disp.values.tolist()
-            table = Table(data, repeatRows=1, hAlign='CENTER')
-            
-            # Stile della tabella
-            table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-                ("ALIGN", (0, 1), (-1, -1), "LEFT"),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
-                ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-                ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
-            ]))
-            
-            elements = [table]
-            doc.build(elements)
-            buffer.seek(0)
+            def genera_pdf(df_disp):
+                # 2️⃣ Genera il PDF in memoria
+                buffer = BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=20)
+                styles = getSampleStyleSheet()
+                style_header = styles["Heading1"]
+                style_header.alignment = 1  # centrato
+                
+                # Prepara i dati per la tabella
+                data = [list(df_disp.columns)] + df_disp.values.tolist()
+                table = Table(data, repeatRows=1, hAlign='CENTER')
+                
+                # Stile della tabella
+                table.setStyle(TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+                    ("ALIGN", (0, 1), (-1, -1), "LEFT"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                    ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
+                ]))
+                
+                elements = [table]
+                doc.build(elements)
+                return buffer.seek(0)
             
             # 3️⃣ Pulsante di download
             st.download_button(
-                label="📥 Scarica PDF",
-                data=buffer,
-                file_name="lista_disp.pdf",
+                label="📥 Lista Matias",
+                data=genera_pdf(df_disp_matias),
+                file_name="lista_disp_matias.pdf",
+                mime="application/pdf"
+            )
+            st.download_button(
+                label="📥 Lista Matteo",
+                data=genera_pdf(df_disp_matteo),
+                file_name="lista_disp_matteo.pdf",
                 mime="application/pdf"
             )
     with col5:
