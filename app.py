@@ -950,7 +950,7 @@ elif page == "📸 Foto - Gestione":
         # ✅ Visualizzazione
         st.dataframe(df_vista, use_container_width=True)
 
-elif page == "Foto - Riscatta":
+elif page == "📸 Foto - Riscatta":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
 
@@ -1057,7 +1057,7 @@ elif page == "Foto - Riscatta":
             except Exception as e:
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
                 
-elif page == "Foto - Aggiungi SKU":
+elif page == "📸 Foto - Aggiungi SKU":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     new_sku = st.session_state.get("aggiunta_confermata", set())
 
@@ -1089,7 +1089,7 @@ elif page == "Foto - Aggiungi SKU":
                 warning.empty()
                 
                 
-elif page == "📚 Foto - Storico":
+elif page == "📸 Foto - Storico":
     st.header("📚 Storico Articolo")
     st.markdown("Inserisci una SKU per visualizzare tutte le immagini storiche salvate su Dropbox per quell’articolo.")
 
