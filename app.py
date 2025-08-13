@@ -519,6 +519,8 @@ with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
     
+    st.session_state["logged_as"] = "GUEST"
+    
     if st.session_state.get("logged_as"):
         st.write(f"Accesso eseguito come: {st.session_state.get('logged_as')}")
     
