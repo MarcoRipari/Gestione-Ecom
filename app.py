@@ -944,9 +944,14 @@ elif page == "Foto - Gestione":
                 st.error(f"Errore: {str(e)}")
     with col3:
         if df_disp.empty:
-            st.warning("Nessuna SKU disponibile per DISP.")
+            st.download_button(
+                label="📥 Lista Matias",
+                data=genera_pdf(df_matias),
+                file_name="lista_disp_matias.pdf",
+                mime="application/pdf",
+                disabled=True
+            )
         else:
-            # 3️⃣ Pulsante di download
             st.download_button(
                 label="📥 Lista Matias",
                 data=genera_pdf(df_matias),
@@ -955,9 +960,14 @@ elif page == "Foto - Gestione":
             )
     with col4:
         if df_disp.empty:
-            st.warning("Nessuna SKU disponibile per DISP.")
+            st.download_button(
+                label="📥 Lista Matteo",
+                data=genera_pdf(df_matteo),
+                file_name="lista_disp_matteo.pdf",
+                mime="application/pdf",
+                disabled=True
+            )
         else:
-            # 3️⃣ Pulsante di download
             st.download_button(
                 label="📥 Lista Matteo",
                 data=genera_pdf(df_matteo),
