@@ -28,6 +28,10 @@ from aiohttp import ClientTimeout
 from tenacity import retry, stop_after_attempt, wait_fixed
 import dropbox
 import base64
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
 
 logging.basicConfig(level=logging.INFO)
 
@@ -507,8 +511,7 @@ with st.sidebar:
                 ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico"],
                 label_visibility="collapsed"
             )
-            page = f"Foto - {sub_page.split(' ', 1)[1]}"  # es. "Foto - Gestione"
-            st.write(page)
+            page = f"Foto - {sub_page.split(' ', 1)[1]}"
     
     else:
         page = "🔑 Login"
@@ -888,8 +891,43 @@ elif page == "Foto - Gestione":
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
     with col2:
-        if st.button("🔍 Test"):
-            st.write("Pulsante test")
+        if st.button("📄 Scarica PDF DISP"):
+            # 1️⃣ Filtra il dataframe
+            df_disp = df[df["DISP"] == True]
+            
+            if df_disp.empty:
+                st.warning("Nessuna SKU disponibile per DISP.")
+            else:
+                # 2️⃣ Genera il PDF in memoria
+                buffer = BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=A4)
+                styles = getSampleStyleSheet()
+    
+                data = [list(df_disp.columns)] + df_disp.values.tolist()
+                table = Table(data, repeatRows=1)
+                table.setStyle(TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                    ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
+                ]))
+    
+                elements = [Paragraph("Elenco DISP", styles["Heading1"]), table]
+                doc.build(elements)
+    
+                buffer.seek(0)
+    
+                # 3️⃣ Pulsante di download
+                st.download_button(
+                    label="📥 Scarica PDF",
+                    data=buffer,
+                    file_name="lista_disp.pdf",
+                    mime="application/pdf"
+                )
     with col3:
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
