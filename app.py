@@ -938,13 +938,13 @@ elif page == "Foto - Gestione":
             # 3️⃣ Pulsante di download
             st.download_button(
                 label="📥 Lista Matias",
-                data=genera_pdf(df_matias),
+                data=genera_pdf(df_matias).getvalue(),
                 file_name="lista_disp_matias.pdf",
                 mime="application/pdf"
             )
             st.download_button(
                 label="📥 Lista Matteo",
-                data=genera_pdf(df_matteo),
+                data=genera_pdf(df_matteo).getvalue(),
                 file_name="lista_disp_matteo.pdf",
                 mime="application/pdf"
             )
