@@ -1567,17 +1567,40 @@ elif page == "Giacenze - Per corridoio/marchio":
     df_table = pd.DataFrame(table_data)
     
     # --- Costruzione colonne per AgGrid con header multi-riga simulato
-    column_defs = [{"headerName": "CORR", "field": "CORR", "width": 60, "pinned": "left", "cellStyle": {"textAlign": "center"}, "headerClass": "ag-center-header"}]
+    column_defs = [
+        {
+            "headerName": "CORR",
+            "field": "CORR",
+            "width": 60,
+            "pinned": "left",
+            "cellStyle": {"textAlign": "center"},
+            "headerClass": "ag-center-header"
+        }
+    ]
+    
     for brand in marchi:
         column_defs.append({
             "headerName": brand,
+            "headerClass": "ag-center-header",  # header genitore
             "children": [
-                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 80, "cellStyle": {"textAlign": "center"}, "headerClass": "ag-center-header"},
-                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 80, "cellStyle": {"textAlign": "center"}, "headerClass": "ag-center-header"}
+                {
+                    "headerName": "VECCHIO",
+                    "field": f"{brand}_VECCHIO",
+                    "width": 80,
+                    "cellStyle": {"textAlign": "center"},
+                    "headerClass": "ag-center-header"
+                },
+                {
+                    "headerName": "NUOVO",
+                    "field": f"{brand}_NUOVO",
+                    "width": 80,
+                    "cellStyle": {"textAlign": "center"},
+                    "headerClass": "ag-center-header"
+                }
             ]
         })
     
-    # Configurazione AgGrid
+    # --- Configurazione AgGrid
     gridOptions = {
         "columnDefs": column_defs,
         "defaultColDef": {
@@ -1587,22 +1610,23 @@ elif page == "Giacenze - Per corridoio/marchio":
             "wrapText": True,
             "autoHeight": True,
             "cellStyle": {"textAlign": "center"},
-            "headerClass": "ag-center-header"
         },
         "domLayout": "normal",
         "suppressHorizontalScroll": False
     }
     
-    # Visualizzazione tabella completa sotto
+    # --- CSS aggiuntivo per centrare anche header multi-livello
     st.markdown("""
-        <style>
-        .ag-header-cell-label {
-            justify-content: center !important;
-            text-align: center !important;
-        }
-        </style>
+    <style>
+    .ag-header-cell-label, 
+    .ag-header-group-cell-label {
+        justify-content: center !important;
+        text-align: center !important;
+    }
+    </style>
     """, unsafe_allow_html=True)
-    st.subheader("Tabella completa per corridoio e marchio")
+    
+    # --- Visualizzazione tabella
     AgGrid(
         df_table,
         gridOptions=gridOptions,
