@@ -1391,7 +1391,7 @@ elif page == "Giacenze":
     df = df[df["CORR_NUM"].between(1, 14)]
     df = df[df["Y"].isin(["1", "2", "3", "4"])]
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         # Input utente
         #anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default, step=1)
@@ -1439,6 +1439,6 @@ elif page == "Giacenze":
         
         # Output tabella
         result_df = pd.DataFrame(results)
-        st.dataframe(result_df, width=350)
+        st.dataframe(result_df, width=350, height=600)
 elif page == "Logout":
     logout()
