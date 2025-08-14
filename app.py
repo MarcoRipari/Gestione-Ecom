@@ -1478,24 +1478,25 @@ elif page == "Giacenze - Per corridoio":
         )
 
 elif page == "Giacenze - Per corridoio/marchio":
+    # --- Header pagina ---
     st.header("Riepilogo per corridoio e marchio")
-
-    # Calcolo anno e stagione di default
+    
+    # --- Calcolo anno e stagione di default ---
     oggi = datetime.datetime.now()
     anno_default = oggi.year
     mese = oggi.month
     stagione_default = 1 if mese in [1, 2, 11, 12] else 2
     
-    # Recupero worksheet
+    # --- Recupero worksheet ---
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     worksheet = get_sheet(sheet_id, "GIACENZE")  # oggetto worksheet
     
-    # Leggo dati dal foglio
+    # --- Leggo dati dal foglio ---
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])
     df = df.astype(str)
     
-    # Conversioni e pulizie
+    # --- Conversioni e pulizie ---
     if "GIAC.UBIC" in df.columns:
         df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
     df[["anno_stag", "stag_stag"]] = df["STAG"].str.split("/", expand=True)
@@ -1505,21 +1506,25 @@ elif page == "Giacenze - Per corridoio/marchio":
     df = df[df["CORR_NUM"].between(1, 14)]
     df = df[df["Y"].isin(["1", "2", "3", "4"])]
     
-    # Input utente
+    # --- Input utente ---
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
-        anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default, step=1)
-        stagione = st.selectbox("Stagione", options=[1, 2], index=[1, 2].index(stagione_default))
+        anno = st.number_input(
+            "Anno", min_value=2000, max_value=2100, value=anno_default, step=1
+        )
+        stagione = st.selectbox(
+            "Stagione", options=[1, 2], index=[1, 2].index(stagione_default)
+        )
     
-        st.subheader("Filtra valori colonna Y")
-        valori_Y = sorted(df["Y"].unique())
-        cols = st.columns(4)
-        selezione_Y = {v: cols[i % 4].checkbox(v, value=True) for i, v in enumerate(valori_Y)}
+    st.subheader("Filtra valori colonna Y")
+    valori_Y = sorted(df["Y"].unique())
+    cols = st.columns(4)
+    selezione_Y = {v: cols[i % 4].checkbox(v, value=True) for i, v in enumerate(valori_Y)}
     
-    # Applico filtro
+    # --- Applico filtro ---
     df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
     
-    # Normalizzazione marchi equivalenti
+    # --- Normalizzazione marchi equivalenti ---
     marchi_mapping = {
         "NATURINO CLASSIC": "NATURINO",
         "NATURINO WILD LIFE": "NATURINO",
@@ -1542,71 +1547,47 @@ elif page == "Giacenze - Per corridoio/marchio":
         "C N R": "C N R"
     }
     df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
-    
     marchi = sorted(df["MARCHIO_STD"].dropna().unique())
     
-    # Costruisco dati per tabella piatta
+    # --- Costruisco dati per tabella piatta ---
     table_data = []
     for corr in sorted(df["CORR_NUM"].unique()):
         row = {"CORR": corr}
         corr_df = df[df["CORR_NUM"] == corr]
+        
         for brand in marchi:
             brand_df = corr_df[corr_df["MARCHIO_STD"] == brand]
-    
+            
             cond_vecchio = (brand_df["anno_stag"] < anno) | \
                            ((brand_df["anno_stag"] == anno) & (brand_df["stag_stag"] < stagione))
             cond_nuovo = ~cond_vecchio
-    
+            
             vecchio = brand_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
             nuovo = brand_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
-    
+            
             row[f"{brand}_VECCHIO"] = vecchio
             row[f"{brand}_NUOVO"] = nuovo
+        
         table_data.append(row)
     
     df_table = pd.DataFrame(table_data)
     
-    # --- Costruzione colonne per AgGrid con header multi-livello centrato
+    # --- Costruzione colonne per AgGrid ---
     column_defs = [
-        {
-            "headerName": "CORR",
-            "field": "CORR",
-            "width": 60,
-            "pinned": "left",
-            "cellStyle": {"textAlign": "center"},
-            "headerClass": "ag-center-header"
-        }
+        {"headerName": "CORR", "field": "CORR", "width": 60, "pinned": "left", "wrapText": False, "cellStyle": {"textAlign": "center"}}
     ]
     
     for brand in marchi:
         column_defs.append({
             "headerName": brand,
-            "headerComponentParams": {
-                "template": '<div class="ag-cell-label-container" style="justify-content: center;"><span ref="eLabel"></span></div>'
-            },
+            "cellStyle": {"textAlign": "center"},
             "children": [
-                {
-                    "headerName": "VECCHIO",
-                    "field": f"{brand}_VECCHIO",
-                    "width": 80,
-                    "cellStyle": {"textAlign": "center"},
-                    "headerComponentParams": {
-                        "template": '<div class="ag-cell-label-container" style="justify-content: center;"><span ref="eLabel"></span></div>'
-                    }
-                },
-                {
-                    "headerName": "NUOVO",
-                    "field": f"{brand}_NUOVO",
-                    "width": 80,
-                    "cellStyle": {"textAlign": "center"},
-                    "headerComponentParams": {
-                        "template": '<div class="ag-cell-label-container" style="justify-content: center;"><span ref="eLabel"></span></div>'
-                    }
-                }
+                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 80, "wrapText": False, "cellStyle": {"textAlign": "center"}},
+                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 80, "wrapText": False, "cellStyle": {"textAlign": "center"}}
             ]
         })
     
-    # --- Configurazione AgGrid
+    # --- Configurazione AgGrid ---
     gridOptions = {
         "columnDefs": column_defs,
         "defaultColDef": {
@@ -1616,12 +1597,14 @@ elif page == "Giacenze - Per corridoio/marchio":
             "wrapText": True,
             "autoHeight": True,
             "cellStyle": {"textAlign": "center"},
+            "headerClass": "ag-center-header"
         },
         "domLayout": "normal",
         "suppressHorizontalScroll": False
     }
     
-    # --- Visualizzazione tabella
+    # --- Visualizzazione tabella completa ---
+    st.subheader("Tabella completa per corridoio e marchio")
     AgGrid(
         df_table,
         gridOptions=gridOptions,
@@ -1629,6 +1612,15 @@ elif page == "Giacenze - Per corridoio/marchio":
         height=600,
         fit_columns_on_grid_load=True
     )
+    
+    # --- Bottone PDF ---
+    with col4:
+        st.download_button(
+            label="📥 Scarica PDF",
+            data=genera_pdf(df_table, font_size=12, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
+            file_name="giac_corridoio.pdf",
+            mime="application/pdf"
+        )
     
 elif page == "Logout":
     logout()
