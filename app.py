@@ -4,6 +4,7 @@ import openai
 import faiss
 import numpy as np
 import time
+import datetime
 import os
 from typing import List, Dict, Any
 from google.oauth2 import service_account
