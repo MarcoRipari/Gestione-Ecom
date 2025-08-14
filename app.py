@@ -1581,12 +1581,13 @@ elif page == "Giacenze - Per corridoio/marchio":
     gridOptions = {
         "columnDefs": column_defs,
         "defaultColDef": {
-            "resizable": True,
-            "sortable": True,
-            "filter": True,
+            "resizable": False,
+            "sortable": False,
+            "filter": False,
             "wrapText": True,
             "autoHeight": True,
-            "filter": False
+            cellStyle={"textAlign": "center"},
+            headerClass="ag-center-header"
         },
         "domLayout": "normal",
         "suppressHorizontalScroll": False
