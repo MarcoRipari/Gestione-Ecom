@@ -404,6 +404,7 @@ def genera_pdf(df_disp, **param):
     header_align = param.get("align", "LEFT")
     text_align = param.get("text_align", "LEFT")
     margins = param.get("margins", (20, 20, 30, 20))  # left, right, top, bottom
+    valign = param.get("valign", "MIDDLE")
     
     # Genera il PDF in memoria
     buffer = BytesIO()
@@ -427,6 +428,7 @@ def genera_pdf(df_disp, **param):
         ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
         ("BACKGROUND", (0, 1), (-1, -1), row_bg_color),
         ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
+        ("VALIGN", (0, 0), (-1, -1), valign)
     ]))
     
     elements = [table]
@@ -1456,7 +1458,7 @@ elif page == "Giacenze":
     with col4:
         st.download_button(
             label="📥 Scarica PDF",
-            data=genera_pdf(result_df, header_align="CENTER", text_align="CENTER"),
+            data=genera_pdf(result_df, header_align="CENTER", text_align="CENTER", valign="MIDDLE", font_size="15"),
             file_name="giac_corridoio.pdf",
             mime="application/pdf"
         )
