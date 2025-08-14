@@ -1400,43 +1400,44 @@ elif page == "Giacenze":
         for i, val in enumerate(valori_Y):
             col = cols[i % 4]
             selezione_Y[val] = col.checkbox(val, value=True)
-    
-    # --- Applico filtro ---
-    df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
-    
-    # --- Calcolo riepilogo ---
-    results = []
-    for corr_value in sorted(df["CORR_NUM"].unique()):
-        corr_df = df[df["CORR_NUM"] == corr_value]
-    
-        cond_vecchio = (corr_df["anno_stag"] < anno) | (
-            (corr_df["anno_stag"] == anno) & (corr_df["stag_stag"] < stagione)
+
+    with col2:
+        # --- Applico filtro ---
+        df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
+        
+        # --- Calcolo riepilogo ---
+        results = []
+        for corr_value in sorted(df["CORR_NUM"].unique()):
+            corr_df = df[df["CORR_NUM"] == corr_value]
+        
+            cond_vecchio = (corr_df["anno_stag"] < anno) | (
+                (corr_df["anno_stag"] == anno) & (corr_df["stag_stag"] < stagione)
+            )
+            cond_nuovo = ~cond_vecchio
+        
+            vecchio = corr_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
+            nuovo = corr_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
+        
+            results.append({
+                "CORR": corr_value,
+                "VECCHIO": vecchio,
+                "NUOVO": nuovo
+            })
+        
+        result_df = pd.DataFrame(results)
+        
+        # --- Mostro tabella con AgGrid ---
+        gb = GridOptionsBuilder.from_dataframe(result_df.reset_index(drop=True))
+        gb.configure_default_column(sortable=True, filter=True, resizable=True)
+        gb.configure_grid_options(domLayout='normal')  # layout automatico, altezza adattabile
+        gridOptions = gb.build()
+        
+        AgGrid(
+            result_df.reset_index(drop=True),
+            gridOptions=gridOptions,
+            fit_columns_on_grid_load=True,
+            enable_enterprise_modules=False,
+            allow_unsafe_jscode=True,
         )
-        cond_nuovo = ~cond_vecchio
-    
-        vecchio = corr_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
-        nuovo = corr_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
-    
-        results.append({
-            "CORR": corr_value,
-            "VECCHIO": vecchio,
-            "NUOVO": nuovo
-        })
-    
-    result_df = pd.DataFrame(results)
-    
-    # --- Mostro tabella con AgGrid ---
-    gb = GridOptionsBuilder.from_dataframe(result_df.reset_index(drop=True))
-    gb.configure_default_column(sortable=True, filter=True, resizable=True)
-    gb.configure_grid_options(domLayout='normal')  # layout automatico, altezza adattabile
-    gridOptions = gb.build()
-    
-    AgGrid(
-        result_df.reset_index(drop=True),
-        gridOptions=gridOptions,
-        fit_columns_on_grid_load=True,
-        enable_enterprise_modules=False,
-        allow_unsafe_jscode=True,
-    )
 elif page == "Logout":
     logout()
