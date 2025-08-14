@@ -419,7 +419,7 @@ def genera_pdf(df_disp, **param):
     
     # Prepara i dati per la tabella
     data = [list(df_disp.columns)] + df_disp.values.tolist()
-    table = Table(data, repeatRows=1, hAlign='CENTER', rowHeights=row_heights)
+    table = Table(data, repeatRows=1, hAlign='CENTER')
     
     # Stile della tabella
     table.setStyle(TableStyle([
