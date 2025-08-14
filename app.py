@@ -1363,7 +1363,7 @@ elif page == "Giacenze":
     
     # Leggo dati dal foglio
     data = worksheet.get_all_values()
-    df = pd.DataFrame(data[1:], columns=data[0])  # dalla seconda riga in poi sono dati
+    df = pd.DataFrame(data[1:], columns=data[0])
     
     # Conversioni iniziali
     df = df.astype(str)
@@ -1375,30 +1375,37 @@ elif page == "Giacenze":
     df["anno_stag"] = pd.to_numeric(df["anno_stag"], errors="coerce").fillna(0).astype(int)
     df["stag_stag"] = pd.to_numeric(df["stag_stag"], errors="coerce").fillna(0).astype(int)
     
+    # Filtro CORR e Y ai valori consentiti
+    df = df[df["CORR"].astype(int).between(1, 14)]
+    df = df[df["Y"].isin(["1", "2", "3", "4"])]
+    
     # Input utente
     anno = st.number_input("Anno", min_value=2000, max_value=2100, value=2025, step=1)
     stagione = st.number_input("Stagione", min_value=1, max_value=4, value=1, step=1)
     
-    # --- FILTRO CON CHECKBOX SULLA COLONNA "O" ---
-    st.subheader("Filtra valori colonna O")
-    valori_O = df["Y"].unique()
-    selezione_O = {}
-    for val in valori_O:
-        selezione_O[val] = st.checkbox(val, value=True)
+    # --- FILTRO CON CHECKBOX SULLA COLONNA "Y" ---
+    st.subheader("Filtra valori colonna Y")
+    valori_Y = sorted(df["Y"].unique())
+    
+    # Creazione checkbox in colonne per una UI più ordinata
+    cols = st.columns(4)  # 4 colonne per allineamento
+    selezione_Y = {}
+    for i, val in enumerate(valori_Y):
+        col = cols[i % 4]
+        selezione_Y[val] = col.checkbox(val, value=True)
     
     # Applico filtro
-    df = df[df["Y"].isin([v for v, sel in selezione_O.items() if sel])]
+    df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
     
     # Calcolo riepilogo
     results = []
     for corr_value in sorted(df["CORR"].unique()):
         corr_df = df[df["CORR"] == corr_value]
     
-        # Condizioni per vecchio e nuovo
         cond_vecchio = (corr_df["anno_stag"] < anno) | (
             (corr_df["anno_stag"] == anno) & (corr_df["stag_stag"] < stagione)
         )
-        cond_nuovo = ~cond_vecchio  # Opposto
+        cond_nuovo = ~cond_vecchio
     
         vecchio = corr_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
         nuovo = corr_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
