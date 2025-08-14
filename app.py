@@ -401,13 +401,13 @@ def genera_pdf(df_disp, **param):
     header_bg_color = param.get("header_bg_color", colors.grey)
     header_text_color = param.get("header_text_color", colors.whitesmoke)
     row_bg_color = param.get("row_bg_color", colors.beige)
-    header_align = param.get("align", "LEFT")
+    header_align = param.get("header_align", "LEFT")
     text_align = param.get("text_align", "LEFT")
     margins = param.get("margins", (20, 20, 30, 20))  # left, right, top, bottom
     valign = param.get("valign", "MIDDLE")
 
     # Calcolo altezza righe proporzionale al font
-    row_height_default = font_size * 1.8
+    row_height_default = font_size * 2.2
     row_heights = [row_height_default] * (len(df_disp) + 1)  # +1 per header
     
     # Genera il PDF in memoria
@@ -1462,7 +1462,7 @@ elif page == "Giacenze":
     with col4:
         st.download_button(
             label="📥 Scarica PDF",
-            data=genera_pdf(result_df, font_size=15),
+            data=genera_pdf(result_df, font_size=15, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
             file_name="giac_corridoio.pdf",
             mime="application/pdf"
         )
