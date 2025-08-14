@@ -1586,8 +1586,8 @@ elif page == "Giacenze - Per corridoio/marchio":
             "filter": False,
             "wrapText": True,
             "autoHeight": True,
-            cellStyle={"textAlign": "center"},
-            headerClass="ag-center-header"
+            "cellStyle": {"textAlign": "center"},
+            "headerClass": "ag-center-header"
         },
         "domLayout": "normal",
         "suppressHorizontalScroll": False
