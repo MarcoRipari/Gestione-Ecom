@@ -36,6 +36,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
 import gspread.utils
 import re
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 logging.basicConfig(level=logging.INFO)
 
@@ -1357,92 +1358,85 @@ elif page == "Foto - Aggiungi prelevate":
 
 elif page == "Giacenze":
     st.header("Riepilogo per corridoio")
-
-    # Calcolo anno e stagione di default
+    
+    # --- Calcolo anno e stagione di default ---
     oggi = datetime.datetime.now()
     anno_default = oggi.year
-    
     mese = oggi.month
-    if mese in [1, 2, 11, 12]:
-        stagione_default = 1  # inverno/autunno
-    else:
-        stagione_default = 2  # primavera/estate
-        
-    # Recupero worksheet
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    worksheet = get_sheet(sheet_id, "GIACENZE")  # oggetto worksheet
+    stagione_default = 1 if mese in [1, 2, 11, 12] else 2
     
-    # Leggo dati dal foglio
+    # --- Recupero worksheet ---
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    worksheet = get_sheet(sheet_id, "GIACENZE")
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])
     
-    # Conversioni iniziali
+    # --- Conversioni iniziali ---
     df = df.astype(str)
     if "GIAC.UBIC" in df.columns:
         df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
     
-    # Estrazione anno e stagione dalla colonna STAG (es. "2025/1")
+    # --- Estrazione anno e stagione ---
     df[["anno_stag", "stag_stag"]] = df["STAG"].str.split("/", expand=True)
     df["anno_stag"] = pd.to_numeric(df["anno_stag"], errors="coerce").fillna(0).astype(int)
     df["stag_stag"] = pd.to_numeric(df["stag_stag"], errors="coerce").fillna(0).astype(int)
     
-    # Filtro CORR e Y ai valori consentiti
-    df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")  # valori non numerici diventano NaN
+    # --- Filtro CORR e Y ---
+    df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")
     df = df[df["CORR_NUM"].between(1, 14)]
     df = df[df["Y"].isin(["1", "2", "3", "4"])]
-
-    col1, col2, col3 = st.columns(3)
+    
+    # --- Input anno e stagione ---
+    col1, col2 = st.columns([1, 3])
     with col1:
-        # Input utente
-        #anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default, step=1)
-        #stagione = st.selectbox("Stagione", options=[1, 2], index=0)
-        anno = st.number_input(
-            "Anno", min_value=2000, max_value=2100, value=anno_default, step=1
-        )
-        stagione = st.selectbox(
-            "Stagione", options=[1, 2], index=[1, 2].index(stagione_default)
-        )
-        
-        # --- FILTRO CON CHECKBOX SULLA COLONNA "Y" ---
+        anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default, step=1)
+        stagione = st.selectbox("Stagione", options=[1, 2], index=[1, 2].index(stagione_default))
+    
+        # --- Filtro checkbox colonna Y ---
         st.subheader("Filtra valori colonna Y")
         valori_Y = sorted(df["Y"].unique())
-        
-        # Creazione checkbox in colonne per una UI più ordinata
-        cols = st.columns(4)  # 4 colonne per allineamento
+        cols = st.columns(4)
         selezione_Y = {}
         for i, val in enumerate(valori_Y):
             col = cols[i % 4]
             selezione_Y[val] = col.checkbox(val, value=True)
-
-    with col2:
-        # Applico filtro
-        df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
-        
-        # Calcolo riepilogo
-        results = []
-        for corr_value in sorted(df["CORR_NUM"].unique()):
-            corr_df = df[df["CORR_NUM"] == corr_value]
-        
-            cond_vecchio = (corr_df["anno_stag"] < anno) | (
-                (corr_df["anno_stag"] == anno) & (corr_df["stag_stag"] < stagione)
-            )
-            cond_nuovo = ~cond_vecchio
-        
-            vecchio = corr_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
-            nuovo = corr_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
-        
-            results.append({
-                "CORR": corr_value,
-                "VECCHIO": vecchio,
-                "NUOVO": nuovo
-            })
-        
-        # Output tabella
-        result_df = pd.DataFrame(results)
-        st.dataframe(
-            result_df.reset_index(drop=True),
-            use_container_width=True,
-            height=None
+    
+    # --- Applico filtro ---
+    df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
+    
+    # --- Calcolo riepilogo ---
+    results = []
+    for corr_value in sorted(df["CORR_NUM"].unique()):
+        corr_df = df[df["CORR_NUM"] == corr_value]
+    
+        cond_vecchio = (corr_df["anno_stag"] < anno) | (
+            (corr_df["anno_stag"] == anno) & (corr_df["stag_stag"] < stagione)
         )
+        cond_nuovo = ~cond_vecchio
+    
+        vecchio = corr_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
+        nuovo = corr_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
+    
+        results.append({
+            "CORR": corr_value,
+            "VECCHIO": vecchio,
+            "NUOVO": nuovo
+        })
+    
+    result_df = pd.DataFrame(results)
+    
+    # --- Mostro tabella con AgGrid ---
+    gb = GridOptionsBuilder.from_dataframe(result_df.reset_index(drop=True))
+    gb.configure_default_column(sortable=True, filter=True, resizable=True)
+    gb.configure_grid_options(domLayout='normal')  # layout automatico, altezza adattabile
+    gridOptions = gb.build()
+    
+    AgGrid(
+        result_df.reset_index(drop=True),
+        gridOptions=gridOptions,
+        fit_columns_on_grid_load=True,
+        enable_enterprise_modules=False,
+        allow_unsafe_jscode=True,
+    )
 elif page == "Logout":
     logout()
