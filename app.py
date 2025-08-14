@@ -1361,7 +1361,8 @@ elif page == "Giacenze":
     sheet = get_sheet(sheet_id, "GIACENZE")
 
     # Forzo le colonne in stringa per sicurezza
-    df = sheet
+    data = sheet.get_all_values()
+    df = pd.DataFrame(data[1:], columns=data[0])
     df = df.astype(str)
     
     # Converto numeri dove serve
@@ -1373,24 +1374,25 @@ elif page == "Giacenze":
     stagione = st.number_input("Stagione", min_value=1, max_value=4, value=1, step=1)
     target_stag = f"{anno}/{stagione}"
     
-    # Calcolo
+    # Calcolo riepilogo
     results = []
     for corr_value in sorted(df["CORR"].unique()):
         # Filtro per CORR
         corr_df = df[df["CORR"] == corr_value]
-        
+    
         # VECCHIO: STAG < target
         vecchio = corr_df[corr_df["STAG"] < target_stag]["GIAC.UBIC"].sum()
-        
+    
         # NUOVO: STAG >= target
         nuovo = corr_df[corr_df["STAG"] >= target_stag]["GIAC.UBIC"].sum()
-        
+    
         results.append({
             "CORR": corr_value,
             "VECCHIO": vecchio,
             "NUOVO": nuovo
         })
     
+    # Mostro tabella finale
     result_df = pd.DataFrame(results)
     st.dataframe(result_df)
 elif page == "Logout":
