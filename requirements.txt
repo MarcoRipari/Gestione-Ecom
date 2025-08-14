@@ -31,3 +31,4 @@ httpx
 tenacity
 dropbox
 reportlab
+streamlit-aggrid
