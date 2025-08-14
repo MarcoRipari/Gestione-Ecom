@@ -534,7 +534,7 @@ with st.sidebar:
         # --- Menu principale ---
         main_page = st.radio(
             "Seleziona sezione",
-            ["🏠 Home", "📝 Descrizioni", "📸 Foto", "Logout"],
+            ["🏠 Home", "📝 Descrizioni", "📸 Foto", "📦 Giacenze", "Logout"],
             label_visibility="collapsed"
         )
     
@@ -1354,5 +1354,44 @@ elif page == "Foto - Aggiungi prelevate":
             else:
                 st.info("⚠️ Tutte le SKU inserite sono già presenti nel foglio.")
 
+elif page == "Giacenze":
+    st.header("Riepilogo per corridoio")
+
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "GIACENZE")
+
+    # Forzo le colonne in stringa per sicurezza
+    df = sheet
+    df = df.astype(str)
+    
+    # Converto numeri dove serve
+    if "GIAC.UBIC" in df.columns:
+        df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
+    
+    # Input anno e stagione
+    anno = st.number_input("Anno", min_value=2000, max_value=2100, value=2025, step=1)
+    stagione = st.number_input("Stagione", min_value=1, max_value=4, value=1, step=1)
+    target_stag = f"{anno}/{stagione}"
+    
+    # Calcolo
+    results = []
+    for corr_value in sorted(df["CORR"].unique()):
+        # Filtro per CORR
+        corr_df = df[df["CORR"] == corr_value]
+        
+        # VECCHIO: STAG < target
+        vecchio = corr_df[corr_df["STAG"] < target_stag]["GIAC.UBIC"].sum()
+        
+        # NUOVO: STAG >= target
+        nuovo = corr_df[corr_df["STAG"] >= target_stag]["GIAC.UBIC"].sum()
+        
+        results.append({
+            "CORR": corr_value,
+            "VECCHIO": vecchio,
+            "NUOVO": nuovo
+        })
+    
+    result_df = pd.DataFrame(results)
+    st.dataframe(result_df)
 elif page == "Logout":
     logout()
