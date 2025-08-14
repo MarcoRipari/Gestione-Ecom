@@ -1439,6 +1439,10 @@ elif page == "Giacenze":
         
         # Output tabella
         result_df = pd.DataFrame(results)
-        st.dataframe(result_df, width=350, height=600)
+        st.dataframe(
+            result_df.reset_index(drop=True),
+            use_container_width=True,
+            height=None
+        )
 elif page == "Logout":
     logout()
