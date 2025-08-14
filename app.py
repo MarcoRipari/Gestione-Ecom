@@ -1439,5 +1439,7 @@ elif page == "Giacenze":
             enable_enterprise_modules=False,
             allow_unsafe_jscode=True,
         )
+    with col3:
+        st.write("")
 elif page == "Logout":
     logout()
