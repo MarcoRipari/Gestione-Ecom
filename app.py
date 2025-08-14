@@ -1566,7 +1566,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     
     df_table = pd.DataFrame(table_data)
     
-    # --- Costruzione colonne per AgGrid con header multi-riga simulato
+    # --- Costruzione colonne per AgGrid con header multi-livello centrato
     column_defs = [
         {
             "headerName": "CORR",
@@ -1581,21 +1581,27 @@ elif page == "Giacenze - Per corridoio/marchio":
     for brand in marchi:
         column_defs.append({
             "headerName": brand,
-            "headerClass": "ag-center-header",  # header genitore
+            "headerComponentParams": {
+                "template": '<div class="ag-cell-label-container" style="justify-content: center;"><span ref="eLabel"></span></div>'
+            },
             "children": [
                 {
                     "headerName": "VECCHIO",
                     "field": f"{brand}_VECCHIO",
                     "width": 80,
                     "cellStyle": {"textAlign": "center"},
-                    "headerClass": "ag-center-header"
+                    "headerComponentParams": {
+                        "template": '<div class="ag-cell-label-container" style="justify-content: center;"><span ref="eLabel"></span></div>'
+                    }
                 },
                 {
                     "headerName": "NUOVO",
                     "field": f"{brand}_NUOVO",
                     "width": 80,
                     "cellStyle": {"textAlign": "center"},
-                    "headerClass": "ag-center-header"
+                    "headerComponentParams": {
+                        "template": '<div class="ag-cell-label-container" style="justify-content: center;"><span ref="eLabel"></span></div>'
+                    }
                 }
             ]
         })
@@ -1615,17 +1621,6 @@ elif page == "Giacenze - Per corridoio/marchio":
         "suppressHorizontalScroll": False
     }
     
-    # --- CSS aggiuntivo per centrare anche header multi-livello
-    st.markdown("""
-    <style>
-    .ag-header-cell-label, 
-    .ag-header-group-cell-label {
-        justify-content: center !important;
-        text-align: center !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
     # --- Visualizzazione tabella
     AgGrid(
         df_table,
@@ -1634,15 +1629,6 @@ elif page == "Giacenze - Per corridoio/marchio":
         height=600,
         fit_columns_on_grid_load=True
     )
-    
-    # Bottone PDF
-    with col4:
-        st.download_button(
-            label="📥 Scarica PDF",
-            data=genera_pdf(df_table, font_size=12, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
-            file_name="giac_corridoio.pdf",
-            mime="application/pdf"
-        )
     
 elif page == "Logout":
     logout()
