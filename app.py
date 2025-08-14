@@ -1392,7 +1392,7 @@ elif page == "Giacenze":
     df = df[df["CORR_NUM"].between(1, 14)]
     df = df[df["Y"].isin(["1", "2", "3", "4"])]
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         # Input utente
         anno = st.number_input(
@@ -1412,8 +1412,11 @@ elif page == "Giacenze":
         for i, val in enumerate(valori_Y):
             col = cols[i % 4]
             selezione_Y[val] = col.checkbox(val, value=True)
-    
+
     with col2:
+        st.write("")
+        
+    with col3:
         # Applico filtro
         df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
         
