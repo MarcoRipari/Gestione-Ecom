@@ -1583,8 +1583,8 @@ elif page == "Giacenze - Per corridoio/marchio":
             "cellStyle": {"textAlign": "center"},
             "headerClass": "ag-center-header",
             "children": [
-                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 80, "cellStyle": {"textAlign": "center"}},
-                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 80, "cellStyle": {"textAlign": "center"}}
+                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 70, "cellStyle": {"textAlign": "center"}},
+                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 70, "cellStyle": {"textAlign": "center"}}
             ]
         })
     
