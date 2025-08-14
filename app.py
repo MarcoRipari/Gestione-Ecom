@@ -37,6 +37,9 @@ from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
 import gspread.utils
 import re
 from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid.grid_options_builder import GridOptionsBuilder
+from reportlab.lib.pagesizes import landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
 logging.basicConfig(level=logging.INFO)
 
