@@ -404,6 +404,7 @@ def genera_pdf(df_disp, **param):
     header_align = param.get("align", "LEFT")
     text_align = param.get("text_align", "LEFT")
     margins = param.get("margins", (20, 20, 30, 20))  # left, right, top, bottom
+    valign = param.get("valign", "CENTER")
 
     # Calcolo altezza righe proporzionale al font
     row_height_default = font_size * 1.8
@@ -426,6 +427,7 @@ def genera_pdf(df_disp, **param):
         ("TEXTCOLOR", (0, 0), (-1, 0), header_text_color),
         ("ALIGN", (0, 0), (-1, 0), header_align),
         ("ALIGN", (0, 1), (-1, -1), text_align),
+        ("VALIGN", (0, 0), (-1, -1), valign),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), font_size),
         ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
