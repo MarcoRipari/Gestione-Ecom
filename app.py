@@ -407,7 +407,7 @@ def genera_pdf(df_disp, **param):
     valign = param.get("valign", "MIDDLE")
 
     # Calcolo altezza righe proporzionale al font
-    row_height_default = font_size * 1.8
+    row_height_default = font_size * 2.2
     row_heights = [row_height_default] * (len(df_disp) + 1)  # +1 per header
     
     # Genera il PDF in memoria
