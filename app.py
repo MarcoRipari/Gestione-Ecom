@@ -1594,6 +1594,14 @@ elif page == "Giacenze - Per corridoio/marchio":
     }
     
     # Visualizzazione tabella completa sotto
+    st.markdown("""
+        <style>
+        .ag-header-cell-label {
+            justify-content: center !important;
+            text-align: center !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     st.subheader("Tabella completa per corridoio e marchio")
     AgGrid(
         df_table,
