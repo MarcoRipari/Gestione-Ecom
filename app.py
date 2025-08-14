@@ -1567,13 +1567,13 @@ elif page == "Giacenze - Per corridoio/marchio":
     df_table = pd.DataFrame(table_data)
     
     # --- Costruzione colonne per AgGrid con header multi-riga simulato
-    column_defs = [{"headerName": "CORR", "field": "CORR", "width": 60, "pinned": "left"}]
+    column_defs = [{"headerName": "CORR", "field": "CORR", "width": 60, "pinned": "left", "cellStyle": {"textAlign": "center"}}]
     for brand in marchi:
         column_defs.append({
             "headerName": brand,
             "children": [
-                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 80},
-                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 80}
+                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 80, "cellStyle": {"textAlign": "center"}},
+                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 80, "cellStyle": {"textAlign": "center"}}
             ]
         })
     
