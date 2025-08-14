@@ -1376,7 +1376,8 @@ elif page == "Giacenze":
     df["stag_stag"] = pd.to_numeric(df["stag_stag"], errors="coerce").fillna(0).astype(int)
     
     # Filtro CORR e Y ai valori consentiti
-    df = df[df["CORR"].astype(int).between(1, 14)]
+    df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")  # valori non numerici diventano NaN
+    df = df[df["CORR_NUM"].between(1, 14)]
     df = df[df["Y"].isin(["1", "2", "3", "4"])]
     
     # Input utente
@@ -1399,8 +1400,8 @@ elif page == "Giacenze":
     
     # Calcolo riepilogo
     results = []
-    for corr_value in sorted(df["CORR"].unique()):
-        corr_df = df[df["CORR"] == corr_value]
+    for corr_value in sorted(df["CORR_NUM"].unique()):
+        corr_df = df[df["CORR_NUM"] == corr_value]
     
         cond_vecchio = (corr_df["anno_stag"] < anno) | (
             (corr_df["anno_stag"] == anno) & (corr_df["stag_stag"] < stagione)
