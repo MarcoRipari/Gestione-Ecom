@@ -1480,24 +1480,20 @@ elif page == "Giacenze - Per corridoio":
 elif page == "Giacenze - Per corridoio/marchio":
     st.header("Riepilogo per corridoio e marchio")
 
-    # Calcolo anno e stagione di default
+    # --- Calcolo anno e stagione di default
     oggi = datetime.datetime.now()
     anno_default = oggi.year
     mese = oggi.month
     stagione_default = 1 if mese in [1, 2, 11, 12] else 2
     
-    # Recupero worksheet
+    # --- Recupero worksheet
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    worksheet = get_sheet(sheet_id, "GIACENZE")  # oggetto worksheet
-    
-    # Leggo dati dal foglio
+    worksheet = get_sheet(sheet_id, "GIACENZE")
     data = worksheet.get_all_values()
-    df = pd.DataFrame(data[1:], columns=data[0])
-    df = df.astype(str)
+    df = pd.DataFrame(data[1:], columns=data[0]).astype(str)
     
-    # Conversioni e pulizie
-    if "GIAC.UBIC" in df.columns:
-        df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
+    # --- Pulizie
+    df["GIAC.UBIC"] = pd.to_numeric(df.get("GIAC.UBIC", 0), errors="coerce").fillna(0)
     df[["anno_stag", "stag_stag"]] = df["STAG"].str.split("/", expand=True)
     df["anno_stag"] = pd.to_numeric(df["anno_stag"], errors="coerce").fillna(0).astype(int)
     df["stag_stag"] = pd.to_numeric(df["stag_stag"], errors="coerce").fillna(0).astype(int)
@@ -1505,85 +1501,70 @@ elif page == "Giacenze - Per corridoio/marchio":
     df = df[df["CORR_NUM"].between(1, 14)]
     df = df[df["Y"].isin(["1", "2", "3", "4"])]
     
-    # Input utente
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default, step=1)
-        stagione = st.selectbox("Stagione", options=[1, 2], index=[1, 2].index(stagione_default))
-        
-        st.subheader("Filtra valori colonna Y")
-        valori_Y = sorted(df["Y"].unique())
-        cols = st.columns(4)
-        selezione_Y = {v: cols[i % 4].checkbox(v, value=True) for i, v in enumerate(valori_Y)}
+    # --- Input utente
+    anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default, step=1)
+    stagione = st.selectbox("Stagione", options=[1, 2], index=[1, 2].index(stagione_default))
     
-    with col3:
-        # Applico filtro
-        df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
-        
-        # Normalizzazione marchi equivalenti
-        marchi_mapping = {
-            "NATURINO CLASSIC": "NATURINO",
-            "NATURINO WILD LIFE": "NATURINO",
-            "NATURINO ACTIVE": "NATURINO",
-            "FLOWER M.BY NATURINO": "FLOWER M.BY NATURINO",
-            "FLOWER MOUNTAIN": "FLOWER MOUNTAIN",
-            "VOILE BLANCHE": "VOILE BLANCHE",
-            "NATURINO BAREFOOT": "NATURINO",
-            "FALCOTTO ACTIVE": "FALCOTTO",
-            "FALCOTTO CLASSIC": "FALCOTTO",
-            "NATURINO EASY": "NATURINO",
-            "NATURINO COCOON": "NATURINO",
-            "FALCOTTO SNEAKERS": "FALCOTTO",
-            "NATURINO SNEAKERS": "NATURINO",
-            "W6YZ Adulto": "W6YZ Adulto",
-            "W6YZ Bimbo": "W6YZ Bimbo",
-            "NATURINO OUTDOOR": "NATURINO",
-            "Candice Cooper": "Candice Cooper",
-            "NATURINO BABY": "NATURINO",
-            "C N R": "C N R"
-        }
-        df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
+    st.subheader("Filtra valori colonna Y")
+    valori_Y = sorted(df["Y"].unique())
+    cols = st.columns(4)
+    selezione_Y = {v: cols[i % 4].checkbox(v, value=True) for i, v in enumerate(valori_Y)}
+    df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
     
-        marchi = sorted(df["MARCHIO_STD"].dropna().unique())
-        
-        # Costruisco dati per tabella multi-riga
-        table_data = []
-        for corr in sorted(df["CORR_NUM"].unique()):
-            row = {"CORR": corr}
-            corr_df = df[df["CORR_NUM"] == corr]
-            for brand in marchi:
-                brand_df = corr_df[corr_df["MARCHIO_STD"] == brand]
-                
-                cond_vecchio = (brand_df["anno_stag"] < anno) | \
-                               ((brand_df["anno_stag"] == anno) & (brand_df["stag_stag"] < stagione))
-                cond_nuovo = ~cond_vecchio
-                
-                vecchio = brand_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
-                nuovo = brand_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
-                
-                row[f"{brand}_VECCHIO"] = vecchio
-                row[f"{brand}_NUOVO"] = nuovo
-            table_data.append(row)
-        
-        df_table = pd.DataFrame(table_data)
-        
-        # MultiIndex per colonne
-        arrays = [["CORR"], [""]]
+    # --- Normalizzazione marchi
+    marchi_mapping = {
+        "NATURINO CLASSIC": "NATURINO",
+        "NATURINO WILD LIFE": "NATURINO",
+        "NATURINO ACTIVE": "NATURINO",
+        "FLOWER M.BY NATURINO": "FLOWER M.BY NATURINO",
+        "FLOWER MOUNTAIN": "FLOWER MOUNTAIN",
+        "VOILE BLANCHE": "VOILE BLANCHE",
+        "NATURINO BAREFOOT": "NATURINO",
+        "FALCOTTO ACTIVE": "FALCOTTO",
+        "FALCOTTO CLASSIC": "FALCOTTO",
+        "NATURINO EASY": "NATURINO",
+        "NATURINO COCOON": "NATURINO",
+        "FALCOTTO SNEAKERS": "FALCOTTO",
+        "NATURINO SNEAKERS": "NATURINO",
+        "W6YZ Adulto": "W6YZ Adulto",
+        "W6YZ Bimbo": "W6YZ Bimbo",
+        "NATURINO OUTDOOR": "NATURINO",
+        "Candice Cooper": "Candice Cooper",
+        "NATURINO BABY": "NATURINO",
+        "C N R": "C N R"
+    }
+    df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
+    marchi = sorted(df["MARCHIO_STD"].dropna().unique())
+    
+    # --- Costruzione tabella piatta (per AgGrid)
+    table_data = []
+    for corr in sorted(df["CORR_NUM"].unique()):
+        row = {"CORR": corr}
+        corr_df = df[df["CORR_NUM"] == corr]
         for brand in marchi:
-            arrays[0] += [brand, brand]
-            arrays[1] += ["VECCHIO", "NUOVO"]
-        df_table.columns = pd.MultiIndex.from_arrays(arrays)
-        
-        # Visualizzazione multi-riga
-        st.dataframe(df_table.reset_index(drop=True))
+            brand_df = corr_df[corr_df["MARCHIO_STD"] == brand]
+            cond_vecchio = (brand_df["anno_stag"] < anno) | ((brand_df["anno_stag"] == anno) & (brand_df["stag_stag"] < stagione))
+            cond_nuovo = ~cond_vecchio
+            row[f"{brand}_VECCHIO"] = brand_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
+            row[f"{brand}_NUOVO"] = brand_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
+        table_data.append(row)
     
-    with col4:
-        st.download_button(
-            label="📥 Scarica PDF",
-            data=genera_pdf(df_table, font_size=12, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
-            file_name="giac_corridoio.pdf",
-            mime="application/pdf"
-        )
+    df_table = pd.DataFrame(table_data)
+    
+    # --- Visualizzazione AgGrid con scrolling orizzontale
+    st.subheader("Tabella completa per corridoio e marchio")
+    gb = GridOptionsBuilder.from_dataframe(df_table)
+    gb.configure_default_column(min_column_width=80, resizable=True, wrapText=True)
+    gb.configure_grid_options(domLayout='normal', suppressHorizontalScroll=False)
+    AgGrid(df_table, gridOptions=gb.build(), height=500, fit_columns_on_grid_load=False)
+    
+    # --- Bottone PDF sotto la tabella
+    st.download_button(
+        label="📥 Scarica PDF",
+        data=genera_pdf(df_table, font_size=12, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
+        file_name="giac_corridoio.pdf",
+        mime="application/pdf"
+    )
     
 elif page == "Logout":
     logout()
