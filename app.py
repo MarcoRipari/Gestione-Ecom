@@ -1364,7 +1364,7 @@ elif page == "Giacenze":
     # Leggo dati dal foglio
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])  # dalla seconda riga in poi sono dati
-
+    
     # Conversioni iniziali
     df = df.astype(str)
     if "GIAC.UBIC" in df.columns:
@@ -1379,6 +1379,16 @@ elif page == "Giacenze":
     anno = st.number_input("Anno", min_value=2000, max_value=2100, value=2025, step=1)
     stagione = st.number_input("Stagione", min_value=1, max_value=4, value=1, step=1)
     
+    # --- FILTRO CON CHECKBOX SULLA COLONNA "O" ---
+    st.subheader("Filtra valori colonna O")
+    valori_O = df["O"].unique()
+    selezione_O = {}
+    for val in valori_O:
+        selezione_O[val] = st.checkbox(val, value=True)
+    
+    # Applico filtro
+    df = df[df["O"].isin([v for v, sel in selezione_O.items() if sel])]
+    
     # Calcolo riepilogo
     results = []
     for corr_value in sorted(df["CORR"].unique()):
@@ -1390,8 +1400,8 @@ elif page == "Giacenze":
         )
         cond_nuovo = ~cond_vecchio  # Opposto
     
-        vecchio = corr_df[cond_vecchio]["GIAC.UBIC"].sum()
-        nuovo = corr_df[cond_nuovo]["GIAC.UBIC"].sum()
+        vecchio = corr_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
+        nuovo = corr_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
     
         results.append({
             "CORR": corr_value,
