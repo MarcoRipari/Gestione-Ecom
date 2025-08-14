@@ -1357,6 +1357,16 @@ elif page == "Foto - Aggiungi prelevate":
 elif page == "Giacenze":
     st.header("Riepilogo per corridoio")
 
+    # Calcolo anno e stagione di default
+    oggi = datetime.datetime.now()
+    anno_default = oggi.year
+    
+    mese = oggi.month
+    if mese in [1, 2, 11, 12]:
+        stagione_default = 1  # inverno/autunno
+    else:
+        stagione_default = 2  # primavera/estate
+        
     # Recupero worksheet
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     worksheet = get_sheet(sheet_id, "GIACENZE")  # oggetto worksheet
@@ -1381,8 +1391,14 @@ elif page == "Giacenze":
     df = df[df["Y"].isin(["1", "2", "3", "4"])]
     
     # Input utente
-    anno = st.number_input("Anno", min_value=2000, max_value=2100, value=2025, step=1)
-    stagione = st.number_input("Stagione", min_value=1, max_value=4, value=1, step=1)
+    #anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default, step=1)
+    #stagione = st.selectbox("Stagione", options=[1, 2], index=0)
+    anno = st.number_input(
+        "Anno", min_value=2000, max_value=2100, value=anno_default, step=1
+    )
+    stagione = st.selectbox(
+        "Stagione", options=[1, 2], index=[1, 2].index(stagione_default)
+    )
     
     # --- FILTRO CON CHECKBOX SULLA COLONNA "Y" ---
     st.subheader("Filtra valori colonna Y")
@@ -1419,6 +1435,6 @@ elif page == "Giacenze":
     
     # Output tabella
     result_df = pd.DataFrame(results)
-    st.dataframe(result_df)
+    st.dataframe(result_df, width=350)
 elif page == "Logout":
     logout()
