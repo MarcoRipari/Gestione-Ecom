@@ -1476,5 +1476,9 @@ elif page == "Giacenze - Per corridoio":
             file_name="giac_corridoio.pdf",
             mime="application/pdf"
         )
+
+elif page == "Giacenze - Per corridoio/marchio":
+    st.write("test")
+    
 elif page == "Logout":
     logout()
