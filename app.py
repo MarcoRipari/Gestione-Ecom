@@ -1359,12 +1359,12 @@ elif page == "Giacenze":
 
     # Recupero worksheet
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    worksheet = get_sheet(sheet_id, "PRELEVATE")  # oggetto worksheet
+    worksheet = get_sheet(sheet_id, "GIACENZE")  # oggetto worksheet
     
     # Leggo dati dal foglio
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])  # dalla seconda riga in poi sono dati
-    st.write("Colonne presenti nel foglio:", df.columns.tolist())
+
     # Conversioni iniziali
     df = df.astype(str)
     if "GIAC.UBIC" in df.columns:
