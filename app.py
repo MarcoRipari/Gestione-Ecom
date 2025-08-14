@@ -395,8 +395,17 @@ def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, 
         st.markdown(f"💸 **Costo stimato per riga**: ${cost_est:.6f}")
 
     return token_est, cost_est, prompt
-def genera_pdf(df_disp):
-    # 2️⃣ Genera il PDF in memoria
+def genera_pdf(df_disp, **param):
+    # Configuro i parametri
+    font_size = param.get("font_size", 12)
+    header_bg_color = param.get("header_bg_color", colors.grey)
+    header_text_color = param.get("header_text_color", colors.whitesmoke)
+    row_bg_color = param.get("row_bg_color", colors.beige)
+    header_align = param.get("align", "LEFT")
+    text_align = param.get("text_align", "LEFT")
+    margins = param.get("margins", (20, 20, 30, 20))  # left, right, top, bottom
+    
+    # Genera il PDF in memoria
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=20)
     styles = getSampleStyleSheet()
@@ -409,14 +418,14 @@ def genera_pdf(df_disp):
     
     # Stile della tabella
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-        ("ALIGN", (0, 1), (-1, -1), "LEFT"),
+        ("BACKGROUND", (0, 0), (-1, 0), header_bg_color),
+        ("TEXTCOLOR", (0, 0), (-1, 0), header_text_color),
+        ("ALIGN", (0, 0), (-1, 0), header_align),
+        ("ALIGN", (0, 1), (-1, -1), text_align),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("FONTSIZE", (0, 0), (-1, -1), font_size),
         ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
-        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+        ("BACKGROUND", (0, 1), (-1, -1), row_bg_color),
         ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
     ]))
     
