@@ -1599,6 +1599,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     }
     df["COLLEZIONE"] = df["COLLEZIONE"].str.strip()  # rimuove spazi
     df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
+    st.write(df["MARCHIO_STD"])
     marchi = sorted(df["MARCHIO_STD"].dropna().unique())
     
     # --- Costruisco dati per tabella piatta ---
