@@ -1,5 +1,5 @@
 # FOTO
 - Avvio controllo (Github Actions) da streamlit tramite pulsante
 - Funzione genera lista disponibile solo per admin o con psw
-- Gestire paia prelevate tramite file CSV/XLS o textare input
-- Import giacenze da CSV
+
+- Export Giacenze
