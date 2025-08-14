@@ -1598,6 +1598,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     AgGrid(
         df_table,
         gridOptions=gridOptions,
+        allow_unsafe_jscode=True,
         height=600,
         fit_columns_on_grid_load=True
     )
