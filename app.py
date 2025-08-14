@@ -1585,7 +1585,8 @@ elif page == "Giacenze - Per corridoio/marchio":
             "sortable": True,
             "filter": True,
             "wrapText": True,
-            "autoHeight": True
+            "autoHeight": True,
+            "filter": False
         },
         "domLayout": "normal",
         "suppressHorizontalScroll": False
