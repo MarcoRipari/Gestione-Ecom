@@ -1516,8 +1516,9 @@ elif page == "Giacenze - Per corridoio/marchio":
         valori_Y = sorted(df["Y"].unique())
         cols = st.columns(4)
         selezione_Y = {v: cols[i % 4].checkbox(v, value=True) for i, v in enumerate(valori_Y)}
-    
-    with col3:
+
+    scol1, scol2 = st.columns(2)
+    with scol1:
         # Applico filtro
         df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
         
@@ -1578,11 +1579,11 @@ elif page == "Giacenze - Per corridoio/marchio":
         # Visualizzazione multi-riga
         st.dataframe(df_table.reset_index(drop=True))
     
-    with col4:
+    with scol2:
         st.download_button(
             label="📥 Scarica PDF",
-            data=genera_pdf(df_table, font_size=12, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
-            file_name="giac_corridoio.pdf",
+            data=genera_pdf(df_table),
+            file_name="giac_corridoio_marchio.pdf",
             mime="application/pdf"
         )
     
