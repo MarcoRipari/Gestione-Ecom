@@ -568,7 +568,7 @@ with st.sidebar:
                 ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "📥 Importa giacenze", "🫳🏻 Aggiungi prelevate"],
                 label_visibility="collapsed"
             )
-            page = f"Foto - {sub_page.split(' ', 1)[1]}"
+            page = f"{main_page} - {sub_page.split(' ', 1)[1]}"
 
         elif main_page == "Giacenze":
             sub_page = st.radio(
@@ -576,7 +576,7 @@ with st.sidebar:
                 ["1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio"],
                 label_visibility="collapsed"
             )
-            page = f"Foto - {sub_page.split(' ', 1)[1]}"
+            page = f"{main_page} - {sub_page.split(' ', 1)[1]}"
     
     else:
         page = "🔑 Login"
