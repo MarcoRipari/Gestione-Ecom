@@ -419,7 +419,7 @@ def genera_pdf(df_disp, **param):
     
     # Prepara i dati per la tabella
     data = [list(df_disp.columns)] + df_disp.values.tolist()
-    table = Table(data, repeatRows=1, hAlign='CENTER')
+    table = Table(data, repeatRows=1, hAlign='CENTER', rowHeights=row_heights)
     
     # Stile della tabella
     table.setStyle(TableStyle([
@@ -433,6 +433,8 @@ def genera_pdf(df_disp, **param):
         ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
         ("BACKGROUND", (0, 1), (-1, -1), row_bg_color),
         ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
+        ("TOPPADDING", (0,0), (-1,-1), 4),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 4),
     ]))
     
     elements = [table]
