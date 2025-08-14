@@ -1452,5 +1452,14 @@ elif page == "Giacenze":
         result_df = pd.DataFrame(results)
         result_df["CORR"] = result_df["CORR"].astype(int)
         st.table(result_df.reset_index(drop=True))
+
+    with col4:
+        st.download_button(
+            label="📥 Scarica PDF",
+            data=genera_pdf(result_df, header_align="CENTER", text_align="CENTER"),
+            file_name="giac_corridoio.pdf",
+            mime="application/pdf",
+            disabled=True
+        )
 elif page == "Logout":
     logout()
