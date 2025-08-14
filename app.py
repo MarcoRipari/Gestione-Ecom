@@ -1438,6 +1438,7 @@ elif page == "Giacenze":
         
         # Output tabella con st.table (altezza automatica)
         result_df = pd.DataFrame(results)
+        result_df["CORR"] = result_df["CORR"].astype(int)
         st.table(result_df.reset_index(drop=True))
 elif page == "Logout":
     logout()
