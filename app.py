@@ -1458,8 +1458,7 @@ elif page == "Giacenze":
             label="📥 Scarica PDF",
             data=genera_pdf(result_df, header_align="CENTER", text_align="CENTER"),
             file_name="giac_corridoio.pdf",
-            mime="application/pdf",
-            disabled=True
+            mime="application/pdf"
         )
 elif page == "Logout":
     logout()
