@@ -1619,7 +1619,7 @@ elif page == "Giacenze - Per corridoio/marchio":
         df_table,
         gridOptions=gridOptions,
         allow_unsafe_jscode=True,
-        height=500,
+        height=450,
         fit_columns_on_grid_load=True
     )
     
