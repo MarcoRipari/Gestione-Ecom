@@ -1381,13 +1381,13 @@ elif page == "Giacenze":
     
     # --- FILTRO CON CHECKBOX SULLA COLONNA "O" ---
     st.subheader("Filtra valori colonna O")
-    valori_O = df["O"].unique()
+    valori_O = df["Y"].unique()
     selezione_O = {}
     for val in valori_O:
         selezione_O[val] = st.checkbox(val, value=True)
     
     # Applico filtro
-    df = df[df["O"].isin([v for v, sel in selezione_O.items() if sel])]
+    df = df[df["Y"].isin([v for v, sel in selezione_O.items() if sel])]
     
     # Calcolo riepilogo
     results = []
