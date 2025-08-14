@@ -1574,16 +1574,17 @@ elif page == "Giacenze - Per corridoio/marchio":
     
     # --- Costruzione colonne per AgGrid ---
     column_defs = [
-        {"headerName": "CORR", "field": "CORR", "width": 60, "pinned": "left", "wrapText": False, "cellStyle": {"textAlign": "center"}}
+        {"headerName": "CORR", "field": "CORR", "width": 60, "pinned": "left", "cellStyle": {"textAlign": "center"}}
     ]
     
     for brand in marchi:
         column_defs.append({
             "headerName": brand,
             "cellStyle": {"textAlign": "center"},
+            "headerClass": "ag-center-header",
             "children": [
-                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 80, "wrapText": False, "cellStyle": {"textAlign": "center"}},
-                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 80, "wrapText": False, "cellStyle": {"textAlign": "center"}}
+                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 80, "cellStyle": {"textAlign": "center"}},
+                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 80, "cellStyle": {"textAlign": "center"}}
             ]
         })
     
@@ -1594,7 +1595,7 @@ elif page == "Giacenze - Per corridoio/marchio":
             "resizable": False,
             "sortable": False,
             "filter": False,
-            "wrapText": True,
+            "wrapText": False,
             "autoHeight": True,
             "cellStyle": {"textAlign": "center"},
             "headerClass": "ag-center-header"
@@ -1604,6 +1605,14 @@ elif page == "Giacenze - Per corridoio/marchio":
     }
     
     # --- Visualizzazione tabella completa ---
+    st.markdown("""
+        <style>
+        .ag-header-cell-label {
+            justify-content: center !important;
+            text-align: center !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     st.subheader("Tabella completa per corridoio e marchio")
     AgGrid(
         df_table,
