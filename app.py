@@ -1599,9 +1599,9 @@ elif page == "Giacenze - Per corridoio/marchio":
     }
     df["COLLEZIONE"] = df["COLLEZIONE"].str.strip()  # rimuove spazi
     df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
-    st.write(df["MARCHIO_STD"])
-    marchi = sorted(df["MARCHIO_STD"].dropna().unique())
     
+    marchi = sorted(df["MARCHIO_STD"].dropna().unique())
+    st.write(marchi)
     # --- Costruisco dati per tabella piatta ---
     table_data = []
     for corr in sorted(df["CORR_NUM"].unique()):
@@ -1622,7 +1622,7 @@ elif page == "Giacenze - Per corridoio/marchio":
             row[f"{brand}_NUOVO"] = nuovo
     
         table_data.append(row)
-    
+    st.write(brand_df)
     df_table = pd.DataFrame(table_data)
     
     # --- Costruzione colonne AgGrid con colori alternati ---
