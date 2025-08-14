@@ -569,6 +569,14 @@ with st.sidebar:
                 label_visibility="collapsed"
             )
             page = f"Foto - {sub_page.split(' ', 1)[1]}"
+
+        elif main_page == "Giacenze":
+            sub_page = st.radio(
+                "Seleziona sottosezione Foto",
+                ["1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio"],
+                label_visibility="collapsed"
+            )
+            page = f"Foto - {sub_page.split(' ', 1)[1]}"
     
     else:
         page = "🔑 Login"
@@ -1373,7 +1381,7 @@ elif page == "Foto - Aggiungi prelevate":
             else:
                 st.info("⚠️ Tutte le SKU inserite sono già presenti nel foglio.")
 
-elif page == "Giacenze":
+elif page == "Giacenze - Per corridoio":
     st.header("Riepilogo per corridoio")
 
     # Calcolo anno e stagione di default
