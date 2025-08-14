@@ -405,6 +405,10 @@ def genera_pdf(df_disp, **param):
     text_align = param.get("text_align", "LEFT")
     margins = param.get("margins", (20, 20, 30, 20))  # left, right, top, bottom
     align = param.get("align", "CENTER")
+
+    # Calcolo altezza righe proporzionale al font
+    row_height_default = font_size * 1.8
+    row_heights = [row_height_default] * (len(df_disp) + 1)  # +1 per header
     
     # Genera il PDF in memoria
     buffer = BytesIO()
@@ -415,7 +419,7 @@ def genera_pdf(df_disp, **param):
     
     # Prepara i dati per la tabella
     data = [list(df_disp.columns)] + df_disp.values.tolist()
-    table = Table(data, repeatRows=1, hAlign='CENTER')
+    table = Table(data, repeatRows=1, hAlign='CENTER', rowHeights=row_heights)
     
     # Stile della tabella
     table.setStyle(TableStyle([
