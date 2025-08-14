@@ -441,6 +441,54 @@ def genera_pdf(df_disp, **param):
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
+# --- Funzione per generare PDF ---
+def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
+    doc = SimpleDocTemplate(file_path, pagesize=landscape(A4))
+    elements = []
+
+    brands = [c.replace("_VECCHIO", "") for c in df_table.columns if "_VECCHIO" in c]
+
+    # Header multi-riga
+    header_row1 = ["CORR"] + [brand for brand in brands for _ in range(2)]
+    header_row2 = [""] + ["VECCHIO" if i % 2 == 0 else "NUOVO" for i in range(len(brands)*2)]
+
+    data = [header_row1, header_row2]
+    for _, row in df_table.iterrows():
+        row_data = [row.get("CORR", "")]
+        for brand in brands:
+            row_data.append(row.get(f"{brand}_VECCHIO", 0))
+            row_data.append(row.get(f"{brand}_NUOVO", 0))
+        data.append(row_data)
+
+    col_widths = [40] + [60]*len(brands)*2
+    t = Table(data, colWidths=col_widths)
+
+    style = TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('BACKGROUND', (0,1), (-1,1), colors.whitesmoke),
+        ('SPAN', (0,0), (0,1)),
+    ])
+
+    col_start = 1
+    for _ in brands:
+        style.add('SPAN', (col_start,0), (col_start+1,0))
+        col_start += 2
+
+    # Colori alternati VECCHIO/NUOVO
+    for i in range(len(brands)):
+        col_vecchio = 1 + i*2
+        col_nuovo = col_vecchio + 1
+        style.add('BACKGROUND', (col_vecchio,2), (col_vecchio,-1), colors.beige)
+        style.add('BACKGROUND', (col_nuovo,2), (col_nuovo,-1), colors.lavender)
+
+    t.setStyle(style)
+    elements.append(t)
+    doc.build(elements)
+    return open(file_path, "rb").read()
     
 # ---------------------------
 # Async
@@ -1546,6 +1594,7 @@ elif page == "Giacenze - Per corridoio/marchio":
         "NATURINO BABY": "NATURINO",
         "C N R": "C N R"
     }
+    df["COLLEZIONE"] = df["COLLEZIONE"].str.strip()  # rimuove spazi
     df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
     marchi = sorted(df["MARCHIO_STD"].dropna().unique())
     
@@ -1554,41 +1603,42 @@ elif page == "Giacenze - Per corridoio/marchio":
     for corr in sorted(df["CORR_NUM"].unique()):
         row = {"CORR": corr}
         corr_df = df[df["CORR_NUM"] == corr]
-        
+    
         for brand in marchi:
             brand_df = corr_df[corr_df["MARCHIO_STD"] == brand]
-            
+    
             cond_vecchio = (brand_df["anno_stag"] < anno) | \
                            ((brand_df["anno_stag"] == anno) & (brand_df["stag_stag"] < stagione))
             cond_nuovo = ~cond_vecchio
-            
+    
             vecchio = brand_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
             nuovo = brand_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
-            
+    
             row[f"{brand}_VECCHIO"] = vecchio
             row[f"{brand}_NUOVO"] = nuovo
-        
+    
         table_data.append(row)
     
     df_table = pd.DataFrame(table_data)
     
-    # --- Costruzione colonne per AgGrid ---
+    # --- Costruzione colonne AgGrid con colori alternati ---
     column_defs = [
         {"headerName": "CORR", "field": "CORR", "width": 60, "pinned": "left", "cellStyle": {"textAlign": "center"}}
     ]
     
-    for brand in marchi:
+    for i, brand in enumerate(marchi):
+        vecchio_bg = "#FFF2CC"  # beige chiaro
+        nuovo_bg = "#D9E1F2"    # lavanda chiaro
         column_defs.append({
             "headerName": brand,
-            "cellStyle": {"textAlign": "center"},
-            "headerClass": "ag-center-header",
             "children": [
-                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 70, "cellStyle": {"textAlign": "center"}},
-                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 70, "cellStyle": {"textAlign": "center"}}
+                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 70,
+                 "cellStyle": {"textAlign": "center", "backgroundColor": vecchio_bg}},
+                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 70,
+                 "cellStyle": {"textAlign": "center", "backgroundColor": nuovo_bg}}
             ]
         })
     
-    # --- Configurazione AgGrid ---
     gridOptions = {
         "columnDefs": column_defs,
         "defaultColDef": {
@@ -1605,7 +1655,7 @@ elif page == "Giacenze - Per corridoio/marchio":
         "suppressHorizontalScroll": False
     }
     
-    # --- Visualizzazione tabella completa ---
+    # --- Visualizzazione tabella ---
     st.markdown("""
         <style>
         .ag-header-cell-label {
@@ -1614,6 +1664,7 @@ elif page == "Giacenze - Per corridoio/marchio":
         }
         </style>
     """, unsafe_allow_html=True)
+    
     st.subheader("Tabella completa per corridoio e marchio")
     AgGrid(
         df_table,
@@ -1627,7 +1678,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     with col4:
         st.download_button(
             label="📥 Scarica PDF",
-            data=genera_pdf(df_table, font_size=12, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
+            data=genera_pdf_aggrid(df_table),
             file_name="giac_corridoio.pdf",
             mime="application/pdf"
         )
