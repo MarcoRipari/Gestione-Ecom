@@ -1462,7 +1462,7 @@ elif page == "Giacenze":
     with col4:
         st.download_button(
             label="📥 Scarica PDF",
-            data=genera_pdf(result_df, font_size=15, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
+            data=genera_pdf(result_df, font_size=12, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
             file_name="giac_corridoio.pdf",
             mime="application/pdf"
         )
