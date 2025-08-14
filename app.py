@@ -1578,19 +1578,24 @@ elif page == "Giacenze - Per corridoio/marchio":
         })
     
     # Configurazione AgGrid
-    gb = GridOptionsBuilder.from_dataframe(df_table)
-    gb.configure_grid_options(
-        columnDefs=column_defs,
-        domLayout='normal',
-        suppressHorizontalScroll=False
-    )
-    gb.configure_default_column(resizable=True, wrapText=True, min_column_width=80)
+    gridOptions = {
+        "columnDefs": column_defs,
+        "defaultColDef": {
+            "resizable": True,
+            "sortable": True,
+            "filter": True,
+            "wrapText": True,
+            "autoHeight": True
+        },
+        "domLayout": "normal",
+        "suppressHorizontalScroll": False
+    }
     
     # Visualizzazione tabella completa sotto
     st.subheader("Tabella completa per corridoio e marchio")
     AgGrid(
         df_table,
-        gridOptions=gb.build(),
+        gridOptions=gridOptions,
         height=600,
         fit_columns_on_grid_load=True
     )
