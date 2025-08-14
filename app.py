@@ -1392,7 +1392,7 @@ elif page == "Giacenze":
     df = df[df["Y"].isin(["1", "2", "3", "4"])]
 
     col1, col2 = st.columns(2)
-        with col1:
+    with col1:
         # Input utente
         #anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default, step=1)
         #stagione = st.selectbox("Stagione", options=[1, 2], index=0)
