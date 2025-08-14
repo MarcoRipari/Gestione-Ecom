@@ -1357,34 +1357,41 @@ elif page == "Foto - Aggiungi prelevate":
 elif page == "Giacenze":
     st.header("Riepilogo per corridoio")
 
+    # Recupero worksheet
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "GIACENZE")
-
-    # Forzo le colonne in stringa per sicurezza
-    data = sheet.get_all_values()
-    df = pd.DataFrame(data[1:], columns=data[0])
-    df = df.astype(str)
+    worksheet = get_sheet(sheet_id, "PRELEVATE")  # oggetto worksheet
     
-    # Converto numeri dove serve
+    # Leggo dati dal foglio
+    data = worksheet.get_all_values()
+    df = pd.DataFrame(data[1:], columns=data[0])  # dalla seconda riga in poi sono dati
+    
+    # Conversioni iniziali
+    df = df.astype(str)
     if "GIAC.UBIC" in df.columns:
         df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
     
-    # Input anno e stagione
+    # Estrazione anno e stagione dalla colonna STAG (es. "2025/1")
+    df[["anno_stag", "stag_stag"]] = df["STAG"].str.split("/", expand=True)
+    df["anno_stag"] = pd.to_numeric(df["anno_stag"], errors="coerce").fillna(0).astype(int)
+    df["stag_stag"] = pd.to_numeric(df["stag_stag"], errors="coerce").fillna(0).astype(int)
+    
+    # Input utente
     anno = st.number_input("Anno", min_value=2000, max_value=2100, value=2025, step=1)
     stagione = st.number_input("Stagione", min_value=1, max_value=4, value=1, step=1)
-    target_stag = f"{anno}/{stagione}"
     
     # Calcolo riepilogo
     results = []
     for corr_value in sorted(df["CORR"].unique()):
-        # Filtro per CORR
         corr_df = df[df["CORR"] == corr_value]
     
-        # VECCHIO: STAG < target
-        vecchio = corr_df[corr_df["STAG"] < target_stag]["GIAC.UBIC"].sum()
+        # Condizioni per vecchio e nuovo
+        cond_vecchio = (corr_df["anno_stag"] < anno) | (
+            (corr_df["anno_stag"] == anno) & (corr_df["stag_stag"] < stagione)
+        )
+        cond_nuovo = ~cond_vecchio  # Opposto
     
-        # NUOVO: STAG >= target
-        nuovo = corr_df[corr_df["STAG"] >= target_stag]["GIAC.UBIC"].sum()
+        vecchio = corr_df[cond_vecchio]["GIAC.UBIC"].sum()
+        nuovo = corr_df[cond_nuovo]["GIAC.UBIC"].sum()
     
         results.append({
             "CORR": corr_value,
@@ -1392,7 +1399,7 @@ elif page == "Giacenze":
             "NUOVO": nuovo
         })
     
-    # Mostro tabella finale
+    # Output tabella
     result_df = pd.DataFrame(results)
     st.dataframe(result_df)
 elif page == "Logout":
