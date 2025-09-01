@@ -1584,10 +1584,12 @@ elif page == "Giacenze - Per corridoio":
         )
         
         # --- Bottone Scarica SKU ---
-        df_sku = df[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"]].copy()
-        df_sku = df_sku.sort_values(by=["CORR", "LATO", "X", "Y", "CODICE", "VAR", "COLORE"])
+        df_sku = df[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y", "SKU NO TGL"]].copy()
+        df_sku = df_sku.drop_duplicates(subset=["SKU NO TGL"])
+        df_sku = df_sku[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"]]
+        
         st.download_button(
-            label="📥 Scarica SKU (PDF)",
+            label="📥 Scarica SKUs",
             data=genera_pdf(
                 df_sku,
                 font_size=10,
