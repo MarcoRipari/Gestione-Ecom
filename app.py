@@ -1495,7 +1495,14 @@ elif page == "Giacenze - Per corridoio":
         st.subheader("Filtra valori colonna X")
         corr_values = sorted(df["CORR_NUM"].dropna().astype(int).unique())
         cols_corr = st.columns(4)
-        selezione_corr = {c: cols_corr[i % 4].checkbox(str(c), value=True) for i, c in enumerate(corr_values)}
+        selezione_corr = {
+            c: cols_corr[i % 4].checkbox(
+                label=str(c),
+                value=True,
+                key=f"checkbox_corr_{c}"
+            )
+            for i, c in enumerate(corr_values)
+        }
 
     with col2:
         st.write("")
