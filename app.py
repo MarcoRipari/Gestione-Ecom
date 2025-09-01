@@ -1584,14 +1584,20 @@ elif page == "Giacenze - Per corridoio":
         )
         
         # --- Bottone Scarica SKU ---
-        df_sku = df[df["VECCHIO"].notna()].copy()
-        df_sku = df_sku[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y", "SKU NO TGL"]]
+        mask_vecchio = (df["anno_stag"] < anno) | (
+            (df["anno_stag"] == anno) & (df["stag_stag"] < stagione)
+        )
+        cols_export = ["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y", "SKU NO TGL"]
+        df_sku = df.loc[mask_vecchio, cols_export].copy()
         df_sku = df_sku.drop_duplicates(subset=["SKU NO TGL"])
+        df_sku["__CORR_SORT__"] = pd.to_numeric(df_sku["CORR"], errors="coerce").fillna(0)
+        df_sku = df_sku.sort_values(
+            by=["__CORR_SORT__", "LATO", "X", "Y", "CODICE", "VAR", "COLORE"]
+        ).drop(columns="__CORR_SORT__")
         df_sku = df_sku[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"]]
-        df_sku = df_sku.sort_values(by=["CORR", "LATO", "X", "Y", "CODICE", "VAR", "COLORE"])
         
         st.download_button(
-            label="📥 Scarica SKUs",
+            label="📥 Scarica SKUs da togliere",
             data=genera_pdf(
                 df_sku,
                 font_size=10,
@@ -1599,7 +1605,7 @@ elif page == "Giacenze - Per corridoio":
                 text_align="CENTER",
                 valign="MIDDLE"
             ),
-            file_name="sku_filtrate.pdf",
+            file_name="sku_filtrate_vecchio.pdf",
             mime="application/pdf"
         )
         
