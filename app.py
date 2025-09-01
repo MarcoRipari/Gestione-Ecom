@@ -1494,7 +1494,7 @@ elif page == "Giacenze - Per corridoio":
 
         # --- FILTRO CON CHECKBOX SULLA COLONNA "X" ---
         st.subheader("Filtra valori colonna X")
-        valori_X = [str(i) for i in range(1, 11)]  # solo numeri da 1 a 10
+        valori_X = sorted(df["CORR_NUM"].unique())
     
         # Creazione checkbox in colonne per una UI più ordinata
         cols_X = st.columns(5)  # 5 colonne per allineamento
@@ -1509,7 +1509,7 @@ elif page == "Giacenze - Per corridoio":
     with col3:
         # Applico filtro
         df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
-        df = df[df["X"].isin([v for v, sel in selezione_X.items() if sel])]
+        df = df[df["CORR_NUM"].isin([v for v, sel in selezione_X.items() if sel])]
 
         # Calcolo riepilogo
         results = []
