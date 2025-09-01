@@ -1473,10 +1473,25 @@ elif page == "Giacenze - Per corridoio":
 
     # --- Mappatura marchi → categoria ---
     marchi_categoria = {
-        "NATURINO": "BAMBINO",
-        "FALCOTTO": "BAMBINO",
-        "VOILE BLANCHE": "ADULTO",
+        "NATURINO CLASSIC": "BAMBINO",
+        "NATURINO WILD LIFE": "BAMBINO",
+        "NATURINO ACTIVE": "BAMBINO",
+        "FLOWER M.BY NATURINO": "BAMBINO",
         "FLOWER MOUNTAIN": "ADULTO",
+        "VOILE BLANCHE": "ADULTO",
+        "NATURINO BAREFOOT": "BAMBINO",
+        "FALCOTTO ACTIVE": "BAMBINO",
+        "FALCOTTO CLASSIC": "BAMBINO",
+        "NATURINO EASY": "BAMBINO",
+        "NATURINO COCOON": "BAMBINO",
+        "FALCOTTO SNEAKERS": "BAMBINO",
+        "NATURINO SNEAKERS": "BAMBINO",
+        "W6YZ Adulto": "ADULTO",
+        "W6YZ Bimbo": "BAMBINO",
+        "NATURINO OUTDOOR": "BAMBINO",
+        "Candice Cooper": "ADULTO",
+        "NATURINO BABY": "BAMBINO",
+        "C N R": "ADULTO"
     }
 
     def trova_categoria(collezione):
@@ -1565,11 +1580,11 @@ elif page == "Giacenze - Per corridoio":
         if st.button("📥 PDF Vecchio - BAMBINO"):
             df_bambino = df_vecchio[df_vecchio["CATEGORIA"] == "BAMBINO"]
             pdf_df = (
-                df_bambino.groupby(["COD", "VAR", "COL", "DESC", "COR", "LAT", "X", "Y"], dropna=False)["Q"]
+                df_bambino.groupby(["CODICE", "VAR", "COLOLORE", "COLLEZIONE.1", "CORR", "LATo", "X", "Y"], dropna=False)["Q"]
                 .sum()
                 .reset_index()
             )
-            pdf_df = pdf_df.sort_values(["COR", "X", "Y", "LAT", "COD", "VAR", "COL"])
+            pdf_df = pdf_df.sort_values(["CORR", "X", "Y", "LATO", "CODICE", "VAR", "COLORE"])
             st.download_button(
                 label="📥 Scarica Tabella Bambino",
                 data=genera_pdf(pdf_df, font_size=9, header_align="CENTER", text_align="CENTER"),
@@ -1581,11 +1596,11 @@ elif page == "Giacenze - Per corridoio":
         if st.button("📥 PDF Vecchio - ADULTO"):
             df_adulto = df_vecchio[df_vecchio["CATEGORIA"] == "ADULTO"]
             pdf_df = (
-                df_adulto.groupby(["COD", "VAR", "COL", "DESC", "COR", "LAT", "X", "Y"], dropna=False)["Q"]
+                df_adulto.groupby(["CODICE", "VAR", "COLOLORE", "COLLEZIONE.1", "CORR", "LATo", "X", "Y"], dropna=False)["Q"]
                 .sum()
                 .reset_index()
             )
-            pdf_df = pdf_df.sort_values(["COR", "X", "Y", "LAT", "COD", "VAR", "COL"])
+            pdf_df = pdf_df.sort_values(["CORR", "X", "Y", "LATO", "CODICE", "VAR", "COLORE"])
             st.download_button(
                 label="📥 Scarica Tabella Adulto",
                 data=genera_pdf(pdf_df, font_size=9, header_align="CENTER", text_align="CENTER"),
