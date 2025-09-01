@@ -1626,163 +1626,96 @@ elif page == "Giacenze - Per corridoio":
 
         
 elif page == "Giacenze - Per corridoio/marchio":
-    # --- Header pagina ---
     st.header("Riepilogo per corridoio e marchio")
-    
+
     # --- Calcolo anno e stagione di default ---
     oggi = datetime.datetime.now()
-    anno_default = oggi.year
-    mese = oggi.month
-    stagione_default = 1 if mese in [1, 2, 11, 12] else 2
-    
+    anno_default, mese = oggi.year, oggi.month
+    stagione_default = 1 if mese in [1,2,11,12] else 2
+
     # --- Recupero worksheet ---
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    worksheet = get_sheet(sheet_id, "GIACENZE")  # oggetto worksheet
-    
-    # --- Leggo dati dal foglio ---
+    worksheet = get_sheet(sheet_id, "GIACENZE")
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])
     df = df.astype(str)
-    
-    # --- Conversioni e pulizie ---
+
+    # --- Conversioni numeriche e pulizie ---
     if "GIAC.UBIC" in df.columns:
         df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
-    df[["anno_stag", "stag_stag"]] = df["STAG"].str.split("/", expand=True)
+    df[["anno_stag","stag_stag"]] = df["STAG"].str.split("/", expand=True)
     df["anno_stag"] = pd.to_numeric(df["anno_stag"], errors="coerce").fillna(0).astype(int)
     df["stag_stag"] = pd.to_numeric(df["stag_stag"], errors="coerce").fillna(0).astype(int)
     df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")
-    df = df[df["CORR_NUM"].between(1, 14)]
-    df = df[df["Y"].isin(["1", "2", "3", "4"])]
-    
-    # --- Input utente ---
-    col1, col2, col3, col4, col5 = st.columns(5)
+    df = df[df["CORR_NUM"].between(1,14)]
+    df = df[df["Y"].isin(["1","2","3","4"])]
+
+    # --- Input filtri utente ---
+    col1, col2 = st.columns([2,3])
     with col1:
-        anno = st.number_input(
-            "Anno", min_value=2000, max_value=2100, value=anno_default, step=1
-        )
-        stagione = st.selectbox(
-            "Stagione", options=[1, 2], index=[1, 2].index(stagione_default)
-        )
-    
-    st.subheader("Filtra valori colonna Y")
-    valori_Y = sorted(df["Y"].unique())
-    cols = st.columns(4)
-    selezione_Y = {v: cols[i % 4].checkbox(v, value=True) for i, v in enumerate(valori_Y)}
-    
-    # --- Applico filtro ---
-    df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
-    
-    # --- Normalizzazione marchi equivalenti ---
+        anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default)
+        stagione = st.selectbox("Stagione", options=[1,2], index=[1,2].index(stagione_default))
+        st.subheader("Filtra valori colonna Y")
+        valori_Y = sorted(df["Y"].unique())
+        cols = st.columns(4)
+        selezione_Y = {v: cols[i%4].checkbox(v, value=True) for i,v in enumerate(valori_Y)}
+
+    # --- Applico filtro Y ---
+    df = df[df["Y"].isin([v for v,sel in selezione_Y.items() if sel])]
+
+    # --- Normalizzazione marchi ---
     marchi_mapping = {
-        "NATURINO CLASSIC": "NATURINO",
-        "NATURINO WILD LIFE": "NATURINO",
-        "NATURINO ACTIVE": "NATURINO",
-        "FLOWER M.BY NATURINO": "FLOWER M.BY NATURINO",
-        "FLOWER MOUNTAIN": "FLOWER MOUNTAIN",
-        "VOILE BLANCHE": "VOILE BLANCHE",
-        "NATURINO BAREFOOT": "NATURINO",
-        "FALCOTTO ACTIVE": "FALCOTTO",
-        "FALCOTTO CLASSIC": "FALCOTTO",
-        "NATURINO EASY": "NATURINO",
-        "NATURINO COCOON": "NATURINO",
-        "FALCOTTO SNEAKERS": "FALCOTTO",
-        "NATURINO SNEAKERS": "NATURINO",
-        "W6YZ Adulto": "W6YZ Adulto",
-        "W6YZ Bimbo": "W6YZ Bimbo",
-        "NATURINO OUTDOOR": "NATURINO",
-        "Candice Cooper": "Candice Cooper",
-        "NATURINO BABY": "NATURINO",
-        "C N R": "C N R"
+        "NATURINO CLASSIC":"NATURINO","NATURINO WILD LIFE":"NATURINO","NATURINO ACTIVE":"NATURINO",
+        "FLOWER M.BY NATURINO":"FLOWER M.BY NATURINO","FLOWER MOUNTAIN":"FLOWER MOUNTAIN","VOILE BLANCHE":"VOILE BLANCHE",
+        "NATURINO BAREFOOT":"NATURINO","FALCOTTO ACTIVE":"FALCOTTO","FALCOTTO CLASSIC":"FALCOTTO",
+        "NATURINO EASY":"NATURINO","NATURINO COCOON":"NATURINO","FALCOTTO SNEAKERS":"FALCOTTO",
+        "NATURINO SNEAKERS":"NATURINO","W6YZ Adulto":"W6YZ Adulto","W6YZ Bimbo":"W6YZ Bimbo",
+        "NATURINO OUTDOOR":"NATURINO","Candice Cooper":"Candice Cooper","NATURINO BABY":"NATURINO","C N R":"C N R"
     }
-    df["COLLEZIONE"] = df["COLLEZIONE"].str.strip()  # rimuove spazi
+    df["COLLEZIONE"] = df["COLLEZIONE"].str.strip()
     df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
-    
     marchi = sorted(df["MARCHIO_STD"].dropna().unique())
-    
-    # --- Costruisco dati per tabella piatta ---
-    table_data = []
-    for corr in sorted(df["CORR_NUM"].unique()):
-        row = {"CORR": corr}
-        corr_df = df[df["CORR_NUM"] == corr]
-    
-        for brand in marchi:
-            brand_df = corr_df[corr_df["MARCHIO_STD"] == brand]
-    
-            cond_vecchio = (brand_df["anno_stag"] < anno) | \
-                           ((brand_df["anno_stag"] == anno) & (brand_df["stag_stag"] < stagione))
-            cond_nuovo = ~cond_vecchio
-    
-            vecchio = brand_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
-            nuovo = brand_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
-    
-            row[f"{brand}_VECCHIO"] = vecchio
-            row[f"{brand}_NUOVO"] = nuovo
-    
-        table_data.append(row)
-        
-    df_table = pd.DataFrame(table_data)
-    
-    # --- Costruzione colonne AgGrid con colori alternati ---
-    column_defs = [
-        {"headerName": "CORR", "field": "CORR", "width": 60, "pinned": "left", "cellStyle": {"textAlign": "center"}}
-    ]
-    
+
+    # --- Pivot per tabella piatta ---
+    df_table = df.groupby(["CORR_NUM","MARCHIO_STD"]).apply(
+        lambda x: pd.Series({
+            "VECCHIO": x.loc[(x["anno_stag"]<anno)|((x["anno_stag"]==anno)&(x["stag_stag"]<stagione)), "GIAC.UBIC"].sum(),
+            "NUOVO": x.loc[(x["anno_stag"]>anno)|((x["anno_stag"]==anno)&(x["stag_stag"]>=stagione)), "GIAC.UBIC"].sum()
+        })
+    ).reset_index()
+    df_table = df_table.pivot(index="CORR_NUM", columns="MARCHIO_STD", values=["VECCHIO","NUOVO"])
+    df_table.columns = [f"{col[1]}_{col[0]}" for col in df_table.columns]
+    df_table = df_table.reset_index().rename(columns={"CORR_NUM":"CORR"})
+
+    # --- Costruzione AgGrid columnDefs con colori alternati ---
+    column_defs = [{"headerName":"CORR","field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"}}]
     for i, brand in enumerate(marchi):
-        vecchio_bg = "#FFF2CC"  # beige chiaro
-        nuovo_bg = "#D9E1F2"    # lavanda chiaro
         column_defs.append({
             "headerName": brand,
-            "children": [
-                {"headerName": "VECCHIO", "field": f"{brand}_VECCHIO", "width": 70,
-                 "cellStyle": {"textAlign": "center", "backgroundColor": vecchio_bg}},
-                {"headerName": "NUOVO", "field": f"{brand}_NUOVO", "width": 70,
-                 "cellStyle": {"textAlign": "center", "backgroundColor": nuovo_bg}}
+            "children":[
+                {"headerName":"VECCHIO","field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"}},
+                {"headerName":"NUOVO","field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"}}
             ]
         })
-    
+
     gridOptions = {
         "columnDefs": column_defs,
-        "defaultColDef": {
-            "resizable": False,
-            "sortable": False,
-            "filter": False,
-            "wrapText": False,
-            "autoHeight": True,
-            "lockPosition": True,
-            "cellStyle": {"textAlign": "center"},
-            "headerClass": "ag-center-header"
-        },
-        "domLayout": "normal",
-        "suppressHorizontalScroll": False
+        "defaultColDef":{"resizable":False,"sortable":False,"filter":False,"wrapText":False,"autoHeight":True,"lockPosition":True,"cellStyle":{"textAlign":"center"},"headerClass":"ag-center-header"},
+        "domLayout":"normal","suppressHorizontalScroll":False
     }
-    
-    # --- Visualizzazione tabella ---
-    st.markdown("""
-        <style>
-        .ag-header-cell-label {
-            justify-content: center !important;
-            text-align: center !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
+
     st.subheader("Tabella completa per corridoio e marchio")
-    AgGrid(
-        df_table,
-        gridOptions=gridOptions,
-        allow_unsafe_jscode=True,
-        height=445,
-        fit_columns_on_grid_load=True
-    )
-    
+    AgGrid(df_table, gridOptions=gridOptions, allow_unsafe_jscode=True, height=445, fit_columns_on_grid_load=True)
+
     # --- Bottone PDF ---
-    with col4:
+    with col2:
         st.download_button(
             label="📥 Scarica PDF",
             data=genera_pdf_aggrid(df_table),
-            file_name="giac_corridoio.pdf",
+            file_name="giac_corridoio_marchio.pdf",
             mime="application/pdf"
         )
+
     
 elif page == "Logout":
     logout()
