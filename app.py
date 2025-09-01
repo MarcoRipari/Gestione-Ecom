@@ -1491,12 +1491,19 @@ elif page == "Giacenze - Per corridoio":
             col = cols[i % 4]
             selezione_Y[val] = col.checkbox(val, value=True)
 
+        # --- FILTRO CON CHECKBOX SULLA COLONNA "X" ---
+        st.subheader("Filtra valori colonna X")
+        corr_values = sorted(df["CORR_NUM"].dropna().astype(int).unique())
+        cols_corr = st.columns(4)
+        selezione_corr = {c: cols_corr[i % 4].checkbox(str(c), value=True) for i, c in enumerate(corr_values)}
+
     with col2:
         st.write("")
 
     with col3:
         # Applico filtro
         df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
+        df = df[df["CORR_NUM"].isin([c for c, sel in selezione_corr.items() if sel])]
 
         # Calcolo riepilogo
         results = []
