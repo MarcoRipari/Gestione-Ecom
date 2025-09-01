@@ -1589,17 +1589,11 @@ elif page == "Giacenze - Per corridoio":
         )
         cols_export = ["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y", "SKU NO TGL"]
         df_sku = df.loc[mask_vecchio, cols_export].copy()
-        for c in ["CORR", "X", "Y", "LATO", "CODICE", "VAR", "COLORE"]:
-            if c in df_sku.columns:
-                df_sku[c] = df_sku[c].astype(str).str.strip()
         df_sku = df_sku.drop_duplicates(subset=["SKU NO TGL"])
-        df_sku["__CORR_SORT__"] = pd.to_numeric(df_sku["CORR"], errors="coerce").fillna(9999).astype(int)
-        df_sku["__X_SORT__"] = pd.to_numeric(df_sku["X"], errors="coerce").fillna(9999).astype(int)
-        df_sku["__Y_SORT__"] = pd.to_numeric(df_sku["Y"], errors="coerce").fillna(9999).astype(int)
+        df_sku["__CORR_SORT__"] = pd.to_numeric(df_sku["CORR"], errors="coerce").fillna(0)
         df_sku = df_sku.sort_values(
-            by=["__CORR_SORT__", "LATO", "__X_SORT__", "__Y_SORT__", "CODICE", "VAR", "COLORE"],
-            kind="mergesort"  # stabile nel caso serva mantenere un ordine precedente
-        )
+            by=["__CORR_SORT__", "X", "Y", "LATO", "CODICE", "VAR", "COLORE"]
+        ).drop(columns="__CORR_SORT__")
         df_sku = df_sku[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"]]
         
         st.download_button(
