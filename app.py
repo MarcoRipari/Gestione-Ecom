@@ -39,7 +39,6 @@ import re
 from st_aggrid import AgGrid, GridOptionsBuilder
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from reportlab.lib.pagesizes import landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
 logging.basicConfig(level=logging.INFO)
 
@@ -399,33 +398,50 @@ def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, 
 
     return token_est, cost_est, prompt
 def genera_pdf(df_disp, **param):
-    # Configuro i parametri
+    # --- Parametri configurabili ---
     font_size = param.get("font_size", 12)
     header_bg_color = param.get("header_bg_color", colors.grey)
     header_text_color = param.get("header_text_color", colors.whitesmoke)
     row_bg_color = param.get("row_bg_color", colors.beige)
-    header_align = param.get("header_align", "LEFT")
-    text_align = param.get("text_align", "LEFT")
-    margins = param.get("margins", (20, 20, 30, 20))  # left, right, top, bottom
+    header_align = param.get("header_align", "CENTER")
+    text_align = param.get("text_align", "CENTER")
     valign = param.get("valign", "MIDDLE")
-
-    # Calcolo altezza righe proporzionale al font
-    row_height_default = font_size * 2.2
+    margins = param.get("margins", (20, 20, 30, 20))  # (left, right, top, bottom)
+    row_height_factor = param.get("row_height_factor", 2.2)
+    repeat_header = param.get("repeat_header", True)
+    col_widths = param.get("col_widths", {})   # dict: {"COLONNA": width, ...}
+    align_map = param.get("align_map", {})     # dict: {"COLONNA": "LEFT"/"CENTER"/"RIGHT"}
+    
+    # --- Altezza righe ---
+    row_height_default = font_size * row_height_factor
     row_heights = [row_height_default] * (len(df_disp) + 1)  # +1 per header
-    
-    # Genera il PDF in memoria
+
+    # --- Documento ---
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=20)
-    styles = getSampleStyleSheet()
-    style_header = styles["Heading1"]
-    style_header.alignment = 1  # centrato
-    
-    # Prepara i dati per la tabella
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=margins[0],
+        rightMargin=margins[1],
+        topMargin=margins[2],
+        bottomMargin=margins[3],
+    )
+
+    # --- Dati tabella ---
     data = [list(df_disp.columns)] + df_disp.values.tolist()
-    table = Table(data, repeatRows=1, hAlign='CENTER', rowHeights=row_heights)
-    
-    # Stile della tabella
-    table.setStyle(TableStyle([
+    table = Table(
+        data, 
+        repeatRows=1 if repeat_header else 0, 
+        hAlign='CENTER', 
+        rowHeights=row_heights
+    )
+
+    # --- Larghezze colonne ---
+    if col_widths:
+        table._argW = [col_widths.get(col, 60) for col in df_disp.columns]
+
+    # --- Stile base ---
+    style = TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), header_bg_color),
         ("TEXTCOLOR", (0, 0), (-1, 0), header_text_color),
         ("ALIGN", (0, 0), (-1, 0), header_align),
@@ -438,8 +454,17 @@ def genera_pdf(df_disp, **param):
         ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
         ("TOPPADDING", (0,0), (-1,-1), 4),
         ("BOTTOMPADDING", (0,0), (-1,-1), 4),
-    ]))
-    
+    ])
+
+    # --- Allineamenti per colonna specifici ---
+    for col_name, align in align_map.items():
+        if col_name in df_disp.columns:
+            idx = df_disp.columns.get_loc(col_name)
+            style.add("ALIGN", (idx, 0), (idx, -1), align)
+
+    table.setStyle(style)
+
+    # --- Build PDF ---
     elements = [table]
     doc.build(elements)
     buffer.seek(0)
@@ -1595,7 +1620,18 @@ elif page == "Giacenze - Per corridoio":
             by=["__CORR_SORT__", "X", "Y", "LATO", "CODICE", "VAR", "COLORE"]
         ).drop(columns="__CORR_SORT__")
         df_sku = df_sku[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"]]
-        
+
+        larghezza_col={
+            "CODICE": 50,
+            "VAR": 40,
+            "COLORE": 90,
+            "COLLEZIONE.1": 140,
+            "CORR": 30,
+            "X": 25,
+            "Y": 25,
+            "LATO": 40
+        }
+        align_col={"COLLEZIONE.1": "LEFT"}
         st.download_button(
             label="📥 Scarica SKUs da togliere",
             data=genera_pdf(
@@ -1603,7 +1639,9 @@ elif page == "Giacenze - Per corridoio":
                 font_size=10,
                 header_align="CENTER",
                 text_align="CENTER",
-                valign="MIDDLE"
+                valign="MIDDLE",
+                col_widths=larghezza_col,
+                align_map=align_col
             ),
             file_name="sku_filtrate_vecchio.pdf",
             mime="application/pdf"
