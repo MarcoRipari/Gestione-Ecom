@@ -1534,7 +1534,7 @@ elif page == "Giacenze - Per corridoio":
         df_vecchio = df[cond_vecchio].copy()
 
         # Applica mappatura
-        df_vecchio["CATEGORIA"] = df_vecchio["MARCHIO"].map(marchi_categoria)
+        df_vecchio["CATEGORIA"] = df_vecchio["COLLEZIONE"].map(marchi_categoria)
 
         # Colonne finali richieste
         colonne_finali = ["COD", "VAR", "COL", "DESCRIZIONE", "COR", "LAT", "X", "Y", "Q"]
