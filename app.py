@@ -1582,20 +1582,40 @@ elif page == "Giacenze - Per corridoio":
 
         # --- Bottone Scarica SKU ---
         mask_vecchio = (df_filtrato["anno_stag"] < anno) | ((df_filtrato["anno_stag"] == anno) & (df_filtrato["stag_stag"] < stagione))
-        cols_export = ["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y", "SKU NO TGL"]
+        cols_export = ["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y", "SKU NO TGL", "GIAC.UBIC"]
         df_sku = df_filtrato.loc[mask_vecchio, cols_export].copy()
+        giac_per_sku = df_sku.groupby("SKU NO TGL")["GIAC.UBIC"].sum().reset_index()
+        giac_per_sku = giac_per_sku.rename(columns={"GIAC.UBIC": "GIACENZA"})
+        df_sku = df_sku.merge(giac_per_sku, on="SKU NO TGL", how="left")
         df_sku = df_sku.drop_duplicates(subset=["SKU NO TGL"])
         df_sku['CORR'] = pd.to_numeric(df_sku['CORR'], errors='coerce').fillna(0).astype(int)
         df_sku['X'] = pd.to_numeric(df_sku['X'], errors='coerce').fillna(0).astype(int)
         df_sku['Y'] = pd.to_numeric(df_sku['Y'], errors='coerce').fillna(0).astype(int)
         df_sku = df_sku.sort_values(by=["CORR","X","Y","LATO","CODICE","VAR","COLORE"])
-        df_sku = df_sku[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"]]
-        df_sku = df_sku.rename(columns={"CODICE":"COD","COLORE":"COL","COLLEZIONE.1":"DESCRIZIONE","CORR":"COR"})
-
-        larghezza_col = {"COD":50,"VAR":35,"COL":40,"DESCRIZIONE":300,"COR":35,"LATO":35,"X":25,"Y":25}
+        df_sku = df_sku[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y", "GIACENZA"]]
+        df_sku = df_sku.rename(columns={
+            "CODICE":"COD",
+            "COLORE":"COL",
+            "COLLEZIONE.1":"DESCRIZIONE",
+            "CORR":"COR",
+            "GIACENZA":"GIAC"
+        })
+        
+        # Definizione layout PDF
+        larghezza_col = {
+            "COD":50,
+            "VAR":35,
+            "COL":40,
+            "DESCRIZIONE":250,
+            "COR":35,
+            "LATO":35,
+            "X":25,
+            "Y":25,
+            "GIAC":25
+        }
         align_col = {"DESCRIZIONE":"LEFT"}
-        limiti_chars = {"DESCRIZIONE":45}
-
+        limiti_chars = {"DESCRIZIONE":35}
+        
         st.download_button(
             label="📥 Scarica SKUs da togliere",
             data=genera_pdf(df_sku, font_size=10, header_align="CENTER", text_align="CENTER", valign="MIDDLE",
