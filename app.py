@@ -1458,8 +1458,8 @@ elif page == "Giacenze - Per corridoio":
     df = df.astype(str)
     if "GIAC.UBIC" in df.columns:
         df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
-    if "Q" in df.columns:
-        df["Q"] = pd.to_numeric(df["Q"], errors="coerce").fillna(0)
+    if "GIAC.UBIC" in df.columns:
+        df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
 
     # Estrazione anno e stagione dalla colonna STAG (es. "2025/1")
     df[["anno_stag", "stag_stag"]] = df["STAG"].str.split("/", expand=True)
@@ -1580,7 +1580,7 @@ elif page == "Giacenze - Per corridoio":
         if st.button("📥 PDF Vecchio - BAMBINO"):
             df_bambino = df_vecchio[df_vecchio["CATEGORIA"] == "BAMBINO"]
             pdf_df = (
-                df_bambino.groupby(["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"], dropna=False)["Q"]
+                df_bambino.groupby(["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"], dropna=False)["GIAC.UBIC"]
                 .sum()
                 .reset_index()
             )
@@ -1596,7 +1596,7 @@ elif page == "Giacenze - Per corridoio":
         if st.button("📥 PDF Vecchio - ADULTO"):
             df_adulto = df_vecchio[df_vecchio["CATEGORIA"] == "ADULTO"]
             pdf_df = (
-                df_adulto.groupby(["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"], dropna=False)["Q"]
+                df_adulto.groupby(["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"], dropna=False)["GIAC.UBIC"]
                 .sum()
                 .reset_index()
             )
