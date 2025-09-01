@@ -1686,6 +1686,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     df_table = df_table.pivot(index="CORR_NUM", columns="MARCHIO_STD", values=["VECCHIO","NUOVO"])
     df_table.columns = [f"{col[1]}_{col[0]}" for col in df_table.columns]
     df_table = df_table.reset_index().rename(columns={"CORR_NUM":"CORR"})
+    df_table = df_table.fillna(0)
 
     # --- Costruzione AgGrid columnDefs con colori alternati ---
     column_defs = [{"headerName":"CORR","field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"}}]
