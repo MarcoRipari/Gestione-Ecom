@@ -410,7 +410,7 @@ def genera_pdf(df_disp, **param):
         for col, max_len in truncate_map.items():
             if col in df_proc.columns:
                 df_proc[col] = df_proc[col].astype(str).apply(
-                    lambda x: x if len(x) <= max_len else x[:max_len-3] + "..."
+                    lambda x: x if len(x) <= max_len else x[:max_len-3]
                 )
 
     # --- Altri parametri ---
