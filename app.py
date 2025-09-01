@@ -1439,137 +1439,103 @@ elif page == "Giacenze - Per corridoio":
     # Calcolo anno e stagione di default
     oggi = datetime.datetime.now()
     anno_default = oggi.year
-    
+
     mese = oggi.month
-    stagione_default = 1 if mese in [1, 2, 11, 12] else 2
-    
+    if mese in [1, 2, 11, 12]:
+        stagione_default = 1  # inverno/autunno
+    else:
+        stagione_default = 2  # primavera/estate
+
     # Recupero worksheet
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    worksheet = get_sheet(sheet_id, "GIACENZE")
-    
+    worksheet = get_sheet(sheet_id, "GIACENZE")  # oggetto worksheet
+
     # Leggo dati dal foglio
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])
-    df = df.astype(str)
 
-    # Conversioni
+    # Conversioni iniziali
+    df = df.astype(str)
     if "GIAC.UBIC" in df.columns:
         df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
+
+    # Estrazione anno e stagione dalla colonna STAG (es. "2025/1")
     df[["anno_stag", "stag_stag"]] = df["STAG"].str.split("/", expand=True)
     df["anno_stag"] = pd.to_numeric(df["anno_stag"], errors="coerce").fillna(0).astype(int)
     df["stag_stag"] = pd.to_numeric(df["stag_stag"], errors="coerce").fillna(0).astype(int)
-    df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")
+
+    # Filtro CORR e Y ai valori consentiti
+    df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")  # valori non numerici diventano NaN
     df = df[df["CORR_NUM"].between(1, 14)]
     df = df[df["Y"].isin(["1", "2", "3", "4"])]
 
-    # Mapping marchi
-    marchi_mapping = {
-        "NATURINO CLASSIC": "BAMBINO",
-        "NATURINO WILD LIFE": "BAMBINO",
-        "FLOWER MOUNTAIN": "ADULTO",
-        "VOILE BLANCHE": "ADULTO",
-    }
-    df["TIPO"] = df["COLLEZIONE"].map(marchi_mapping)
-
-    # --- Filtri utente ---
     col1, col2, col3, col4, col5 = st.columns(5)
+
     with col1:
-        anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default, step=1)
-        stagione = st.selectbox("Stagione", options=[1, 2], index=[1, 2].index(stagione_default))
-        
+        # Input utente
+        anno = st.number_input(
+            "Anno", min_value=2000, max_value=2100, value=anno_default, step=1
+        )
+        stagione = st.selectbox(
+            "Stagione", options=[1, 2], index=[1, 2].index(stagione_default)
+        )
+
+        # --- FILTRO CON CHECKBOX SULLA COLONNA "Y" ---
         st.subheader("Filtra valori colonna Y")
         valori_Y = sorted(df["Y"].unique())
-        cols = st.columns(4)
-        selezione_Y = {v: cols[i % 4].checkbox(v, value=True) for i, v in enumerate(valori_Y)}
+
+        # Creazione checkbox in colonne per una UI più ordinata
+        cols = st.columns(4)  # 4 colonne per allineamento
+        selezione_Y = {}
+        for i, val in enumerate(valori_Y):
+            col = cols[i % 4]
+            selezione_Y[val] = col.checkbox(val, value=True)
+
+    with col2:
+        st.write("")
 
     with col3:
+        # Applico filtro
         df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
-        
+
+        # Calcolo riepilogo
         results = []
         for corr_value in sorted(df["CORR_NUM"].unique()):
             corr_df = df[df["CORR_NUM"] == corr_value]
-            cond_vecchio = (corr_df["anno_stag"] < anno) | ((corr_df["anno_stag"] == anno) & (corr_df["stag_stag"] < stagione))
+
+            cond_vecchio = (corr_df["anno_stag"] < anno) | (
+                (corr_df["anno_stag"] == anno) & (corr_df["stag_stag"] < stagione)
+            )
             cond_nuovo = ~cond_vecchio
+
             vecchio = corr_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
             nuovo = corr_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
-            results.append({"CORR": corr_value, "VECCHIO": vecchio, "NUOVO": nuovo})
-        
+
+            results.append({
+                "CORR": corr_value,
+                "VECCHIO": vecchio,
+                "NUOVO": nuovo
+            })
+
+        # Output tabella con st.table (altezza automatica)
         result_df = pd.DataFrame(results)
         result_df["CORR"] = result_df["CORR"].astype(int)
         st.table(result_df.reset_index(drop=True))
 
     with col4:
         st.download_button(
-            label="📥 Scarica PDF Riepilogo",
-            data=genera_pdf(result_df, font_size=12, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
+            label="📥 Scarica PDF",
+            data=genera_pdf(
+                result_df,
+                font_size=12,
+                header_align="CENTER",
+                text_align="CENTER",
+                valign="MIDDLE"
+            ),
             file_name="giac_corridoio.pdf",
             mime="application/pdf"
         )
 
-        # --- BOTTONI SKU ---
-        def genera_pdf_sku(df_sku, titolo):
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib import colors
-            from reportlab.lib.styles import getSampleStyleSheet
-            import io
-
-            buffer = io.BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=A4)
-            elements = []
-            styles = getSampleStyleSheet()
-            elements.append(Paragraph(titolo, styles["Heading1"]))
-            elements.append(Spacer(1, 12))
-
-            # intestazioni tabella
-            data_tab = [["COD", "VAR", "COL", "DESCRIZIONE", "COR", "LAT", "X", "Y", "Q"]]
-            for _, row in df_sku.iterrows():
-                data_tab.append([
-                    row.get("COD", ""),
-                    row.get("VAR", ""),
-                    row.get("COL", ""),
-                    row.get("DESCRIZIONE", ""),
-                    row.get("CORR", ""),
-                    row.get("LAT", ""),
-                    row.get("X", ""),
-                    row.get("Y", ""),
-                    row.get("Q", 0),
-                ])
-
-            table = Table(data_tab, repeatRows=1)
-            table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]))
-            elements.append(table)
-
-            doc.build(elements)
-            buffer.seek(0)
-            return buffer.getvalue()
-
-        bambino_df = df[df["TIPO"] == "BAMBINO"][["COD", "VAR", "COL", "DESCRIZIONE", "CORR", "LAT", "X", "Y", "Q"]].copy()
-        bambino_df["Q"] = pd.to_numeric(bambino_df["Q"], errors="coerce").fillna(0)
-        bambino_df = bambino_df.groupby(["COD", "VAR", "COL", "DESCRIZIONE", "CORR", "LAT", "X", "Y"], as_index=False)["Q"].sum()
-
-        adulto_df = df[df["TIPO"] == "ADULTO"][["COD", "VAR", "COL", "DESCRIZIONE", "CORR", "LAT", "X", "Y", "Q"]].copy()
-        adulto_df["Q"] = pd.to_numeric(adulto_df["Q"], errors="coerce").fillna(0)
-        adulto_df = adulto_df.groupby(["COD", "VAR", "COL", "DESCRIZIONE", "CORR", "LAT", "X", "Y"], as_index=False)["Q"].sum()
-
-        st.download_button(
-            label="👶 Bambino da togliere",
-            data=genera_pdf_sku(bambino_df, "Bambino da togliere"),
-            file_name="bambino_da_togliere.pdf",
-            mime="application/pdf"
-        )
-
-        st.download_button(
-            label="🧑 Adulto da togliere",
-            data=genera_pdf_sku(adulto_df, "Adulto da togliere"),
-            file_name="adulto_da_togliere.pdf",
-            mime="application/pdf"
-        )
 
 elif page == "Giacenze - Per corridoio/marchio":
     # --- Header pagina ---
