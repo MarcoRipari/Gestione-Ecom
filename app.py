@@ -492,7 +492,7 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
 
     data = [header_row1, header_row2]
     for _, row in df_table.iterrows():
-        row_data = [row.get("CORR", "")]
+        row_data = [int(row.get("CORR", ""))]
         for brand in brands:
             row_data.append(int(row.get(f"{brand}_VECCHIO", 0)))
             row_data.append(int(row.get(f"{brand}_NUOVO", 0)))
