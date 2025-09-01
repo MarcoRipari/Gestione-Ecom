@@ -1639,8 +1639,6 @@ elif page == "Giacenze - Per corridoio/marchio":
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])
     df = df.astype(str)
-    flower_count = df[df["COLLEZIONE"] == "FLOWER M.BY NATURINO"].shape[0]
-    st.write(f"Righe con FLOWER M.BY NATURINO: {flower_count}")
 
     # --- Conversioni numeriche e pulizie ---
     if "GIAC.UBIC" in df.columns:
@@ -1657,13 +1655,24 @@ elif page == "Giacenze - Per corridoio/marchio":
     with col1:
         anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default)
         stagione = st.selectbox("Stagione", options=[1,2], index=[1,2].index(stagione_default))
+    
+        # --- Filtro Y ---
         st.subheader("Filtra valori colonna Y")
         valori_Y = sorted(df["Y"].unique())
         cols = st.columns(4)
         selezione_Y = {v: cols[i%4].checkbox(v, value=True) for i,v in enumerate(valori_Y)}
-
+    
+        # --- Filtro BRAND ---
+        st.subheader("Filtra per BRAND")
+        marchi = sorted(df["MARCHIO_STD"].dropna().unique())
+        cols_brand = st.columns(4)
+        selezione_brand = {b: cols_brand[i%4].checkbox(b, value=True) for i,b in enumerate(marchi)}
+    
     # --- Applico filtro Y ---
     df = df[df["Y"].isin([v for v,sel in selezione_Y.items() if sel])]
+    
+    # --- Applico filtro BRAND ---
+    df = df[df["MARCHIO_STD"].isin([b for b,sel in selezione_brand.items() if sel])]
 
     # --- Normalizzazione marchi ---
     marchi_mapping = {
@@ -1710,8 +1719,6 @@ elif page == "Giacenze - Per corridoio/marchio":
     st.subheader("Tabella completa per corridoio e marchio")
     AgGrid(df_table, gridOptions=gridOptions, allow_unsafe_jscode=True, height=445, fit_columns_on_grid_load=True)
 
-    flower_count = df[df["MARCHIO_STD"] == "FLOWER M.BY NATURINO"].shape[0]
-    st.write(f"Righe con FLOWER M.BY NATURINO: {flower_count}")
     # --- Bottone PDF ---
     with col2:
         st.download_button(
