@@ -1505,8 +1505,10 @@ elif page == "Giacenze - Per corridoio":
             selezione_Y[val] = col.checkbox(f"{val}", value=True)
 
         # --- FILTRO CHECKBOX COLONNA X ---
-        st.subheader("Filtra valori colonna X")
-        valori_X = sorted(df["X"].unique())
+        df["X_NUM"] = pd.to_numeric(df["X"], errors="coerce")
+        valori_X = sorted(df["X_NUM"].dropna().unique())
+        valori_X = [int(v) for v in valori_X if 1 <= v <= 14]
+        
         cols_X = st.columns(10)
         selezione_X = {}
         for i, val in enumerate(valori_X):
@@ -1516,7 +1518,7 @@ elif page == "Giacenze - Per corridoio":
     with col3:
         # Applico filtro Y e X
         df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
-        df = df[df["X"].isin([v for v, sel in selezione_X.items() if sel])]
+        df = df[df["X_NUM"].isin([v for v, sel in selezione_X.items() if sel])]
 
         # Calcolo riepilogo corridoi
         results = []
