@@ -1489,7 +1489,7 @@ elif page == "Giacenze - Per corridoio":
         selezione_Y = {}
         for i, val in enumerate(valori_Y):
             col = cols[i % 4]
-            selezione_Y[val] = col.checkbox(val, value=True, key=f"y_{val}")
+            selezione_Y[val] = col.checkbox(val, value=True)
 
 
         # --- FILTRO CON CHECKBOX SULLA COLONNA "X" ---
