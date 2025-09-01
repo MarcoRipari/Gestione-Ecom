@@ -1623,13 +1623,13 @@ elif page == "Giacenze - Per corridoio":
 
         larghezza_col={
             "CODICE": 50,
-            "VAR": 40,
-            "COLORE": 90,
-            "COLLEZIONE.1": 140,
-            "CORR": 30,
+            "VAR": 35,
+            "COLORE": 50,
+            "COLLEZIONE.1": 200,
+            "CORR": 35,
+            "LATO": 35,
             "X": 25,
-            "Y": 25,
-            "LATO": 40
+            "Y": 25
         }
         align_col={"COLLEZIONE.1": "LEFT"}
         st.download_button(
