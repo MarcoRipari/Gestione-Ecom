@@ -1584,13 +1584,19 @@ elif page == "Giacenze - Per corridoio":
         )
         
         # --- Bottone Scarica SKU ---
+        df_sku = df[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"]].copy()
+        df_sku = df_sku.sort_values(by=["CORR", "LATO", "X", "Y", "CODICE", "VAR", "COLORE"])
         st.download_button(
-            label="📥 Scarica SKU",
-            data=df[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"]]
-                 .sort_values(by=["CORR", "LATO", "X", "Y", "CODICE", "VAR", "COLORE"])
-                 .to_csv(index=False, sep=";", encoding="utf-8"),
-            file_name="sku_filtrate.csv",
-            mime="text/csv"
+            label="📥 Scarica SKU (PDF)",
+            data=genera_pdf(
+                df_sku,
+                font_size=10,
+                header_align="CENTER",
+                text_align="CENTER",
+                valign="MIDDLE"
+            ),
+            file_name="sku_filtrate.pdf",
+            mime="application/pdf"
         )
         
 elif page == "Giacenze - Per corridoio/marchio":
