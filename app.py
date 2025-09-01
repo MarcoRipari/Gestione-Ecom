@@ -1502,17 +1502,16 @@ elif page == "Giacenze - Per corridoio":
         selezione_Y = {}
         for i, val in enumerate(valori_Y):
             col = cols[i % 4]
-            selezione_Y[val] = col.checkbox(f"Y={val}", value=True)
+            selezione_Y[val] = col.checkbox(f"{val}", value=True)
 
         # --- FILTRO CHECKBOX COLONNA X ---
         st.subheader("Filtra valori colonna X")
         valori_X = sorted(df["X"].unique())
-        valori_X = [x for x in valori_X if x.isdigit() and 1 <= int(x) <= 14]
-        cols_X = st.columns(7)
+        cols_X = st.columns(10)
         selezione_X = {}
         for i, val in enumerate(valori_X):
-            col = cols_X[i % 7]
-            selezione_X[val] = col.checkbox(f"X={val}", value=True)
+            col = cols_X[i % 10]
+            selezione_X[val] = col.checkbox(f"{val}", value=True)
 
     with col3:
         # Applico filtro Y e X
@@ -1541,7 +1540,7 @@ elif page == "Giacenze - Per corridoio":
     with col4:
         # --- Pulsante PDF riepilogo corridoi ---
         st.download_button(
-            label="📥 Scarica PDF Corridoi",
+            label="📥 Scarica PDF",
             data=genera_pdf(result_df, font_size=12, header_align="CENTER", text_align="CENTER", valign="MIDDLE"),
             file_name="giac_corridoio.pdf",
             mime="application/pdf"
