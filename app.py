@@ -397,8 +397,23 @@ def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, 
         st.markdown(f"💸 **Costo stimato per riga**: ${cost_est:.6f}")
 
     return token_est, cost_est, prompt
+    
 def genera_pdf(df_disp, **param):
-    # --- Parametri configurabili ---
+    # --- Parametri ---
+    truncate_map = param.get("truncate_map", None)  # se None = niente troncamento
+
+    # --- Copia DF per non modificare l'originale ---
+    df_proc = df_disp.copy()
+
+    # --- Applico troncamento solo se truncate_map è definito ---
+    if truncate_map:
+        for col, max_len in truncate_map.items():
+            if col in df_proc.columns:
+                df_proc[col] = df_proc[col].astype(str).apply(
+                    lambda x: x if len(x) <= max_len else x[:max_len-3] + "..."
+                )
+
+    # --- Altri parametri ---
     font_size = param.get("font_size", 12)
     header_bg_color = param.get("header_bg_color", colors.grey)
     header_text_color = param.get("header_text_color", colors.whitesmoke)
@@ -406,17 +421,16 @@ def genera_pdf(df_disp, **param):
     header_align = param.get("header_align", "CENTER")
     text_align = param.get("text_align", "CENTER")
     valign = param.get("valign", "MIDDLE")
-    margins = param.get("margins", (20, 20, 30, 20))  # (left, right, top, bottom)
+    margins = param.get("margins", (20, 20, 30, 20))
     row_height_factor = param.get("row_height_factor", 2.2)
     repeat_header = param.get("repeat_header", True)
-    col_widths = param.get("col_widths", {})   # dict: {"COLONNA": width, ...}
-    align_map = param.get("align_map", {})     # dict: {"COLONNA": "LEFT"/"CENTER"/"RIGHT"}
-    
-    # --- Altezza righe ---
-    row_height_default = font_size * row_height_factor
-    row_heights = [row_height_default] * (len(df_disp) + 1)  # +1 per header
+    col_widths = param.get("col_widths", {})
+    align_map = param.get("align_map", {})
 
-    # --- Documento ---
+    row_height_default = font_size * row_height_factor
+    row_heights = [row_height_default] * (len(df_proc) + 1)
+
+    # --- PDF ---
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -427,20 +441,17 @@ def genera_pdf(df_disp, **param):
         bottomMargin=margins[3],
     )
 
-    # --- Dati tabella ---
-    data = [list(df_disp.columns)] + df_disp.values.tolist()
+    data = [list(df_proc.columns)] + df_proc.values.tolist()
     table = Table(
-        data, 
-        repeatRows=1 if repeat_header else 0, 
-        hAlign='CENTER', 
+        data,
+        repeatRows=1 if repeat_header else 0,
+        hAlign='CENTER',
         rowHeights=row_heights
     )
 
-    # --- Larghezze colonne ---
     if col_widths:
-        table._argW = [col_widths.get(col, 60) for col in df_disp.columns]
+        table._argW = [col_widths.get(col, 60) for col in df_proc.columns]
 
-    # --- Stile base ---
     style = TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), header_bg_color),
         ("TEXTCOLOR", (0, 0), (-1, 0), header_text_color),
@@ -456,15 +467,13 @@ def genera_pdf(df_disp, **param):
         ("BOTTOMPADDING", (0,0), (-1,-1), 4),
     ])
 
-    # --- Allineamenti per colonna specifici ---
     for col_name, align in align_map.items():
-        if col_name in df_disp.columns:
-            idx = df_disp.columns.get_loc(col_name)
+        if col_name in df_proc.columns:
+            idx = df_proc.columns.get_loc(col_name)
             style.add("ALIGN", (idx, 0), (idx, -1), align)
 
     table.setStyle(style)
 
-    # --- Build PDF ---
     elements = [table]
     doc.build(elements)
     buffer.seek(0)
@@ -1632,6 +1641,7 @@ elif page == "Giacenze - Per corridoio":
             "Y": 25
         }
         align_col={"COLLEZIONE.1": "LEFT"}
+        limiti_chars={"COLLEZIONE.1": 40}
         st.download_button(
             label="📥 Scarica SKUs da togliere",
             data=genera_pdf(
@@ -1641,7 +1651,8 @@ elif page == "Giacenze - Per corridoio":
                 text_align="CENTER",
                 valign="MIDDLE",
                 col_widths=larghezza_col,
-                align_map=align_col
+                align_map=align_col,
+                truncate_map=limiti_chars
             ),
             file_name="sku_filtrate_vecchio.pdf",
             mime="application/pdf"
