@@ -1628,7 +1628,7 @@ elif page == "Giacenze - Per corridoio":
         df_sku['CORR'] = pd.to_numeric(df_sku['CORR'], errors='coerce').fillna(0).astype(int)
         df_sku['X'] = pd.to_numeric(df_sku['X'], errors='coerce').fillna(0).astype(int)
         df_sku['Y'] = pd.to_numeric(df_sku['Y'], errors='coerce').fillna(0).astype(int)
-        df_sku = df_sku.sort("CORR","X","Y","LATO","CODICE","VAR","COLORE"]
+        df_sku = df_sku.sort("CORR","X","Y","LATO","CODICE","VAR","COLORE"])
         #df_sku = df_sku.sort_values(
         #    by=["__CORR_SORT__", "X", "Y", "LATO", "CODICE", "VAR", "COLORE"]
         #).drop(columns="__CORR_SORT__")
