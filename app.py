@@ -1611,7 +1611,7 @@ elif page == "Giacenze - Per corridoio":
             "LATO":35,
             "X":25,
             "Y":25,
-            "GIAC":25
+            "GIAC":30
         }
         align_col = {"DESCRIZIONE":"LEFT"}
         limiti_chars = {"DESCRIZIONE":35}
