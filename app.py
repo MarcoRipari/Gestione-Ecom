@@ -1583,6 +1583,16 @@ elif page == "Giacenze - Per corridoio":
             mime="application/pdf"
         )
         
+        # --- Bottone Scarica SKU ---
+        st.download_button(
+            label="📥 Scarica SKU",
+            data=df[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"]]
+                 .sort_values(by=["CORR", "LATO", "X", "Y", "CODICE", "VAR", "COLORE"])
+                 .to_csv(index=False, sep=";", encoding="utf-8"),
+            file_name="sku_filtrate.csv",
+            mime="text/csv"
+        )
+        
 elif page == "Giacenze - Per corridoio/marchio":
     # --- Header pagina ---
     st.header("Riepilogo per corridoio e marchio")
