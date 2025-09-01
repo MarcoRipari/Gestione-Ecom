@@ -1641,7 +1641,7 @@ elif page == "Giacenze - Per corridoio":
             "Y": 25
         }
         align_col={"COLLEZIONE.1": "LEFT"}
-        limiti_chars={"COLLEZIONE.1": 50}
+        limiti_chars={"COLLEZIONE.1": 45}
         st.download_button(
             label="📥 Scarica SKUs da togliere",
             data=genera_pdf(
