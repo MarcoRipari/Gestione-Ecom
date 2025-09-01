@@ -1634,7 +1634,7 @@ elif page == "Giacenze - Per corridoio":
             "CODICE": 50,
             "VAR": 35,
             "COLORE": 50,
-            "COLLEZIONE.1": 200,
+            "COLLEZIONE.1": 350,
             "CORR": 35,
             "LATO": 35,
             "X": 25,
