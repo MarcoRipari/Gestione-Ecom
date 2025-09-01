@@ -1459,6 +1459,32 @@ elif page == "Giacenze - Per corridoio":
     if "GIAC.UBIC" in df.columns:
         df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
 
+    # --- Mappatura categoria adulto/bambino ---
+    marchi_categoria = { 
+        "NATURINO CLASSIC": "BAMBINO",
+        "NATURINO WILD LIFE": "BAMBINO",
+        "NATURINO ACTIVE": "BAMBINO",
+        "FLOWER M.BY NATURINO": "BAMBINO",
+        "FLOWER MOUNTAIN": "ADULTO",
+        "VOILE BLANCHE": "ADULTO",
+        "NATURINO BAREFOOT": "BAMBINO",
+        "FALCOTTO ACTIVE": "BAMBINO",
+        "FALCOTTO CLASSIC": "BAMBINO",
+        "NATURINO EASY": "BAMBINO",
+        "NATURINO COCOON": "BAMBINO",
+        "FALCOTTO SNEAKERS": "BAMBINO",
+        "NATURINO SNEAKERS": "BAMBINO",
+        "W6YZ Adulto": "ADULTO",
+        "W6YZ Bimbo": "BAMBINO",
+        "NATURINO OUTDOOR": "BAMBINO",
+        "Candice Cooper": "ADULTO",
+        "NATURINO BABY": "BAMBINO",
+        "C N R": "ADULTO" 
+    }
+    
+    # --- Creazione colonna categoria ---
+    df["CATEGORIA"] = df["COLLEZIONE"].map(marchi_categoria)
+
     # Estrazione anno e stagione dalla colonna STAG (es. "2025/1")
     df[["anno_stag", "stag_stag"]] = df["STAG"].str.split("/", expand=True)
     df["anno_stag"] = pd.to_numeric(df["anno_stag"], errors="coerce").fillna(0).astype(int)
@@ -1504,6 +1530,12 @@ elif page == "Giacenze - Per corridoio":
             for i, c in enumerate(corr_values)
         }
 
+        # --- Checkbox filtro categoria ---
+        st.subheader("Filtra per Categoria")
+        cols_cat = st.columns(2)
+        categorie = ["ADULTO", "BAMBINO"]
+        selezione_cat = {cat: cols_cat[i % 2].checkbox(cat, value=True, key=f"checkbox_cat_{cat}") for i, cat in enumerate(categorie)}
+
     with col2:
         st.write("")
 
@@ -1511,7 +1543,8 @@ elif page == "Giacenze - Per corridoio":
         # Applico filtro
         df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
         df = df[df["CORR_NUM"].isin([c for c, sel in selezione_corr.items() if sel])]
-
+        df = df[df["CATEGORIA"].isin([c for c, sel in selezione_cat.items() if sel])]
+        
         # Calcolo riepilogo
         results = []
         for corr_value in sorted(df["CORR_NUM"].unique()):
