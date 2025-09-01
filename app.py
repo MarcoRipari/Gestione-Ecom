@@ -1662,17 +1662,8 @@ elif page == "Giacenze - Per corridoio/marchio":
         cols = st.columns(4)
         selezione_Y = {v: cols[i%4].checkbox(v, value=True) for i,v in enumerate(valori_Y)}
     
-        # --- Filtro BRAND ---
-        st.subheader("Filtra per BRAND")
-        marchi = sorted(df["MARCHIO_STD"].dropna().unique())
-        cols_brand = st.columns(4)
-        selezione_brand = {b: cols_brand[i%4].checkbox(b, value=True) for i,b in enumerate(marchi)}
-    
     # --- Applico filtro Y ---
     df = df[df["Y"].isin([v for v,sel in selezione_Y.items() if sel])]
-    
-    # --- Applico filtro BRAND ---
-    df = df[df["MARCHIO_STD"].isin([b for b,sel in selezione_brand.items() if sel])]
 
     # --- Normalizzazione marchi ---
     marchi_mapping = {
