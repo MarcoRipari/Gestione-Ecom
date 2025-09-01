@@ -1639,6 +1639,8 @@ elif page == "Giacenze - Per corridoio/marchio":
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])
     df = df.astype(str)
+    flower_count = df[df["COLLEZIONE"] == "FLOWER M.BY NATURINO"].shape[0]
+    st.write(f"Righe con FLOWER M.BY NATURINO: {flower_count}")
 
     # --- Conversioni numeriche e pulizie ---
     if "GIAC.UBIC" in df.columns:
@@ -1708,6 +1710,8 @@ elif page == "Giacenze - Per corridoio/marchio":
     st.subheader("Tabella completa per corridoio e marchio")
     AgGrid(df_table, gridOptions=gridOptions, allow_unsafe_jscode=True, height=445, fit_columns_on_grid_load=True)
 
+    flower_count = df[df["MARCHIO_STD"] == "FLOWER M.BY NATURINO"].shape[0]
+    st.write(f"Righe con FLOWER M.BY NATURINO: {flower_count}")
     # --- Bottone PDF ---
     with col2:
         st.download_button(
