@@ -616,7 +616,7 @@ with st.sidebar:
         if main_page == "Foto":
             sub_page = st.radio(
                 "Seleziona sottosezione Foto",
-                ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "📥 Importa giacenze", "🫳🏻 Aggiungi prelevate"],
+                ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "🫳🏻 Aggiungi prelevate"],
                 label_visibility="collapsed"
             )
             page = f"{main_page} - {sub_page.split(' ', 1)[1]}"
@@ -624,7 +624,7 @@ with st.sidebar:
         elif main_page == "Giacenze":
             sub_page = st.radio(
                 "Seleziona sottosezione Foto",
-                ["1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio"],
+                ["📥 Importa giacenze", "1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio"],
                 label_visibility="collapsed"
             )
             page = f"{main_page} - {sub_page.split(' ', 1)[1]}"
@@ -1323,7 +1323,46 @@ elif page == "Foto - Storico":
                             st.warning(f"⚠️ Errore immagine: {info['name']}")
         except Exception as e:
             st.error(f"Errore: {str(e)}")
-elif page == "Foto - Importa giacenze":
+
+elif page == "Foto - Aggiungi prelevate":
+    st.header("Aggiungi prelevate")
+    st.markdown("Aggiungi la lista delle paia prelevate")
+    
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "PRELEVATE")
+    
+    text_input = st.text_area("Lista paia prelevate", height=400, width=800)
+    
+    if text_input:
+        # Regex per SKU: 7 numeri, spazio, 2 numeri, spazio, 4 caratteri alfanumerici
+        pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
+        skus_raw = re.findall(pattern, text_input)
+    
+        # Rimuovi spazi interni e converti in stringa (senza apostrofo per confronto)
+        skus_clean = [str(sku.replace(" ", "")) for sku in skus_raw]
+    
+        st.subheader(f"SKU trovate: {len(skus_clean)}")
+    
+        if st.button("Carica su GSheet"):
+            # Leggi SKU già presenti nel foglio
+            existing_skus = sheet.col_values(1)
+            # Rimuovi eventuali apostrofi e converti in str per confronto
+            existing_skus_clean = [str(sku).lstrip("'") for sku in existing_skus]
+    
+            # Filtra SKU nuove
+            skus_to_append_clean = [sku for sku in skus_clean if sku not in existing_skus_clean]
+    
+            if skus_to_append_clean:
+                # Aggiungi apostrofo solo al momento dell'append per forzare formato testo
+                rows_to_append = [[f"'{sku}"] for sku in skus_to_append_clean]
+    
+                # Append a partire dall'ultima riga disponibile
+                sheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
+                st.success(f"✅ {len(skus_to_append_clean)} nuove SKU aggiunte al foglio PRELEVATE!")
+            else:
+                st.info("⚠️ Tutte le SKU inserite sono già presenti nel foglio.")
+
+elif page == "Giacenze - Importa giacenze":
     st.header("Importa giacenze")
     st.markdown("Importa le giacenze da file CSV.")
     
@@ -1393,45 +1432,7 @@ elif page == "Foto - Importa giacenze":
             format_cell_ranges(sheet, ranges_to_format)
     
             st.success("✅ Giacenze importate con successo!")
-
-elif page == "Foto - Aggiungi prelevate":
-    st.header("Aggiungi prelevate")
-    st.markdown("Aggiungi la lista delle paia prelevate")
-    
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "PRELEVATE")
-    
-    text_input = st.text_area("Lista paia prelevate", height=400, width=800)
-    
-    if text_input:
-        # Regex per SKU: 7 numeri, spazio, 2 numeri, spazio, 4 caratteri alfanumerici
-        pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
-        skus_raw = re.findall(pattern, text_input)
-    
-        # Rimuovi spazi interni e converti in stringa (senza apostrofo per confronto)
-        skus_clean = [str(sku.replace(" ", "")) for sku in skus_raw]
-    
-        st.subheader(f"SKU trovate: {len(skus_clean)}")
-    
-        if st.button("Carica su GSheet"):
-            # Leggi SKU già presenti nel foglio
-            existing_skus = sheet.col_values(1)
-            # Rimuovi eventuali apostrofi e converti in str per confronto
-            existing_skus_clean = [str(sku).lstrip("'") for sku in existing_skus]
-    
-            # Filtra SKU nuove
-            skus_to_append_clean = [sku for sku in skus_clean if sku not in existing_skus_clean]
-    
-            if skus_to_append_clean:
-                # Aggiungi apostrofo solo al momento dell'append per forzare formato testo
-                rows_to_append = [[f"'{sku}"] for sku in skus_to_append_clean]
-    
-                # Append a partire dall'ultima riga disponibile
-                sheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
-                st.success(f"✅ {len(skus_to_append_clean)} nuove SKU aggiunte al foglio PRELEVATE!")
-            else:
-                st.info("⚠️ Tutte le SKU inserite sono già presenti nel foglio.")
-
+            
 elif page == "Giacenze - Per corridoio":
     st.header("Riepilogo per corridoio")
 
