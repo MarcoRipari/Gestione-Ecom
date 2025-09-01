@@ -1634,7 +1634,7 @@ elif page == "Giacenze - Per corridoio":
         larghezza_col={
             "COD": 50,
             "VAR": 35,
-            "COL": 50,
+            "COL": 40,
             "DESCRIZIONE": 300,
             "COR": 35,
             "LATO": 35,
