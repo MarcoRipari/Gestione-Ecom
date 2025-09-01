@@ -1629,19 +1629,20 @@ elif page == "Giacenze - Per corridoio":
             by=["__CORR_SORT__", "X", "Y", "LATO", "CODICE", "VAR", "COLORE"]
         ).drop(columns="__CORR_SORT__")
         df_sku = df_sku[["CODICE", "VAR", "COLORE", "COLLEZIONE.1", "CORR", "LATO", "X", "Y"]]
+        df_sku = df_sku.rename(columns={"CODICE":"COD","COLORE":"COL","COLLEZIONE.1":"DESCRIZIONE","CORR":"COR"})
 
         larghezza_col={
-            "CODICE": 50,
+            "COD": 50,
             "VAR": 35,
-            "COLORE": 50,
-            "COLLEZIONE.1": 300,
-            "CORR": 35,
+            "COL": 50,
+            "DESCRIZIONE": 300,
+            "COR": 35,
             "LATO": 35,
             "X": 25,
             "Y": 25
         }
-        align_col={"COLLEZIONE.1": "LEFT"}
-        limiti_chars={"COLLEZIONE.1": 45}
+        align_col={"DESCRIZIONE": "LEFT"}
+        limiti_chars={"DESCRIZIONE": 45}
         st.download_button(
             label="📥 Scarica SKUs da togliere",
             data=genera_pdf(
