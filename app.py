@@ -1565,7 +1565,7 @@ elif page == "Giacenze - Per corridoio":
         if st.button("📥 PDF Vecchio - BAMBINO"):
             df_bambino = df_vecchio[df_vecchio["CATEGORIA"] == "BAMBINO"]
             pdf_df = (
-                df_bambino.groupby(["COD", "VAR", "COL", "DESCRIZIONE", "COR", "LAT", "X", "Y"], dropna=False)["Q"]
+                df_bambino.groupby(["COD", "VAR", "COL", "DESC", "COR", "LAT", "X", "Y"], dropna=False)["Q"]
                 .sum()
                 .reset_index()
             )
@@ -1581,7 +1581,7 @@ elif page == "Giacenze - Per corridoio":
         if st.button("📥 PDF Vecchio - ADULTO"):
             df_adulto = df_vecchio[df_vecchio["CATEGORIA"] == "ADULTO"]
             pdf_df = (
-                df_adulto.groupby(["COD", "VAR", "COL", "DESCRIZIONE", "COR", "LAT", "X", "Y"], dropna=False)["Q"]
+                df_adulto.groupby(["COD", "VAR", "COL", "DESC", "COR", "LAT", "X", "Y"], dropna=False)["Q"]
                 .sum()
                 .reset_index()
             )
