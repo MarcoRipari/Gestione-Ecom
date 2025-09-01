@@ -1436,56 +1436,44 @@ elif page == "Giacenze - Importa giacenze":
 elif page == "Giacenze - Per corridoio":
     st.header("Riepilogo per corridoio")
 
-    # Calcolo anno e stagione di default
+    # --- Calcolo anno e stagione di default
     oggi = datetime.datetime.now()
     anno_default = oggi.year
-
     mese = oggi.month
-    if mese in [1, 2, 11, 12]:
-        stagione_default = 1  # inverno/autunno
-    else:
-        stagione_default = 2  # primavera/estate
+    stagione_default = 1 if mese in [1, 2, 11, 12] else 2
 
-    # Recupero worksheet
+    # --- Recupero worksheet
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    worksheet = get_sheet(sheet_id, "GIACENZE")  # oggetto worksheet
-
-    # Leggo dati dal foglio
+    worksheet = get_sheet(sheet_id, "GIACENZE")
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])
 
-    # Conversioni iniziali
+    # --- Conversioni iniziali
     df = df.astype(str)
-    if "GIAC.UBIC" in df.columns:
-        df["GIAC.UBIC"] = pd.to_numeric(df["GIAC.UBIC"], errors="coerce").fillna(0)
+    for col in ["GIAC.UBIC", "Q"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
-    # Estrazione anno e stagione dalla colonna STAG (es. "2025/1")
+    # --- Estrazione anno e stagione da STAG
     df[["anno_stag", "stag_stag"]] = df["STAG"].str.split("/", expand=True)
     df["anno_stag"] = pd.to_numeric(df["anno_stag"], errors="coerce").fillna(0).astype(int)
     df["stag_stag"] = pd.to_numeric(df["stag_stag"], errors="coerce").fillna(0).astype(int)
 
-    # Filtro CORR e Y ai valori consentiti
-    df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")  # valori non numerici diventano NaN
+    # --- Filtro CORR e Y
+    df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")
     df = df[df["CORR_NUM"].between(1, 14)]
     df = df[df["Y"].isin(["1", "2", "3", "4"])]
 
     col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
-        # Input utente
-        anno = st.number_input(
-            "Anno", min_value=2000, max_value=2100, value=anno_default, step=1
-        )
-        stagione = st.selectbox(
-            "Stagione", options=[1, 2], index=[1, 2].index(stagione_default)
-        )
+        anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default, step=1)
+        stagione = st.selectbox("Stagione", options=[1, 2], index=[1, 2].index(stagione_default))
 
-        # --- FILTRO CON CHECKBOX SULLA COLONNA "Y" ---
+        # Filtro colonna Y
         st.subheader("Filtra valori colonna Y")
         valori_Y = sorted(df["Y"].unique())
-
-        # Creazione checkbox in colonne per una UI più ordinata
-        cols = st.columns(4)  # 4 colonne per allineamento
+        cols = st.columns(4)
         selezione_Y = {}
         for i, val in enumerate(valori_Y):
             col = cols[i % 4]
@@ -1495,14 +1483,13 @@ elif page == "Giacenze - Per corridoio":
         st.write("")
 
     with col3:
-        # Applico filtro
+        # Applico filtro Y
         df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
 
-        # Calcolo riepilogo
+        # Calcolo riepilogo vecchio/nuovo
         results = []
         for corr_value in sorted(df["CORR_NUM"].unique()):
             corr_df = df[df["CORR_NUM"] == corr_value]
-
             cond_vecchio = (corr_df["anno_stag"] < anno) | (
                 (corr_df["anno_stag"] == anno) & (corr_df["stag_stag"] < stagione)
             )
@@ -1511,20 +1498,15 @@ elif page == "Giacenze - Per corridoio":
             vecchio = corr_df.loc[cond_vecchio, "GIAC.UBIC"].sum()
             nuovo = corr_df.loc[cond_nuovo, "GIAC.UBIC"].sum()
 
-            results.append({
-                "CORR": corr_value,
-                "VECCHIO": vecchio,
-                "NUOVO": nuovo
-            })
+            results.append({"CORR": corr_value, "VECCHIO": vecchio, "NUOVO": nuovo})
 
-        # Output tabella con st.table (altezza automatica)
         result_df = pd.DataFrame(results)
         result_df["CORR"] = result_df["CORR"].astype(int)
         st.table(result_df.reset_index(drop=True))
 
     with col4:
         st.download_button(
-            label="📥 Scarica PDF",
+            label="📥 Scarica PDF riepilogo",
             data=genera_pdf(
                 result_df,
                 font_size=12,
@@ -1535,6 +1517,73 @@ elif page == "Giacenze - Per corridoio":
             file_name="giac_corridoio.pdf",
             mime="application/pdf"
         )
+
+        # --- Mappatura marchi bambino/adulto
+        marchi_categoria = {
+            "NATURINO": "BAMBINO",
+            "FLOWER M.BY NATURINO": "BAMBINO",
+            "VOILE BLANCHE": "ADULTO",
+            "CRIME LONDON": "ADULTO",
+            # aggiungi altri marchi...
+        }
+
+        # Filtra vecchi
+        cond_vecchio = (df["anno_stag"] < anno) | (
+            (df["anno_stag"] == anno) & (df["stag_stag"] < stagione)
+        )
+        df_vecchio = df[cond_vecchio].copy()
+
+        # Applica mappatura
+        df_vecchio["CATEGORIA"] = df_vecchio["MARCHIO"].map(marchi_categoria)
+
+        # Colonne finali richieste
+        colonne_finali = ["COD", "VAR", "COL", "DESCRIZIONE", "COR", "LAT", "X", "Y", "Q"]
+
+        # Bambino
+        bambino_df = (
+            df_vecchio[df_vecchio["CATEGORIA"] == "BAMBINO"][colonne_finali]
+            .groupby(["COD", "VAR", "COL", "DESCRIZIONE", "COR", "LAT", "X", "Y"], as_index=False)["Q"]
+            .sum()
+            .sort_values(["COR", "X", "Y", "LAT", "COD", "VAR", "COL"])
+        )
+
+        # Adulto
+        adulto_df = (
+            df_vecchio[df_vecchio["CATEGORIA"] == "ADULTO"][colonne_finali]
+            .groupby(["COD", "VAR", "COL", "DESCRIZIONE", "COR", "LAT", "X", "Y"], as_index=False)["Q"]
+            .sum()
+            .sort_values(["COR", "X", "Y", "LAT", "COD", "VAR", "COL"])
+        )
+
+        # Pulsanti download PDF
+        if not bambino_df.empty:
+            st.download_button(
+                label="📥 PDF Bambino (solo vecchi)",
+                data=genera_pdf(
+                    bambino_df,
+                    font_size=10,
+                    header_align="CENTER",
+                    text_align="CENTER",
+                    valign="MIDDLE"
+                ),
+                file_name="giac_bambino_vecchi.pdf",
+                mime="application/pdf"
+            )
+
+        if not adulto_df.empty:
+            st.download_button(
+                label="📥 PDF Adulto (solo vecchi)",
+                data=genera_pdf(
+                    adulto_df,
+                    font_size=10,
+                    header_align="CENTER",
+                    text_align="CENTER",
+                    valign="MIDDLE"
+                ),
+                file_name="giac_adulto_vecchi.pdf",
+                mime="application/pdf"
+            )
+
 
 
 elif page == "Giacenze - Per corridoio/marchio":
