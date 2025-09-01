@@ -1501,7 +1501,7 @@ elif page == "Giacenze - Per corridoio":
         selezione_X = {}
         for i, val in enumerate(valori_X):
             col = cols_X[i % 5]
-            selezione_X[val] = col.checkbox(val, value=True, key=f"x_{val}")
+            selezione_X[val] = col.checkbox(val, value=True, key=f"x_{val}_{i}")
 
     with col2:
         st.write("")
