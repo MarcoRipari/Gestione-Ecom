@@ -61,7 +61,10 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["GCP_SERVICE_ACCOUNT"],
-    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    scopes=[
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
 )
 gsheet_client = gspread.authorize(credentials)
 drive_service = build('drive', 'v3', credentials=credentials)
@@ -356,13 +359,6 @@ def append_to_sheet(sheet_id, tab, df):
 # ---------------------------
 # SetUp Google Drive
 # ---------------------------
-def get_drive():
-    """
-    Restituisce il servizio Google Drive autenticato con service account.
-    """
-    return build("drive", "v3", credentials=credentials)
-
-
 def get_latest_file_from_gdrive(folder_id):
     query = f"'{folder_id}' in parents and trashed=false"
     results = drive_service.files().list(
@@ -374,7 +370,34 @@ def get_latest_file_from_gdrive(folder_id):
     files = results.get('files', [])
     if not files:
         return None
-    return files[0]  # il più recente
+    return files[0]  # il file più recente
+
+
+# --- Scarica il contenuto di un file Drive come bytes ---
+def download_file_from_gdrive(file_id):
+    request = drive_service.files().get_media(fileId=file_id)
+    fh = io.BytesIO()
+    downloader = MediaIoBaseDownload(fh, request)
+    done = False
+    while not done:
+        status, done = downloader.next_chunk()
+    fh.seek(0)
+    return fh.read()
+
+
+# --- Carica un file su Drive (cartella specifica) ---
+def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"):
+    file_metadata = {
+        "name": file_name,
+        "parents": [folder_id]
+    }
+    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type)
+    file = drive_service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields="id, name"
+    ).execute()
+    return file
     
 # ---------------------------
 # Funzioni varie
@@ -1801,118 +1824,49 @@ elif page == "Logout":
 
 elif page == "Giacenze - New import":
     st.header("Importa giacenze")
-    st.markdown("Importa le giacenze da Google Drive o da file CSV manuale.")
+    st.markdown("Importa le giacenze da file CSV.")
 
+    # --- Cartella Drive per i file giacenze ---
     folder_id = st.secrets["GIACENZE_FOLDER_ID"]
+    latest_file = get_latest_file_from_gdrive(folder_id)
 
-    # --- Scelta tipo file ---
-    file_type = st.radio("Seleziona il tipo di file:", ["UBIC", "PIM"])
-
-    # --- Drive setup ---
-    drive = get_drive()
-    file_list = drive.ListFile(
-        {"q": f"'{folder_id}' in parents and trashed=false"}
-    ).GetList()
-
-    # Filtra solo i file con UBIC o PIM
-    file_list = [f for f in file_list if file_type in f["title"].upper()]
-
-    latest_file = None
-    df_input = None
-
-    if file_list:
-        latest_file = max(file_list, key=lambda x: x["modifiedDate"])
-        st.success(f"Trovato file {file_type} più recente: {latest_file['title']} (modificato il {latest_file['modifiedDate']})")
-
-        # Carica il contenuto
-        content = latest_file.GetContentString()
-        if latest_file["title"].endswith("xlsx"):
-            df_input = pd.read_excel(io.BytesIO(latest_file.GetContentBinary()))
-        else:
-            df_input = read_csv_auto_encoding(io.StringIO(content), "\t")
-
+    csv_import = None
+    if latest_file:
+        st.info(f"Ultimo file trovato su Drive: {latest_file['name']}")
+        data_bytes = download_file_from_gdrive(latest_file["id"])
+        csv_import = io.BytesIO(data_bytes)
     else:
-        # --- Upload manuale ---
-        st.warning(f"Nessun file {file_type} trovato su Google Drive.")
-        csv_import = st.file_uploader(f"Carica un file {file_type} (CSV/XLSX)", type=["csv", "xlsx"])
+        csv_import = st.file_uploader("Carica un file CSV", type="csv")
 
-        if csv_import:
-            if csv_import.name.endswith("xlsx"):
-                df_input = pd.read_excel(csv_import)
-            else:
-                df_input = read_csv_auto_encoding(csv_import, "\t")
-
-            # Salva su Drive con timestamp
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            ext = ".xlsx" if csv_import.name.endswith("xlsx") else ".csv"
-            drive_file = drive.CreateFile({
-                "title": f"{file_type}_{timestamp}{ext}",
-                "parents": [{"id": folder_id}]
-            })
-            drive_file.SetContentString(csv_import.getvalue().decode("utf-8") if ext == ".csv" else "")
-            if ext == ".xlsx":
-                drive_file.SetContentFile(csv_import.name)
-            drive_file.Upload()
-            st.info(f"File {file_type} caricato anche su Google Drive ✅")
-
-    # --- Scelta destinazione GSheet ---
-    st.subheader("Destinazione Google Sheet")
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    if st.toggle("Vuoi usare un altro Google Sheet?"):
-        sheet_id = st.text_input("Inserisci ID del Google Sheet di destinazione", value=sheet_id)
-
-    # Procedi solo se ho un DataFrame
-    if df_input is not None:
-        # Lista delle colonne da formattare come numeriche
-        numeric_cols_info = {
-            "D": "0",
-            "L": "000",
-            "N": "0",
-            "O": "0",
-        }
-        for i in range(17, 32):  # Colonne Q-AE
-            col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
-            numeric_cols_info[col_letter] = "0"
-
-        # Conversione sicura numeri
-        def to_number_safe(x):
-            try:
-                if pd.isna(x) or x == "":
-                    return ""
-                return float(x)
-            except:
-                return str(x)
-
-        # Applica conversione alle colonne target
-        for col_letter in numeric_cols_info.keys():
-            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1
-            if df_input.columns.size > col_idx:
-                col_name = df_input.columns[col_idx]
-                df_input[col_name] = df_input[col_name].apply(to_number_safe)
-
-        # Tutte le altre colonne forzate a stringa
-        target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
-        for idx, col_name in enumerate(df_input.columns):
-            if idx not in target_indices:
-                df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
-
-        # Trasforma tutto in lista per Google Sheet
-        data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
+    if csv_import:
+        df_input = read_csv_auto_encoding(csv_import, "\t")
         st.write(df_input)
 
+        # --- Scegli il nome del file tra UBIC o PIM ---
+        nome_file = st.selectbox("Nome file", ["UBIC", "PIM"], index=0)
+
+        # --- Scegli GSheet di destinazione ---
+        default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
+        usa_altra_dest = st.checkbox("Carica su un Google Sheet diverso?", value=False)
+        if usa_altra_dest:
+            sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
+        else:
+            sheet_id = default_sheet_id
+
         if st.button("Importa"):
-            sheet = get_sheet(sheet_id, file_type)  # Nome sheet = UBIC o PIM
-            sheet.clear()
-            sheet.update("A1", data_to_write)
+            # Trasformazione dati in lista
+            data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
 
-            # Formattazione celle
-            last_row = len(df_input) + 1
-            ranges_to_format = []
-            for col_letter, pattern in numeric_cols_info.items():
-                ranges_to_format.append(
-                    (f"{col_letter}2:{col_letter}{last_row}",
-                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
-                )
-            format_cell_ranges(sheet, ranges_to_format)
+            # Aggiorna il foglio
+            sheets_service.spreadsheets().values().update(
+                spreadsheetId=sheet_id,
+                range=nome_file,
+                valueInputOption="USER_ENTERED",
+                body={"values": data_to_write}
+            ).execute()
 
-            st.success(f"✅ Giacenze {file_type} importate con successo!")
+            st.success("✅ Giacenze importate con successo!")
+
+            # Se era un caricamento manuale, carica anche su Drive
+            if not latest_file:
+                upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
