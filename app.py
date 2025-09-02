@@ -364,7 +364,7 @@ def get_drive():
 
     # Scriviamo il file temporaneo con le credenziali
     with open("service_account.json", "w") as f:
-        f.write(json.dumps(st.secrets["gcp_service_account"]))
+        f.write(json.dumps(st.secrets["GCP_SERVICE_ACCOUNT"]))
 
     gauth.ServiceAuth()  # autenticazione con service account
     drive = GoogleDrive(gauth)
