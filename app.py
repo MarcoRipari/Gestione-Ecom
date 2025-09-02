@@ -355,9 +355,20 @@ def append_to_sheet(sheet_id, tab, df):
 # SetUp Google Drive
 # ---------------------------
 def get_drive():
+    # Usa le credenziali dal secrets
     gauth = GoogleAuth()
-    gauth.LocalWebserverAuth()
-    return GoogleDrive(gauth)
+    gauth.settings["client_config_backend"] = "service"
+    gauth.settings["service_config"] = {
+        "client_json_file_path": "service_account.json"
+    }
+
+    # Scriviamo il file temporaneo con le credenziali
+    with open("service_account.json", "w") as f:
+        f.write(json.dumps(st.secrets["gcp_service_account"]))
+
+    gauth.ServiceAuth()  # autenticazione con service account
+    drive = GoogleDrive(gauth)
+    return drive
 
 def get_latest_file_from_gdrive(folder_id):
     drive = get_drive()
