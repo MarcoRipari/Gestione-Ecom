@@ -1693,29 +1693,28 @@ elif page == "Giacenze - Per corridoio/marchio":
     # --- CSS per centrare SOLO gli header (include header group) ---
     st.markdown("""
     <style>
-    /* Target comuni per i vari temi ag-grid (alpine, balham, streamlit, ecc.)
-       Forziamo display:flex e centratura solo sugli header (group e normal). */
-    .ag-theme-alpine .ag-header-cell, .ag-theme-alpine .ag-header-group-cell,
-    .ag-theme-balham .ag-header-cell, .ag-theme-balham .ag-header-group-cell,
-    .ag-theme-streamlit .ag-header-cell, .ag-theme-streamlit .ag-header-group-cell,
-    .ag-header-cell, .ag-header-group-cell {
+    /* Header cell (singola colonna) */
+    .ag-header-cell {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         text-align: center !important;
     }
     
-    /* Ulteriori selettori per etichette header (compatibilità) */
-    .ag-header-cell .ag-header-cell-label,
-    .ag-header-group-cell .ag-header-group-cell-label,
-    .ag-header-cell .ag-header-cell-text,
-    .ag-header-group-cell .ag-header-group-cell-text {
+    /* Header cell (gruppo colonne) */
+    .ag-header-group-cell {
+        display: flex !important;
+        align-items: center !important;
         justify-content: center !important;
         text-align: center !important;
     }
     
-    /* Mantieni le celle (body) con il loro allineamento di default (non toccare) */
-    /* Se servisse, puoi forzare: .ag-body-cell { text-align: left !important; } */
+    /* Label wrapper (per sicurezza) */
+    .ag-header-cell-label, .ag-header-group-cell-label {
+        width: 100%;
+        justify-content: center !important;
+        text-align: center !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
