@@ -671,7 +671,7 @@ with st.sidebar:
         elif main_page == "Giacenze":
             sub_page = st.radio(
                 "Seleziona sottosezione Foto",
-                ["📥 Importa giacenze", "1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio", "New import"],
+                ["📥 Importa giacenze", "1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio", "📥 New import"],
                 label_visibility="collapsed"
             )
             page = f"{main_page} - {sub_page.split(' ', 1)[1]}"
