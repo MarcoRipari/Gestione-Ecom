@@ -1692,7 +1692,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     df_table = df_table.fillna(0)
 
 
-    --- Costruzione AgGrid columnDefs con colori alternati ---
+    #--- Costruzione AgGrid columnDefs con colori alternati ---
     column_defs = [{"headerName":"CORR","headerComponentParams": {
                     "template": '<div style="text-align:center; width:100%;">CORR</div>'
                 },"field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"}}]
