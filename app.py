@@ -64,6 +64,7 @@ credentials = service_account.Credentials.from_service_account_info(
     scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 )
 gsheet_client = gspread.authorize(credentials)
+drive_service = build('drive', 'v3', credentials=credentials)
 
 def get_sheet(sheet_id, tab):
     spreadsheet = gsheet_client.open_by_key(sheet_id)
@@ -363,11 +364,6 @@ def get_drive():
 
 
 def get_latest_file_from_gdrive(folder_id):
-    """
-    Restituisce il file più recente in una cartella Drive (basato su modifiedTime).
-    """
-    drive_service = get_drive()
-
     query = f"'{folder_id}' in parents and trashed=false"
     results = drive_service.files().list(
         q=query,
@@ -375,11 +371,9 @@ def get_latest_file_from_gdrive(folder_id):
         pageSize=1,
         fields="files(id, name, modifiedTime)"
     ).execute()
-
-    files = results.get("files", [])
+    files = results.get('files', [])
     if not files:
         return None
-
     return files[0]  # il più recente
     
 # ---------------------------
