@@ -1698,13 +1698,16 @@ elif page == "Giacenze - Per corridoio/marchio":
     for i, brand in enumerate(marchi):
         column_defs.append({
             "headerName": brand,
+            "headerComponentParams": {
+                    "template": f"<div style="text-align:center; width:100%;">{brand}</div>"
+                },
             "headerClass": "center-header",
             "children":[
                 {"headerName":"VECCHIO","headerComponentParams": {
-                    "template": '<div style="text-align:center; width:100%;">CORR</div>'
+                    "template": '<div style="text-align:center; width:100%;">VECCHIO</div>'
                 },"field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},"headerClass": "center-header"},
                 {"headerName":"NUOVO","headerComponentParams": {
-                    "template": '<div style="text-align:center; width:100%;">CORR</div>'
+                    "template": '<div style="text-align:center; width:100%;">NUOVO</div>'
                 },"field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},"headerClass": "center-header"}
             ]
         })
