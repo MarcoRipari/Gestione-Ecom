@@ -1712,36 +1712,31 @@ elif page == "Giacenze - Per corridoio/marchio":
     #    })
 
     column_defs = [
-        {"headerName":"CORR","field":"CORR","width":60,
-         "pinned":"left",
-         "cellStyle":{"textAlign":"center"},
+        {"field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"},
          "headerComponentParams":{"template": '<div style="text-align:center; width:100%;">CORR</div>'}}
     ]
     
     for brand in marchi:
         column_defs.append({
-            "headerName": brand,
             "headerComponentParams": {
                 "template": f'<div style="text-align:center; width:100%;">{brand}</div>'
             },
-            "children":[
+            "children": [
                 {
-                    "headerName":"VECCHIO",
-                    "field":f"{brand}_VECCHIO",
-                    "width":70,
-                    "cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},
                     "headerComponentParams":{
                         "template": '<div style="text-align:center; width:100%;">VECCHIO</div>'
-                    }
+                    },
+                    "field": f"{brand}_VECCHIO",
+                    "width":70,
+                    "cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"}
                 },
                 {
-                    "headerName":"NUOVO",
-                    "field":f"{brand}_NUOVO",
-                    "width":70,
-                    "cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},
                     "headerComponentParams":{
                         "template": '<div style="text-align:center; width:100%;">NUOVO</div>'
-                    }
+                    },
+                    "field": f"{brand}_NUOVO",
+                    "width":70,
+                    "cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"}
                 }
             ]
         })
