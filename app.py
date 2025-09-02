@@ -671,7 +671,7 @@ with st.sidebar:
         elif main_page == "Giacenze":
             sub_page = st.radio(
                 "Seleziona sottosezione Foto",
-                ["📥 Importa giacenze", "1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio"],
+                ["📥 Importa giacenze", "1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio", "New import"],
                 label_visibility="collapsed"
             )
             page = f"{main_page} - {sub_page.split(' ', 1)[1]}"
@@ -1771,3 +1771,121 @@ elif page == "Giacenze - Per corridoio/marchio":
     
 elif page == "Logout":
     logout()
+
+elif page == "Giacenze - New import":
+    st.header("Importa giacenze")
+    st.markdown("Importa le giacenze da Google Drive o da file CSV manuale.")
+
+    folder_id = st.secrets["GIACENZE_FOLDER_ID"]
+
+    # --- Scelta tipo file ---
+    file_type = st.radio("Seleziona il tipo di file:", ["UBIC", "PIM"])
+
+    # --- Drive setup ---
+    drive = get_drive()
+    file_list = drive.ListFile(
+        {"q": f"'{folder_id}' in parents and trashed=false"}
+    ).GetList()
+
+    # Filtra solo i file con UBIC o PIM
+    file_list = [f for f in file_list if file_type in f["title"].upper()]
+
+    latest_file = None
+    df_input = None
+
+    if file_list:
+        latest_file = max(file_list, key=lambda x: x["modifiedDate"])
+        st.success(f"Trovato file {file_type} più recente: {latest_file['title']} (modificato il {latest_file['modifiedDate']})")
+
+        # Carica il contenuto
+        content = latest_file.GetContentString()
+        if latest_file["title"].endswith("xlsx"):
+            df_input = pd.read_excel(io.BytesIO(latest_file.GetContentBinary()))
+        else:
+            df_input = read_csv_auto_encoding(io.StringIO(content), "\t")
+
+    else:
+        # --- Upload manuale ---
+        st.warning(f"Nessun file {file_type} trovato su Google Drive.")
+        csv_import = st.file_uploader(f"Carica un file {file_type} (CSV/XLSX)", type=["csv", "xlsx"])
+
+        if csv_import:
+            if csv_import.name.endswith("xlsx"):
+                df_input = pd.read_excel(csv_import)
+            else:
+                df_input = read_csv_auto_encoding(csv_import, "\t")
+
+            # Salva su Drive con timestamp
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            ext = ".xlsx" if csv_import.name.endswith("xlsx") else ".csv"
+            drive_file = drive.CreateFile({
+                "title": f"{file_type}_{timestamp}{ext}",
+                "parents": [{"id": folder_id}]
+            })
+            drive_file.SetContentString(csv_import.getvalue().decode("utf-8") if ext == ".csv" else "")
+            if ext == ".xlsx":
+                drive_file.SetContentFile(csv_import.name)
+            drive_file.Upload()
+            st.info(f"File {file_type} caricato anche su Google Drive ✅")
+
+    # --- Scelta destinazione GSheet ---
+    st.subheader("Destinazione Google Sheet")
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    if st.toggle("Vuoi usare un altro Google Sheet?"):
+        sheet_id = st.text_input("Inserisci ID del Google Sheet di destinazione", value=sheet_id)
+
+    # Procedi solo se ho un DataFrame
+    if df_input is not None:
+        # Lista delle colonne da formattare come numeriche
+        numeric_cols_info = {
+            "D": "0",
+            "L": "000",
+            "N": "0",
+            "O": "0",
+        }
+        for i in range(17, 32):  # Colonne Q-AE
+            col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
+            numeric_cols_info[col_letter] = "0"
+
+        # Conversione sicura numeri
+        def to_number_safe(x):
+            try:
+                if pd.isna(x) or x == "":
+                    return ""
+                return float(x)
+            except:
+                return str(x)
+
+        # Applica conversione alle colonne target
+        for col_letter in numeric_cols_info.keys():
+            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1
+            if df_input.columns.size > col_idx:
+                col_name = df_input.columns[col_idx]
+                df_input[col_name] = df_input[col_name].apply(to_number_safe)
+
+        # Tutte le altre colonne forzate a stringa
+        target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
+        for idx, col_name in enumerate(df_input.columns):
+            if idx not in target_indices:
+                df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
+
+        # Trasforma tutto in lista per Google Sheet
+        data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
+        st.write(df_input)
+
+        if st.button("Importa"):
+            sheet = get_sheet(sheet_id, file_type)  # Nome sheet = UBIC o PIM
+            sheet.clear()
+            sheet.update("A1", data_to_write)
+
+            # Formattazione celle
+            last_row = len(df_input) + 1
+            ranges_to_format = []
+            for col_letter, pattern in numeric_cols_info.items():
+                ranges_to_format.append(
+                    (f"{col_letter}2:{col_letter}{last_row}",
+                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                )
+            format_cell_ranges(sheet, ranges_to_format)
+
+            st.success(f"✅ Giacenze {file_type} importate con successo!")
