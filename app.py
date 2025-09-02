@@ -380,14 +380,18 @@ def get_latest_file_from_gdrive(folder_id):
 
 # --- Scarica il contenuto di un file Drive come bytes ---
 def download_file_from_gdrive(file_id):
-    request = drive_service.files().get_media(fileId=file_id)
-    fh = io.BytesIO()
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    while not done:
-        status, done = downloader.next_chunk()
-    fh.seek(0)
-    return fh.read()
+    try:
+        fh = io.BytesIO()
+        request = drive_service.files().get_media(fileId=file_id)
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+        fh.seek(0)
+        return fh.read()
+    except Exception as e:
+        st.error(f"Errore nel download del file da Drive: {e}")
+        return None
 
 
 # --- Carica un file su Drive (cartella specifica) ---
