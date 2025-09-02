@@ -1692,14 +1692,20 @@ elif page == "Giacenze - Per corridoio/marchio":
 
 
     # --- Costruzione AgGrid columnDefs con colori alternati ---
-    column_defs = [{"headerName":"CORR","field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"},"headerClass": "center-header"}]
+    column_defs = [{"headerName":"CORR","headerComponentParams": {
+                    "template": '<div style="text-align:center; width:100%;">CORR</div>'
+                },"field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"},"headerClass": "center-header"}]
     for i, brand in enumerate(marchi):
         column_defs.append({
             "headerName": brand,
             "headerClass": "center-header",
             "children":[
-                {"headerName":"VECCHIO","field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},"headerClass": "center-header"},
-                {"headerName":"NUOVO","field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},"headerClass": "center-header"}
+                {"headerName":"VECCHIO","headerComponentParams": {
+                    "template": '<div style="text-align:center; width:100%;">CORR</div>'
+                },"field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},"headerClass": "center-header"},
+                {"headerName":"NUOVO","headerComponentParams": {
+                    "template": '<div style="text-align:center; width:100%;">CORR</div>'
+                },"field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},"headerClass": "center-header"}
             ]
         })
 
