@@ -1694,21 +1694,20 @@ elif page == "Giacenze - Per corridoio/marchio":
     # --- Costruzione AgGrid columnDefs con colori alternati ---
     column_defs = [{"headerName":"CORR","headerComponentParams": {
                     "template": '<div style="text-align:center; width:100%;">CORR</div>'
-                },"field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"},"headerClass": "center-header"}]
+                },"field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"}}]
     for i, brand in enumerate(marchi):
         column_defs.append({
             "headerName": brand,
             "headerComponentParams": {
                 "template": f'<div style="text-align:center; width:100%;">{brand}</div>'
             },
-            "headerClass": "center-header",
             "children":[
                 {"headerName":"VECCHIO","headerComponentParams": {
                     "template": '<div style="text-align:center; width:100%;">VECCHIO</div>'
-                },"field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},"headerClass": "center-header"},
+                },"field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"}},
                 {"headerName":"NUOVO","headerComponentParams": {
                     "template": '<div style="text-align:center; width:100%;">NUOVO</div>'
-                },"field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},"headerClass": "center-header"}
+                },"field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"}}
             ]
         })
 
@@ -1724,10 +1723,6 @@ elif page == "Giacenze - Per corridoio/marchio":
             "cellStyle":{"textAlign":"center"}
         },
         "domLayout":"normal","suppressHorizontalScroll":False
-    }
-    gridOptions["defaultColDef"]["headerClass"] = "center-header"
-    gridOptions["defaultColDef"]["headerClassRules"] = {
-        "center-header": True
     }
 
     st.subheader("Tabella completa per corridoio e marchio")
