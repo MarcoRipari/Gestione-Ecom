@@ -1690,59 +1690,16 @@ elif page == "Giacenze - Per corridoio/marchio":
     df_table = df_table.reset_index().rename(columns={"CORR_NUM":"CORR"})
     df_table = df_table.fillna(0)
 
-    # CSS FORTE per centrare SOLO gli header (group e singoli)
-    # ----------------------------
-    st.markdown("""
-    <style>
-    /* 1) header cell (singolo) e header group (gruppo) */
-    .ag-header-cell,
-    .ag-header-group-cell {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      text-align: center !important;
-      padding: 0 4px !important;
-    }
-    
-    /* 2) wrapper interno label (diversi nomi usati dalle versioni di ag-grid) */
-    .ag-header-cell-label,
-    .ag-header-group-cell-label,
-    .ag-header-cell .ag-header-cell-label,
-    .ag-header-group-cell .ag-header-group-cell-label {
-      display: flex !important;
-      width: 100% !important;
-      justify-content: center !important;
-      text-align: center !important;
-    }
-    
-    /* 3) testo effettivo dell'header (sovrascrive eventuali inline/inline-block) */
-    .ag-header-cell-text,
-    .ag-header-group-cell .ag-header-cell-text,
-    .ag-header-cell .ag-header-cell-text {
-      display: block !important;
-      width: 100% !important;
-      text-align: center !important;
-    }
-    
-    /* 4) fallback: forziamo anche il label container generico */
-    .ag-header .ag-header-cell, .ag-root .ag-header-cell {
-      justify-content: center !important;
-    }
-    
-    /* NON toccare il body delle celle se vuoi loro allineamento differente */
-    </style>
-    """, unsafe_allow_html=True)
-
 
     # --- Costruzione AgGrid columnDefs con colori alternati ---
-    column_defs = [{"headerName":"CORR","field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"},"headerClass": "my-center-header"}]
+    column_defs = [{"headerName":"CORR","field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"},"headerClass": "center-header"}]
     for i, brand in enumerate(marchi):
         column_defs.append({
             "headerName": brand,
             "headerClass": "ag-center-header",
             "children":[
-                {"headerName":"VECCHIO","field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},"headerClass": "my-center-header"},
-                {"headerName":"NUOVO","field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},"headerClass": "my-center-header"}
+                {"headerName":"VECCHIO","field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},"headerClass": "center-header"},
+                {"headerName":"NUOVO","field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},"headerClass": "center-header"}
             ]
         })
 
@@ -1758,6 +1715,10 @@ elif page == "Giacenze - Per corridoio/marchio":
             "cellStyle":{"textAlign":"center"},
         },
         "domLayout":"normal","suppressHorizontalScroll":False
+    }
+    gridOptions["defaultColDef"]["headerClass"] = "center-header"
+    gridOptions["defaultColDef"]["headerClassRules"] = {
+        "center-header": True
     }
 
     st.subheader("Tabella completa per corridoio e marchio")
