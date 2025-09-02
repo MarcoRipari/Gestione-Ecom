@@ -359,23 +359,17 @@ def append_to_sheet(sheet_id, tab, df):
 # ---------------------------
 # SetUp Google Drive
 # ---------------------------
-def get_latest_file_from_gdrive(folder_id):
-    query = f"'{folder_id}' in parents and trashed=false"
-    try:
-        results = drive_service.files().list(
-            q=query,
-            orderBy="modifiedTime desc",
-            pageSize=1,
-            fields="files(id, name, modifiedTime)"
-        ).execute()
-    except Exception as e:
-        st.error(f"Errore nel recupero dei file da Drive: {e}")
-        return None
-
-    files = results.get('files', [])
-    if not files:
-        return None
-    return files[0]
+def get_latest_file_from_gdrive(folder_id, nome_file):
+    drive_service = build("drive", "v3", credentials=credentials)
+    query = f"'{folder_id}' in parents and trashed=false and name='{nome_file}.csv'"
+    response = drive_service.files().list(
+        q=query,
+        orderBy="modifiedTime desc",
+        pageSize=1,
+        fields="files(id, name, modifiedTime)"
+    ).execute()
+    files = response.get("files", [])
+    return files[0] if files else None
 
 
 # --- Scarica il contenuto di un file Drive come bytes ---
@@ -1835,9 +1829,14 @@ elif page == "Giacenze - New import":
     st.header("Importa giacenze")
     st.markdown("Importa le giacenze da file CSV.")
 
-    # --- Cartella Drive per i file giacenze ---
+    # --- Cartella Drive ---
     folder_id = st.secrets["GIACENZE_FOLDER_ID"]
-    latest_file = get_latest_file_from_gdrive(folder_id)
+
+    # --- Selezione nome file ---
+    nome_file = st.selectbox("Nome file", ["UBIC", "PIM"], index=0)
+
+    # --- Trova ultimo file corrispondente su Drive ---
+    latest_file = get_latest_file_from_gdrive(folder_id, nome_file)  # funzione aggiornata con filtro nome
 
     csv_import = None
     if latest_file:
@@ -1845,14 +1844,12 @@ elif page == "Giacenze - New import":
         data_bytes = download_file_from_gdrive(latest_file["id"])
         csv_import = io.BytesIO(data_bytes)
     else:
+        st.info("Nessun file trovato su Drive, carica manualmente")
         csv_import = st.file_uploader("Carica un file CSV", type="csv")
 
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
         st.write(df_input)
-
-        # --- Scegli il nome del file tra UBIC o PIM ---
-        nome_file = st.selectbox("Nome file", ["UBIC", "PIM"], index=0)
 
         # --- Scegli GSheet di destinazione ---
         default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
@@ -1879,3 +1876,4 @@ elif page == "Giacenze - New import":
             # Se era un caricamento manuale, carica anche su Drive
             if not latest_file:
                 upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
+
