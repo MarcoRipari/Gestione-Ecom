@@ -361,16 +361,21 @@ def append_to_sheet(sheet_id, tab, df):
 # ---------------------------
 def get_latest_file_from_gdrive(folder_id):
     query = f"'{folder_id}' in parents and trashed=false"
-    results = drive_service.files().list(
-        q=query,
-        orderBy="modifiedTime desc",
-        pageSize=1,
-        fields="files(id, name, modifiedTime)"
-    ).execute()
+    try:
+        results = drive_service.files().list(
+            q=query,
+            orderBy="modifiedTime desc",
+            pageSize=1,
+            fields="files(id, name, modifiedTime)"
+        ).execute()
+    except Exception as e:
+        st.error(f"Errore nel recupero dei file da Drive: {e}")
+        return None
+
     files = results.get('files', [])
     if not files:
         return None
-    return files[0]  # il file più recente
+    return files[0]
 
 
 # --- Scarica il contenuto di un file Drive come bytes ---
