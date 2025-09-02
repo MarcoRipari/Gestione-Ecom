@@ -43,6 +43,8 @@ import html
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from googleapiclient.discovery import build
+import io
+from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
 
 logging.basicConfig(level=logging.INFO)
 
@@ -1828,10 +1830,6 @@ elif page == "Logout":
 elif page == "Giacenze - New import":
     st.header("Importa giacenze")
     st.markdown("Importa le giacenze da file CSV.")
-
-    import io
-    import gspread
-    from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
 
     # --- Cartella Drive ---
     folder_id = st.secrets["GIACENZE_FOLDER_ID"]
