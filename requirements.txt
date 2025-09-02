@@ -16,6 +16,9 @@ google-auth
 google-api-python-client
 gspread-formatting
 
+# Google Drive API
+pydrive2
+
 # 🔎 Embedding e Retrieval (RAG)
 sentence-transformers
 faiss-cpu
