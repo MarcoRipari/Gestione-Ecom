@@ -492,6 +492,7 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
     header_row2 = [""] + ["VECCHIO" if i % 2 == 0 else "NUOVO" for i in range(len(brands)*2)]
     data = [header_row1, header_row2]
 
+    # Popolo dati
     for _, row in df_table.iterrows():
         row_data = [int(row.get("CORR", 0))]
         for brand in brands:
@@ -499,33 +500,45 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
             row_data.append(int(row.get(f"{brand}_NUOVO", 0)))
         data.append(row_data)
 
+    # --- Calcolo larghezza colonne dinamica ---
     n_cols = len(data[0])
-    col_widths_raw = []
+    col_widths = [0] * n_cols
 
-    # CORR → larghezza fissa
-    col_widths_raw.append(40)
+    # 1) Colonna CORR
+    max_len_corr = max(len(str(row[0])) for row in data)
+    col_widths[0] = max(30, max_len_corr*7)
 
-    # brand/VECCHIO/NUOVO
+    # 2) Colonne brand/VECCHIO/NUOVO
     for i, brand in enumerate(brands):
-        # larghezza minima per brand
-        brand_width = max(len(brand)*6, 40)
-        # larghezza minima numeri vecchio/nuovo
-        vecchio_col_idx = 1 + i*2
-        nuovo_col_idx = vecchio_col_idx + 1
-        vecchio_width = max(len(str(max([row[vecchio_col_idx] for row in data[2:]])))*7, 40)
-        nuovo_width = max(len(str(max([row[nuovo_col_idx] for row in data[2:]])))*7, 40)
-        col_widths_raw.extend([vecchio_width, nuovo_width])
+        col_vecchio_idx = 1 + i*2
+        col_nuovo_idx = col_vecchio_idx + 1
 
-    # Scaling se supera max_table_width
-    total_width = sum(col_widths_raw)
+        # Larghezza brand
+        w_brand = len(brand) * 7 + 10  # punti per carattere + padding
+
+        # Larghezza valori vecchio/nuovo
+        max_vecchio = max(len(str(data[r][col_vecchio_idx])) for r in range(2, len(data)))
+        max_nuovo = max(len(str(data[r][col_nuovo_idx])) for r in range(2, len(data)))
+        w_vals = (max_vecchio + max_nuovo) * 7 + 10  # somma + padding
+
+        # Se brand più largo -> scala i valori
+        if w_brand > w_vals:
+            scale = w_brand / (max_vecchio + max_nuovo)
+            col_widths[col_vecchio_idx] = max_vecchio*7*scale
+            col_widths[col_nuovo_idx] = max_nuovo*7*scale
+        else:
+            col_widths[col_vecchio_idx] = max_vecchio*7
+            col_widths[col_nuovo_idx] = max_nuovo*7
+
+    # --- Scaling globale se supera max_table_width ---
+    total_width = sum(col_widths)
     if total_width > max_table_width:
         scale = max_table_width / total_width
-        col_widths = [w * scale for w in col_widths_raw]
-    else:
-        col_widths = col_widths_raw
+        col_widths = [w * scale for w in col_widths]
 
     t = Table(data, colWidths=col_widths)
 
+    # --- Stile tabella ---
     style = TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
@@ -552,7 +565,6 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
     elements.append(t)
     doc.build(elements)
     return open(file_path, "rb").read()
-
 
     
 # ---------------------------
