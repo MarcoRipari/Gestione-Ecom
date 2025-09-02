@@ -1662,7 +1662,10 @@ elif page == "Giacenze - Per corridoio/marchio":
     df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")
     df = df[df["CORR_NUM"].between(1,14)]
     df = df[df["Y"].isin(["1","2","3","4"])]
-
+    df["COLLEZIONE"] = df["COLLEZIONE"].str.strip()
+    df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
+    marchi = sorted(df["MARCHIO_STD"].dropna().unique())
+    
     # --- Input filtri utente ---
     col1, col2 = st.columns([2,3])
     with col1:
@@ -1694,9 +1697,6 @@ elif page == "Giacenze - Per corridoio/marchio":
         "NATURINO SNEAKERS":"NATURINO","W6YZ Adulto":"W6YZ Adulto","W6YZ Bimbo":"W6YZ Bimbo",
         "NATURINO OUTDOOR":"NATURINO","Candice Cooper":"Candice Cooper","NATURINO BABY":"NATURINO","C N R":"C N R"
     }
-    df["COLLEZIONE"] = df["COLLEZIONE"].str.strip()
-    df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
-    marchi = sorted(df["MARCHIO_STD"].dropna().unique())
 
     # --- Pivot per tabella piatta ---
     df_table = df.groupby(["CORR_NUM","MARCHIO_STD"]).apply(
