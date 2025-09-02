@@ -1691,19 +1691,28 @@ elif page == "Giacenze - Per corridoio/marchio":
     df_table = df_table.fillna(0)
 
     # --- Costruzione AgGrid columnDefs con colori alternati ---
-    column_defs = [{"headerName":"CORR","field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"}}]
+    column_defs = [{"headerName":"CORR","field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"},"headerClass": "ag-center-header"}]
     for i, brand in enumerate(marchi):
         column_defs.append({
             "headerName": brand,
+            "headerClass": "ag-center-header",
             "children":[
-                {"headerName":"VECCHIO","field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"}},
-                {"headerName":"NUOVO","field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"}}
+                {"headerName":"VECCHIO","field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},"headerClass": "ag-center-header"},
+                {"headerName":"NUOVO","field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},"headerClass": "ag-center-header"}
             ]
         })
 
     gridOptions = {
         "columnDefs": column_defs,
-        "defaultColDef":{"resizable":False,"sortable":False,"filter":False,"wrapText":False,"autoHeight":True,"lockPosition":True,"cellStyle":{"textAlign":"center"},"headerClass":"ag-center-header"},
+        "defaultColDef":{
+            "resizable":False,
+            "sortable":False,
+            "filter":False,
+            "wrapText":False,
+            "autoHeight":True,
+            "lockPosition":True,
+            "cellStyle":{"textAlign":"center"},
+        },
         "domLayout":"normal","suppressHorizontalScroll":False
     }
 
