@@ -481,10 +481,15 @@ def genera_pdf(df_disp, **param):
     return buffer
 
 # --- Funzione per generare PDF ---
-def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=780):
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
+
+def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
     doc = SimpleDocTemplate(file_path, pagesize=landscape(A4))
     elements = []
 
+    # --- Estrazione marchi ---
     brands = [c.replace("_VECCHIO", "") for c in df_table.columns if "_VECCHIO" in c]
 
     # --- Header multi-riga ---
@@ -500,34 +505,11 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
             row_data.append(int(row.get(f"{brand}_NUOVO", 0)))
         data.append(row_data)
 
-    # --- Calcolo larghezze colonne ---
-    corr_width = 40
-    vecchio_nuovo_width = 80  # larghezza fissa per VECCHIO + NUOVO
-    brand_widths = []
-
-    for brand in brands:
-        nome_len = max(len(brand), 2)  # almeno 2 caratteri
-        w = max(nome_len * 7, vecchio_nuovo_width)  # 7 pt per carattere, min 80
-        brand_widths.append(w)
-
-    col_widths_raw = [corr_width]
-    for w in brand_widths:
-        col_widths_raw.extend([w/2, w/2])  # divido tra VECCHIO e NUOVO
-
-    # --- Scaling se supera max_table_width ---
-    total_width = sum(col_widths_raw)
-    base_font_size = 10
-    if total_width > max_table_width:
-        scale = max_table_width / total_width
-        col_widths = [w * scale for w in col_widths_raw]
-        font_size = max(base_font_size * scale, 6)  # minimo 6 pt
-    else:
-        col_widths = col_widths_raw
-        font_size = base_font_size
-
+    # --- Larghezza colonne ---
+    col_widths = [40] + [60] * len(brands) * 2
     t = Table(data, colWidths=col_widths)
 
-    # --- TableStyle ---
+    # --- Stile tabella ---
     style = TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
@@ -535,10 +517,9 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
         ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
         ('BACKGROUND', (0,1), (-1,1), colors.whitesmoke),
         ('SPAN', (0,0), (0,1)),
-        ('FONTSIZE', (0,0), (-1,-1), font_size),
     ])
 
-    # --- SPAN brand ---
+    # --- SPAN per i brand ---
     col_start = 1
     for _ in brands:
         style.add('SPAN', (col_start,0), (col_start+1,0))
@@ -554,7 +535,9 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
     t.setStyle(style)
     elements.append(t)
     doc.build(elements)
+
     return open(file_path, "rb").read()
+
 
     
 # ---------------------------
