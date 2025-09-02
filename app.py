@@ -485,16 +485,12 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
     doc = SimpleDocTemplate(file_path, pagesize=landscape(A4))
     elements = []
 
-    # --- Rilevo i brand ---
     brands = [c.replace("_VECCHIO", "") for c in df_table.columns if "_VECCHIO" in c]
 
-    # --- Header multi-riga ---
     header_row1 = ["CORR"] + [brand for brand in brands for _ in range(2)]
     header_row2 = [""] + ["VECCHIO" if i % 2 == 0 else "NUOVO" for i in range(len(brands)*2)]
-
     data = [header_row1, header_row2]
 
-    # --- Dati ---
     for _, row in df_table.iterrows():
         row_data = [int(row.get("CORR", 0))]
         for brand in brands:
@@ -502,33 +498,38 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
             row_data.append(int(row.get(f"{brand}_NUOVO", 0)))
         data.append(row_data)
 
-    # --- Larghezza automatica delle colonne ---
+    # --- Larghezza dinamica delle colonne ---
     n_cols = len(data[0])
-    col_widths = []
+    col_widths_raw = []
     for col_idx in range(n_cols):
         max_len = max(len(str(data[row_idx][col_idx])) for row_idx in range(len(data)))
-        col_width = min(max_len * 7, max_table_width / n_cols * 2)  # punti per carattere
-        col_widths.append(col_width)
+        col_width = max_len * 7  # punti per carattere
+        col_widths_raw.append(col_width)
+
+    # --- Scaling se supera max_table_width ---
+    total_width = sum(col_widths_raw)
+    if total_width > max_table_width:
+        scale = max_table_width / total_width
+        col_widths = [w * scale for w in col_widths_raw]
+    else:
+        col_widths = col_widths_raw
 
     t = Table(data, colWidths=col_widths)
 
-    # --- Stile tabella ---
     style = TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
         ('BACKGROUND', (0,1), (-1,1), colors.whitesmoke),
-        ('SPAN', (0,0), (0,1)),  # CORR sopra due righe
+        ('SPAN', (0,0), (0,1)),
     ])
 
-    # --- Celle brand unite ---
     col_start = 1
     for _ in brands:
         style.add('SPAN', (col_start,0), (col_start+1,0))
         col_start += 2
 
-    # --- Colori alternati VECCHIO/NUOVO ---
     for i in range(len(brands)):
         col_vecchio = 1 + i*2
         col_nuovo = col_vecchio + 1
@@ -539,6 +540,7 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
     elements.append(t)
     doc.build(elements)
     return open(file_path, "rb").read()
+
     
 # ---------------------------
 # Async
