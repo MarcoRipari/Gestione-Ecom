@@ -1829,6 +1829,10 @@ elif page == "Giacenze - New import":
     st.header("Importa giacenze")
     st.markdown("Importa le giacenze da file CSV.")
 
+    import io
+    import gspread
+    from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
+
     # --- Cartella Drive ---
     folder_id = st.secrets["GIACENZE_FOLDER_ID"]
 
@@ -1851,6 +1855,41 @@ elif page == "Giacenze - New import":
         df_input = read_csv_auto_encoding(csv_import, "\t")
         st.write(df_input)
 
+        # --- Lista colonne numeriche ---
+        numeric_cols_info = {
+            "D": "0",
+            "L": "000",
+            "N": "0",
+            "O": "0",
+        }
+        for i in range(17, 32):  # Q-AE
+            col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
+            numeric_cols_info[col_letter] = "0"
+
+        # Funzione bulletproof: solo numeri diventano float
+        def to_number_safe(x):
+            try:
+                if pd.isna(x) or x == "":
+                    return ""
+                return float(x)
+            except:
+                return str(x)
+
+        for col_letter in numeric_cols_info.keys():
+            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1
+            if df_input.columns.size > col_idx:
+                col_name = df_input.columns[col_idx]
+                df_input[col_name] = df_input[col_name].apply(to_number_safe)
+
+        # Tutte le altre colonne → stringa
+        target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
+        for idx, col_name in enumerate(df_input.columns):
+            if idx not in target_indices:
+                df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
+
+        # Trasforma in lista per Google Sheet
+        data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
+
         # --- Scegli GSheet di destinazione ---
         default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
         usa_altra_dest = st.checkbox("Carica su un Google Sheet diverso?", value=False)
@@ -1859,21 +1898,24 @@ elif page == "Giacenze - New import":
         else:
             sheet_id = default_sheet_id
 
-        if st.button("Importa"):
-            # Trasformazione dati in lista
-            data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
+        sheet = get_sheet(sheet_id, "GIACENZE")
 
-            # Aggiorna il foglio
-            sheets_service.spreadsheets().values().update(
-                spreadsheetId=sheet_id,
-                range=nome_file,
-                valueInputOption="USER_ENTERED",
-                body={"values": data_to_write}
-            ).execute()
+        if st.button("Importa"):
+            sheet.clear()
+            sheet.update("A1", data_to_write)
+            last_row = len(df_input) + 1
+
+            # Prepara la lista di range da formattare
+            ranges_to_format = []
+            for col_letter, pattern in numeric_cols_info.items():
+                ranges_to_format.append(
+                    (f"{col_letter}2:{col_letter}{last_row}",
+                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                )
+            format_cell_ranges(sheet, ranges_to_format)
 
             st.success("✅ Giacenze importate con successo!")
 
-            # Se era un caricamento manuale, carica anche su Drive
+            # Se era caricamento manuale, carica anche su Drive
             if not latest_file:
                 upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
-
