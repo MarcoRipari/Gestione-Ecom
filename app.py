@@ -1746,7 +1746,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     }
 
     st.subheader("Tabella completa per corridoio e marchio")
-    AgGrid(df_table, gridOptions=gridOptions, allow_unsafe_jscode=True, theme="alpine", height=445, fit_columns_on_grid_load=True)
+    AgGrid(df_table, gridOptions=gridOptions, allow_unsafe_jscode=True, theme="streamlit", height=445, fit_columns_on_grid_load=True)
 
     # --- Bottone PDF ---
     with col2:
