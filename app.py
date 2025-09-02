@@ -1692,23 +1692,43 @@ elif page == "Giacenze - Per corridoio/marchio":
 
 
     # --- Costruzione AgGrid columnDefs con colori alternati ---
-    column_defs = [{"headerName":"CORR","headerComponentParams": {
-                    "template": '<div style="text-align:center; width:100%;">CORR</div>'
-                },"field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"}}]
-    for i, brand in enumerate(marchi):
+    #column_defs = [{"headerName":"CORR","headerComponentParams": {
+    #                "template": '<div style="text-align:center; width:100%;">CORR</div>'
+    #            },"field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"}}]
+    #for i, brand in enumerate(marchi):
+    #    column_defs.append({
+    #        "headerName": brand,
+    #        "headerComponentParams": {
+    #            "template": f'<div style="text-align:center; width:100%;">{brand}</div>'
+    #        },
+    #        "children":[
+    #            {"headerName":"VECCHIO","headerComponentParams": {
+    #                "template": '<div style="text-align:center; width:100%;">VECCHIO</div>'
+    #            },"field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"}},
+    #            {"headerName":"NUOVO","headerComponentParams": {
+    #                "template": '<div style="text-align:center; width:100%;">NUOVO</div>'
+    #            },"field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"}}
+    #        ]
+    #    })
+
+    column_defs = [{"headerName":"CORR","field":"CORR","width":60,
+                    "headerComponentParams": {"template": '<div style="text-align:center; width:100%;">CORR</div>'},
+                    "cellStyle":{"textAlign":"center"}}]
+    
+    for brand in marchi:
         column_defs.append({
-            "headerName": brand,
-            "headerComponentParams": {
-                "template": f'<div style="text-align:center; width:100%;">{brand}</div>'
-            },
-            "children":[
-                {"headerName":"VECCHIO","headerComponentParams": {
-                    "template": '<div style="text-align:center; width:100%;">VECCHIO</div>'
-                },"field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"}},
-                {"headerName":"NUOVO","headerComponentParams": {
-                    "template": '<div style="text-align:center; width:100%;">NUOVO</div>'
-                },"field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"}}
-            ]
+            "headerName": f"{brand} - VECCHIO",
+            "field": f"{brand}_VECCHIO",
+            "width": 70,
+            "headerComponentParams": {"template": f'<div style="text-align:center; width:100%;">{brand} VECCHIO</div>'},
+            "cellStyle": {"textAlign":"center","backgroundColor":"#FFF2CC"}
+        })
+        column_defs.append({
+            "headerName": f"{brand} - NUOVO",
+            "field": f"{brand}_NUOVO",
+            "width": 70,
+            "headerComponentParams": {"template": f'<div style="text-align:center; width:100%;">{brand} NUOVO</div>'},
+            "cellStyle": {"textAlign":"center","backgroundColor":"#D9E1F2"}
         })
 
     gridOptions = {
