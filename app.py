@@ -1690,43 +1690,59 @@ elif page == "Giacenze - Per corridoio/marchio":
     df_table = df_table.reset_index().rename(columns={"CORR_NUM":"CORR"})
     df_table = df_table.fillna(0)
 
-    # --- CSS per centrare SOLO gli header (include header group) ---
+    # CSS FORTE per centrare SOLO gli header (group e singoli)
+    # ----------------------------
     st.markdown("""
     <style>
-    /* Header cell (singola colonna) */
-    .ag-header-cell {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-align: center !important;
-    }
-    
-    /* Header cell (gruppo colonne) */
+    /* 1) header cell (singolo) e header group (gruppo) */
+    .ag-header-cell,
     .ag-header-group-cell {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-align: center !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+      padding: 0 4px !important;
     }
     
-    /* Label wrapper (per sicurezza) */
-    .ag-header-cell-label, .ag-header-group-cell-label {
-        width: 100%;
-        justify-content: center !important;
-        text-align: center !important;
+    /* 2) wrapper interno label (diversi nomi usati dalle versioni di ag-grid) */
+    .ag-header-cell-label,
+    .ag-header-group-cell-label,
+    .ag-header-cell .ag-header-cell-label,
+    .ag-header-group-cell .ag-header-group-cell-label {
+      display: flex !important;
+      width: 100% !important;
+      justify-content: center !important;
+      text-align: center !important;
     }
+    
+    /* 3) testo effettivo dell'header (sovrascrive eventuali inline/inline-block) */
+    .ag-header-cell-text,
+    .ag-header-group-cell .ag-header-cell-text,
+    .ag-header-cell .ag-header-cell-text {
+      display: block !important;
+      width: 100% !important;
+      text-align: center !important;
+    }
+    
+    /* 4) fallback: forziamo anche il label container generico */
+    .ag-header .ag-header-cell, .ag-root .ag-header-cell {
+      justify-content: center !important;
+    }
+    
+    /* NON toccare il body delle celle se vuoi loro allineamento differente */
     </style>
     """, unsafe_allow_html=True)
 
+
     # --- Costruzione AgGrid columnDefs con colori alternati ---
-    column_defs = [{"headerName":"CORR","field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"},"headerClass": "ag-center-header"}]
+    column_defs = [{"headerName":"CORR","field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"},"headerClass": "my-center-header"}]
     for i, brand in enumerate(marchi):
         column_defs.append({
             "headerName": brand,
             "headerClass": "ag-center-header",
             "children":[
-                {"headerName":"VECCHIO","field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},"headerClass": "ag-center-header"},
-                {"headerName":"NUOVO","field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},"headerClass": "ag-center-header"}
+                {"headerName":"VECCHIO","field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},"headerClass": "my-center-header"},
+                {"headerName":"NUOVO","field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},"headerClass": "my-center-header"}
             ]
         })
 
@@ -1745,7 +1761,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     }
 
     st.subheader("Tabella completa per corridoio e marchio")
-    AgGrid(df_table, gridOptions=gridOptions, allow_unsafe_jscode=True, theme="streamlit", height=445, fit_columns_on_grid_load=True)
+    AgGrid(df_table, gridOptions=gridOptions, allow_unsafe_jscode=True, height=445, fit_columns_on_grid_load=True)
 
     # --- Bottone PDF ---
     with col2:
