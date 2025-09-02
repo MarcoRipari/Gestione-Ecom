@@ -1916,5 +1916,7 @@ elif page == "Giacenze - New import":
             st.success("✅ Giacenze importate con successo!")
 
             # Se era caricamento manuale, carica anche su Drive
-            if not latest_file:
-                upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
+            #if not latest_file:
+            #    upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
+            upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
+            st.success("✅ File caricato con successo!")
