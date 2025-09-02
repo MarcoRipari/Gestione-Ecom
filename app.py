@@ -1662,7 +1662,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")
     df = df[df["CORR_NUM"].between(1,14)]
     df = df[df["Y"].isin(["1","2","3","4"])]
-    
+
     # --- Normalizzazione marchi ---
     marchi_mapping = {
         "NATURINO CLASSIC":"NATURINO","NATURINO WILD LIFE":"NATURINO","NATURINO ACTIVE":"NATURINO",
@@ -1674,58 +1674,66 @@ elif page == "Giacenze - Per corridoio/marchio":
     }
     df["COLLEZIONE"] = df["COLLEZIONE"].str.strip()
     df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
-    marchi = sorted(df["MARCHIO_STD"].dropna().unique())
-    
+
     # --- Input filtri utente ---
     col1, col2 = st.columns([2,3])
     with col1:
         anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default)
         stagione = st.selectbox("Stagione", options=[1,2], index=[1,2].index(stagione_default))
-    
+
         # --- Filtro Y ---
         st.subheader("Filtra valori colonna Y")
         valori_Y = sorted(df["Y"].unique())
-        cols = st.columns(4)
-        selezione_Y = {v: cols[i%4].checkbox(v, value=True) for i,v in enumerate(valori_Y)}
+        cols_Y = st.columns(4)
+        selezione_Y = {v: cols_Y[i % 4].checkbox(v, value=True) for i,v in enumerate(valori_Y)}
 
         # --- Filtro BRAND ---
         st.subheader("Filtra valori colonna BRAND")
         brands_sorted = sorted(df["MARCHIO_STD"].dropna().unique())
         cols_brand = st.columns(4)
         selezione_brand = {b: cols_brand[i % 4].checkbox(b, value=True) for i, b in enumerate(brands_sorted)}
-        
+
     # --- Applico filtri ---
     df = df[df["Y"].isin([v for v,sel in selezione_Y.items() if sel])]
     df = df[df["MARCHIO_STD"].isin([b for b, sel in selezione_brand.items() if sel])]
 
-    # --- Pivot per tabella piatta ---
+    # --- Pivot per tabella piatta basata sui brand filtrati ---
     df_table = df.groupby(["CORR_NUM","MARCHIO_STD"]).apply(
         lambda x: pd.Series({
             "VECCHIO": x.loc[(x["anno_stag"]<anno)|((x["anno_stag"]==anno)&(x["stag_stag"]<stagione)), "GIAC.UBIC"].sum(),
             "NUOVO": x.loc[(x["anno_stag"]>anno)|((x["anno_stag"]==anno)&(x["stag_stag"]>=stagione)), "GIAC.UBIC"].sum()
         })
     ).reset_index()
+
+    marchi_filtrati = sorted(df_table["MARCHIO_STD"].unique())
+
     df_table = df_table.pivot(index="CORR_NUM", columns="MARCHIO_STD", values=["VECCHIO","NUOVO"])
+    # Ricostruisco solo le colonne dei brand filtrati
+    col_order = []
+    for b in marchi_filtrati:
+        if ("VECCHIO",b) in df_table.columns and ("NUOVO",b) in df_table.columns:
+            col_order.extend([("VECCHIO",b), ("NUOVO",b)])
+    df_table = df_table[col_order]
     df_table.columns = [f"{col[1]}_{col[0]}" for col in df_table.columns]
     df_table = df_table.reset_index().rename(columns={"CORR_NUM":"CORR"})
     df_table = df_table.fillna(0)
 
-
-    #--- Costruzione AgGrid columnDefs con colori alternati ---
-    column_defs = [{"headerName":"CORR","headerComponentParams": {
+    # --- Costruzione AgGrid columnDefs dinamica ---
+    column_defs = [{"headerName":"CORR","headerComponentParams":{
                     "template": '<div style="text-align:center; width:100%;">CORR</div>'
                 },"field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"}}]
-    for i, brand in enumerate(marchi):
+
+    for brand in marchi_filtrati:
         column_defs.append({
             "headerName": brand,
             "headerComponentParams": {
                 "template": f'<div style="text-align:center; width:100%;">{brand}</div>'
             },
             "children":[
-                {"headerName":"VECCHIO","headerComponentParams": {
+                {"headerName":"VECCHIO","headerComponentParams":{
                     "template": '<div style="text-align:center; width:100%;">VECCHIO</div>'
                 },"field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"}},
-                {"headerName":"NUOVO","headerComponentParams": {
+                {"headerName":"NUOVO","headerComponentParams":{
                     "template": '<div style="text-align:center; width:100%;">NUOVO</div>'
                 },"field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"}}
             ]
