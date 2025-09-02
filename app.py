@@ -40,6 +40,8 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from reportlab.lib.pagesizes import landscape
 import html
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 
 logging.basicConfig(level=logging.INFO)
 
@@ -348,6 +350,27 @@ def append_to_sheet(sheet_id, tab, df):
     df = df.fillna("").astype(str)
     values = df.values.tolist()
     sheet.append_rows(values, value_input_option="RAW")  # ✅ chiamata unica
+
+# ---------------------------
+# SetUp Google Drive
+# ---------------------------
+def get_drive():
+    gauth = GoogleAuth()
+    gauth.LocalWebserverAuth()
+    return GoogleDrive(gauth)
+
+def get_latest_file_from_gdrive(folder_id):
+    drive = get_drive()
+    file_list = drive.ListFile(
+        {"q": f"'{folder_id}' in parents and trashed=false"}
+    ).GetList()
+    
+    if not file_list:
+        return None
+    
+    # Ordino per data di modifica
+    latest_file = max(file_list, key=lambda x: x["modifiedDate"])
+    return latest_file
     
 # ---------------------------
 # Funzioni varie
