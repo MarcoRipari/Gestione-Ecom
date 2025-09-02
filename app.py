@@ -39,6 +39,7 @@ import re
 from st_aggrid import AgGrid, GridOptionsBuilder
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from reportlab.lib.pagesizes import landscape
+import html
 
 logging.basicConfig(level=logging.INFO)
 
@@ -1717,9 +1718,10 @@ elif page == "Giacenze - Per corridoio/marchio":
     ]
     
     for brand in marchi:
+        brand_safe = html.escape(brand)
         column_defs.append({
             "headerComponentParams": {
-                "template": f'<div style="text-align:center; width:100%;">{brand}</div>'
+                "template": f'<div style="text-align:center; width:100%;">{brand_safe}</div>'
             },
             "children": [
                 {
