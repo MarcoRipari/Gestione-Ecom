@@ -1690,6 +1690,25 @@ elif page == "Giacenze - Per corridoio/marchio":
     df_table = df_table.reset_index().rename(columns={"CORR_NUM":"CORR"})
     df_table = df_table.fillna(0)
 
+    # --- CSS per centrare SOLO gli header (include header group) ---
+    st.markdown("""
+    <style>
+    /* centra i testi degli header semplici e dei group header */
+    .ag-header-cell-label, .ag-header-group-cell-label,
+    .ag-header-cell-text, .ag-header-group-cell-label .ag-header-cell-text {
+        justify-content: center !important;
+        text-align: center !important;
+    }
+    
+    /* assicurati che la cella header usi flex (per compatibilità) */
+    .ag-header-cell, .ag-header-group-cell {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # --- Costruzione AgGrid columnDefs con colori alternati ---
     column_defs = [{"headerName":"CORR","field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"},"headerClass": "ag-center-header"}]
     for i, brand in enumerate(marchi):
