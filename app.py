@@ -481,42 +481,54 @@ def genera_pdf(df_disp, **param):
     return buffer
 
 # --- Funzione per generare PDF ---
-def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
+def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=780):
     doc = SimpleDocTemplate(file_path, pagesize=landscape(A4))
     elements = []
 
+    # --- Rilevo i brand ---
     brands = [c.replace("_VECCHIO", "") for c in df_table.columns if "_VECCHIO" in c]
 
-    # Header multi-riga
+    # --- Header multi-riga ---
     header_row1 = ["CORR"] + [brand for brand in brands for _ in range(2)]
     header_row2 = [""] + ["VECCHIO" if i % 2 == 0 else "NUOVO" for i in range(len(brands)*2)]
 
     data = [header_row1, header_row2]
+
+    # --- Dati ---
     for _, row in df_table.iterrows():
-        row_data = [int(row.get("CORR", ""))]
+        row_data = [int(row.get("CORR", 0))]
         for brand in brands:
             row_data.append(int(row.get(f"{brand}_VECCHIO", 0)))
             row_data.append(int(row.get(f"{brand}_NUOVO", 0)))
         data.append(row_data)
 
-    col_widths = [40] + [60]*len(brands)*2
+    # --- Larghezza automatica delle colonne ---
+    n_cols = len(data[0])
+    col_widths = []
+    for col_idx in range(n_cols):
+        max_len = max(len(str(data[row_idx][col_idx])) for row_idx in range(len(data)))
+        col_width = min(max_len * 7, max_table_width / n_cols * 2)  # punti per carattere
+        col_widths.append(col_width)
+
     t = Table(data, colWidths=col_widths)
 
+    # --- Stile tabella ---
     style = TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
         ('BACKGROUND', (0,1), (-1,1), colors.whitesmoke),
-        ('SPAN', (0,0), (0,1)),
+        ('SPAN', (0,0), (0,1)),  # CORR sopra due righe
     ])
 
+    # --- Celle brand unite ---
     col_start = 1
     for _ in brands:
         style.add('SPAN', (col_start,0), (col_start+1,0))
         col_start += 2
 
-    # Colori alternati VECCHIO/NUOVO
+    # --- Colori alternati VECCHIO/NUOVO ---
     for i in range(len(brands)):
         col_vecchio = 1 + i*2
         col_nuovo = col_vecchio + 1
