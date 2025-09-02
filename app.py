@@ -1674,66 +1674,59 @@ elif page == "Giacenze - Per corridoio/marchio":
     }
     df["COLLEZIONE"] = df["COLLEZIONE"].str.strip()
     df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
+    marchi = sorted(df["MARCHIO_STD"].dropna().unique())
 
-    # --- Input filtri utente ---
-    col1, col2 = st.columns([2,3])
-    with col1:
-        anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default)
-        stagione = st.selectbox("Stagione", options=[1,2], index=[1,2].index(stagione_default))
+    # --- Layout filtri e input utente ---
+    with st.container():
+        st.subheader("Filtri e parametri")
+        col1, col2 = st.columns([2,3])
+        with col1:
+            anno = st.number_input("Anno", min_value=2000, max_value=2100, value=anno_default)
+            stagione = st.selectbox("Stagione", options=[1,2], index=[1,2].index(stagione_default))
+        with col2:
+            # Filtro Y
+            st.markdown("**Filtra valori colonna Y**")
+            valori_Y = sorted(df["Y"].unique())
+            cols_Y = st.columns(4)
+            selezione_Y = {v: cols_Y[i % 4].checkbox(v, value=True) for i,v in enumerate(valori_Y)}
 
-        # --- Filtro Y ---
-        st.subheader("Filtra valori colonna Y")
-        valori_Y = sorted(df["Y"].unique())
-        cols_Y = st.columns(4)
-        selezione_Y = {v: cols_Y[i % 4].checkbox(v, value=True) for i,v in enumerate(valori_Y)}
-
-        # --- Filtro BRAND ---
-        st.subheader("Filtra valori colonna BRAND")
-        brands_sorted = sorted(df["MARCHIO_STD"].dropna().unique())
-        cols_brand = st.columns(4)
-        selezione_brand = {b: cols_brand[i % 4].checkbox(b, value=True) for i, b in enumerate(brands_sorted)}
+            # Filtro BRAND
+            st.markdown("**Filtra valori colonna BRAND**")
+            brands_sorted = sorted(df["MARCHIO_STD"].dropna().unique())
+            cols_brand = st.columns(4)
+            selezione_brand = {b: cols_brand[i % 4].checkbox(b, value=True) for i, b in enumerate(brands_sorted)}
 
     # --- Applico filtri ---
-    df = df[df["Y"].isin([v for v,sel in selezione_Y.items() if sel])]
+    df = df[df["Y"].isin([v for v, sel in selezione_Y.items() if sel])]
     df = df[df["MARCHIO_STD"].isin([b for b, sel in selezione_brand.items() if sel])]
 
-    # --- Pivot per tabella piatta basata sui brand filtrati ---
+    # --- Pivot per tabella piatta ---
     df_table = df.groupby(["CORR_NUM","MARCHIO_STD"]).apply(
         lambda x: pd.Series({
             "VECCHIO": x.loc[(x["anno_stag"]<anno)|((x["anno_stag"]==anno)&(x["stag_stag"]<stagione)), "GIAC.UBIC"].sum(),
             "NUOVO": x.loc[(x["anno_stag"]>anno)|((x["anno_stag"]==anno)&(x["stag_stag"]>=stagione)), "GIAC.UBIC"].sum()
         })
     ).reset_index()
-
-    marchi_filtrati = sorted(df_table["MARCHIO_STD"].unique())
-
     df_table = df_table.pivot(index="CORR_NUM", columns="MARCHIO_STD", values=["VECCHIO","NUOVO"])
-    # Ricostruisco solo le colonne dei brand filtrati
-    col_order = []
-    for b in marchi_filtrati:
-        if ("VECCHIO",b) in df_table.columns and ("NUOVO",b) in df_table.columns:
-            col_order.extend([("VECCHIO",b), ("NUOVO",b)])
-    df_table = df_table[col_order]
     df_table.columns = [f"{col[1]}_{col[0]}" for col in df_table.columns]
     df_table = df_table.reset_index().rename(columns={"CORR_NUM":"CORR"})
     df_table = df_table.fillna(0)
 
-    # --- Costruzione AgGrid columnDefs dinamica ---
-    column_defs = [{"headerName":"CORR","headerComponentParams":{
-                    "template": '<div style="text-align:center; width:100%;">CORR</div>'
-                },"field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"}}]
-
-    for brand in marchi_filtrati:
+    # --- Costruzione AgGrid columnDefs con colori alternati ---
+    column_defs = [{"headerName":"CORR","headerComponentParams": {
+                        "template": '<div style="text-align:center; width:100%;">CORR</div>'
+                    },"field":"CORR","width":60,"pinned":"left","cellStyle":{"textAlign":"center"}}]
+    for i, brand in enumerate(marchi):
         column_defs.append({
             "headerName": brand,
             "headerComponentParams": {
                 "template": f'<div style="text-align:center; width:100%;">{brand}</div>'
             },
             "children":[
-                {"headerName":"VECCHIO","headerComponentParams":{
+                {"headerName":"VECCHIO","headerComponentParams": {
                     "template": '<div style="text-align:center; width:100%;">VECCHIO</div>'
                 },"field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"}},
-                {"headerName":"NUOVO","headerComponentParams":{
+                {"headerName":"NUOVO","headerComponentParams": {
                     "template": '<div style="text-align:center; width:100%;">NUOVO</div>'
                 },"field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"}}
             ]
@@ -1753,17 +1746,29 @@ elif page == "Giacenze - Per corridoio/marchio":
         "domLayout":"normal","suppressHorizontalScroll":False
     }
 
+    # --- Visualizzazione tabella ---
     st.subheader("Tabella completa per corridoio e marchio")
     AgGrid(df_table, gridOptions=gridOptions, allow_unsafe_jscode=True, height=445, fit_columns_on_grid_load=True)
 
-    # --- Bottone PDF ---
-    with col2:
-        st.download_button(
-            label="📥 Scarica PDF",
-            data=genera_pdf_aggrid(df_table),
-            file_name="giac_corridoio_marchio.pdf",
-            mime="application/pdf"
-        )
+    # --- Bottone PDF e CSV in un container separato ---
+    with st.container():
+        st.subheader("Download")
+        col_pdf, col_csv = st.columns(2)
+        with col_pdf:
+            st.download_button(
+                label="📥 Scarica PDF",
+                data=genera_pdf_aggrid(df_table),
+                file_name="giac_corridoio_marchio.pdf",
+                mime="application/pdf"
+            )
+        with col_csv:
+            st.download_button(
+                label="📥 Scarica CSV",
+                data=df_table.to_csv(index=False).encode("utf-8"),
+                file_name="giac_corridoio_marchio.csv",
+                mime="text/csv"
+            )
+
 
     
 elif page == "Logout":
