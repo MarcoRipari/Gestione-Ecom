@@ -1696,7 +1696,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     for i, brand in enumerate(marchi):
         column_defs.append({
             "headerName": brand,
-            "headerClass": "ag-center-header",
+            "headerClass": "center-header",
             "children":[
                 {"headerName":"VECCHIO","field":f"{brand}_VECCHIO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},"headerClass": "center-header"},
                 {"headerName":"NUOVO","field":f"{brand}_NUOVO","width":70,"cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},"headerClass": "center-header"}
@@ -1712,7 +1712,7 @@ elif page == "Giacenze - Per corridoio/marchio":
             "wrapText":False,
             "autoHeight":True,
             "lockPosition":True,
-            "cellStyle":{"textAlign":"center"},
+            "cellStyle":{"textAlign":"center"}
         },
         "domLayout":"normal","suppressHorizontalScroll":False
     }
