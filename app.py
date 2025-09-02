@@ -487,12 +487,12 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
 
     brands = [c.replace("_VECCHIO", "") for c in df_table.columns if "_VECCHIO" in c]
 
-    # Header multi-riga
+    # --- Header multi-riga ---
     header_row1 = ["CORR"] + [brand for brand in brands for _ in range(2)]
     header_row2 = [""] + ["VECCHIO" if i % 2 == 0 else "NUOVO" for i in range(len(brands)*2)]
     data = [header_row1, header_row2]
 
-    # Popolo dati
+    # --- Righe dati ---
     for _, row in df_table.iterrows():
         row_data = [int(row.get("CORR", 0))]
         for brand in brands:
@@ -500,24 +500,34 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
             row_data.append(int(row.get(f"{brand}_NUOVO", 0)))
         data.append(row_data)
 
-    # --- Larghezza colonne ---
-    col_widths = [40]  # CORR fissa
-    VEC_NUOVO_WIDTH = 120  # larghezza totale VECCHIO+NUOVO
+    # --- Calcolo larghezze colonne ---
+    corr_width = 40
+    vecchio_nuovo_width = 80  # larghezza fissa per VECCHIO + NUOVO
+    brand_widths = []
 
     for brand in brands:
-        # larghezza nome brand dinamica
-        w_brand = max(len(brand) * 10, VEC_NUOVO_WIDTH)  # almeno 80 punti
-        col_widths.append(w_brand / 2)  # VECCHIO
-        col_widths.append(w_brand / 2)  # NUOVO
+        nome_len = max(len(brand), 2)  # almeno 2 caratteri
+        w = max(nome_len * 7, vecchio_nuovo_width)  # 7 pt per carattere, min 80
+        brand_widths.append(w)
 
-    # Scaling se supera max_table_width
-    total_width = sum(col_widths)
+    col_widths_raw = [corr_width]
+    for w in brand_widths:
+        col_widths_raw.extend([w/2, w/2])  # divido tra VECCHIO e NUOVO
+
+    # --- Scaling se supera max_table_width ---
+    total_width = sum(col_widths_raw)
+    base_font_size = 10
     if total_width > max_table_width:
         scale = max_table_width / total_width
-        col_widths = [w * scale for w in col_widths]
+        col_widths = [w * scale for w in col_widths_raw]
+        font_size = max(base_font_size * scale, 6)  # minimo 6 pt
+    else:
+        col_widths = col_widths_raw
+        font_size = base_font_size
 
     t = Table(data, colWidths=col_widths)
 
+    # --- TableStyle ---
     style = TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
@@ -525,15 +535,16 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
         ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
         ('BACKGROUND', (0,1), (-1,1), colors.whitesmoke),
         ('SPAN', (0,0), (0,1)),
+        ('FONTSIZE', (0,0), (-1,-1), font_size),
     ])
 
-    # Span brand
+    # --- SPAN brand ---
     col_start = 1
     for _ in brands:
         style.add('SPAN', (col_start,0), (col_start+1,0))
         col_start += 2
 
-    # Colori alternati VECCHIO/NUOVO
+    # --- Colori alternati VECCHIO/NUOVO ---
     for i in range(len(brands)):
         col_vecchio = 1 + i*2
         col_nuovo = col_vecchio + 1
