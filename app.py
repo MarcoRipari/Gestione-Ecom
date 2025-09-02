@@ -1699,8 +1699,8 @@ elif page == "Giacenze - Per corridoio/marchio":
         column_defs.append({
             "headerName": brand,
             "headerComponentParams": {
-                    "template": f"<div style="text-align:center; width:100%;">{brand}</div>"
-                },
+                "template": f'<div style="text-align:center; width:100%;">{brand}</div>'
+            },
             "headerClass": "center-header",
             "children":[
                 {"headerName":"VECCHIO","headerComponentParams": {
