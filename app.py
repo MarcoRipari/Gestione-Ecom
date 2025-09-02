@@ -1711,24 +1711,39 @@ elif page == "Giacenze - Per corridoio/marchio":
     #        ]
     #    })
 
-    column_defs = [{"headerName":"CORR","field":"CORR","width":60,
-                    "headerComponentParams": {"template": '<div style="text-align:center; width:100%;">CORR</div>'},
-                    "cellStyle":{"textAlign":"center"}}]
+    column_defs = [
+        {"headerName":"CORR","field":"CORR","width":60,
+         "pinned":"left",
+         "cellStyle":{"textAlign":"center"},
+         "headerComponentParams":{"template": '<div style="text-align:center; width:100%;">CORR</div>'}}
+    ]
     
     for brand in marchi:
         column_defs.append({
-            "headerName": f"{brand} - VECCHIO",
-            "field": f"{brand}_VECCHIO",
-            "width": 70,
-            "headerComponentParams": {"template": f'<div style="text-align:center; width:100%;">{brand} VECCHIO</div>'},
-            "cellStyle": {"textAlign":"center","backgroundColor":"#FFF2CC"}
-        })
-        column_defs.append({
-            "headerName": f"{brand} - NUOVO",
-            "field": f"{brand}_NUOVO",
-            "width": 70,
-            "headerComponentParams": {"template": f'<div style="text-align:center; width:100%;">{brand} NUOVO</div>'},
-            "cellStyle": {"textAlign":"center","backgroundColor":"#D9E1F2"}
+            "headerName": brand,
+            "headerComponentParams": {
+                "template": f'<div style="text-align:center; width:100%;">{brand}</div>'
+            },
+            "children":[
+                {
+                    "headerName":"VECCHIO",
+                    "field":f"{brand}_VECCHIO",
+                    "width":70,
+                    "cellStyle":{"textAlign":"center","backgroundColor":"#FFF2CC"},
+                    "headerComponentParams":{
+                        "template": '<div style="text-align:center; width:100%;">VECCHIO</div>'
+                    }
+                },
+                {
+                    "headerName":"NUOVO",
+                    "field":f"{brand}_NUOVO",
+                    "width":70,
+                    "cellStyle":{"textAlign":"center","backgroundColor":"#D9E1F2"},
+                    "headerComponentParams":{
+                        "template": '<div style="text-align:center; width:100%;">NUOVO</div>'
+                    }
+                }
+            ]
         })
 
     gridOptions = {
