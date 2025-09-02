@@ -42,6 +42,7 @@ from reportlab.lib.pagesizes import landscape
 import html
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+from googleapiclient.discovery import build
 
 logging.basicConfig(level=logging.INFO)
 
@@ -355,33 +356,31 @@ def append_to_sheet(sheet_id, tab, df):
 # SetUp Google Drive
 # ---------------------------
 def get_drive():
-    # Usa le credenziali dal secrets
-    gauth = GoogleAuth()
-    gauth.settings["client_config_backend"] = "service"
-    gauth.settings["service_config"] = {
-        "client_json_file_path": "service_account.json"
-    }
+    """
+    Restituisce il servizio Google Drive autenticato con service account.
+    """
+    return build("drive", "v3", credentials=credentials)
 
-    # Scriviamo il file temporaneo con le credenziali
-    with open("service_account.json", "w") as f:
-        f.write(json.dumps(st.secrets["GCP_SERVICE_ACCOUNT"]))
-
-    gauth.ServiceAuth()  # autenticazione con service account
-    drive = GoogleDrive(gauth)
-    return drive
 
 def get_latest_file_from_gdrive(folder_id):
-    drive = get_drive()
-    file_list = drive.ListFile(
-        {"q": f"'{folder_id}' in parents and trashed=false"}
-    ).GetList()
-    
-    if not file_list:
+    """
+    Restituisce il file più recente in una cartella Drive (basato su modifiedTime).
+    """
+    drive_service = get_drive()
+
+    query = f"'{folder_id}' in parents and trashed=false"
+    results = drive_service.files().list(
+        q=query,
+        orderBy="modifiedTime desc",
+        pageSize=1,
+        fields="files(id, name, modifiedTime)"
+    ).execute()
+
+    files = results.get("files", [])
+    if not files:
         return None
-    
-    # Ordino per data di modifica
-    latest_file = max(file_list, key=lambda x: x["modifiedDate"])
-    return latest_file
+
+    return files[0]  # il più recente
     
 # ---------------------------
 # Funzioni varie
