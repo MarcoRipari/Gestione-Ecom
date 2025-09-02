@@ -13,6 +13,8 @@ huggingface_hub
 # 📊 Google Sheets API (autenticazione tramite service_account)
 gspread
 google-auth
+google-auth-oauthlib
+google-auth-httplib2
 google-api-python-client
 gspread-formatting
 
