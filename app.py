@@ -505,25 +505,14 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
         data.append(row_data)
 
     # --- Larghezza colonne ---
-    n_cols = len(data[0])
     col_widths = [40]  # CORR fissa
+    VEC_NUOVO_WIDTH = 80  # larghezza totale per VECCHIO+NUOVO (40+40)
 
     for i, brand in enumerate(brands):
-        col_vecchio_idx = 1 + i*2
-        col_nuovo_idx = col_vecchio_idx + 1
-
         # larghezza nome brand
-        w_brand = len(brand) * 7 + 10  # punti per carattere + padding
-
-        # larghezza valori vecchio/nuovo
-        max_vecchio = max(len(str(data[r][col_vecchio_idx])) for r in range(2, len(data)))
-        max_nuovo = max(len(str(data[r][col_nuovo_idx])) for r in range(2, len(data)))
-        w_vals = (max_vecchio + max_nuovo) * 7 + 10  # somma + padding
-
-        # larghezza finale per brand
-        total_w = max(w_brand, w_vals)
-        col_widths.append(total_w / 2)  # VECCHIO
-        col_widths.append(total_w / 2)  # NUOVO
+        w_brand = max(len(brand) * 7 + 10, VEC_NUOVO_WIDTH)  # almeno 80 punti
+        col_widths.append(w_brand / 2)  # VECCHIO
+        col_widths.append(w_brand / 2)  # NUOVO
 
     # scaling se necessario
     total_width = sum(col_widths)
@@ -559,7 +548,6 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
     elements.append(t)
     doc.build(elements)
     return open(file_path, "rb").read()
-
 
     
 # ---------------------------
