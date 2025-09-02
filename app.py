@@ -1662,6 +1662,16 @@ elif page == "Giacenze - Per corridoio/marchio":
     df["CORR_NUM"] = pd.to_numeric(df["CORR"], errors="coerce")
     df = df[df["CORR_NUM"].between(1,14)]
     df = df[df["Y"].isin(["1","2","3","4"])]
+    
+    # --- Normalizzazione marchi ---
+    marchi_mapping = {
+        "NATURINO CLASSIC":"NATURINO","NATURINO WILD LIFE":"NATURINO","NATURINO ACTIVE":"NATURINO",
+        "FLOWER M.BY NATURINO":"FM FOR NATURINO","FLOWER MOUNTAIN":"FLOWER MOUNTAIN","VOILE BLANCHE":"VOILE BLANCHE",
+        "NATURINO BAREFOOT":"NATURINO","FALCOTTO ACTIVE":"FALCOTTO","FALCOTTO CLASSIC":"FALCOTTO",
+        "NATURINO EASY":"NATURINO","NATURINO COCOON":"NATURINO","FALCOTTO SNEAKERS":"FALCOTTO",
+        "NATURINO SNEAKERS":"NATURINO","W6YZ Adulto":"W6YZ Adulto","W6YZ Bimbo":"W6YZ Bimbo",
+        "NATURINO OUTDOOR":"NATURINO","Candice Cooper":"Candice Cooper","NATURINO BABY":"NATURINO","C N R":"C N R"
+    }
     df["COLLEZIONE"] = df["COLLEZIONE"].str.strip()
     df["MARCHIO_STD"] = df["COLLEZIONE"].map(marchi_mapping)
     marchi = sorted(df["MARCHIO_STD"].dropna().unique())
@@ -1687,16 +1697,6 @@ elif page == "Giacenze - Per corridoio/marchio":
     # --- Applico filtri ---
     df = df[df["Y"].isin([v for v,sel in selezione_Y.items() if sel])]
     df = df[df["MARCHIO_STD"].isin([b for b, sel in selezione_brand.items() if sel])]
-
-    # --- Normalizzazione marchi ---
-    marchi_mapping = {
-        "NATURINO CLASSIC":"NATURINO","NATURINO WILD LIFE":"NATURINO","NATURINO ACTIVE":"NATURINO",
-        "FLOWER M.BY NATURINO":"FM FOR NATURINO","FLOWER MOUNTAIN":"FLOWER MOUNTAIN","VOILE BLANCHE":"VOILE BLANCHE",
-        "NATURINO BAREFOOT":"NATURINO","FALCOTTO ACTIVE":"FALCOTTO","FALCOTTO CLASSIC":"FALCOTTO",
-        "NATURINO EASY":"NATURINO","NATURINO COCOON":"NATURINO","FALCOTTO SNEAKERS":"FALCOTTO",
-        "NATURINO SNEAKERS":"NATURINO","W6YZ Adulto":"W6YZ Adulto","W6YZ Bimbo":"W6YZ Bimbo",
-        "NATURINO OUTDOOR":"NATURINO","Candice Cooper":"Candice Cooper","NATURINO BABY":"NATURINO","C N R":"C N R"
-    }
 
     # --- Pivot per tabella piatta ---
     df_table = df.groupby(["CORR_NUM","MARCHIO_STD"]).apply(
