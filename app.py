@@ -482,10 +482,6 @@ def genera_pdf(df_disp, **param):
 
 # --- Funzione per generare PDF ---
 def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=780):
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-    from reportlab.lib.pagesizes import landscape, A4
-    from reportlab.lib import colors
-
     doc = SimpleDocTemplate(file_path, pagesize=landscape(A4))
     elements = []
 
@@ -506,11 +502,11 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf", max_table_width=
 
     # --- Larghezza colonne ---
     col_widths = [40]  # CORR fissa
-    VEC_NUOVO_WIDTH = 100  # larghezza totale VECCHIO+NUOVO
+    VEC_NUOVO_WIDTH = 120  # larghezza totale VECCHIO+NUOVO
 
     for brand in brands:
         # larghezza nome brand dinamica
-        w_brand = max(len(brand) * 7, VEC_NUOVO_WIDTH)  # almeno 80 punti
+        w_brand = max(len(brand) * 10, VEC_NUOVO_WIDTH)  # almeno 80 punti
         col_widths.append(w_brand / 2)  # VECCHIO
         col_widths.append(w_brand / 2)  # NUOVO
 
