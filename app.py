@@ -1894,7 +1894,7 @@ elif page == "Giacenze - New import":
     options = ["Manuale", "UBIC", "PIM"]
     
     selected = option_menu(
-        menu_title=None,  # niente titolo
+        menu_title=None,
         options=options,
         default_index=0,
         orientation="horizontal",
@@ -1908,19 +1908,21 @@ elif page == "Giacenze - New import":
             "nav-link": {
                 "font-size": "16px",
                 "text-align": "center",
-                "margin": "5px 5px 5px 5px",  # margini uniformi
-                "padding": "10px 20px",       # padding uniforme verticale e orizzontale
-                "line-height": "normal",      # mantiene testo centrato verticalmente
+                "margin": "5px",              # margine uniforme
+                "padding": "10px 20px",       # padding uguale per tutti
+                "line-height": "normal",
+                "min-height": "0px",
+                "box-sizing": "border-box",   # include bordi nel calcolo dell’altezza
                 "--hover-color": "#e0e0e0",
-                "min-height": "0px",          # evita margine extra sotto
             },
             "nav-link-selected": {
                 "background-color": "#4CAF50",
                 "color": "white",
                 "border": "2px solid #cccccc",
                 "border-radius": "10px",
-                "padding": "10px 20px",
+                "padding": "10px 20px",       # stesso padding del non selezionato
                 "line-height": "normal",
+                "box-sizing": "border-box",   # evita aumento altezza dovuto al bordo
             },
         }
     )
