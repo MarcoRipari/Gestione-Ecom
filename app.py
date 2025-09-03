@@ -1694,9 +1694,14 @@ elif page == "Giacenze - Importa giacenze":
     if nome_file == "Manuale":
         uploaded_file = st.file_uploader("Carica un file CSV manualmente", type="csv", key="uploader_manual")
         if uploaded_file:
+            if ("uploaded_file_name" not in st.session_state) or (st.session_state.uploaded_file_name != uploaded_file.name):
+                st.session_state.uploaded_file_name = uploaded_file.name
+                st.session_state.df_input = None  # resetta DataFrame se file nuovo
+                st.session_state.uploaded_file_bytes = uploaded_file.getvalue()
+                uploaded_file.seek(0)
+                
             csv_import = uploaded_file
-            file_bytes_for_upload = uploaded_file.getvalue()
-            uploaded_file.seek(0)
+            file_bytes_for_upload = st.session_state.uploaded_file_bytes
             manual_nome_file = uploaded_file.name
     else:
         if st.session_state.downloaded_file is None:
@@ -1716,8 +1721,8 @@ elif page == "Giacenze - Importa giacenze":
             st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
 
     if csv_import:
-        if st.session_state.df_input is None:
-            with st.spinner("Carico CSV..."):
+        if st.session_state.df_input is None and csv_import is not None::
+            with st.spinner("Carico il CSV..."):
                 st.session_state.df_input = read_csv_auto_encoding(csv_import, "\t")
 
         df_input = st.session_state.df_input
