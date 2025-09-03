@@ -786,7 +786,7 @@ with st.sidebar:
         )
 
         # Rimuovo icone/emoji per gestire page name
-        main_page_name = main_page.split(' ', 1)[1]
+        #main_page_name = main_page.split(' ', 1)[1]
 
         page = main_page_name  # default
 
@@ -795,6 +795,7 @@ with st.sidebar:
             sub_page = option_menu(
                 menu_title=None,
                 options=["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "🫳🏻 Aggiungi prelevate"],
+                icons=["gear","repeat","plus","books","add"],
                 default_index=0,
                 orientation="vertical",
                 styles={
