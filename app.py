@@ -1892,37 +1892,38 @@ elif page == "Giacenze - New import":
     #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
     options = ["Manuale", "UBIC", "PIM"]
 
-    # Inizializza lo stato della selezione
+    # Inizializza lo stato
     if "selected_option" not in st.session_state:
         st.session_state.selected_option = options[0]
     
-    # Crea le colonne per i pulsanti
     cols = st.columns(len(options))
     
     for i, option in enumerate(options):
-        # Cambia colore se selezionato
+        # Colore personalizzato se selezionato
         color = "#4CAF50" if st.session_state.selected_option == option else "#f0f0f0"
         text_color = "white" if st.session_state.selected_option == option else "black"
-        
-        # Creiamo un "pulsante" colorato con markdown
-        if cols[i].markdown(
+    
+        # Mostra il "pulsante" colorato con markdown
+        cols[i].markdown(
             f"""
             <div style="
-                text-align:center; 
-                padding:10px 20px; 
-                border-radius:25px; 
-                background-color:{color}; 
-                color:{text_color}; 
-                cursor:pointer; 
+                text-align:center;
+                padding:10px 20px;
+                border-radius:25px;
+                background-color:{color};
+                color:{text_color};
                 font-weight:bold;">
                 {option}
             </div>
             """,
             unsafe_allow_html=True
-        ):
-            st.session_state.selected_option = option
+        )
     
-    # Mostra la selezione corrente
+        # Pulsante invisibile per catturare il click
+        if cols[i].button("", key=f"btn_{option}", help=f"Seleziona {option}"):
+            st.session_state.selected_option = option
+            st.experimental_rerun()  # Aggiorna subito il colore
+    
     st.write("Hai selezionato:", st.session_state.selected_option)
             
 
