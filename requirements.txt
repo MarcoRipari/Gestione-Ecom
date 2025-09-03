@@ -45,7 +45,6 @@ streamlit-ace
 st-tailwind
 streamlit-elements
 streamlit-modal
-st-raw-components
 stqdm
 plotly
 plotly-express
