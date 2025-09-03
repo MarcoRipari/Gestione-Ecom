@@ -1,19 +1,6 @@
-"""
-Streamlit Pro UI/UX Template – Refined Professional Edition
-===========================================================
-
-Sidebar Status Card Fix ✅
-- Now metrics are displayed *inside* the white status card.
-- Cleaner, corporate-friendly layout.
-
-"""
-
 from __future__ import annotations
-import time
-from datetime import datetime
-from dataclasses import dataclass
-
 import streamlit as st
+from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 
@@ -22,155 +9,68 @@ try:
 except Exception:
     option_menu = None
 
-st.set_page_config(
-    page_title="Pro Business App",
-    page_icon="💼",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-# Tailwind injection
-TAILWIND_CDN = "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-
-st.markdown(
-    f"""
-    <link rel="stylesheet" href="{TAILWIND_CDN}">
-    <style>
-        body {{ background-color: #f9fafb; }}
-        .topbar {{
-            background: linear-gradient(90deg, #111827, #1f2937);
-            color: #f9fafb;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.8rem 1.5rem;
-            border-bottom: 1px solid #2d3748;
-        }}
-        .topbar-title {{
-            font-size: 1.25rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }}
-        .brand-logo {{ width: 28px; height: 28px; }}
-        .status-chip {{
-            background: #10b981;
-            color: white;
-            font-size: 0.75rem;
-            padding: 2px 10px;
-            border-radius: 999px;
-        }}
-        .sidebar-card {{
-            background: white;
-            border-radius: 12px;
-            padding: 1rem;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            margin-bottom: 1rem;
-        }}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+st.set_page_config(page_title="Pro Business App", page_icon="💼", layout="wide")
 
 # Demo data
 np.random.seed(42)
-demo_df = pd.DataFrame({
-    "SKU": [f"SKU-{i:04d}" for i in range(1, 51)],
-    "Brand": np.random.choice(["Aurora", "Nimbus", "Solace"], 50),
-    "Price": np.random.uniform(39, 199, 50).round(2),
-    "Stock": np.random.randint(0, 500, 50),
-    "Updated": pd.Timestamp("2025-08-25") + pd.to_timedelta(np.random.randint(0, 7, 50), unit="D"),
-})
+demo_df = pd.DataFrame({"SKU": [f"SKU-{i:04d}" for i in range(1, 51)],
+                        "Brand": np.random.choice(["Aurora", "Nimbus", "Solace"], 50),
+                        "Price": np.random.uniform(39,199,50).round(2),
+                        "Stock": np.random.randint(0,500,50)})
 
 @dataclass
 class User:
     name: str
     role: str = "viewer"
-    avatar_url: str = "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-
-def get_user() -> User | None:
-    return st.session_state.get("user")
-
-def set_user(name: str, role: str = "viewer"):
-    st.session_state["user"] = User(name=name, role=role)
 
 # Topbar
+
 def topbar():
-    st.markdown(
-        """
-        <div class="topbar">
-            <div class="topbar-title">
-                <img src="https://cdn-icons-png.flaticon.com/512/3652/3652191.png" alt="logo" class="brand-logo" />
+    st.markdown("""
+        <div style='display:flex;justify-content:space-between;align-items:center;padding:0.8rem 1.5rem;background:#1f2937;color:white;'>
+            <div style='display:flex;align-items:center;gap:0.6rem;font-weight:600;'>
+                <img src='https://cdn-icons-png.flaticon.com/512/3652/3652191.png' width='28' height='28'/>
                 <span>Pro Business App</span>
-                <span class="status-chip">beta</span>
             </div>
-            <div>
-                <input type="text" placeholder="Search…" style="padding:6px 10px;border-radius:8px;border:1px solid #374151;background:#1f2937;color:#f9fafb;" />
-            </div>
+            <input type='text' placeholder='Search…' style='padding:6px 10px;border-radius:8px;border:none;background:#374151;color:white;' />
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
 
-# Sidebar
-def sidebar_menu() -> str:
+# Sidebar with submenu support
+
+def sidebar_menu():
     with st.sidebar:
-        st.markdown("<div class='sidebar-card'><h3 style='margin:0;'>Navigation</h3></div>", unsafe_allow_html=True)
-        if option_menu:
-            selected = option_menu(
-                menu_title="",
-                options=["Dashboard", "Data", "Editor", "Chat", "Media", "Settings", "About"],
-                icons=["speedometer2", "table", "code", "chat-dots", "camera-video", "gear", "info-circle"],
+        st.write("### Navigation")
+        main_menu = option_menu(
+            menu_title=None,
+            options=["Dashboard", "Data", "Editor", "Chat", "Media", "Settings", "About"],
+            icons=["speedometer2", "table", "code", "chat-dots", "camera-video", "gear", "info-circle"],
+            default_index=0,
+            styles={"nav-link-selected": {"background-color": "#2563eb", "color": "white"}}
+        )
+
+        # Example of submenus
+        if main_menu == "Data":
+            submenu = option_menu(
+                menu_title="Data Options",
+                options=["Overview", "Analytics", "Export"],
+                icons=["eye", "bar-chart", "download"],
                 default_index=0,
-                styles={
-                    "container": {"padding": "0!important"},
-                    "nav-link": {"font-size": "14px", "text-align": "left", "margin":"2px 0"},
-                    "icon": {"font-size": "16px"},
-                    "nav-link-selected": {"background-color": "#2563eb", "color": "white"},
-                },
+                orientation="vertical",
+                styles={"nav-link-selected": {"background-color": "#10b981", "color": "white"}}
             )
-        else:
-            selected = st.selectbox("Navigation", ["Dashboard", "Data", "Editor", "Chat", "Media", "Settings", "About"])
+            return main_menu, submenu
+        return main_menu, None
 
-        st.markdown("<div class='sidebar-card'><h4>Status</h4>", unsafe_allow_html=True)
-        c1, c2 = st.columns(2)
-        with c1:
-            st.metric("Users", "128", "+3")
-        with c2:
-            st.metric("Jobs", "512", "+12")
-        st.markdown("</div>", unsafe_allow_html=True)
+# Pages placeholders
 
-        return selected
-
-# Pages
-def page_dashboard():
-    st.subheader("Dashboard")
-    st.info("This is a professional dashboard placeholder.")
-
-def page_data():
-    st.subheader("Data")
-    st.dataframe(demo_df, use_container_width=True)
-
-def page_editor():
-    st.subheader("Editor")
-    st.text_area("Editor", "# Write something...", height=200)
-
-def page_chat():
-    st.subheader("Chat")
-    st.text_input("Type a message")
-
-def page_media():
-    st.subheader("Media")
-    st.warning("WebRTC disabled in demo.")
-
-def page_settings():
-    st.subheader("Settings")
-    st.text_input("Workspace name")
-
-def page_about():
-    st.subheader("About")
-    st.write("Professional App Template – clean, modern and extensible.")
+def page_dashboard(): st.subheader("Dashboard")
+def page_data(submenu=None): st.subheader(f"Data - {submenu or 'Overview'}")
+def page_editor(): st.subheader("Editor")
+def page_chat(): st.subheader("Chat")
+def page_media(): st.subheader("Media")
+def page_settings(): st.subheader("Settings")
+def page_about(): st.subheader("About")
 
 PAGE_MAP = {
     "Dashboard": page_dashboard,
@@ -183,13 +83,14 @@ PAGE_MAP = {
 }
 
 # Main
+
 def main():
     topbar()
-    page = sidebar_menu()
-    with st.container():
-        PAGE_MAP.get(page, page_dashboard)()
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.caption(f"© {datetime.now().year} Pro Business App. Built with Streamlit.")
+    page, submenu = sidebar_menu()
+    if page == "Data":
+        PAGE_MAP[page](submenu)
+    else:
+        PAGE_MAP[page]()
 
 if __name__ == "__main__":
     main()
