@@ -2033,7 +2033,7 @@ elif page == "Giacenze - New import":
     last_update = None
 
     dbx = get_dropbox_client()
-    folder_path = f"/GIACENZE/{nome_file}"
+    folder_path = "/GIACENZE/"
 
     if nome_file == "Manuale":
         uploaded_file = st.file_uploader("Carica un file CSV manualmente", type="csv", key="uploader_manual")
@@ -2041,6 +2041,7 @@ elif page == "Giacenze - New import":
             csv_import = uploaded_file
             file_bytes_for_upload = uploaded_file.getvalue()
             uploaded_file.seek(0)
+            manual_nome_file = uploaded_file.name
     else:
         latest_file = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
         if latest_file:
@@ -2103,4 +2104,4 @@ elif page == "Giacenze - New import":
 
             # Upload su Drive solo se è Manuale e abbiamo dati
             if nome_file == "Manuale" and file_bytes_for_upload:
-                upload_csv_to_dropbox(dbx, folder_path, f"{nome_file}.csv", file_bytes_for_upload)
+                upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}.csv", file_bytes_for_upload)
