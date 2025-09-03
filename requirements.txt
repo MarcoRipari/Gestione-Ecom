@@ -37,3 +37,4 @@ tenacity
 dropbox
 reportlab
 streamlit-aggrid
+python-dateutil
