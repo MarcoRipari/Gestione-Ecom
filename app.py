@@ -1895,6 +1895,7 @@ elif page == "Giacenze - New import":
     
     selected = option_menu(
         menu_title=None,
+        menu_icon="Cast",
         options=options,
         default_index=0,
         orientation="horizontal",
@@ -1906,7 +1907,6 @@ elif page == "Giacenze - New import":
                 "justify-content": "center",
             },
             "nav-link": {
-                "menu-icon": "",
                 "font-size": "16px",
                 "text-align": "center",
                 "margin": "5px",
@@ -1922,7 +1922,6 @@ elif page == "Giacenze - New import":
                 "before": "none",  # rimuove la freccia prima del nome
             },
             "nav-link-selected": {
-                "menu-icon": "",
                 "background-color": "#4CAF50",
                 "color": "white",
                 "border": "2px solid #cccccc",
