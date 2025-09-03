@@ -39,8 +39,7 @@ reportlab
 python-dateutil
 
 # UI / UX
-streamlit==1.25.0
-streamlit-option-menu==0.6.1
+streamlit-option-menu
 streamlit-aggrid==0.4.3
 streamlit-ace==0.5.0
 st-tailwind==0.1.7
