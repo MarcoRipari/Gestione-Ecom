@@ -1944,7 +1944,8 @@ elif page == "Giacenze - New import":
         # --- Destinazione GSheet ---
         default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
         usa_altra_dest = st.checkbox("Carica su un Google Sheet diverso?", value=False)
-        sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id) if usa_altra_dest else default_sheet_id
+        #sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id) if usa_altra_dest else default_sheet_id
+        sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
 
         sheet = get_sheet(sheet_id, "GIACENZE")
 
