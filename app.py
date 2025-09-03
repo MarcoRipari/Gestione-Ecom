@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_option_menu import option_menu
 import pandas as pd
 import openai
 import faiss
@@ -1891,39 +1892,20 @@ elif page == "Giacenze - New import":
     # --- Selezione nome file (UBIC, PIM o Manuale) ---
     #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
     options = ["Manuale", "UBIC", "PIM"]
-
-    # Inizializza lo stato
-    if "selected_option" not in st.session_state:
-        st.session_state.selected_option = options[0]
     
-    cols = st.columns(len(options))
+    selected = option_menu(
+        menu_title=None,
+        options=options,
+        default_index=0,
+        orientation="horizontal",
+        styles={
+            "container": {"padding": "0!important", "background-color": "#f0f0f0"},
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin": "0px", "--hover-color": "#eee"},
+            "nav-link-selected": {"background-color": "#4CAF50", "color": "white"},
+        }
+    )
     
-    for i, option in enumerate(options):
-        # Colore personalizzato se selezionato
-        color = "#4CAF50" if st.session_state.selected_option == option else "#f0f0f0"
-        text_color = "white" if st.session_state.selected_option == option else "black"
-    
-        # Mostra il "pulsante" colorato con markdown
-        cols[i].markdown(
-            f"""
-            <div style="
-                text-align:center;
-                padding:10px 20px;
-                border-radius:25px;
-                background-color:{color};
-                color:{text_color};
-                font-weight:bold;">
-                {option}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    
-        # Pulsante invisibile per catturare il click
-        if cols[i].button("", key=f"btn_{option}", help=f"Seleziona {option}"):
-            st.session_state.selected_option = option
-            st.experimental_rerun()  # Aggiorna subito il colore
-    
+    st.session_state.selected_option = selected
     st.write("Hai selezionato:", st.session_state.selected_option)
             
 
