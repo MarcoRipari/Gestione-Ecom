@@ -1900,7 +1900,7 @@ elif page == "Giacenze - New import":
         file_bytes_for_upload = data_bytes
         last_update = latest_file.get("modifiedTime")
         if last_update:
-            st.info(f"Ultimo aggiornamento: {format_drive_date(latest_file['modifiedTime'])}")
+            st.info(f"Ultimo aggiornamento: {format_drive_date(last_update)}")
     else:
         # Se non esiste → chiedi upload manuale
         uploaded_file = st.file_uploader("Carica un file CSV", type="csv")
