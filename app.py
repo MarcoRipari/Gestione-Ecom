@@ -393,8 +393,8 @@ def download_file_from_gdrive(file_id):
 
 # --- Carica un file su Drive (cartella specifica) ---
 def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"):
-    drive_service = get_drive()
-    
+    drive_service = build("drive", "v3", credentials=credentials)
+
     # Cerca se esiste già un file con lo stesso nome nella cartella
     query = f"'{folder_id}' in parents and name='{file_name}' and trashed=false"
     response = drive_service.files().list(
