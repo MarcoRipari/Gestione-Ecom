@@ -1892,18 +1892,22 @@ elif page == "Giacenze - New import":
     #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
     options = ["Manuale", "UBIC", "PIM"]
     
-    # Creiamo colonne vuote ai lati e colonne per i pulsanti
-    total_cols = len(options) + 6  # 2 colonne vuote ai lati
+    # Inizializziamo lo stato della selezione
+    if "selected_option" not in st.session_state:
+        st.session_state.selected_option = options[0]
+    
+    # Creiamo le colonne
+    total_cols = len(options)
     cols = st.columns(total_cols)
     
-    nome_file = None
+    # Toggle-style buttons
     for i, option in enumerate(options):
-        if cols[i + 3].button(option, key=f"radio_{option}"):
-            nome_file = option
+        # Cambia colore se selezionato
+        if cols[i].button(option, key=f"toggle_{option}"):
+            st.session_state.selected_option = option
     
-    # Default: prima opzione se non è stato cliccato nulla
-    if nome_file is None:
-        nome_file = options[0]
+    # Mostriamo la selezione
+    st.write("Hai selezionato:", st.session_state.selected_option)
     
     csv_import = None
     file_bytes_for_upload = None
