@@ -756,38 +756,91 @@ with st.sidebar:
 
     # Togliere per riattivare password e nome
     st.session_state["logged_as"] = "GUEST"
-    
+
     if st.session_state.get("logged_as"):
         st.write(f"Accesso eseguito come: {st.session_state.get('logged_as')}")
-    
-        # --- Menu principale ---
-        main_page = st.radio(
-            "Seleziona sezione",
-            ["🏠 Home", "📝 Descrizioni", "📸 Foto", "📦 Giacenze", "Logout"],
-            label_visibility="collapsed"
-        )
-    
-        # --- Sottomenu ---
-        main_page = main_page.split(' ', 1)[1]
-        page = main_page  # default, se non ha sottosezioni
-        
-        
-        if main_page == "Foto":
-            sub_page = st.radio(
-                "Seleziona sottosezione Foto",
-                ["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "🫳🏻 Aggiungi prelevate"],
-                label_visibility="collapsed"
-            )
-            page = f"{main_page} - {sub_page.split(' ', 1)[1]}"
 
-        elif main_page == "Giacenze":
-            sub_page = st.radio(
-                "Seleziona sottosezione Foto",
-                ["📥 Importa giacenze", "1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio", "📥 New import"],
-                label_visibility="collapsed"
+        # --- Menu principale verticale ---
+        main_page = option_menu(
+            menu_title=None,
+            options=["🏠 Home", "📝 Descrizioni", "📸 Foto", "📦 Giacenze", "🔑 Logout"],
+            default_index=0,
+            orientation="vertical",
+            styles={
+                "container": {"padding": "0!important", "background-color": "#f0f0f0"},
+                "nav-link": {
+                    "font-size": "16px",
+                    "text-align": "left",
+                    "margin": "2px",
+                    "padding": "5px 10px",
+                    "border-radius": "5px",
+                    "--hover-color": "#e0e0e0",
+                },
+                "nav-link-selected": {
+                    "background-color": "#4CAF50",
+                    "color": "white",
+                    "border-radius": "5px",
+                },
+            },
+        )
+
+        # Rimuovo icone/emoji per gestire page name
+        main_page_name = main_page.split(' ', 1)[1]
+
+        page = main_page_name  # default
+
+        # --- Sottomenu Foto ---
+        if main_page_name == "Foto":
+            sub_page = option_menu(
+                menu_title=None,
+                options=["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "🫳🏻 Aggiungi prelevate"],
+                default_index=0,
+                orientation="vertical",
+                styles={
+                    "container": {"padding": "0!important", "background-color": "#f0f0f0"},
+                    "nav-link": {
+                        "font-size": "15px",
+                        "text-align": "left",
+                        "margin": "2px",
+                        "padding": "5px 15px",
+                        "border-radius": "5px",
+                        "--hover-color": "#e0e0e0",
+                    },
+                    "nav-link-selected": {
+                        "background-color": "#4CAF50",
+                        "color": "white",
+                        "border-radius": "5px",
+                    },
+                },
             )
-            page = f"{main_page} - {sub_page.split(' ', 1)[1]}"
-    
+            page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
+
+        # --- Sottomenu Giacenze ---
+        elif main_page_name == "Giacenze":
+            sub_page = option_menu(
+                menu_title=None,
+                options=["📥 Importa giacenze", "1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio", "📥 New import"],
+                default_index=0,
+                orientation="vertical",
+                styles={
+                    "container": {"padding": "0!important", "background-color": "#f0f0f0"},
+                    "nav-link": {
+                        "font-size": "15px",
+                        "text-align": "left",
+                        "margin": "2px",
+                        "padding": "5px 15px",
+                        "border-radius": "5px",
+                        "--hover-color": "#e0e0e0",
+                    },
+                    "nav-link-selected": {
+                        "background-color": "#4CAF50",
+                        "color": "white",
+                        "border-radius": "5px",
+                    },
+                },
+            )
+            page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
+
     else:
         page = "🔑 Login"
 
