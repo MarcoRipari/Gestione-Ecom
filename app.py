@@ -13,7 +13,7 @@ from streamlit_chat import message
 # -------------------------
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_ANON_KEY = st.secrets["SUPABASE_ANON_KEY"]
-SUPABASE_SERVICE_ROLE_KEY = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
+#SUPABASE_SERVICE_ROLE_KEY = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
 REDIRECT_URL = f"https://{st.secrets['APP_DOMAIN']}/"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
