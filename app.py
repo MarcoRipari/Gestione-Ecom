@@ -1891,12 +1891,22 @@ elif page == "Giacenze - New import":
 
     # --- Selezione nome file (UBIC, PIM o Manuale) ---
     #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
-    nome_file = st.radio(
-        "Seleziona file",
-        ["Manuale", "UBIC", "PIM"],
-        index=0,
-        key="nome_file_radio"
-    )
+    options = ["Manuale", "UBIC", "PIM"]
+
+    # Creiamo una colonna per ogni opzione
+    cols = st.columns(len(options))
+    nome_file = None
+    
+    # Assegniamo un radio button a ogni colonna, ma tutti legati alla stessa variabile
+    for i, option in enumerate(options):
+        if cols[i].button(option, key=f"radio_{option}"):
+            nome_file = option
+    
+    # Default: se l'utente non ha cliccato nulla, prendiamo la prima opzione
+    if nome_file is None:
+        nome_file = options[0]
+    
+    st.write("Hai selezionato:", nome_file)
 
     csv_import = None
     file_bytes_for_upload = None
