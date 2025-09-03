@@ -474,13 +474,17 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         return None
 
 def format_dropbox_date(dt):
-    # Dropbox restituisce UTC, ma in alcuni casi il datetime può essere naïve
+    if dt is None:
+        return "Data non disponibile"
+
+    # Dropbox restituisce sempre datetime tz-aware in UTC, ma nel dubbio gestiamo anche i naïve
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=ZoneInfo("UTC"))
 
-    # Convertiamo in fuso italiano
+    # Convertiamo in fuso orario italiano
     dt_italy = dt.astimezone(ZoneInfo("Europe/Rome"))
 
+    # Data odierna in Italia
     oggi = datetime.now(ZoneInfo("Europe/Rome")).date()
 
     mesi_it = [
