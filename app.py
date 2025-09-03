@@ -1694,7 +1694,8 @@ elif page == "Giacenze - Importa giacenze":
             manual_nome_file = uploaded_file.name
     else:
         with st.spinner(f"Download {nome_file} in corso..."):
-        latest_file, metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
+            latest_file, metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
+            
         if latest_file:
             csv_import = latest_file
             file_bytes_for_upload = latest_file.getvalue()
