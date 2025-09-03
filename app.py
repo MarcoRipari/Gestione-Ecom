@@ -1708,58 +1708,58 @@ elif page == "Giacenze - Importa giacenze":
         with st.spinner("Carico il CSV..."):
             df_input = read_csv_auto_encoding(csv_import, "\t")
             st.write(df_input)
-
-        # --- Colonne numeriche ---
-        numeric_cols_info = { "D": "0", "L": "000", "N": "0", "O": "0" }
-        for i in range(17, 32):  # Q-AE
-            col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
-            numeric_cols_info[col_letter] = "0"
-
-        def to_number_safe(x):
-            try:
-                if pd.isna(x) or x == "":
-                    return ""
-                return float(x)
-            except:
-                return str(x)
-
-        for col_letter in numeric_cols_info.keys():
-            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1
-            if df_input.columns.size > col_idx:
-                col_name = df_input.columns[col_idx]
-                df_input[col_name] = df_input[col_name].apply(to_number_safe)
-
-        target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
-        for idx, col_name in enumerate(df_input.columns):
-            if idx not in target_indices:
-                df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
-
-        data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
-
-        # --- Destinazione GSheet ---
-        default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
-        sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
-        sheet = get_sheet(sheet_id, "GIACENZE")
-
-        if st.button("Importa"):
-            with st.spinner("Aggiorno giacenze su GSheet..."):
-                # Aggiorna GSheet
-                sheet.clear()
-                sheet.update("A1", data_to_write)
-                last_row = len(df_input) + 1
     
-                ranges_to_format = [
-                    (f"{col_letter}2:{col_letter}{last_row}",
-                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
-                    for col_letter, pattern in numeric_cols_info.items()
-                ]
-                format_cell_ranges(sheet, ranges_to_format)
-                st.success("✅ Giacenze importate con successo!")
-
-            # Upload su Drive solo se è Manuale e abbiamo dati
-            if nome_file == "Manuale" and file_bytes_for_upload:
-                with st.spinner("Carico il file su DropBox..."):
-                    upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+            # --- Colonne numeriche ---
+            numeric_cols_info = { "D": "0", "L": "000", "N": "0", "O": "0" }
+            for i in range(17, 32):  # Q-AE
+                col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
+                numeric_cols_info[col_letter] = "0"
+    
+            def to_number_safe(x):
+                try:
+                    if pd.isna(x) or x == "":
+                        return ""
+                    return float(x)
+                except:
+                    return str(x)
+    
+            for col_letter in numeric_cols_info.keys():
+                col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1
+                if df_input.columns.size > col_idx:
+                    col_name = df_input.columns[col_idx]
+                    df_input[col_name] = df_input[col_name].apply(to_number_safe)
+    
+            target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
+            for idx, col_name in enumerate(df_input.columns):
+                if idx not in target_indices:
+                    df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
+    
+            data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
+    
+            # --- Destinazione GSheet ---
+            default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
+            sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
+            sheet = get_sheet(sheet_id, "GIACENZE")
+    
+            if st.button("Importa"):
+                with st.spinner("Aggiorno giacenze su GSheet..."):
+                    # Aggiorna GSheet
+                    sheet.clear()
+                    sheet.update("A1", data_to_write)
+                    last_row = len(df_input) + 1
+        
+                    ranges_to_format = [
+                        (f"{col_letter}2:{col_letter}{last_row}",
+                         CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                        for col_letter, pattern in numeric_cols_info.items()
+                    ]
+                    format_cell_ranges(sheet, ranges_to_format)
+                    st.success("✅ Giacenze importate con successo!")
+    
+                    # Upload su Drive solo se è Manuale e abbiamo dati
+                    if nome_file == "Manuale" and file_bytes_for_upload:
+                        with st.spinner("Carico il file su DropBox..."):
+                            upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
             
 elif page == "Giacenze - Per corridoio":
     st.header("Riepilogo per corridoio")
