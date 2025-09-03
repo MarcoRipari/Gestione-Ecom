@@ -1918,5 +1918,6 @@ elif page == "Giacenze - New import":
             # Se era caricamento manuale, carica anche su Drive
             #if not latest_file:
             #    upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
+            csv_import.seek(0)
             upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
             st.success("✅ File caricato con successo!")
