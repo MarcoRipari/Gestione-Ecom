@@ -1631,11 +1631,48 @@ elif page == "Giacenze - Importa giacenze":
     
     selected = option_menu(
         menu_title=None,
-        options=options,
-        icons=[" "," "," "],
+        options=["Manuale", "UBIC", "PIM"],
+        icons=[" ", " ", " "],
         default_index=0,
         orientation="horizontal",
-        styles={ ... }  # mantieni i tuoi stili
+        styles={
+            "container": {
+                "padding": "0 10px 0 0!important",
+                "background-color": "#f0f0f0",
+                "display": "flex",
+                "justify-content": "center"
+            },
+            "nav-link": {
+                "font-size": "16px",
+                "text-align": "center",
+                "margin": "5px",
+                "padding": "0px",
+                "min-height": "40px",
+                "height": "40px",
+                "line-height": "normal",
+                "display": "flex",
+                "align-items": "center",
+                "justify-content": "center",
+                "box-sizing": "border-box",
+                "--hover-color": "#e0e0e0",
+                "before": "none"
+            },
+            "nav-link-selected": {
+                "background-color": "#4CAF50",
+                "color": "white",
+                "border": "2px solid #cccccc",
+                "border-radius": "10px",
+                "padding": "0px",
+                "min-height": "40px",
+                "height": "40px",
+                "line-height": "normal",
+                "display": "flex",
+                "align-items": "center",
+                "justify-content": "center",
+                "box-sizing": "border-box",
+                "before": "none"
+            },
+        }
     )
     
     st.session_state.selected_option = selected
