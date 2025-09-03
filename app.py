@@ -26,43 +26,38 @@ class User:
 # --------------------------
 # Login con Google (link OAuth)
 # --------------------------
+# Login con Google (link OAuth)
 def login_with_google():
-    login_url = f"{SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to={REDIRECT_URL}"
+    login_url = (
+        f"{SUPABASE_URL}/auth/v1/authorize?"
+        f"provider=google&redirect_to={REDIRECT_URL}"
+    )
     st.markdown(f"[Login con Google]({login_url})", unsafe_allow_html=True)
+
+# Load user dal query param
+def load_user():
+    if "access_token" in st.query_params:
+        st.session_state["access_token"] = st.query_params["access_token"][0]
+    
+    if "user" in st.session_state:
+        return
+
+    access_token = st.session_state.get("access_token")
+    if access_token:
+        payload = jwt.decode(access_token, options={"verify_signature": False})
+        user_id = payload.get("sub")
+        email = payload.get("email")
+        # Carica profilo dal DB Supabase
+        profile_resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
+        profile = profile_resp.data
+        role = profile["role"] if profile else "viewer"
+        full_name = profile["full_name"] if profile else email
+        st.session_state["user"] = User(id=user_id, email=email, full_name=full_name, role=role)
 
 def logout():
     st.session_state.pop("user", None)
     st.session_state.pop("access_token", None)
     st.experimental_rerun()
-
-# --------------------------
-# Load user dal token JWT
-# --------------------------
-def load_user():
-    # Controlla token dalla query string
-    if "access_token" in st.query_params:
-        st.session_state["access_token"] = st.query_params["access_token"][0]  # query params sono liste
-    
-    if "user" in st.session_state:
-        return  # già loggato
-
-    access_token = st.session_state.get("access_token")
-    if access_token:
-        try:
-            payload = jwt.decode(access_token, options={"verify_signature": False})
-            user_id = payload.get("sub")
-            email = payload.get("email")
-            
-            # Carica profilo dal DB Supabase
-            profile_resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
-            profile = profile_resp.data
-            role = profile["role"] if profile else "viewer"
-            full_name = profile["full_name"] if profile else email
-            
-            st.session_state["user"] = User(id=user_id, email=email, full_name=full_name, role=role)
-        except Exception as e:
-            st.error(f"Errore nel caricamento dell'utente: {e}")
-            st.session_state.pop("access_token", None)
 
 # --------------------------
 # Controllo ruoli
