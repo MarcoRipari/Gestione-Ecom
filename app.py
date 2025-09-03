@@ -1695,10 +1695,11 @@ elif page == "Giacenze - Importa giacenze":
     else:
         if "downloaded_file" not in st.session_state or st.session_state.downloaded_file_name != {nome_file}:
             with st.spinner("Download {nome_file} da DropBox..."):
-                st.session_state.downloaded_file, metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
+                st.session_state.downloaded_file, st.session_state.downloaded_file_metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
                 st.session_state.downloaded_file_name = {nome_file}
 
         latest_file = st.session_state.downloaded_file
+        metadata = st.session_state.downloaded_file_metadata
         
         if latest_file:
             csv_import = latest_file
