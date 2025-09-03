@@ -1894,12 +1894,15 @@ elif page == "Giacenze - New import":
 
     csv_import = None
     file_bytes_for_upload = None
+    last_update = None
 
     if uploaded_file:
+        # File caricato manualmente
         csv_import = uploaded_file
         file_bytes_for_upload = uploaded_file.getvalue()
         uploaded_file.seek(0)
     elif latest_file:
+        # File esistente su Drive
         data_bytes = download_file_from_gdrive(latest_file["id"])
         csv_import = io.BytesIO(data_bytes)
         file_bytes_for_upload = data_bytes
@@ -1917,6 +1920,7 @@ elif page == "Giacenze - New import":
             col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
             numeric_cols_info[col_letter] = "0"
 
+        # Funzione sicura per numerici
         def to_number_safe(x):
             try:
                 if pd.isna(x) or x == "":
@@ -1937,9 +1941,10 @@ elif page == "Giacenze - New import":
             if idx not in target_indices:
                 df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
 
+        # Lista finale per Google Sheet
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
 
-        # --- Destinazione GSheet ---
+        # --- Scelta destinazione GSheet ---
         default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
         usa_altra_dest = st.checkbox("Carica su un Google Sheet diverso?", value=False)
         sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id) if usa_altra_dest else default_sheet_id
@@ -1961,7 +1966,7 @@ elif page == "Giacenze - New import":
             format_cell_ranges(sheet, ranges_to_format)
             st.success("✅ Giacenze importate con successo!")
 
-            # Upload sempre su Drive, sovrascrivendo
+            # Upload sempre su Drive (sovrascrive se già esiste)
             if file_bytes_for_upload:
                 upload_file_to_gdrive(folder_id, f"{nome_file}.csv", file_bytes_for_upload)
                 st.success("✅ File caricato su Drive con successo!")
