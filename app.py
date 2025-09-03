@@ -376,9 +376,9 @@ def get_latest_file_from_gdrive(folder_id, nome_file):
     return files[0] if files else None
 
 
-# --- Scarica il contenuto di un file Drive come bytes ---
 def download_file_from_gdrive(file_id):
     try:
+        drive_service = build("drive", "v3", credentials=credentials)
         fh = io.BytesIO()
         request = drive_service.files().get_media(fileId=file_id)
         downloader = MediaIoBaseDownload(fh, request)
@@ -392,7 +392,6 @@ def download_file_from_gdrive(file_id):
         return None
 
 
-# --- Carica un file su Drive (cartella specifica) ---
 def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"):
     drive_service = build("drive", "v3", credentials=credentials)
 
@@ -407,6 +406,7 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
     media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=False)
 
     if files:
+        # Se esiste → sovrascrivo
         file_id = files[0]["id"]
         updated_file = drive_service.files().update(
             fileId=file_id,
@@ -414,6 +414,7 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         ).execute()
         return updated_file
     else:
+        # Se non esiste → creo nuovo
         file_metadata = {"name": file_name, "parents": [folder_id]}
         new_file = drive_service.files().create(
             body=file_metadata,
@@ -1849,26 +1850,30 @@ elif page == "Giacenze - New import":
     st.header("Importa giacenze")
     st.markdown("Importa le giacenze da file CSV.")
 
-    # --- Cartella Drive ---
     folder_id = st.secrets["GIACENZE_FOLDER_ID"]
 
-    # --- Selezione nome file ---
+    # --- Selezione nome file (UBIC o PIM) ---
     nome_file = st.selectbox("Nome file", ["UBIC", "PIM"], index=0)
 
-    # --- Trova ultimo file corrispondente su Drive ---
-    latest_file = get_latest_file_from_gdrive(folder_id, nome_file)  # funzione aggiornata con filtro nome
+    # --- Recupera ultimo file su Drive ---
+    latest_file = get_latest_file_from_gdrive(folder_id, nome_file)
 
     csv_import = None
+    file_bytes_for_upload = None
+    last_update = None
+
     if latest_file:
-        # Da Drive
+        # Se esiste già su Drive → scarico
         data_bytes = download_file_from_gdrive(latest_file["id"])
         csv_import = io.BytesIO(data_bytes)
         file_bytes_for_upload = data_bytes
+        last_update = latest_file.get("modifiedTime")
+        if last_update:
+            st.info(f"Ultimo aggiornamento: {last_update}")
     else:
-        # Da upload manuale
+        # Se non esiste → chiedi upload manuale
         uploaded_file = st.file_uploader("Carica un file CSV", type="csv")
         csv_import = uploaded_file
-        file_bytes_for_upload = None
         if uploaded_file:
             file_bytes_for_upload = uploaded_file.getvalue()  # salvo subito i bytes
             uploaded_file.seek(0)  # reset per Pandas
@@ -1877,7 +1882,7 @@ elif page == "Giacenze - New import":
         df_input = read_csv_auto_encoding(csv_import, "\t")
         st.write(df_input)
 
-        # --- Lista colonne numeriche ---
+        # --- Colonne numeriche da formattare ---
         numeric_cols_info = {
             "D": "0",
             "L": "000",
@@ -1888,7 +1893,7 @@ elif page == "Giacenze - New import":
             col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
             numeric_cols_info[col_letter] = "0"
 
-        # Funzione bulletproof: solo numeri diventano float
+        # Funzione sicura per numerici
         def to_number_safe(x):
             try:
                 if pd.isna(x) or x == "":
@@ -1897,22 +1902,23 @@ elif page == "Giacenze - New import":
             except:
                 return str(x)
 
+        # Applica conversione numerica solo alle colonne target
         for col_letter in numeric_cols_info.keys():
             col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1
             if df_input.columns.size > col_idx:
                 col_name = df_input.columns[col_idx]
                 df_input[col_name] = df_input[col_name].apply(to_number_safe)
 
-        # Tutte le altre colonne → stringa
+        # Altre colonne → stringa
         target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
         for idx, col_name in enumerate(df_input.columns):
             if idx not in target_indices:
                 df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
 
-        # Trasforma in lista per Google Sheet
+        # Lista finale da scrivere
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
 
-        # --- Scegli GSheet di destinazione ---
+        # --- Scelta destinazione GSheet ---
         default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
         usa_altra_dest = st.checkbox("Carica su un Google Sheet diverso?", value=False)
         if usa_altra_dest:
@@ -1923,11 +1929,12 @@ elif page == "Giacenze - New import":
         sheet = get_sheet(sheet_id, "GIACENZE")
 
         if st.button("Importa"):
+            # Pulisce foglio e scrive i dati
             sheet.clear()
             sheet.update("A1", data_to_write)
             last_row = len(df_input) + 1
 
-            # Prepara la lista di range da formattare
+            # Applica formati numerici
             ranges_to_format = []
             for col_letter, pattern in numeric_cols_info.items():
                 ranges_to_format.append(
@@ -1938,13 +1945,7 @@ elif page == "Giacenze - New import":
 
             st.success("✅ Giacenze importate con successo!")
 
-            # Se era caricamento manuale, carica anche su Drive
-            #if not latest_file:
-            #    upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
-            if not latest_file and file_bytes_for_upload:
+            # --- Upload sempre su Drive (sovrascrive se già esiste) ---
+            if file_bytes_for_upload:
                 upload_file_to_gdrive(folder_id, f"{nome_file}.csv", file_bytes_for_upload)
-            else:
-                csv_import.seek(0)
-                upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
-                
-            st.success("✅ File caricato con successo!")
+                st.success("✅ File caricato su Drive con successo!")
