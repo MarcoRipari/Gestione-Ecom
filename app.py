@@ -50,6 +50,7 @@ from googleapiclient.http import MediaInMemoryUpload
 from dateutil import parser
 from dateutil.tz import tzlocal
 import locale
+from zoneinfo import ZoneInfo
 
 logging.basicConfig(level=logging.INFO)
 
@@ -440,20 +441,24 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         return None
 
 def format_drive_date(dt_str):
+    # converte da ISO UTC
     dt_utc = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
-    dt_local = dt_utc.astimezone()  # ora locale
+    
+    # imposta fuso italiano
+    dt_italy = dt_utc.astimezone(ZoneInfo("Europe/Rome"))
 
-    oggi = datetime.now().astimezone().date()
+    oggi = datetime.now(ZoneInfo("Europe/Rome")).date()
 
     mesi_it = [
         "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
         "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
     ]
-    if dt_local.date() == oggi:
-        return f"Oggi alle {dt_local.strftime('%H:%M')}"
+
+    if dt_italy.date() == oggi:
+        return f"Oggi alle {dt_italy.strftime('%H:%M')}"
     else:
-        mese = mesi_it[dt_local.month - 1]
-        return f"{dt_local.day:02d} {mese} {dt_local.year} - {dt_local.strftime('%H:%M')}"
+        mese = mesi_it[dt_italy.month - 1]
+        return f"{dt_italy.day:02d} {mese} {dt_italy.year} - {dt_italy.strftime('%H:%M')}"
     
 # ---------------------------
 # Funzioni varie
