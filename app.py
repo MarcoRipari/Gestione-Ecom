@@ -1,18 +1,18 @@
+# app.py
 import streamlit as st
 from supabase import create_client
 import jwt
-from components.st_google_oauth import google_login_button
-import plotly.express as px
-from streamlit_chat import message
-from streamlit_elements import elements, mui
 from dataclasses import dataclass
+import plotly.express as px
+from streamlit_elements import elements, mui
+from streamlit_chat import message
 
 # -------------------------
-# Config Supabase Cloud
+# Config Supabase
 # -------------------------
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_ANON_KEY = st.secrets["SUPABASE_ANON_KEY"]
-REDIRECT_URL = "https://tuo-app.streamlit.app/"
+REDIRECT_URL = "https://<nome-app>.streamlit.app/"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
@@ -27,10 +27,10 @@ class User:
     role: str
 
 # -------------------------
-# Login Google popup
+# Google OAuth link
 # -------------------------
-login_url = f"{SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to={REDIRECT_URL}"
-access_token = google_login_button(login_url)
+def google_oauth_url():
+    return f"{SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to={REDIRECT_URL}"
 
 # -------------------------
 # Carica utente dal token
@@ -39,22 +39,33 @@ def load_user():
     if "user" in st.session_state:
         return
     
-    if access_token:
-        payload = jwt.decode(access_token, options={"verify_signature": False})
-        user_id = payload.get("sub")
-        email = payload.get("email")
-        name = payload.get("name")
-        
-        profile_resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
-        profile = profile_resp.data
-        role = profile["role"] if profile else "viewer"
-        
-        st.session_state["user"] = User(id=user_id, email=email, name=name, role=role)
+    if "access_token" in st.experimental_get_query_params():
+        token = st.experimental_get_query_params()["access_token"][0]
+        try:
+            payload = jwt.decode(token, options={"verify_signature": False})
+            user_id = payload.get("sub")
+            email = payload.get("email")
+            name = payload.get("name")
+            
+            profile_resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
+            profile = profile_resp.data
+            role = profile["role"] if profile else "viewer"
+            
+            st.session_state["user"] = User(id=user_id, email=email, name=name, role=role)
+            st.session_state["access_token"] = token
+        except Exception as e:
+            st.error(f"Errore nel caricamento utente: {e}")
 
+# -------------------------
+# Controllo login
+# -------------------------
 load_user()
 
 if "user" not in st.session_state:
-    st.info("Accedi con Google per continuare")
+    st.markdown(
+        f"[Login con Google]({google_oauth_url()})",
+        unsafe_allow_html=True
+    )
     st.stop()
 
 user = st.session_state["user"]
@@ -67,7 +78,7 @@ if st.sidebar.button("Logout"):
     st.experimental_rerun()
 
 # -------------------------
-# UI/UX: Topbar e Sidebar
+# Topbar
 # -------------------------
 st.markdown(f"""
 <div style='display:flex;justify-content:space-between;align-items:center;padding:1rem;background:#1f2937;color:white;border-bottom:2px solid #4f46e5;'>
@@ -81,7 +92,9 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Sidebar menu
+# -------------------------
+# Sidebar con sotto-menu
+# -------------------------
 st.sidebar.write(f"Benvenuto, {user.name} ({user.role})")
 main_menu = st.sidebar.selectbox("Seleziona pagina", ["Dashboard","Data","Editor","Chat","Settings","About"])
 submenu = None
@@ -92,7 +105,7 @@ if main_menu == "Data":
     submenu = st.sidebar.selectbox("Opzioni Data", options)
 
 # -------------------------
-# Funzioni per pagine
+# Funzioni pagine
 # -------------------------
 def require_role(roles):
     if user.role not in roles:
