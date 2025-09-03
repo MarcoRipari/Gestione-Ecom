@@ -1678,6 +1678,13 @@ elif page == "Giacenze - Importa giacenze":
     st.session_state.selected_option = selected
     nome_file = st.session_state.selected_option
 
+    if "last_selected_file" not in st.session_state or st.session_state.last_selected_file != nome_file:
+        st.session_state.df_input = None  # resetta il DataFrame
+        st.session_state.downloaded_file = None
+        st.session_state.downloaded_file_metadata = None
+        st.session_state.downloaded_file_name = None
+        st.session_state.last_selected_file = nome_file
+
     csv_import = None
     file_bytes_for_upload = None
     last_update = None
@@ -1693,7 +1700,7 @@ elif page == "Giacenze - Importa giacenze":
             uploaded_file.seek(0)
             manual_nome_file = uploaded_file.name
     else:
-        if "downloaded_file" not in st.session_state or st.session_state.downloaded_file_name != selected:
+        if "downloaded_file" not in st.session_state:
             with st.spinner("Download {nome_file} da DropBox..."):
                 st.session_state.downloaded_file, st.session_state.downloaded_file_metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
                 st.session_state.downloaded_file_name = {nome_file}
