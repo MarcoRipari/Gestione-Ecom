@@ -817,7 +817,7 @@ with st.sidebar:
                 },
             )
             #page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
-            page = f"{main_page_name] - {sub_page}"
+            page = f"{main_page_name} - {sub_page}"
 
         # --- Sottomenu Giacenze ---
         elif main_page_name == "Giacenze":
