@@ -1,6 +1,7 @@
 # app.py
 import streamlit as st
 from supabase import create_client
+import requests
 import jwt
 from dataclasses import dataclass
 import plotly.express as px
@@ -12,7 +13,8 @@ from streamlit_chat import message
 # -------------------------
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_ANON_KEY = st.secrets["SUPABASE_ANON_KEY"]
-REDIRECT_URL = "https://gestione-ecom.streamlit.app/"
+SUPABASE_SERVICE_ROLE_KEY = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
+REDIRECT_URL = f"https://{st.secrets['APP_DOMAIN']}/"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
@@ -27,10 +29,28 @@ class User:
     role: str
 
 # -------------------------
-# Google OAuth link
+# Genera URL login Google
 # -------------------------
 def google_oauth_url():
     return f"{SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to={REDIRECT_URL}"
+
+# -------------------------
+# Scambia code per token
+# -------------------------
+def exchange_code_for_token(code: str):
+    url = f"{SUPABASE_URL}/auth/v1/token"
+    headers = {"apikey": SUPABASE_ANON_KEY, "Content-Type": "application/x-www-form-urlencoded"}
+    data = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_to": REDIRECT_URL
+    }
+    resp = requests.post(url, headers=headers, data=data)
+    if resp.status_code == 200:
+        return resp.json()  # contiene access_token, refresh_token
+    else:
+        st.error(f"Errore durante lo scambio code -> token: {resp.text}")
+        return None
 
 # -------------------------
 # Carica utente dal token
@@ -38,24 +58,26 @@ def google_oauth_url():
 def load_user():
     if "user" in st.session_state:
         return
-    
-    query_params = st.query_params  # <-- nuovo API
-    if "access_token" in query_params:
-        token = query_params["access_token"][0]
-        try:
-            payload = jwt.decode(token, options={"verify_signature": False})
+
+    query_params = st.query_params
+    # Flusso Authorization Code Flow
+    if "code" in query_params:
+        code = query_params["code"][0]
+        token_data = exchange_code_for_token(code)
+        if token_data and "access_token" in token_data:
+            access_token = token_data["access_token"]
+            payload = jwt.decode(access_token, options={"verify_signature": False})
             user_id = payload.get("sub")
             email = payload.get("email")
             name = payload.get("name")
-            
+
+            # Carica ruolo da Supabase (table profiles)
             profile_resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
             profile = profile_resp.data
             role = profile["role"] if profile else "viewer"
-            
+
             st.session_state["user"] = User(id=user_id, email=email, name=name, role=role)
-            st.session_state["access_token"] = token
-        except Exception as e:
-            st.error(f"Errore nel caricamento utente: {e}")
+            st.session_state["access_token"] = access_token
 
 # -------------------------
 # Controllo login
