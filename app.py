@@ -1885,7 +1885,6 @@ elif page == "Logout":
 
 elif page == "Giacenze - New import":
     st.header("Importa giacenze")
-    st.markdown("Importa le giacenze da file CSV.")
 
     folder_id = st.secrets["GIACENZE_FOLDER_ID"]
 
@@ -1893,23 +1892,18 @@ elif page == "Giacenze - New import":
     #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
     options = ["Manuale", "UBIC", "PIM"]
 
-    # Creiamo colonne vuote ai lati e colonne per i pulsanti
-    total_cols = len(options) + 2  # 2 colonne vuote ai lati
-    cols = st.columns(total_cols)
+    # Colonne: piccole ai lati, una per ogni pulsante
+    cols = st.columns([0.5, 1, 1, 1, 0.5])  # pesi: prima vuota, poi pulsanti, ultima vuota
     
     nome_file = None
     for i, option in enumerate(options):
         if cols[i + 1].button(option, key=f"radio_{option}"):
             nome_file = option
     
-    # Default: prima opzione se non è stato cliccato nulla
+    # Default se non cliccato nulla
     if nome_file is None:
         nome_file = options[0]
     
-    st.write("Hai selezionato:", nome_file)
-    
-    st.write("Hai selezionato:", nome_file)
-
     csv_import = None
     file_bytes_for_upload = None
     last_update = None
@@ -1930,7 +1924,7 @@ elif page == "Giacenze - New import":
             csv_import = io.BytesIO(data_bytes)
             file_bytes_for_upload = data_bytes
             last_update = latest_file.get("modifiedTime")
-            st.info(f"Ultimo aggiornamento {nome_file}: {format_drive_date(last_update)}")
+            st.info(f"{nome_file} ultimo aggiornamento: {format_drive_date(last_update)}")
         else:
             st.warning("Nessun file trovato su Drive, carica un file CSV manualmente")
 
