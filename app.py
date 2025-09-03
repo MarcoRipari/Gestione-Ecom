@@ -1899,13 +1899,13 @@ elif page == "Giacenze - New import":
         file_bytes_for_upload = uploaded_file.getvalue()
         uploaded_file.seek(0)
         if last_update:
-            st.info(f"Ultimo aggiornamento su Drive: {format_drive_date(last_update)}")
+            st.info(f"Ultimo aggiornamento su Drive: {last_update}")
         st.info("⚡ File caricato manualmente")
     elif latest_file:
         data_bytes = download_file_from_gdrive(latest_file["id"])
         csv_import = io.BytesIO(data_bytes)
         file_bytes_for_upload = data_bytes
-        st.info(f"Ultimo aggiornamento: {format_drive_date(last_update)}")
+        st.info(f"Ultimo aggiornamento: {last_update}")
     else:
         csv_import = None
         file_bytes_for_upload = None
@@ -1966,4 +1966,3 @@ elif page == "Giacenze - New import":
             # Upload sempre su Drive, sovrascrivendo
             if file_bytes_for_upload:
                 upload_file_to_gdrive(folder_id, f"{nome_file}.csv", file_bytes_for_upload)
-                st.success("✅ File caricato su Drive con successo!")
