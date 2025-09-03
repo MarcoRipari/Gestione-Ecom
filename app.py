@@ -435,6 +435,29 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
     except Exception as e:
         st.error(f"❌ Errore nell'upload su Drive: {e}")
         return None
+
+def format_drive_date(dt_str):
+    """
+    dt_str: stringa ISO dal Drive, es. '2025-09-03T07:00:00.000Z'
+    Restituisce:
+      - "Oggi alle HH:MM" se la data è oggi
+      - "DD Mese YYYY - HH:MM" altrimenti
+    """
+    # Converte la stringa in datetime
+    dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+
+    ora_formattata = dt.strftime("%H:%M")
+    oggi = datetime.now(dt.tzinfo).date()
+
+    if dt.date() == oggi:
+        return f"Oggi alle {ora_formattata}"
+    else:
+        mese = dt.strftime("%B")  # nome mese in inglese
+        # Se vuoi in italiano:
+        mesi_it = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+                   "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
+        mese_it = mesi_it[dt.month-1]
+        return f"{dt.day:02d} {mese_it} {dt.year} - {ora_formattata}"
     
 # ---------------------------
 # Funzioni varie
@@ -1882,7 +1905,7 @@ elif page == "Giacenze - New import":
         file_bytes_for_upload = data_bytes
         last_update = latest_file.get("modifiedTime")
         if last_update:
-            st.info(f"Ultimo aggiornamento: {last_update}")
+            st.info(f"Ultimo aggiornamento: {format_drive_date(latest_file['modifiedTime'])}")
     else:
         # Se non esiste → chiedi upload manuale
         uploaded_file = st.file_uploader("Carica un file CSV", type="csv")
