@@ -1892,13 +1892,19 @@ elif page == "Giacenze - New import":
     #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
     options = ["Manuale", "UBIC", "PIM"]
 
-    # Colonne: piccole ai lati, una per ogni pulsante
-    cols = st.columns([0.5, 1, 1, 1, 0.5])  # pesi: prima vuota, poi pulsanti, ultima vuota
+    # Colonne: niente spazio laterale, solo pulsanti vicini
+    cols = st.columns(len(options), gap="small")  # gap="small" riduce lo spazio tra le colonne
     
     nome_file = None
     for i, option in enumerate(options):
-        if cols[i + 1].button(option, key=f"radio_{option}"):
+        if cols[i].button(option, key=f"radio_{option}"):
             nome_file = option
+    
+    # Default se non cliccato nulla
+    if nome_file is None:
+        nome_file = options[0]
+    
+    st.write("Hai selezionato:", nome_file)
     
     # Default se non cliccato nulla
     if nome_file is None:
@@ -1924,7 +1930,7 @@ elif page == "Giacenze - New import":
             csv_import = io.BytesIO(data_bytes)
             file_bytes_for_upload = data_bytes
             last_update = latest_file.get("modifiedTime")
-            st.info(f"{nome_file} ultimo aggiornamento: {format_drive_date(last_update)}")
+            st.info(f"{nome_file}  ultimo aggiornamento: {format_drive_date(last_update)}")
         else:
             st.warning("Nessun file trovato su Drive, carica un file CSV manualmente")
 
