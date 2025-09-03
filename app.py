@@ -750,6 +750,18 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 
 # 📁 Caricamento dati
 # Sidebar: menu
+st.markdown(
+    """
+    <style>
+    /* Larghezza sidebar */
+    [data-testid="stSidebar"] {
+        width: 500px;  /* qui imposti la larghezza desiderata */
+        min-width: 300px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     st.markdown("## 📋 Menu")
