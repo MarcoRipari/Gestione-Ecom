@@ -1891,46 +1891,26 @@ elif page == "Giacenze - New import":
     # --- Selezione nome file (UBIC, PIM o Manuale) ---
     #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
     options = ["Manuale", "UBIC", "PIM"]
-
-    # Inizializziamo lo stato della selezione
+    
     if "selected_option" not in st.session_state:
         st.session_state.selected_option = options[0]
     
-    # CSS per i pulsanti toggle
-    st.markdown("""
-    <style>
-    .toggle-btn {
-        display: inline-block;
-        padding: 10px 25px;
-        margin: 0 5px;
-        border-radius: 25px;
-        border: 1px solid #ccc;
-        background-color: #f0f0f0;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-    .toggle-btn:hover {
-        background-color: #e0e0e0;
-    }
-    .toggle-btn-selected {
-        background-color: #4CAF50 !important;
-        color: white !important;
-        border: 1px solid #4CAF50 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Creiamo le colonne per i pulsanti
     cols = st.columns(len(options))
     
     for i, option in enumerate(options):
-        is_selected = option == st.session_state.selected_option
-        button_class = "toggle-btn toggle-btn-selected" if is_selected else "toggle-btn"
-        # Se il pulsante è cliccato, aggiorniamo lo stato
-        if cols[i].button(option, key=f"toggle_{option}"):
+        # Cambia colore se selezionato
+        color = "#4CAF50" if st.session_state.selected_option == option else "#f0f0f0"
+        text_color = "white" if st.session_state.selected_option == option else "black"
+        # Creiamo un "pulsante" colorato con markdown
+        if cols[i].markdown(
+            f"""
+            <div style="text-align:center; padding:10px 20px; border-radius:25px; background-color:{color}; color:{text_color}; cursor:pointer; font-weight:bold;">
+                {option}
+            </div>
+            """,
+            unsafe_allow_html=True
+        ):
             st.session_state.selected_option = option
-            st.experimental_rerun()  # Aggiorna l'interfaccia subito
     
     st.write("Hai selezionato:", st.session_state.selected_option)
     
