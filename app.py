@@ -795,8 +795,8 @@ with st.sidebar:
         if main_page_name == "Foto":
             sub_page = option_menu(
                 menu_title=None,
-                options=["📦 Gestione", "🔁 SKU da riscattare", "➕ Aggiungi SKU", "📚 Storico", "🫳🏻 Aggiungi prelevate"],
-                icons=["gear","repeat","plus","books","add"],
+                options=["Gestione", "SKU da riscattare", "Aggiungi SKU", "Storico", "Aggiungi prelevate"],
+                icons=["gear","repeat","plus","book","hand-paper"],
                 default_index=0,
                 orientation="vertical",
                 styles={
@@ -816,13 +816,15 @@ with st.sidebar:
                     },
                 },
             )
-            page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
+            #page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
+            page = f"{main_page_name - {sub_page}"
 
         # --- Sottomenu Giacenze ---
         elif main_page_name == "Giacenze":
             sub_page = option_menu(
                 menu_title=None,
-                options=["📥 Importa giacenze", "1️⃣ Per corridoio", "2️⃣ Per corridoio/marchio", "📥 New import"],
+                options=["Importa giacenze", "1️Per corridoio", "2️Per corridoio/marchio", "New import"],
+                icons=["download","1-circle","2-circle","download"],
                 default_index=0,
                 orientation="vertical",
                 styles={
@@ -842,10 +844,11 @@ with st.sidebar:
                     },
                 },
             )
-            page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
+            #page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
+            page = f"{main_page_name - {sub_page}"
 
     else:
-        page = "🔑 Login"
+        page = "Login"
 
 # ---------------------------
 # 🏠 HOME
