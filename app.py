@@ -1619,29 +1619,91 @@ elif page == "Foto - Aggiungi prelevate":
 
 elif page == "Giacenze - Importa giacenze":
     st.header("Importa giacenze")
-    st.markdown("Importa le giacenze da file CSV.")
+
+    options = ["Manuale", "UBIC", "PIM"]
+    from streamlit_option_menu import option_menu
+    selected = option_menu(
+        menu_title=None,
+        options=options,
+        icons=[" "," "," "],
+        default_index=0,
+        orientation="horizontal",
+        styles={
+            "container": {
+                "padding": "0 10px 0 0!important",
+                "background-color": "#f0f0f0",
+                "display": "flex",
+                "justify-content": "center"},
+            "nav-link": {
+                "font-size": "16px",
+                "text-align": "center",
+                "margin": "5px",
+                "padding": "0px",
+                "min-height": "40px",
+                "height": "40px",
+                "line-height": "normal",
+                "display": "flex",
+                "align-items": "center",
+                "justify-content": "center",
+                "box-sizing": "border-box",
+                "--hover-color": "#e0e0e0",
+                "before": "none"
+            },
+            "nav-link-selected": {
+                "background-color": "#4CAF50",
+                "color": "white",
+                "border": "2px solid #cccccc",
+                "border-radius": "10px",
+                "padding": "0px",
+                "min-height": "40px",
+                "height": "40px",
+                "line-height": "normal",
+                "display": "flex",
+                "align-items": "center",
+                "justify-content": "center",
+                "box-sizing": "border-box",
+                "before": "none"
+            },
+        }
+    )
     
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "GIACENZE")
-    csv_import = st.file_uploader("Carica un file CSV", type="csv")
-    
+    st.session_state.selected_option = selected
+    nome_file = st.session_state.selected_option
+
+    csv_import = None
+    file_bytes_for_upload = None
+    last_update = None
+
+    dbx = get_dropbox_client()
+    folder_path = "/GIACENZE"
+
+    if nome_file == "Manuale":
+        uploaded_file = st.file_uploader("Carica un file CSV manualmente", type="csv", key="uploader_manual")
+        if uploaded_file:
+            csv_import = uploaded_file
+            file_bytes_for_upload = uploaded_file.getvalue()
+            uploaded_file.seek(0)
+            manual_nome_file = uploaded_file.name
+    else:
+        latest_file, metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
+        if latest_file:
+            csv_import = latest_file
+            file_bytes_for_upload = latest_file.getvalue()
+            last_update = format_dropbox_date(metadata.client_modified)
+            st.info(f"{nome_file} ultimo aggiornamento: {last_update}")
+        else:
+            st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
+
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
-    
-        # Lista delle colonne da formattare come numeriche con pattern
-        numeric_cols_info = {
-            "D": "0",
-            "L": "000",
-            "N": "0",
-            "O": "0",
-        }
+        st.write(df_input)
 
-        # Colonne Q-AE
-        for i in range(17, 32):  # Q=17, AE=31
-            col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]  # togli solo il numero finale
+        # --- Colonne numeriche ---
+        numeric_cols_info = { "D": "0", "L": "000", "N": "0", "O": "0" }
+        for i in range(17, 32):  # Q-AE
+            col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
             numeric_cols_info[col_letter] = "0"
 
-        # Funzione bulletproof: converte solo valori numerici, testo rimane testo
         def to_number_safe(x):
             try:
                 if pd.isna(x) or x == "":
@@ -1649,44 +1711,42 @@ elif page == "Giacenze - Importa giacenze":
                 return float(x)
             except:
                 return str(x)
-    
-        # Applica conversione solo alle colonne target
+
         for col_letter in numeric_cols_info.keys():
-            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1  # indice zero-based
+            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1
             if df_input.columns.size > col_idx:
                 col_name = df_input.columns[col_idx]
                 df_input[col_name] = df_input[col_name].apply(to_number_safe)
 
-        # Tutte le altre colonne → forzale a stringa per evitare conversioni indesiderate
         target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
-        test = []
         for idx, col_name in enumerate(df_input.columns):
             if idx not in target_indices:
-                test.append(idx)
                 df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
 
-        # Trasforma tutto in lista per Google Sheet
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
-    
-        st.write(df_input)
-    
+
+        # --- Destinazione GSheet ---
+        default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
+        sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
+        sheet = get_sheet(sheet_id, "GIACENZE")
+
         if st.button("Importa"):
+            # Aggiorna GSheet
             sheet.clear()
             sheet.update("A1", data_to_write)
-            last_row = len(df_input) + 1  # +1 per intestazione
-    
-            # Prepara la lista di range da formattare
-            ranges_to_format = []
-            for col_letter, pattern in numeric_cols_info.items():
-                ranges_to_format.append(
-                    (f"{col_letter}2:{col_letter}{last_row}",
-                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
-                )
-    
-            # Applica il formato in un colpo solo
+            last_row = len(df_input) + 1
+
+            ranges_to_format = [
+                (f"{col_letter}2:{col_letter}{last_row}",
+                 CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                for col_letter, pattern in numeric_cols_info.items()
+            ]
             format_cell_ranges(sheet, ranges_to_format)
-    
             st.success("✅ Giacenze importate con successo!")
+
+            # Upload su Drive solo se è Manuale e abbiamo dati
+            if nome_file == "Manuale" and file_bytes_for_upload:
+                upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
             
 elif page == "Giacenze - Per corridoio":
     st.header("Riepilogo per corridoio")
@@ -1980,93 +2040,31 @@ elif page == "Giacenze - Per corridoio/marchio":
 elif page == "Logout":
     logout()
 
-elif page == "Giacenze - New import":
+elif page == "Giacenze - Old import":
     st.header("Importa giacenze")
-
-    options = ["Manuale", "UBIC", "PIM"]
-    from streamlit_option_menu import option_menu
-    selected = option_menu(
-        menu_title=None,
-        options=options,
-        icons=[" "," "," "],
-        default_index=0,
-        orientation="horizontal",
-        styles={
-            "container": {
-                "padding": "0 10px 0 0!important",
-                "background-color": "#f0f0f0",
-                "display": "flex",
-                "justify-content": "center"},
-            "nav-link": {
-                "font-size": "16px",
-                "text-align": "center",
-                "margin": "5px",
-                "padding": "0px",
-                "min-height": "40px",
-                "height": "40px",
-                "line-height": "normal",
-                "display": "flex",
-                "align-items": "center",
-                "justify-content": "center",
-                "box-sizing": "border-box",
-                "--hover-color": "#e0e0e0",
-                "before": "none"
-            },
-            "nav-link-selected": {
-                "background-color": "#4CAF50",
-                "color": "white",
-                "border": "2px solid #cccccc",
-                "border-radius": "10px",
-                "padding": "0px",
-                "min-height": "40px",
-                "height": "40px",
-                "line-height": "normal",
-                "display": "flex",
-                "align-items": "center",
-                "justify-content": "center",
-                "box-sizing": "border-box",
-                "before": "none"
-            },
-        }
-    )
+    st.markdown("Importa le giacenze da file CSV.")
     
-    st.session_state.selected_option = selected
-    nome_file = st.session_state.selected_option
-
-    csv_import = None
-    file_bytes_for_upload = None
-    last_update = None
-
-    dbx = get_dropbox_client()
-    folder_path = "/GIACENZE"
-
-    if nome_file == "Manuale":
-        uploaded_file = st.file_uploader("Carica un file CSV manualmente", type="csv", key="uploader_manual")
-        if uploaded_file:
-            csv_import = uploaded_file
-            file_bytes_for_upload = uploaded_file.getvalue()
-            uploaded_file.seek(0)
-            manual_nome_file = uploaded_file.name
-    else:
-        latest_file, metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
-        if latest_file:
-            csv_import = latest_file
-            file_bytes_for_upload = latest_file.getvalue()
-            last_update = format_dropbox_date(metadata.client_modified)
-            st.info(f"{nome_file} ultimo aggiornamento: {last_update}")
-        else:
-            st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
-
+    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "GIACENZE")
+    csv_import = st.file_uploader("Carica un file CSV", type="csv")
+    
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
-        st.write(df_input)
+    
+        # Lista delle colonne da formattare come numeriche con pattern
+        numeric_cols_info = {
+            "D": "0",
+            "L": "000",
+            "N": "0",
+            "O": "0",
+        }
 
-        # --- Colonne numeriche ---
-        numeric_cols_info = { "D": "0", "L": "000", "N": "0", "O": "0" }
-        for i in range(17, 32):  # Q-AE
-            col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
+        # Colonne Q-AE
+        for i in range(17, 32):  # Q=17, AE=31
+            col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]  # togli solo il numero finale
             numeric_cols_info[col_letter] = "0"
 
+        # Funzione bulletproof: converte solo valori numerici, testo rimane testo
         def to_number_safe(x):
             try:
                 if pd.isna(x) or x == "":
@@ -2074,39 +2072,41 @@ elif page == "Giacenze - New import":
                 return float(x)
             except:
                 return str(x)
-
+    
+        # Applica conversione solo alle colonne target
         for col_letter in numeric_cols_info.keys():
-            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1
+            col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1  # indice zero-based
             if df_input.columns.size > col_idx:
                 col_name = df_input.columns[col_idx]
                 df_input[col_name] = df_input[col_name].apply(to_number_safe)
 
+        # Tutte le altre colonne → forzale a stringa per evitare conversioni indesiderate
         target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
+        test = []
         for idx, col_name in enumerate(df_input.columns):
             if idx not in target_indices:
+                test.append(idx)
                 df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
 
+        # Trasforma tutto in lista per Google Sheet
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
-
-        # --- Destinazione GSheet ---
-        default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
-        sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
-        sheet = get_sheet(sheet_id, "GIACENZE")
-
+    
+        st.write(df_input)
+    
         if st.button("Importa"):
-            # Aggiorna GSheet
             sheet.clear()
             sheet.update("A1", data_to_write)
-            last_row = len(df_input) + 1
-
-            ranges_to_format = [
-                (f"{col_letter}2:{col_letter}{last_row}",
-                 CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
-                for col_letter, pattern in numeric_cols_info.items()
-            ]
+            last_row = len(df_input) + 1  # +1 per intestazione
+    
+            # Prepara la lista di range da formattare
+            ranges_to_format = []
+            for col_letter, pattern in numeric_cols_info.items():
+                ranges_to_format.append(
+                    (f"{col_letter}2:{col_letter}{last_row}",
+                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                )
+    
+            # Applica il formato in un colpo solo
             format_cell_ranges(sheet, ranges_to_format)
+    
             st.success("✅ Giacenze importate con successo!")
-
-            # Upload su Drive solo se è Manuale e abbiamo dati
-            if nome_file == "Manuale" and file_bytes_for_upload:
-                upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
