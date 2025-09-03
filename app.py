@@ -49,6 +49,7 @@ from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.http import MediaInMemoryUpload
 from dateutil import parser
 from dateutil.tz import tzlocal
+import locale
 
 logging.basicConfig(level=logging.INFO)
 
@@ -438,21 +439,28 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         st.error(f"❌ Errore nell'upload su Drive: {e}")
         return None
 
+# Imposta locale italiano per i mesi
+locale.setlocale(locale.LC_TIME, "it_IT.UTF-8")
+
 def format_drive_date(dt_str):
     """
-    Formatta la data di Drive in:
-    - 'Oggi alle HH:MM' se è oggi
-    - 'DD Mese YYYY - HH:MM' altrimenti
+    Formatta una stringa ISO 8601 da Drive in formato leggibile italiano.
+    Esempi:
+        "Oggi alle 06:21" se è oggi
+        "03 Settembre 2025 - 06:21" altrimenti
     """
-    dt = parser.isoparse(dt_str)  # converte ISO 8601 in datetime
-    dt = dt.astimezone(tzlocal())  # converte al fuso orario locale
+    # Converte in oggetto datetime
+    dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+    
+    # Ora locale
+    dt_local = dt.astimezone()  # converte al timezone locale
 
-    oggi = datetime.now(tzlocal()).date()
+    oggi = datetime.now().astimezone().date()
 
-    if dt.date() == oggi:
-        return f"Oggi alle {dt.strftime('%H:%M')}"
+    if dt_local.date() == oggi:
+        return f"Oggi alle {dt_local.strftime('%H:%M')}"
     else:
-        return dt.strftime("%d %B %Y - %H:%M")
+        return dt_local.strftime("%d %B %Y - %H:%M")
     
 # ---------------------------
 # Funzioni varie
@@ -1906,7 +1914,7 @@ elif page == "Giacenze - New import":
             csv_import = io.BytesIO(data_bytes)
             file_bytes_for_upload = data_bytes
             last_update = latest_file.get("modifiedTime")
-            st.info(f"Ultimo aggiornamento: {last_update}")
+            st.info(f"Ultimo aggiornamento: {format_drive_date(last_update)}")
         else:
             st.warning("Nessun file trovato su Drive, carica un file CSV manualmente")
 
