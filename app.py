@@ -1889,42 +1889,34 @@ elif page == "Giacenze - New import":
     # --- Recupera ultimo file su Drive ---
     latest_file = get_latest_file_from_gdrive(folder_id, nome_file)
 
+    # Upload manuale sempre possibile
+    uploaded_file = st.file_uploader("Carica un file CSV", type="csv")
+
     csv_import = None
     file_bytes_for_upload = None
-    last_update = None
 
-    if latest_file:
-        # Se esiste già su Drive → scarico
+    if uploaded_file:
+        csv_import = uploaded_file
+        file_bytes_for_upload = uploaded_file.getvalue()
+        uploaded_file.seek(0)
+    elif latest_file:
         data_bytes = download_file_from_gdrive(latest_file["id"])
         csv_import = io.BytesIO(data_bytes)
         file_bytes_for_upload = data_bytes
         last_update = latest_file.get("modifiedTime")
         if last_update:
-            st.info(f"Ultimo aggiornamento: {last_update}")
-    else:
-        # Se non esiste → chiedi upload manuale
-        uploaded_file = st.file_uploader("Carica un file CSV", type="csv")
-        csv_import = uploaded_file
-        if uploaded_file:
-            file_bytes_for_upload = uploaded_file.getvalue()  # salvo subito i bytes
-            uploaded_file.seek(0)  # reset per Pandas
+            st.info(f"Ultimo aggiornamento: {format_drive_date(last_update)}")
 
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
         st.write(df_input)
 
-        # --- Colonne numeriche da formattare ---
-        numeric_cols_info = {
-            "D": "0",
-            "L": "000",
-            "N": "0",
-            "O": "0",
-        }
+        # --- Colonne numeriche ---
+        numeric_cols_info = { "D": "0", "L": "000", "N": "0", "O": "0" }
         for i in range(17, 32):  # Q-AE
             col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
             numeric_cols_info[col_letter] = "0"
 
-        # Funzione sicura per numerici
         def to_number_safe(x):
             try:
                 if pd.isna(x) or x == "":
@@ -1933,50 +1925,43 @@ elif page == "Giacenze - New import":
             except:
                 return str(x)
 
-        # Applica conversione numerica solo alle colonne target
         for col_letter in numeric_cols_info.keys():
             col_idx = gspread.utils.a1_to_rowcol(f"{col_letter}1")[1] - 1
             if df_input.columns.size > col_idx:
                 col_name = df_input.columns[col_idx]
                 df_input[col_name] = df_input[col_name].apply(to_number_safe)
 
-        # Altre colonne → stringa
+        # Tutte le altre colonne → stringa
         target_indices = [gspread.utils.a1_to_rowcol(f"{col}1")[1] - 1 for col in numeric_cols_info.keys()]
         for idx, col_name in enumerate(df_input.columns):
             if idx not in target_indices:
                 df_input[col_name] = df_input[col_name].apply(lambda x: "" if pd.isna(x) else str(x))
 
-        # Lista finale da scrivere
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
 
-        # --- Scelta destinazione GSheet ---
+        # --- Destinazione GSheet ---
         default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
         usa_altra_dest = st.checkbox("Carica su un Google Sheet diverso?", value=False)
-        if usa_altra_dest:
-            sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
-        else:
-            sheet_id = default_sheet_id
+        sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id) if usa_altra_dest else default_sheet_id
 
         sheet = get_sheet(sheet_id, "GIACENZE")
 
         if st.button("Importa"):
-            # Pulisce foglio e scrive i dati
+            # Aggiorna foglio
             sheet.clear()
             sheet.update("A1", data_to_write)
             last_row = len(df_input) + 1
 
             # Applica formati numerici
-            ranges_to_format = []
-            for col_letter, pattern in numeric_cols_info.items():
-                ranges_to_format.append(
-                    (f"{col_letter}2:{col_letter}{last_row}",
-                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
-                )
+            ranges_to_format = [
+                (f"{col_letter}2:{col_letter}{last_row}",
+                 CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                for col_letter, pattern in numeric_cols_info.items()
+            ]
             format_cell_ranges(sheet, ranges_to_format)
-
             st.success("✅ Giacenze importate con successo!")
 
-            # --- Upload sempre su Drive (sovrascrive se già esiste) ---
+            # Upload sempre su Drive, sovrascrivendo
             if file_bytes_for_upload:
                 upload_file_to_gdrive(folder_id, f"{nome_file}.csv", file_bytes_for_upload)
                 st.success("✅ File caricato su Drive con successo!")
