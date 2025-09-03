@@ -47,6 +47,7 @@ import io
 from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.http import MediaInMemoryUpload
+from dateutil import parser
 
 logging.basicConfig(level=logging.INFO)
 
@@ -437,13 +438,7 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         return None
 
 def format_drive_date(dt_str):
-    # Rimuove i millisecondi
-    if "." in dt_str:
-        dt_str = dt_str.split(".")[0] + "Z"
-
-    # Converte in datetime
-    dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
-
+    dt = parser.isoparse(dt_str)
     ora_formattata = dt.strftime("%H:%M")
     oggi = datetime.now(dt.tzinfo).date()
 
