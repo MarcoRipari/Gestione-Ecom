@@ -39,8 +39,9 @@ def load_user():
     if "user" in st.session_state:
         return
     
-    if "access_token" in st.experimental_get_query_params():
-        token = st.experimental_get_query_params()["access_token"][0]
+    query_params = st.query_params  # <-- nuovo API
+    if "access_token" in query_params:
+        token = query_params["access_token"][0]
         try:
             payload = jwt.decode(token, options={"verify_signature": False})
             user_id = payload.get("sub")
