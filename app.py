@@ -796,7 +796,7 @@ with st.sidebar:
             sub_page = option_menu(
                 menu_title=None,
                 options=["Gestione", "SKU da riscattare", "Aggiungi SKU", "Storico", "Aggiungi prelevate"],
-                icons=["gear","repeat","plus","book","hand-paper"],
+                icons=["gear","repeat","plus","book","hand-index"],
                 default_index=0,
                 orientation="vertical",
                 styles={
@@ -824,7 +824,7 @@ with st.sidebar:
             sub_page = option_menu(
                 menu_title=None,
                 options=["Importa giacenze", "1Per corridoio", "Per corridoio/marchio", "New import"],
-                icons=["download","1-circle","grid-2x2","download"],
+                icons=["download","1-circle","2-circle","download"],
                 default_index=0,
                 orientation="vertical",
                 styles={
