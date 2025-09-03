@@ -1911,8 +1911,8 @@ elif page == "Giacenze - New import":
             unsafe_allow_html=True
         ):
             st.session_state.selected_option = option
-            nome_file = st.session_state.selected_option
-        
+            
+    nome_file = st.session_state.selected_option
     csv_import = None
     file_bytes_for_upload = None
     last_update = None
