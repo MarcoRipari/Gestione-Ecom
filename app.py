@@ -1941,8 +1941,6 @@ elif page == "Giacenze - New import":
         
     st.session_state.selected_option = selected
     nome_file = st.session_state.selected_option
-    st.write("Hai selezionato:", st.session_state.selected_option)
-            
 
     csv_import = None
     file_bytes_for_upload = None
