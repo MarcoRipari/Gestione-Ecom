@@ -46,6 +46,7 @@ from googleapiclient.discovery import build
 import io
 from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
 from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.http import MediaInMemoryUpload
 
 logging.basicConfig(level=logging.INFO)
 
