@@ -111,6 +111,30 @@ def get_dropbox_access_token():
     response.raise_for_status()
     return response.json()["access_token"]
 
+def get_dropbox_client():
+    access_token = get_dropbox_access_token()
+    return dropbox.Dropbox(access_token)
+
+def upload_csv_to_dropbox(dbx, folder_path: str, file_name: str, file_bytes: bytes):
+    dbx_path = f"{folder_path}/{file_name}"
+    try:
+        dbx.files_create_folder_v2(folder_path)
+    except dropbox.exceptions.ApiError:
+        pass  # cartella già esiste
+    try:
+        dbx.files_upload(file_bytes, dbx_path, mode=WriteMode("overwrite"))
+        st.success(f"✅ CSV caricato su Dropbox: {dbx_path}")
+    except Exception as e:
+        st.error(f"❌ Errore caricando CSV su Dropbox: {e}")
+
+def download_csv_from_dropbox(dbx, folder_path: str, file_name: str) -> io.BytesIO:
+    dbx_path = f"{folder_path}/{file_name}"
+    try:
+        _, res = dbx.files_download(dbx_path)
+        return io.BytesIO(res.content)
+    except dropbox.exceptions.ApiError:
+        return None
+
 # ---------------------------
 # Auth system
 # ---------------------------
@@ -1950,12 +1974,9 @@ elif page == "Logout":
 elif page == "Giacenze - New import":
     st.header("Importa giacenze")
 
-    folder_id = st.secrets["GIACENZE_FOLDER_ID"]
-
-    # --- Selezione nome file (UBIC, PIM o Manuale) ---
-    #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
     options = ["Manuale", "UBIC", "PIM"]
-    icons = [" "," "," "]
+    icons = ["", "", ""]
+    from streamlit_option_menu import option_menu
     selected = option_menu(
         menu_title=None,
         options=options,
@@ -1967,8 +1988,7 @@ elif page == "Giacenze - New import":
                 "padding": "0 10px 0 0!important",
                 "background-color": "#f0f0f0",
                 "display": "flex",
-                "justify-content": "center",
-            },
+                "justify-content": "center"},
             "nav-link": {
                 "font-size": "16px",
                 "text-align": "center",
@@ -1982,7 +2002,7 @@ elif page == "Giacenze - New import":
                 "justify-content": "center",
                 "box-sizing": "border-box",
                 "--hover-color": "#e0e0e0",
-                "before": "none",  # rimuove la freccia prima del nome
+                "before": "none"
             },
             "nav-link-selected": {
                 "background-color": "#4CAF50",
@@ -1997,11 +2017,11 @@ elif page == "Giacenze - New import":
                 "align-items": "center",
                 "justify-content": "center",
                 "box-sizing": "border-box",
-                "before": "none",  # rimuove la freccia anche sul selezionato
+                "before": "none"
             },
         }
     )
-        
+    
     st.session_state.selected_option = selected
     nome_file = st.session_state.selected_option
 
@@ -2009,24 +2029,24 @@ elif page == "Giacenze - New import":
     file_bytes_for_upload = None
     last_update = None
 
+    dbx = get_dropbox_client()
+    folder_path = f"/giacenze/{nome_file}"
+
     if nome_file == "Manuale":
-        # Solo upload manuale
         uploaded_file = st.file_uploader("Carica un file CSV manualmente", type="csv", key="uploader_manual")
         if uploaded_file:
             csv_import = uploaded_file
             file_bytes_for_upload = uploaded_file.getvalue()
             uploaded_file.seek(0)
     else:
-        # Recupera ultimo file su Drive
-        latest_file = get_latest_file_from_gdrive(folder_id, nome_file)
+        latest_file = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
         if latest_file:
-            data_bytes = download_file_from_gdrive(latest_file["id"])
-            csv_import = io.BytesIO(data_bytes)
-            file_bytes_for_upload = data_bytes
-            last_update = latest_file.get("modifiedTime")
-            st.info(f"{nome_file}  ultimo aggiornamento: {format_drive_date(last_update)}")
+            csv_import = latest_file
+            file_bytes_for_upload = latest_file.getvalue()
+            last_update = datetime.now().strftime("%d/%m/%Y %H:%M")
+            st.info(f"{nome_file} ultimo aggiornamento: {last_update}")
         else:
-            st.warning("Nessun file trovato su Drive, carica un file CSV manualmente")
+            st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
 
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
@@ -2061,12 +2081,7 @@ elif page == "Giacenze - New import":
 
         # --- Destinazione GSheet ---
         default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
-        
-        #usa_altra_dest = st.checkbox("Carica su un Google Sheet diverso?", value=False)
-        #sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id) if usa_altra_dest else default_sheet_id
-        
         sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
-
         sheet = get_sheet(sheet_id, "GIACENZE")
 
         if st.button("Importa"):
