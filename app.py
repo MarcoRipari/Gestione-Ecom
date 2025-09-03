@@ -399,7 +399,8 @@ def download_file_from_gdrive(file_id):
 
 def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"):
     """
-    Carica sempre un file CSV su Google Drive, sovrascrivendo se esiste già.
+    Carica un file CSV su Google Drive, sovrascrivendo se esiste già.
+    Compatibile con Shared Drives.
     """
     drive_service = build("drive", "v3", credentials=credentials)
 
@@ -407,11 +408,12 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         st.error(f"⚠️ Il file {file_name} è vuoto, upload annullato.")
         return None
 
-    # Verifica se esiste già un file con lo stesso nome nella cartella
     query = f"'{folder_id}' in parents and name='{file_name}' and trashed=false"
     response = drive_service.files().list(
         q=query,
-        fields="files(id, name)"
+        fields="files(id, name)",
+        supportsAllDrives=True,
+        includeItemsFromAllDrives=True
     ).execute()
     files = response.get("files", [])
 
@@ -423,7 +425,8 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
             file_id = files[0]["id"]
             updated_file = drive_service.files().update(
                 fileId=file_id,
-                media_body=media
+                media_body=media,
+                supportsAllDrives=True
             ).execute()
             st.info(f"♻️ File aggiornato su Drive: {updated_file.get('name')}")
             return updated_file
@@ -433,7 +436,8 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
             new_file = drive_service.files().create(
                 body=file_metadata,
                 media_body=media,
-                fields="id, name"
+                fields="id, name",
+                supportsAllDrives=True
             ).execute()
             st.success(f"✅ File creato su Drive: {new_file.get('name')}")
             return new_file
@@ -2012,7 +2016,6 @@ elif page == "Giacenze - New import":
             csv_import = uploaded_file
             file_bytes_for_upload = uploaded_file.getvalue()
             uploaded_file.seek(0)
-            st.info("⚡ File caricato manualmente")
     else:
         # Recupera ultimo file su Drive
         latest_file = get_latest_file_from_gdrive(folder_id, nome_file)
