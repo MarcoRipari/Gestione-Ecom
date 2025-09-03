@@ -40,9 +40,8 @@ def logout():
 # --------------------------
 def load_user():
     # Controlla token dalla query string
-    query_params = st.experimental_get_query_params()
-    if "access_token" in query_params:
-        st.session_state["access_token"] = query_params["access_token"]
+    if "access_token" in st.query_params:
+        st.session_state["access_token"] = st.query_params["access_token"][0]  # query params sono liste
     
     if "user" in st.session_state:
         return  # già loggato
