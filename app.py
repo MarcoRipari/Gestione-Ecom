@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_elements import mui
+from streamlit_elements import elements, mui
 from streamlit_ace import st_ace
 from stqdm import stqdm
 from annotated_text import annotated_text
@@ -33,28 +33,29 @@ def select_menu(item):
     st.session_state.selected_menu = item
     st.session_state.menu_anchor = None
 
-# ---------------- Navbar Material UI ----------------
-with mui.AppBar(position="static", sx={"background": PRIMARY_COLOR}):
-    with mui.Toolbar():
-        mui.Typography("Generatore Descrizioni 👟", variant="h6", sx={"flexGrow": 1})
+# ---------------- Navbar con streamlit-elements ----------------
+with elements("navbar"):
+    with mui.AppBar(position="static", sx={"background": PRIMARY_COLOR}):
+        with mui.Toolbar():
+            mui.Typography("Generatore Descrizioni 👟", variant="h6", sx={"flexGrow": 1})
 
-        mui.Button("Home", color="inherit", onClick=lambda e: select_menu("Home"))
-        mui.Button("Upload", color="inherit", onClick=lambda e: select_menu("Upload"))
+            mui.Button("Home", color="inherit", onClick=lambda e: select_menu("Home"))
+            mui.Button("Upload", color="inherit", onClick=lambda e: select_menu("Upload"))
 
-        # Dropdown Generazione
-        mui.Button("Generazione ⬇️", color="inherit", onClick=open_menu)
-        with mui.Menu(
-            anchorEl=st.session_state.menu_anchor,
-            open=bool(st.session_state.menu_anchor),
-            onClose=close_menu
-        ):
-            mui.MenuItem("Descrizioni", onClick=lambda e: select_menu("Generazione - Descrizioni"))
-            mui.MenuItem("Nomi", onClick=lambda e: select_menu("Generazione - Nomi"))
-            mui.MenuItem("Cognomi", onClick=lambda e: select_menu("Generazione - Cognomi"))
+            # Dropdown Generazione
+            mui.Button("Generazione ⬇️", color="inherit", onClick=open_menu)
+            with mui.Menu(
+                anchorEl=st.session_state.menu_anchor,
+                open=bool(st.session_state.menu_anchor),
+                onClose=close_menu
+            ):
+                mui.MenuItem("Descrizioni", onClick=lambda e: select_menu("Generazione - Descrizioni"))
+                mui.MenuItem("Nomi", onClick=lambda e: select_menu("Generazione - Nomi"))
+                mui.MenuItem("Cognomi", onClick=lambda e: select_menu("Generazione - Cognomi"))
 
-        mui.Button("Storico", color="inherit", onClick=lambda e: select_menu("Storico"))
-        mui.Button("Download", color="inherit", onClick=lambda e: select_menu("Download"))
-        mui.Button("Chat AI", color="inherit", onClick=lambda e: select_menu("Chat AI"))
+            mui.Button("Storico", color="inherit", onClick=lambda e: select_menu("Storico"))
+            mui.Button("Download", color="inherit", onClick=lambda e: select_menu("Download"))
+            mui.Button("Chat AI", color="inherit", onClick=lambda e: select_menu("Chat AI"))
 
 # ---------------- Contenuto dinamico ----------------
 if st.session_state.selected_menu == "Home":
@@ -77,22 +78,24 @@ elif st.session_state.selected_menu == "Upload":
 elif st.session_state.selected_menu == "Generazione - Descrizioni":
     st.header("⚙️ Generazione Descrizioni")
     prompt = st_ace(value="Scrivi qui il prompt per le descrizioni...", language="markdown", theme="chrome", height=200)
+
     with st.form("desc_form"):
         langs = st.multiselect("Lingue disponibili", ["it", "en", "fr", "de"], default=["it"])
         batch_size = st.slider("Batch size", 1, 50, 5)
         submit = st.form_submit_button("🚀 Avvia")
     if submit:
-        for _ in stqdm(range(batch_size), desc="Generazione descrizioni"):
-            pass
+        st.info("Generazione descrizioni in corso...")
+        for _ in stqdm(range(batch_size), desc="Descrizioni"):
+            pass  # 👉 qui va la tua logica di generazione
         st.success("✅ Descrizioni generate!")
 
 elif st.session_state.selected_menu == "Generazione - Nomi":
     st.header("⚙️ Generazione Nomi")
-    st.write("Funzione di generazione nomi (logica invariata da implementare qui).")
+    st.write("👉 Qui puoi integrare la logica per generare nomi.")
 
 elif st.session_state.selected_menu == "Generazione - Cognomi":
     st.header("⚙️ Generazione Cognomi")
-    st.write("Funzione di generazione cognomi (logica invariata da implementare qui).")
+    st.write("👉 Qui puoi integrare la logica per generare cognomi.")
 
 elif st.session_state.selected_menu == "Storico":
     st.header("📊 Storico & RAG")
