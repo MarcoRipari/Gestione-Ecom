@@ -755,7 +755,7 @@ st.markdown(
     <style>
     /* Larghezza sidebar */
     [data-testid="stSidebar"] {
-        width: 500px;  /* qui imposti la larghezza desiderata */
+        width: 300px;  /* qui imposti la larghezza desiderata */
         min-width: 300px;
     }
     </style>
