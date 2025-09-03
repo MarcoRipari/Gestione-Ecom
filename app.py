@@ -1906,6 +1906,7 @@ elif page == "Giacenze - New import":
                 "justify-content": "center",
             },
             "nav-link": {
+                "menu-icon": None,
                 "font-size": "16px",
                 "text-align": "center",
                 "margin": "5px",
@@ -1921,6 +1922,7 @@ elif page == "Giacenze - New import":
                 "before": "none",  # rimuove la freccia prima del nome
             },
             "nav-link-selected": {
+                "menu-icon": None,
                 "background-color": "#4CAF50",
                 "color": "white",
                 "border": "2px solid #cccccc",
