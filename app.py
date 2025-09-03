@@ -2030,7 +2030,7 @@ elif page == "Giacenze - New import":
     last_update = None
 
     dbx = get_dropbox_client()
-    folder_path = f"/giacenze/{nome_file}"
+    folder_path = f"/GIACENZE/{nome_file}"
 
     if nome_file == "Manuale":
         uploaded_file = st.file_uploader("Carica un file CSV manualmente", type="csv", key="uploader_manual")
@@ -2100,4 +2100,4 @@ elif page == "Giacenze - New import":
 
             # Upload su Drive solo se è Manuale e abbiamo dati
             if nome_file == "Manuale" and file_bytes_for_upload:
-                upload_file_to_gdrive(folder_id, f"{nome_file}.csv", file_bytes_for_upload)
+                upload_csv_to_dropbox(dbx, folder_path, f"{nome_file}.csv", file_bytes_for_upload)
