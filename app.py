@@ -1860,15 +1860,18 @@ elif page == "Giacenze - New import":
 
     csv_import = None
     if latest_file:
+        # Da Drive
         data_bytes = download_file_from_gdrive(latest_file["id"])
         csv_import = io.BytesIO(data_bytes)
-        file_bytes_for_upload = data_bytes  # ✅ pronto per re-upload
+        file_bytes_for_upload = data_bytes
     else:
-        csv_import = st.file_uploader("Carica un file CSV", type="csv")
+        # Da upload manuale
+        uploaded_file = st.file_uploader("Carica un file CSV", type="csv")
+        csv_import = uploaded_file
         file_bytes_for_upload = None
-        if csv_import:
-            file_bytes_for_upload = csv_import.getvalue()  # ✅ salva subito i byte
-            csv_import.seek(0)  # reset puntatore per Pandas
+        if uploaded_file:
+            file_bytes_for_upload = uploaded_file.getvalue()  # salvo subito i bytes
+            uploaded_file.seek(0)  # reset per Pandas
 
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
@@ -1938,6 +1941,10 @@ elif page == "Giacenze - New import":
             # Se era caricamento manuale, carica anche su Drive
             #if not latest_file:
             #    upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
-            csv_import.seek(0)
-            upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
+            if not latest_file and file_bytes_for_upload:
+                upload_file_to_gdrive(folder_id, f"{nome_file}.csv", file_bytes_for_upload)
+            else:
+                csv_import.seek(0)
+                upload_file_to_gdrive(folder_id, f"{nome_file}.csv", csv_import.read())
+                
             st.success("✅ File caricato con successo!")
