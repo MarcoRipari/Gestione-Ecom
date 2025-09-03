@@ -1893,12 +1893,12 @@ elif page == "Giacenze - New import":
     options = ["Manuale", "UBIC", "PIM"]
     
     # Creiamo colonne vuote ai lati e colonne per i pulsanti
-    total_cols = len(options) + 4  # 2 colonne vuote ai lati
+    total_cols = len(options) + 6  # 2 colonne vuote ai lati
     cols = st.columns(total_cols)
     
     nome_file = None
     for i, option in enumerate(options):
-        if cols[i + 2].button(option, key=f"radio_{option}"):
+        if cols[i + 3].button(option, key=f"radio_{option}"):
             nome_file = option
     
     # Default: prima opzione se non è stato cliccato nulla
