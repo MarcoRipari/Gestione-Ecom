@@ -37,6 +37,9 @@ tenacity
 dropbox
 reportlab
 python-dateutil
+supabase
+pyjwt
+streamlit-authenticator
 
 # UI / UX
 streamlit-option-menu
