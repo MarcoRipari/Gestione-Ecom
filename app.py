@@ -1901,17 +1901,7 @@ elif page == "Giacenze - New import":
     else:
         # Recupera ultimo file su Drive
         latest_file = get_latest_file_from_gdrive(folder_id, nome_file)
-        uploaded_file = st.file_uploader(f"Carica un file CSV per {nome_file} (opzionale)", type="csv", key=f"uploader_{nome_file}")
-
-        if uploaded_file:
-            csv_import = uploaded_file
-            file_bytes_for_upload = uploaded_file.getvalue()
-            uploaded_file.seek(0)
-            if latest_file:
-                last_update = latest_file.get("modifiedTime")
-                st.info(f"Ultimo aggiornamento su Drive: {last_update}")
-            st.info("⚡ File caricato manualmente")
-        elif latest_file:
+        if latest_file:
             data_bytes = download_file_from_gdrive(latest_file["id"])
             csv_import = io.BytesIO(data_bytes)
             file_bytes_for_upload = data_bytes
