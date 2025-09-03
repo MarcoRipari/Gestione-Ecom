@@ -2,11 +2,9 @@
 Streamlit Pro UI/UX Template – Refined Professional Edition
 ===========================================================
 
-✨ Polished design for business use
-✨ Modern, clean topbar with branding
-✨ Tailwind injection fixed (reliable CDN)
-✨ Sidebar with professional card layout
-✨ Responsive, corporate-friendly aesthetic
+Sidebar Status Card Fix ✅
+- Now metrics are displayed *inside* the white status card.
+- Cleaner, corporate-friendly layout.
 
 """
 
@@ -19,19 +17,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# -----------------------------
-# Imports with safe fallbacks
-# -----------------------------
 try:
     from streamlit_option_menu import option_menu
 except Exception:
     option_menu = None
 
-# (Other optional imports skipped for brevity; same as before)
-
-# -------------------------------------------------
-# Global App Config
-# -------------------------------------------------
 st.set_page_config(
     page_title="Pro Business App",
     page_icon="💼",
@@ -39,9 +29,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# -------------------------------------------------
-# Tailwind Injection (fixed)
-# -------------------------------------------------
+# Tailwind injection
 TAILWIND_CDN = "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
 
 st.markdown(
@@ -65,10 +53,7 @@ st.markdown(
             align-items: center;
             gap: 0.6rem;
         }}
-        .brand-logo {{
-            width: 28px;
-            height: 28px;
-        }}
+        .brand-logo {{ width: 28px; height: 28px; }}
         .status-chip {{
             background: #10b981;
             color: white;
@@ -88,9 +73,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# -------------------------------------------------
-# Demo Data
-# -------------------------------------------------
+# Demo data
 np.random.seed(42)
 demo_df = pd.DataFrame({
     "SKU": [f"SKU-{i:04d}" for i in range(1, 51)],
@@ -100,26 +83,19 @@ demo_df = pd.DataFrame({
     "Updated": pd.Timestamp("2025-08-25") + pd.to_timedelta(np.random.randint(0, 7, 50), unit="D"),
 })
 
-# -------------------------------------------------
-# Session User Model
-# -------------------------------------------------
 @dataclass
 class User:
     name: str
     role: str = "viewer"
     avatar_url: str = "https://cdn-icons-png.flaticon.com/512/149/149071.png"
 
-
 def get_user() -> User | None:
     return st.session_state.get("user")
-
 
 def set_user(name: str, role: str = "viewer"):
     st.session_state["user"] = User(name=name, role=role)
 
-# -------------------------------------------------
-# Header / Topbar
-# -------------------------------------------------
+# Topbar
 def topbar():
     st.markdown(
         """
@@ -137,19 +113,14 @@ def topbar():
         unsafe_allow_html=True,
     )
 
-# -------------------------------------------------
-# Sidebar (Navigation + Status)
-# -------------------------------------------------
-SIDEBAR_PAGES = ["Dashboard", "Data", "Editor", "Chat", "Media", "Settings", "About"]
-
-
+# Sidebar
 def sidebar_menu() -> str:
     with st.sidebar:
         st.markdown("<div class='sidebar-card'><h3 style='margin:0;'>Navigation</h3></div>", unsafe_allow_html=True)
         if option_menu:
             selected = option_menu(
                 menu_title="",
-                options=SIDEBAR_PAGES,
+                options=["Dashboard", "Data", "Editor", "Chat", "Media", "Settings", "About"],
                 icons=["speedometer2", "table", "code", "chat-dots", "camera-video", "gear", "info-circle"],
                 default_index=0,
                 styles={
@@ -160,19 +131,19 @@ def sidebar_menu() -> str:
                 },
             )
         else:
-            selected = st.selectbox("Navigation", SIDEBAR_PAGES)
+            selected = st.selectbox("Navigation", ["Dashboard", "Data", "Editor", "Chat", "Media", "Settings", "About"])
 
         st.markdown("<div class='sidebar-card'><h4>Status</h4>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
-        c1.metric("Users", "128", "+3")
-        c2.metric("Jobs", "512", "+12")
+        with c1:
+            st.metric("Users", "128", "+3")
+        with c2:
+            st.metric("Jobs", "512", "+12")
         st.markdown("</div>", unsafe_allow_html=True)
 
         return selected
 
-# -------------------------------------------------
-# Pages (placeholders)
-# -------------------------------------------------
+# Pages
 def page_dashboard():
     st.subheader("Dashboard")
     st.info("This is a professional dashboard placeholder.")
@@ -211,16 +182,12 @@ PAGE_MAP = {
     "About": page_about,
 }
 
-# -------------------------------------------------
 # Main
-# -------------------------------------------------
 def main():
     topbar()
     page = sidebar_menu()
-
     with st.container():
         PAGE_MAP.get(page, page_dashboard)()
-
     st.markdown("<hr>", unsafe_allow_html=True)
     st.caption(f"© {datetime.now().year} Pro Business App. Built with Streamlit.")
 
