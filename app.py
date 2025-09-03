@@ -1900,7 +1900,7 @@ elif page == "Giacenze - New import":
         orientation="horizontal",
         styles={
             "container": {
-                "padding": "0!important",
+                "padding": "0 10px 0 0!important",  # spazio a destra del container
                 "background-color": "#f0f0f0",
                 "display": "flex",
                 "justify-content": "center",
@@ -1909,8 +1909,8 @@ elif page == "Giacenze - New import":
                 "font-size": "16px",
                 "text-align": "center",
                 "margin": "5px",
-                "padding": "0px",  # padding verticale gestito da flex
-                "min-height": "40px",  # altezza fissa
+                "padding": "0px",
+                "min-height": "40px",
                 "height": "40px",
                 "line-height": "normal",
                 "display": "flex",
@@ -1924,7 +1924,7 @@ elif page == "Giacenze - New import":
                 "color": "white",
                 "border": "2px solid #cccccc",
                 "border-radius": "10px",
-                "padding": "0px",  # stesso padding
+                "padding": "0px",
                 "min-height": "40px",
                 "height": "40px",
                 "line-height": "normal",
