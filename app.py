@@ -860,7 +860,7 @@ with st.sidebar:
         elif main_page_name == "Giacenze":
             sub_page = option_menu(
                 menu_title=None,
-                options=["Importa giacenze", "1Per corridoio", "Per corridoio/marchio", "New import"],
+                options=["Importa giacenze", "1Per corridoio", "Per corridoio/marchio", "Old import"],
                 icons=["download","1-circle","2-circle","download"],
                 default_index=0,
                 orientation="vertical",
