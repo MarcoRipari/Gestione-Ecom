@@ -1883,33 +1883,42 @@ elif page == "Giacenze - New import":
 
     folder_id = st.secrets["GIACENZE_FOLDER_ID"]
 
-    # --- Selezione nome file (UBIC o PIM) ---
-    nome_file = st.selectbox("Nome file", ["UBIC", "PIM"], index=0, key="nome_file_select")
+    # --- Selezione nome file (UBIC, PIM o Manuale) ---
+    nome_file = st.selectbox("Seleziona file", ["UBIC", "PIM", "Manuale"], index=0, key="nome_file_select")
 
-    # --- Recupera ultimo file su Drive ---
-    latest_file = get_latest_file_from_gdrive(folder_id, nome_file)
-    last_update = latest_file.get("modifiedTime") if latest_file else None
+    csv_import = None
+    file_bytes_for_upload = None
+    last_update = None
 
-    # --- Upload manuale ---
-    uploaded_file = st.file_uploader(f"Carica un file CSV per {nome_file}", type="csv", key=f"uploader_{nome_file}")
-
-    # Decidi quale file usare: manuale > Drive
-    if uploaded_file:
-        csv_import = uploaded_file
-        file_bytes_for_upload = uploaded_file.getvalue()
-        uploaded_file.seek(0)
-        if last_update:
-            st.info(f"Ultimo aggiornamento su Drive: {last_update}")
-        st.info("⚡ File caricato manualmente")
-    elif latest_file:
-        data_bytes = download_file_from_gdrive(latest_file["id"])
-        csv_import = io.BytesIO(data_bytes)
-        file_bytes_for_upload = data_bytes
-        st.info(f"Ultimo aggiornamento: {last_update}")
+    if nome_file == "Manuale":
+        # Solo upload manuale
+        uploaded_file = st.file_uploader("Carica un file CSV manualmente", type="csv", key="uploader_manual")
+        if uploaded_file:
+            csv_import = uploaded_file
+            file_bytes_for_upload = uploaded_file.getvalue()
+            uploaded_file.seek(0)
+            st.info("⚡ File caricato manualmente")
     else:
-        csv_import = None
-        file_bytes_for_upload = None
-        st.warning("Nessun file trovato su Drive, carica un file CSV manualmente")
+        # Recupera ultimo file su Drive
+        latest_file = get_latest_file_from_gdrive(folder_id, nome_file)
+        uploaded_file = st.file_uploader(f"Carica un file CSV per {nome_file} (opzionale)", type="csv", key=f"uploader_{nome_file}")
+
+        if uploaded_file:
+            csv_import = uploaded_file
+            file_bytes_for_upload = uploaded_file.getvalue()
+            uploaded_file.seek(0)
+            if latest_file:
+                last_update = latest_file.get("modifiedTime")
+                st.info(f"Ultimo aggiornamento su Drive: {last_update}")
+            st.info("⚡ File caricato manualmente")
+        elif latest_file:
+            data_bytes = download_file_from_gdrive(latest_file["id"])
+            csv_import = io.BytesIO(data_bytes)
+            file_bytes_for_upload = data_bytes
+            last_update = latest_file.get("modifiedTime")
+            st.info(f"Ultimo aggiornamento: {format_drive_date(last_update)}")
+        else:
+            st.warning("Nessun file trovato su Drive, carica un file CSV manualmente")
 
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
@@ -1942,7 +1951,7 @@ elif page == "Giacenze - New import":
 
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
 
-        # --- Scelta destinazione GSheet ---
+        # --- Destinazione GSheet ---
         default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
         usa_altra_dest = st.checkbox("Carica su un Google Sheet diverso?", value=False)
         sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id) if usa_altra_dest else default_sheet_id
@@ -1963,6 +1972,6 @@ elif page == "Giacenze - New import":
             format_cell_ranges(sheet, ranges_to_format)
             st.success("✅ Giacenze importate con successo!")
 
-            # Upload sempre su Drive, sovrascrivendo
-            if file_bytes_for_upload:
+            # Upload su Drive solo se non è Manuale e abbiamo dati
+            if nome_file != "Manuale" and file_bytes_for_upload:
                 upload_file_to_gdrive(folder_id, f"{nome_file}.csv", file_bytes_for_upload)
