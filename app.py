@@ -393,9 +393,16 @@ def download_file_from_gdrive(file_id):
 
 
 def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"):
+    """
+    Carica sempre un file CSV su Google Drive, sovrascrivendo se esiste già.
+    """
     drive_service = build("drive", "v3", credentials=credentials)
 
-    # Cerca se esiste già un file con lo stesso nome nella cartella
+    if not file_bytes or len(file_bytes) == 0:
+        st.error(f"⚠️ Il file {file_name} è vuoto, upload annullato.")
+        return None
+
+    # Verifica se esiste già un file con lo stesso nome nella cartella
     query = f"'{folder_id}' in parents and name='{file_name}' and trashed=false"
     response = drive_service.files().list(
         q=query,
@@ -405,23 +412,29 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
 
     media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=False)
 
-    if files:
-        # Se esiste → sovrascrivo
-        file_id = files[0]["id"]
-        updated_file = drive_service.files().update(
-            fileId=file_id,
-            media_body=media
-        ).execute()
-        return updated_file
-    else:
-        # Se non esiste → creo nuovo
-        file_metadata = {"name": file_name, "parents": [folder_id]}
-        new_file = drive_service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields="id, name"
-        ).execute()
-        return new_file
+    try:
+        if files:
+            # Aggiorna file esistente
+            file_id = files[0]["id"]
+            updated_file = drive_service.files().update(
+                fileId=file_id,
+                media_body=media
+            ).execute()
+            st.info(f"♻️ File aggiornato su Drive: {updated_file.get('name')}")
+            return updated_file
+        else:
+            # Crea nuovo file
+            file_metadata = {"name": file_name, "parents": [folder_id]}
+            new_file = drive_service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields="id, name"
+            ).execute()
+            st.success(f"✅ File creato su Drive: {new_file.get('name')}")
+            return new_file
+    except Exception as e:
+        st.error(f"❌ Errore nell'upload su Drive: {e}")
+        return None
     
 # ---------------------------
 # Funzioni varie
