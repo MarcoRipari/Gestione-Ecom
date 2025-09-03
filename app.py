@@ -1900,7 +1900,7 @@ elif page == "Giacenze - New import":
         orientation="horizontal",
         styles={
             "container": {
-                "padding": "0 10px 0 0!important",  # spazio a destra del container
+                "padding": "0 10px 0 0!important",
                 "background-color": "#f0f0f0",
                 "display": "flex",
                 "justify-content": "center",
@@ -1918,6 +1918,7 @@ elif page == "Giacenze - New import":
                 "justify-content": "center",
                 "box-sizing": "border-box",
                 "--hover-color": "#e0e0e0",
+                "before": "none",  # rimuove la freccia prima del nome
             },
             "nav-link-selected": {
                 "background-color": "#4CAF50",
@@ -1932,6 +1933,7 @@ elif page == "Giacenze - New import":
                 "align-items": "center",
                 "justify-content": "center",
                 "box-sizing": "border-box",
+                "before": "none",  # rimuove la freccia anche sul selezionato
             },
         }
     )
