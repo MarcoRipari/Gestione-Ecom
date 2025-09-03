@@ -1,14 +1,16 @@
 import streamlit as st
-from supabase import create_client, Client
+from supabase import create_client
 from dataclasses import dataclass
+import jwt
 
 # --------------------------
 # Config Supabase (da segreti Streamlit Cloud)
 # --------------------------
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_ANON_KEY = st.secrets["SUPABASE_ANON_KEY"]
+REDIRECT_URL = "https://gestione-ecom.streamlit.app/"  # URL pubblico app Streamlit Cloud
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 # --------------------------
 # User dataclass
@@ -21,37 +23,44 @@ class User:
     role: str
 
 # --------------------------
-# Login / Logout con Supabase Google
+# Login con Google (OAuth)
 # --------------------------
 def login_with_google():
-    # Avvia flusso login Google
-    supabase.auth.sign_in_with_provider('google')
+    supabase.auth.sign_in_with_provider("google", redirect_to=REDIRECT_URL)
 
 def logout():
-    supabase.auth.sign_out()
-    st.session_state['user'] = None
+    st.session_state.pop("user", None)
+    st.session_state.pop("access_token", None)
     st.experimental_rerun()
 
 # --------------------------
-# Controllo login e ruoli
+# Load user dal token JWT
 # --------------------------
 def load_user():
-    if 'user' not in st.session_state or st.session_state['user'] is None:
-        # Controlla se utente loggato con Supabase
-        user = supabase.auth.user()
-        if user:
-            # Prendi profilo dal DB
-            profile = supabase.table("profiles").select("*").eq("id", user.id).single().execute()
-            role = profile.data['role'] if profile.data else "viewer"
-            st.session_state['user'] = User(
-                id=user.id,
-                email=user.email,
-                full_name=profile.data['full_name'] if profile.data else user.email,
-                role=role
-            )
-        else:
-            st.session_state['user'] = None
+    if "user" in st.session_state:
+        return  # già loggato
+    
+    access_token = st.session_state.get("access_token")
+    if access_token:
+        try:
+            payload = jwt.decode(access_token, options={"verify_signature": False})
+            user_id = payload.get("sub")
+            email = payload.get("email")
+            
+            # Carica profilo da Supabase
+            profile_resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
+            profile = profile_resp.data
+            role = profile["role"] if profile else "viewer"
+            full_name = profile["full_name"] if profile else email
+            
+            st.session_state["user"] = User(id=user_id, email=email, full_name=full_name, role=role)
+        except Exception as e:
+            st.error(f"Errore nel caricamento dell'utente: {e}")
+            st.session_state.pop("access_token", None)
 
+# --------------------------
+# Controllo ruoli
+# --------------------------
 def require_role(roles):
     user = st.session_state.get("user")
     if not user or user.role not in roles:
@@ -75,7 +84,7 @@ def topbar():
     """, unsafe_allow_html=True)
 
 # --------------------------
-# Sidebar con sotto-menu basato su ruoli
+# Sidebar con sotto-menu
 # --------------------------
 def sidebar_menu():
     st.sidebar.write("### Menu")
@@ -84,7 +93,7 @@ def sidebar_menu():
     main_menu = st.sidebar.selectbox("Seleziona pagina", ["Dashboard", "Data", "Editor", "Chat", "Settings", "About"])
     submenu = None
     
-    # Esempio sotto-menu basato sul ruolo
+    # Sotto-menu dinamico basato sul ruolo
     if main_menu == "Data":
         options = ["Overview"]
         if user.role in ["editor","admin"]:
