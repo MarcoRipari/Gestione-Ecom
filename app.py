@@ -403,7 +403,8 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
     ).execute()
     files = response.get("files", [])
 
-    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=True)
+    # Caricamento non-resumable
+    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=False)
 
     if files:
         # Se esiste già → aggiornamento
