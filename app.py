@@ -1894,7 +1894,7 @@ elif page == "Giacenze - New import":
     options = ["Manuale", "UBIC", "PIM"]
     
     selected = option_menu(
-        menu_title=None,  # Nessuna freccia
+        menu_title=None,
         options=options,
         default_index=0,
         orientation="horizontal",
@@ -1908,11 +1908,15 @@ elif page == "Giacenze - New import":
             "nav-link": {
                 "font-size": "16px",
                 "text-align": "center",
-                "margin": "5px",  # Margine uniforme tra i pulsanti
-                "padding": "10px 20px",  # Padding uniforme
-                "line-height": "normal",  # Allineamento verticale del testo
-                "min-height": "0px",  # Evita margine extra sotto
-                "box-sizing": "border-box",  # Include bordi nel calcolo dell’altezza
+                "margin": "5px",
+                "padding": "0px",  # padding verticale gestito da flex
+                "min-height": "40px",  # altezza fissa
+                "height": "40px",
+                "line-height": "normal",
+                "display": "flex",
+                "align-items": "center",
+                "justify-content": "center",
+                "box-sizing": "border-box",
                 "--hover-color": "#e0e0e0",
             },
             "nav-link-selected": {
@@ -1920,9 +1924,14 @@ elif page == "Giacenze - New import":
                 "color": "white",
                 "border": "2px solid #cccccc",
                 "border-radius": "10px",
-                "padding": "10px 20px",  # Stesso padding del non selezionato
-                "line-height": "normal",  # Allineamento verticale del testo
-                "box-sizing": "border-box",  # Include bordi nel calcolo dell’altezza
+                "padding": "0px",  # stesso padding
+                "min-height": "40px",
+                "height": "40px",
+                "line-height": "normal",
+                "display": "flex",
+                "align-items": "center",
+                "justify-content": "center",
+                "box-sizing": "border-box",
             },
         }
     )
