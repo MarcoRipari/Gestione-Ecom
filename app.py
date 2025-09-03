@@ -1693,6 +1693,7 @@ elif page == "Giacenze - Importa giacenze":
             uploaded_file.seek(0)
             manual_nome_file = uploaded_file.name
     else:
+        with st.spinner(f"Download {nome_file} in corso..."):
         latest_file, metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
         if latest_file:
             csv_import = latest_file
@@ -1739,22 +1740,24 @@ elif page == "Giacenze - Importa giacenze":
         sheet = get_sheet(sheet_id, "GIACENZE")
 
         if st.button("Importa"):
-            # Aggiorna GSheet
-            sheet.clear()
-            sheet.update("A1", data_to_write)
-            last_row = len(df_input) + 1
-
-            ranges_to_format = [
-                (f"{col_letter}2:{col_letter}{last_row}",
-                 CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
-                for col_letter, pattern in numeric_cols_info.items()
-            ]
-            format_cell_ranges(sheet, ranges_to_format)
-            st.success("✅ Giacenze importate con successo!")
+            with st.spinner("Aggiorno giacenze su GSheet..."):
+                # Aggiorna GSheet
+                sheet.clear()
+                sheet.update("A1", data_to_write)
+                last_row = len(df_input) + 1
+    
+                ranges_to_format = [
+                    (f"{col_letter}2:{col_letter}{last_row}",
+                     CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                    for col_letter, pattern in numeric_cols_info.items()
+                ]
+                format_cell_ranges(sheet, ranges_to_format)
+                st.success("✅ Giacenze importate con successo!")
 
             # Upload su Drive solo se è Manuale e abbiamo dati
             if nome_file == "Manuale" and file_bytes_for_upload:
-                upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+                with st.spinner("Carico il file su DropBox..."):
+                    upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
             
 elif page == "Giacenze - Per corridoio":
     st.header("Riepilogo per corridoio")
