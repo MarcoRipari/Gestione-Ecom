@@ -64,7 +64,7 @@ load_user()
 
 if "user" not in st.session_state:
     st.markdown(
-        f"<a href='{google_oauth_url()}' style='text-decoration:none;'><button style='padding:10px 20px;border-radius:8px;background:#4f46e5;color:white;border:none;'>Login con Google</button></a>",
+        f"<a href='{google_oauth_url()}'><button style='padding:10px 20px;border-radius:8px;background:#4f46e5;color:white;border:none;'>Login con Google</button></a>",
         unsafe_allow_html=True
     )
     st.stop()
