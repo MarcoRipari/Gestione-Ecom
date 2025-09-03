@@ -29,6 +29,7 @@ from openai import AsyncOpenAI
 from aiohttp import ClientTimeout
 from tenacity import retry, stop_after_attempt, wait_fixed
 import dropbox
+from dropbox.files import WriteMode
 import base64
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
@@ -52,6 +53,7 @@ from dateutil import parser
 from dateutil.tz import tzlocal
 import locale
 from zoneinfo import ZoneInfo
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -123,6 +125,7 @@ def upload_csv_to_dropbox(dbx, folder_path: str, file_name: str, file_bytes: byt
         pass  # cartella già esiste
     try:
         dbx.files_upload(file_bytes, dbx_path, mode=WriteMode("overwrite"))
+        
         st.success(f"✅ CSV caricato su Dropbox: {dbx_path}")
     except Exception as e:
         st.error(f"❌ Errore caricando CSV su Dropbox: {e}")
