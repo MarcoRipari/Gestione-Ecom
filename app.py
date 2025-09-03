@@ -1678,12 +1678,11 @@ elif page == "Giacenze - Importa giacenze":
     st.session_state.selected_option = selected
     nome_file = st.session_state.selected_option
 
-    if "last_selected_file" not in st.session_state or st.session_state.last_selected_file != nome_file:
+    if "downloaded_file_name" not in st.session_state or st.session_state.downloaded_file_name != nome_file:
         st.session_state.df_input = None  # resetta il DataFrame
         st.session_state.downloaded_file = None
         st.session_state.downloaded_file_metadata = None
-        st.session_state.downloaded_file_name = None
-        st.session_state.last_selected_file = nome_file
+        st.session_state.downloaded_file_name = nome_file
 
     csv_import = None
     file_bytes_for_upload = None
@@ -1701,7 +1700,7 @@ elif page == "Giacenze - Importa giacenze":
             manual_nome_file = uploaded_file.name
     else:
         if "downloaded_file" not in st.session_state:
-            with st.spinner("Download {nome_file} da DropBox..."):
+            with st.spinner(f"Download {nome_file} da DropBox..."):
                 st.session_state.downloaded_file, st.session_state.downloaded_file_metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
                 st.session_state.downloaded_file_name = {nome_file}
 
@@ -1714,13 +1713,10 @@ elif page == "Giacenze - Importa giacenze":
             last_update = format_dropbox_date(metadata.client_modified)
             st.info(f"{nome_file} ultimo aggiornamento: {last_update}")
         else:
-            st.session_state.downloaded_file = None
-            st.session_state.downloaded_file_name = None
-            st.session_state.downloaded_file_metadata = None
             st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
 
     if csv_import:
-        if "df_input" not in st.session_state:
+        if st.session_state.df_input is None:
             with st.spinner("Carico CSV..."):
                 st.session_state.df_input = read_csv_auto_encoding(csv_import, "\t")
 
