@@ -439,15 +439,20 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         return None
 
 def format_drive_date(dt_str):
+    """
+    Formatta la data di Drive in:
+    - 'Oggi alle HH:MM' se è oggi
+    - 'DD Mese YYYY - HH:MM' altrimenti
+    """
     dt = parser.isoparse(dt_str)  # converte ISO 8601 in datetime
-    dt_local = dt.astimezone(tzlocal())  # converte in ora locale
+    dt = dt.astimezone(tzlocal())  # converte al fuso orario locale
 
     oggi = datetime.now(tzlocal()).date()
 
-    if dt_local.date() == oggi:
-        return f"Oggi alle {dt_local.strftime('%H:%M')}"
+    if dt.date() == oggi:
+        return f"Oggi alle {dt.strftime('%H:%M')}"
     else:
-        return dt_local.strftime("%d %B %Y - %H:%M")
+        return dt.strftime("%d %B %Y - %H:%M")
     
 # ---------------------------
 # Funzioni varie
