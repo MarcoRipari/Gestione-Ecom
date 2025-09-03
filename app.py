@@ -1987,7 +1987,6 @@ elif page == "Giacenze - New import":
     selected = option_menu(
         menu_title=None,
         options=options,
-        icons=icons,
         icons=[" "," "," "],
         default_index=0,
         orientation="horizontal",
