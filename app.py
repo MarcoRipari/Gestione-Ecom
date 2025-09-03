@@ -1891,22 +1891,17 @@ elif page == "Giacenze - New import":
     # --- Selezione nome file (UBIC, PIM o Manuale) ---
     #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
     options = ["Manuale", "UBIC", "PIM"]
-
-    # Colonne: niente spazio laterale, solo pulsanti vicini
-    cols = st.columns(len(options), gap="small")  # gap="small" riduce lo spazio tra le colonne
+    
+    # Creiamo colonne vuote ai lati e colonne per i pulsanti
+    total_cols = len(options) + 4  # 2 colonne vuote ai lati
+    cols = st.columns(total_cols)
     
     nome_file = None
     for i, option in enumerate(options):
-        if cols[i].button(option, key=f"radio_{option}"):
+        if cols[i + 1].button(option, key=f"radio_{option}"):
             nome_file = option
     
-    # Default se non cliccato nulla
-    if nome_file is None:
-        nome_file = options[0]
-    
-    st.write("Hai selezionato:", nome_file)
-    
-    # Default se non cliccato nulla
+    # Default: prima opzione se non è stato cliccato nulla
     if nome_file is None:
         nome_file = options[0]
     
