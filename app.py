@@ -6,6 +6,7 @@ import faiss
 import numpy as np
 import time
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 import os
 from typing import List, Dict, Any
 from google.oauth2 import service_account
@@ -472,12 +473,16 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         st.error(f"❌ Errore nell'upload su Drive: {e}")
         return None
 
-def format_drive_date(dt_str):
-    # converte da ISO UTC
-    dt_utc = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
-    
-    # imposta fuso italiano
-    dt_italy = dt_utc.astimezone(ZoneInfo("Europe/Rome"))
+def format_dropbox_date(dt):
+    """
+    dt: datetime oggetto restituito da Dropbox (client_modified)
+    """
+    # Se non ha tzinfo, assumiamo UTC
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+
+    # Convertiamo in fuso italiano
+    dt_italy = dt.astimezone(ZoneInfo("Europe/Rome"))
 
     oggi = datetime.now(ZoneInfo("Europe/Rome")).date()
 
@@ -1978,12 +1983,12 @@ elif page == "Giacenze - New import":
     st.header("Importa giacenze")
 
     options = ["Manuale", "UBIC", "PIM"]
-    icons = ["", "", ""]
     from streamlit_option_menu import option_menu
     selected = option_menu(
         menu_title=None,
         options=options,
         icons=icons,
+        icons=[" "," "," "],
         default_index=0,
         orientation="horizontal",
         styles={
@@ -2104,4 +2109,4 @@ elif page == "Giacenze - New import":
 
             # Upload su Drive solo se è Manuale e abbiamo dati
             if nome_file == "Manuale" and file_bytes_for_upload:
-                upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}.csv", file_bytes_for_upload)
+                upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
