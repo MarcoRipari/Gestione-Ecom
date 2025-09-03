@@ -38,4 +38,3 @@ dropbox
 reportlab
 streamlit-aggrid
 python-dateutil
-timezone
