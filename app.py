@@ -1894,30 +1894,37 @@ elif page == "Giacenze - New import":
     options = ["Manuale", "UBIC", "PIM"]
     
     selected = option_menu(
-        menu_title=None,  # nessuna freccia / titolo
+        menu_title=None,  # niente titolo
         options=options,
         default_index=0,
         orientation="horizontal",
         styles={
             "container": {
-                "padding": "0!important", 
-                "background-color": "#f0f0f0"
+                "padding": "0!important",
+                "background-color": "#f0f0f0",
+                "display": "flex",
+                "justify-content": "center",
             },
             "nav-link": {
                 "font-size": "16px",
                 "text-align": "center",
-                "margin": "5px",  # margine tra i pulsanti
+                "margin": "5px 5px 5px 5px",  # margini uniformi
+                "padding": "10px 20px",       # padding uniforme verticale e orizzontale
+                "line-height": "normal",      # mantiene testo centrato verticalmente
                 "--hover-color": "#e0e0e0",
+                "min-height": "0px",          # evita margine extra sotto
             },
             "nav-link-selected": {
-                "background-color": "#4CAF50", 
+                "background-color": "#4CAF50",
                 "color": "white",
-                "border": "2px solid #cccccc",  # bordo grigio attorno al verde
-                "border-radius": "10px",        # arrotondato
+                "border": "2px solid #cccccc",
+                "border-radius": "10px",
+                "padding": "10px 20px",
+                "line-height": "normal",
             },
         }
     )
-    
+        
     st.session_state.selected_option = selected
     nome_file = st.session_state.selected_option
     st.write("Hai selezionato:", st.session_state.selected_option)
