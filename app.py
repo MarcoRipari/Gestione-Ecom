@@ -787,6 +787,7 @@ with st.sidebar:
 
         # Rimuovo icone/emoji per gestire page name
         #main_page_name = main_page.split(' ', 1)[1]
+        main_page_name = main_page
 
         page = main_page_name  # default
 
