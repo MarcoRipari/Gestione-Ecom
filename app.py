@@ -404,11 +404,9 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
     ).execute()
     files = response.get("files", [])
 
-    # Caricamento non-resumable
     media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=False)
 
     if files:
-        # Se esiste già → aggiornamento
         file_id = files[0]["id"]
         updated_file = drive_service.files().update(
             fileId=file_id,
@@ -416,7 +414,6 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         ).execute()
         return updated_file
     else:
-        # Se non esiste → creazione
         file_metadata = {"name": file_name, "parents": [folder_id]}
         new_file = drive_service.files().create(
             body=file_metadata,
@@ -1863,12 +1860,15 @@ elif page == "Giacenze - New import":
 
     csv_import = None
     if latest_file:
-        st.info(f"Ultimo file trovato su Drive: {latest_file['name']}")
         data_bytes = download_file_from_gdrive(latest_file["id"])
         csv_import = io.BytesIO(data_bytes)
+        file_bytes_for_upload = data_bytes  # ✅ pronto per re-upload
     else:
-        st.info("Nessun file trovato su Drive, carica manualmente")
         csv_import = st.file_uploader("Carica un file CSV", type="csv")
+        file_bytes_for_upload = None
+        if csv_import:
+            file_bytes_for_upload = csv_import.getvalue()  # ✅ salva subito i byte
+            csv_import.seek(0)  # reset puntatore per Pandas
 
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
