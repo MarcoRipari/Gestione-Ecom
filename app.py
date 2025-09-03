@@ -2,13 +2,14 @@ import streamlit as st
 from supabase import create_client
 from dataclasses import dataclass
 import jwt
+from urllib.parse import urlparse, parse_qs
 
 # --------------------------
 # Config Supabase (da segreti Streamlit Cloud)
 # --------------------------
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_ANON_KEY = st.secrets["SUPABASE_ANON_KEY"]
-REDIRECT_URL = "https://gestione-ecom.streamlit.app/"  # URL pubblico app Streamlit Cloud
+REDIRECT_URL = "https://tuo-progetto.streamlit.app/"  # Inserisci l'URL pubblico della tua app Streamlit Cloud
 
 supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
@@ -23,10 +24,11 @@ class User:
     role: str
 
 # --------------------------
-# Login con Google (OAuth)
+# Login con Google (link OAuth)
 # --------------------------
 def login_with_google():
-    supabase.auth.sign_in_with_provider("google", redirect_to=REDIRECT_URL)
+    login_url = f"{SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to={REDIRECT_URL}"
+    st.markdown(f"[Login con Google]({login_url})", unsafe_allow_html=True)
 
 def logout():
     st.session_state.pop("user", None)
@@ -37,9 +39,14 @@ def logout():
 # Load user dal token JWT
 # --------------------------
 def load_user():
+    # Controlla token dalla query string
+    query_params = st.experimental_get_query_params()
+    if "access_token" in query_params:
+        st.session_state["access_token"] = query_params["access_token"]
+    
     if "user" in st.session_state:
         return  # già loggato
-    
+
     access_token = st.session_state.get("access_token")
     if access_token:
         try:
@@ -47,7 +54,7 @@ def load_user():
             user_id = payload.get("sub")
             email = payload.get("email")
             
-            # Carica profilo da Supabase
+            # Carica profilo dal DB Supabase
             profile_resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
             profile = profile_resp.data
             role = profile["role"] if profile else "viewer"
@@ -153,8 +160,7 @@ def main():
     
     if not user:
         st.title("Login con Google")
-        if st.button("Login con Google"):
-            login_with_google()
+        login_with_google()
         st.stop()
     else:
         st.sidebar.write(f"Logged in as: {user.full_name} ({user.role})")
