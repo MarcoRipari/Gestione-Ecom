@@ -1890,7 +1890,13 @@ elif page == "Giacenze - New import":
     folder_id = st.secrets["GIACENZE_FOLDER_ID"]
 
     # --- Selezione nome file (UBIC, PIM o Manuale) ---
-    nome_file = st.selectbox("Seleziona file", ["UBIC", "PIM", "Manuale"], index=0, key="nome_file_select")
+    #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
+    nome_file = st.radio(
+        "Seleziona file",
+        ["Manuale", "UBIC", "PIM"],
+        index=0,
+        key="nome_file_radio"
+    )
 
     csv_import = None
     file_bytes_for_upload = None
