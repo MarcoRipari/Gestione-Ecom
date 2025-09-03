@@ -1693,8 +1693,10 @@ elif page == "Giacenze - Importa giacenze":
             uploaded_file.seek(0)
             manual_nome_file = uploaded_file.name
     else:
-        with st.spinner(f"Download {nome_file} in corso..."):
+        if "downloaded_file" not in st.session_state or st.session_state.downloaded_file_name != {nome_file}:
             latest_file, metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
+            st.session_state.downloaded_file = latest_file
+            st.session_state.downloaded_file_name = {nome_file}
             
         if latest_file:
             csv_import = latest_file
@@ -1702,11 +1704,14 @@ elif page == "Giacenze - Importa giacenze":
             last_update = format_dropbox_date(metadata.client_modified)
             st.info(f"{nome_file} ultimo aggiornamento: {last_update}")
         else:
+            st.session_state.downloaded_file = None
             st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
 
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
-        st.write(df_input)
+        view_df = st.checkbox("Visualizza il dataframe?",default=False)
+        if view_df:
+            st.write(df_input)
     
         # --- Colonne numeriche ---
         numeric_cols_info = { "D": "0", "L": "000", "N": "0", "O": "0" }
