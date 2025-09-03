@@ -1694,10 +1694,12 @@ elif page == "Giacenze - Importa giacenze":
             manual_nome_file = uploaded_file.name
     else:
         if "downloaded_file" not in st.session_state or st.session_state.downloaded_file_name != {nome_file}:
-            latest_file, metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
-            st.session_state.downloaded_file = latest_file
-            st.session_state.downloaded_file_name = {nome_file}
-            
+            with st.spinner("Download {nome_file} da DropBox..."):
+                st.session_state.downloaded_file, metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
+                st.session_state.downloaded_file_name = {nome_file}
+
+        latest_file = st.session_state.downloaded_file
+        
         if latest_file:
             csv_import = latest_file
             file_bytes_for_upload = latest_file.getvalue()
@@ -1708,8 +1710,13 @@ elif page == "Giacenze - Importa giacenze":
             st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
 
     if csv_import:
-        df_input = read_csv_auto_encoding(csv_import, "\t")
-        view_df = st.checkbox("Visualizza il dataframe?",default=False)
+        if "df_input" not in st.session_state:
+            with st.spinner("Carico CSV..."):
+                st.session_state.df_input = read_csv_auto_encoding(csv_import, "\t")
+
+        df_input = st.session_state.df_input
+            
+        view_df = st.checkbox("Visualizza il dataframe?", value=False)
         if view_df:
             st.write(df_input)
     
