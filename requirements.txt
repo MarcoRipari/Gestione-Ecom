@@ -44,7 +44,6 @@ streamlit-aggrid
 streamlit-ace
 st-tailwind
 streamlit-elements
-streamlit-forms
 streamlit-tooltip
 streamlit-modal
 st-raw-components
