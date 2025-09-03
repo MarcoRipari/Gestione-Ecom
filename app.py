@@ -2033,7 +2033,7 @@ elif page == "Giacenze - New import":
     last_update = None
 
     dbx = get_dropbox_client()
-    folder_path = "/GIACENZE/"
+    folder_path = "/GIACENZE"
 
     if nome_file == "Manuale":
         uploaded_file = st.file_uploader("Carica un file CSV manualmente", type="csv", key="uploader_manual")
