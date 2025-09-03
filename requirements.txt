@@ -40,21 +40,21 @@ python-dateutil
 
 # UI / UX
 streamlit-option-menu
-streamlit-aggrid==0.4.3
-streamlit-ace==0.5.0
-st-tailwind==0.1.7
-streamlit-bootstrap==0.1.0
-streamlit-elements==0.6.0
-streamlit-forms==0.0.4
-streamlit-tooltip==0.1.0
-streamlit-modal==0.0.7
-st-raw-components==0.0.6
-stqdm==0.3.1
-plotly==5.20.0
-plotly-express==0.4.1
-altair==5.2.0
-streamlit-echarts==0.0.9
-st-annotated-text==0.1.5
-streamlit-chat==0.0.5
-streamlit-webrtc==0.1.30
+streamlit-aggrid
+streamlit-ace
+st-tailwind
+streamlit-bootstrap
+streamlit-elements
+streamlit-forms
+streamlit-tooltip
+streamlit-modal
+st-raw-components
+stqdm
+plotly
+plotly-express
+altair
+streamlit-echarts
+st-annotated-text
+streamlit-chat
+streamlit-webrtc
 
