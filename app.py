@@ -1678,12 +1678,14 @@ elif page == "Giacenze - Importa giacenze":
     st.session_state.selected_option = selected
     nome_file = st.session_state.selected_option
 
-    if "downloaded_file_name" not in st.session_state or st.session_state.downloaded_file_name != nome_file:
+    if "downloaded_file_name" not in st.session_state or st.session_state.downloaded_file_name != selected:
         st.session_state.df_input = None  # resetta il DataFrame
         st.session_state.downloaded_file = None
         st.session_state.downloaded_file_metadata = None
         st.session_state.downloaded_file_name = nome_file
 
+    st.write(f"Stai usando {st.session_state.downloaded_file_name}")
+    
     csv_import = None
     file_bytes_for_upload = None
     last_update = None
