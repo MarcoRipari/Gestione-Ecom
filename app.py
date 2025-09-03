@@ -1708,6 +1708,8 @@ elif page == "Giacenze - Importa giacenze":
             st.info(f"{nome_file} ultimo aggiornamento: {last_update}")
         else:
             st.session_state.downloaded_file = None
+            st.session_state.downloaded_file_name = None
+            st.session_state.downloaded_file_metadata = None
             st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
 
     if csv_import:
