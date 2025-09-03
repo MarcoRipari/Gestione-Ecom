@@ -132,12 +132,20 @@ def upload_csv_to_dropbox(dbx, folder_path: str, file_name: str, file_bytes: byt
         st.error(f"❌ Errore caricando CSV su Dropbox: {e}")
 
 def download_csv_from_dropbox(dbx, folder_path: str, file_name: str) -> io.BytesIO:
-    dbx_path = f"{folder_path}/{file_name}"
+    file_path = f"{folder_path}/{file_name}"
+
     try:
-        metadata, res = dbx.files_download(dbx_path)
+        metadata, res = dbx.files_download(file_path)
         return io.BytesIO(res.content), metadata
-    except dropbox.exceptions.ApiError:
-        return None
+    except dropbox.exceptions.ApiError as e:
+        # Se l'errore è 'path/not_found' -> file mancante
+        if (hasattr(e.error, "is_path") and e.error.is_path() 
+                and e.error.get_path().is_not_found()):
+            return None, None
+        else:
+            # altri errori (permessi, connessione, ecc.)
+            st.error(f"Errore scaricando da Dropbox: {e}")
+            return None, None
 
 # ---------------------------
 # Auth system
