@@ -1898,7 +1898,7 @@ elif page == "Giacenze - New import":
     
     nome_file = None
     for i, option in enumerate(options):
-        if cols[i + 3].button(option, key=f"radio_{option}"):
+        if cols[i + 2].button(option, key=f"radio_{option}"):
             nome_file = option
     
     # Default: prima opzione se non è stato cliccato nulla
