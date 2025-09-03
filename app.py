@@ -1684,8 +1684,6 @@ elif page == "Giacenze - Importa giacenze":
         st.session_state.downloaded_file_metadata = None
         st.session_state.downloaded_file_name = nome_file
 
-    st.write(f"Stai usando {st.session_state.downloaded_file_name}")
-    
     csv_import = None
     file_bytes_for_upload = None
     last_update = None
@@ -1701,7 +1699,7 @@ elif page == "Giacenze - Importa giacenze":
             uploaded_file.seek(0)
             manual_nome_file = uploaded_file.name
     else:
-        if "downloaded_file" not in st.session_state:
+        if st.session_state.downloaded_file is None:
             with st.spinner(f"Download {nome_file} da DropBox..."):
                 st.session_state.downloaded_file, st.session_state.downloaded_file_metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
                 st.session_state.downloaded_file_name = {nome_file}
