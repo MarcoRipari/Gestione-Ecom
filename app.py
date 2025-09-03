@@ -134,8 +134,8 @@ def upload_csv_to_dropbox(dbx, folder_path: str, file_name: str, file_bytes: byt
 def download_csv_from_dropbox(dbx, folder_path: str, file_name: str) -> io.BytesIO:
     dbx_path = f"{folder_path}/{file_name}"
     try:
-        _, res = dbx.files_download(dbx_path)
-        return io.BytesIO(res.content)
+        metadata, res = dbx.files_download(dbx_path)
+        return io.BytesIO(res.content), metadata
     except dropbox.exceptions.ApiError:
         return None
 
@@ -2048,11 +2048,11 @@ elif page == "Giacenze - New import":
             uploaded_file.seek(0)
             manual_nome_file = uploaded_file.name
     else:
-        latest_file = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
+        latest_file, metadata = download_csv_from_dropbox(dbx, folder_path, f"{nome_file}.csv")
         if latest_file:
             csv_import = latest_file
             file_bytes_for_upload = latest_file.getvalue()
-            last_update = format_dropbox_date(latest_file.client_modified)
+            last_update = format_dropbox_date(metadata.client_modified)
             st.info(f"{nome_file} ultimo aggiornamento: {last_update}")
         else:
             st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
