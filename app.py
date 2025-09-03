@@ -763,7 +763,8 @@ with st.sidebar:
         # --- Menu principale verticale ---
         main_page = option_menu(
             menu_title=None,
-            options=["🏠 Home", "📝 Descrizioni", "📸 Foto", "📦 Giacenze", "🔑 Logout"],
+            options=["Home", "Descrizioni", "Foto", "Giacenze", "Logout"],
+            icons=["house","list","camera","box","key"],
             default_index=0,
             orientation="vertical",
             styles={
