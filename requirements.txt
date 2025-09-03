@@ -39,4 +39,21 @@ reportlab
 python-dateutil
 
 # UI / UX
-
+streamlit-option-menu
+streamlit-aggrid
+streamlit-ace
+st-tailwind
+streamlit-bootstrap
+streamlit-elements
+streamlit-forms
+streamlit-tooltip
+streamlit-modal
+st-raw-components
+stqdm
+plotly
+plotly-express
+altair
+streamlit-echarts
+st-annotated-text
+streamlit-chat
+streamlit-webrtc
