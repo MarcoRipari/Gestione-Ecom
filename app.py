@@ -817,14 +817,14 @@ with st.sidebar:
                 },
             )
             #page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
-            page = f"{main_page_name - {sub_page}"
+            page = f"{main_page_name] - {sub_page}"
 
         # --- Sottomenu Giacenze ---
         elif main_page_name == "Giacenze":
             sub_page = option_menu(
                 menu_title=None,
-                options=["Importa giacenze", "1️Per corridoio", "2️Per corridoio/marchio", "New import"],
-                icons=["download","1-circle","2-circle","download"],
+                options=["Importa giacenze", "1Per corridoio", "Per corridoio/marchio", "New import"],
+                icons=["download","1-circle","grid-2x2","download"],
                 default_index=0,
                 orientation="vertical",
                 styles={
