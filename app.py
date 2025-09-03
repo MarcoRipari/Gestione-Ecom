@@ -48,6 +48,7 @@ from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.http import MediaInMemoryUpload
 from dateutil import parser
+from dateutil.tz import tzlocal
 
 logging.basicConfig(level=logging.INFO)
 
@@ -438,17 +439,15 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         return None
 
 def format_drive_date(dt_str):
-    dt = parser.isoparse(dt_str)
-    ora_formattata = dt.strftime("%H:%M")
-    oggi = datetime.now(dt.tzinfo).date()
+    dt = parser.isoparse(dt_str)  # converte ISO 8601 in datetime
+    dt_local = dt.astimezone(tzlocal())  # converte in ora locale
 
-    if dt.date() == oggi:
-        return f"Oggi alle {ora_formattata}"
+    oggi = datetime.now(tzlocal()).date()
+
+    if dt_local.date() == oggi:
+        return f"Oggi alle {dt_local.strftime('%H:%M')}"
     else:
-        mesi_it = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
-                   "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
-        mese_it = mesi_it[dt.month-1]
-        return f"{dt.day:02d} {mese_it} {dt.year} - {ora_formattata}"
+        return dt_local.strftime("%d %B %Y - %H:%M")
     
 # ---------------------------
 # Funzioni varie
