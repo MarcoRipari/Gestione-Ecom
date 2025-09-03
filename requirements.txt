@@ -1,5 +1,6 @@
 # 🌐 Web App
 streamlit
+streamlit-option-menu
 Pillow
 chardet
 requests
