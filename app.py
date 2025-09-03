@@ -2080,6 +2080,6 @@ elif page == "Giacenze - New import":
             format_cell_ranges(sheet, ranges_to_format)
             st.success("✅ Giacenze importate con successo!")
 
-            # Upload su Drive solo se non è Manuale e abbiamo dati
-            if nome_file != "Manuale" and file_bytes_for_upload:
+            # Upload su Drive solo se è Manuale e abbiamo dati
+            if nome_file == "Manuale" and file_bytes_for_upload:
                 upload_file_to_gdrive(folder_id, f"{nome_file}.csv", file_bytes_for_upload)
