@@ -474,10 +474,7 @@ def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"
         return None
 
 def format_dropbox_date(dt):
-    """
-    dt: datetime oggetto restituito da Dropbox (client_modified)
-    """
-    # Se non ha tzinfo, assumiamo UTC
+    # Dropbox restituisce UTC, ma in alcuni casi il datetime può essere naïve
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=ZoneInfo("UTC"))
 
@@ -2051,7 +2048,7 @@ elif page == "Giacenze - New import":
         if latest_file:
             csv_import = latest_file
             file_bytes_for_upload = latest_file.getvalue()
-            last_update = datetime.now().strftime("%d/%m/%Y %H:%M")
+            last_update = format_dropbox_date(latest_file.client_modified)
             st.info(f"{nome_file} ultimo aggiornamento: {last_update}")
         else:
             st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
