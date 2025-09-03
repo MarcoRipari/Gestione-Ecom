@@ -1905,7 +1905,7 @@ elif page == "Giacenze - New import":
         file_bytes_for_upload = data_bytes
         last_update = latest_file.get("modifiedTime")
         if last_update:
-            st.info(f"Ultimo aggiornamento: {format_drive_date(last_update)}")
+            st.info(f"Ultimo aggiornamento: {last_update}")
 
     if csv_import:
         df_input = read_csv_auto_encoding(csv_import, "\t")
