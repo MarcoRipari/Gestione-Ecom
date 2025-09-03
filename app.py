@@ -1705,8 +1705,9 @@ elif page == "Giacenze - Importa giacenze":
             st.warning(f"Nessun file trovato su Dropbox, carica manualmente")
 
     if csv_import:
-        df_input = read_csv_auto_encoding(csv_import, "\t")
-        st.write(df_input)
+        with st.spinner("Carico il CSV..."):
+            df_input = read_csv_auto_encoding(csv_import, "\t")
+            st.write(df_input)
 
         # --- Colonne numeriche ---
         numeric_cols_info = { "D": "0", "L": "000", "N": "0", "O": "0" }
