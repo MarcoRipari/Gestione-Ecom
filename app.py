@@ -393,17 +393,35 @@ def download_file_from_gdrive(file_id):
 
 # --- Carica un file su Drive (cartella specifica) ---
 def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"):
-    file_metadata = {
-        "name": file_name,
-        "parents": [folder_id]
-    }
-    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type)
-    file = drive_service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields="id, name"
+    drive_service = get_drive()
+    
+    # Cerca se esiste già un file con lo stesso nome nella cartella
+    query = f"'{folder_id}' in parents and name='{file_name}' and trashed=false"
+    response = drive_service.files().list(
+        q=query,
+        fields="files(id, name)"
     ).execute()
-    return file
+    files = response.get("files", [])
+
+    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=True)
+
+    if files:
+        # Se esiste già → aggiornamento
+        file_id = files[0]["id"]
+        updated_file = drive_service.files().update(
+            fileId=file_id,
+            media_body=media
+        ).execute()
+        return updated_file
+    else:
+        # Se non esiste → creazione
+        file_metadata = {"name": file_name, "parents": [folder_id]}
+        new_file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id, name"
+        ).execute()
+        return new_file
     
 # ---------------------------
 # Funzioni varie
