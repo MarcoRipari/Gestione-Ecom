@@ -43,7 +43,6 @@ streamlit-option-menu
 streamlit-aggrid
 streamlit-ace
 st-tailwind
-streamlit-bootstrap
 streamlit-elements
 streamlit-forms
 streamlit-tooltip
