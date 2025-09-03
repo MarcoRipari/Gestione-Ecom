@@ -1892,7 +1892,7 @@ elif page == "Giacenze - New import":
     # --- Selezione nome file (UBIC, PIM o Manuale) ---
     #nome_file = st.selectbox("Seleziona file", ["Manuale", "UBIC", "PIM"], index=0, key="nome_file_select")
     options = ["Manuale", "UBIC", "PIM"]
-    icons = ["","",""]
+    icons = ["cpu","cpu","cpu"]
     selected = option_menu(
         menu_title=None,
         options=options,
