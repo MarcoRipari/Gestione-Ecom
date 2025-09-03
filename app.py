@@ -1909,7 +1909,7 @@ elif page == "Giacenze - New import":
                 "font-size": "16px",
                 "text-align": "center",
                 "margin": "5px",              # margine uniforme
-                "padding": "10px 20px",       # padding uguale per tutti
+                #"padding": "10px 20px",       # padding uguale per tutti
                 "line-height": "normal",
                 "min-height": "0px",
                 "box-sizing": "border-box",   # include bordi nel calcolo dell’altezza
@@ -1920,7 +1920,7 @@ elif page == "Giacenze - New import":
                 "color": "white",
                 "border": "2px solid #cccccc",
                 "border-radius": "10px",
-                "padding": "10px 20px",       # stesso padding del non selezionato
+                #"padding": "10px 20px",       # stesso padding del non selezionato
                 "line-height": "normal",
                 "box-sizing": "border-box",   # evita aumento altezza dovuto al bordo
             },
