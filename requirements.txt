@@ -43,8 +43,3 @@ streamlit-option-menu>=0.6.1
 streamlit-aggrid>=0.4.3
 streamlit-ace>=0.5.0
 st-tailwind>=0.1.7
-streamlit-bootstrap>=0.1.0
-streamlit-elements>=0.6.0
-streamlit-forms>=0.0.4
-streamlit-tooltip>=0.1.0
-
