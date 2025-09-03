@@ -1916,7 +1916,7 @@ elif page == "Giacenze - New import":
             csv_import = io.BytesIO(data_bytes)
             file_bytes_for_upload = data_bytes
             last_update = latest_file.get("modifiedTime")
-            st.info(f"Ultimo aggiornamento: {format_drive_date(last_update)}")
+            st.info(f"Ultimo aggiornamento: {last_update}")
         else:
             st.warning("Nessun file trovato su Drive, carica un file CSV manualmente")
 
