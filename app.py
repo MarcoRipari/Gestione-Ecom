@@ -2,7 +2,7 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 from streamlit_ace import st_ace
 from stqdm import stqdm
-from st_annotated_text import annotated_text
+from annotated_text import annotated_text
 from streamlit_chat import message
 import pandas as pd
 import plotly.express as px
