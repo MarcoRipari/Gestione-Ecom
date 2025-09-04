@@ -162,13 +162,9 @@ def login(email: str, password: str) -> bool:
             "password": password
         })
         if res.user is not None:
-            st.write("UID login:", res.user.id)
-            st.write("UID login:", res.user.email)
-            
+           
             # Recupera il profilo dell'utente usando user_id
-            test = supabase.table("profiles").select("*").execute()
-            st.write(test)
-            profile = supabase.table("profiles").select("*").eq("email", res.user.id).single().execute()
+            profile = supabase.table("profiles").select("*").eq("user_id", res.user.id).single().execute()
             
             if profile.data is None:
                 st.error("❌ Profilo utente non trovato")
@@ -178,10 +174,10 @@ def login(email: str, password: str) -> bool:
             st.session_state.utente = {
                 "data": res.user,
                 "email": res.user.email,
-                "nome": profile.data.get("nome", ""),
-                "cognome": profile.data.get("cognome", ""),
-                "username": profile.data.get("username", ""),
-                "role": profile.data.get("role", "")
+                "nome": profile.data["nome"],
+                "cognome": profile.data["cognome"],
+                "username": profile.data["username"],
+                "role": profile.data["role"]
             }
             st.session_state.user = res.user
             st.session_state.username = profile.data.get("username", res.user.email)
