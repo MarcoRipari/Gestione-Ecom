@@ -877,9 +877,6 @@ with st.sidebar:
             if user["role"] in item["role"]:
                 menu_item.append(item["name"])
                 icon_item.append(item["icon"])
-
-        st.write(menu_item)
-        st.write(icon_item)
         
         
         st.markdown("## 📋 Menu")
