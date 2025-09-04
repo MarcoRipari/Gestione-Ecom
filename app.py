@@ -894,9 +894,7 @@ with st.sidebar:
         # --- Menu principale verticale ---
         main_page = option_menu(
             menu_title=None,
-            #options=["Home", "Descrizioni", "Foto", "Giacenze", "Logout"],
             options=menu_items,
-            #icons=["house","list","camera","box","key"],
             icons=icon_items,
             default_index=0,
             orientation="vertical",
@@ -927,36 +925,14 @@ with st.sidebar:
         submenu_items = []
         submenu_icons = []
         for item in submenu_item_list:
-            if page == item["main"] and user["role"] in item["role"]:
+            if main_page_name == item["main"] and user["role"] in item["role"]:
                 submenu_items.append(item["name"])
                 submenu_icons.append(item["icon"])
                 
         if submenu_items:
             st.write("ok")
 
-        sub_page = option_menu(
-                menu_title=None,
-                options=["Importa giacenze", "Per corridoio", "Per corridoio/marchio", "Old import"],
-                icons=["download","1-circle","2-circle","download"],
-                default_index=0,
-                orientation="vertical",
-                styles={
-                    "container": {"padding": "0!important", "background-color": "#f0f0f0"},
-                    "nav-link": {
-                        "font-size": "15px",
-                        "text-align": "left",
-                        "margin": "2px",
-                        "padding": "5px 15px",
-                        "border-radius": "5px",
-                        "--hover-color": "#e0e0e0",
-                    },
-                    "nav-link-selected": {
-                        "background-color": "#4CAF50",
-                        "color": "white",
-                        "border-radius": "5px",
-                    },
-                },
-            )
+
 
 # ---------------------------
 # 🏠 HOME
