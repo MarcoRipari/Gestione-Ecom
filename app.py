@@ -177,13 +177,13 @@ def login(username: str, password: str) -> bool:
         })
 
         if res.user:
-            st.session_state.user = res.user
-            st.session_state.utente = {
-                "email": email,
-                "username": username,
-                "nome": res_profile.data.get("nome", ""),
-                "cognome": res_profile.data.get("cognome", ""),
-                "role": res_profile.data.get("role", "guest")
+            st.session_state.user = {
+                "data": res.user,
+                "email": res.user.email,
+                "nome": profile.data["nome"],
+                "cognome": profile.data["cognome"],
+                "username": profile.data["username"],
+                "role": profile.data["role"]
             }
             return True
         else:
