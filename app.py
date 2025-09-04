@@ -836,7 +836,6 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 # Sidebar: menu
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
-    st.markdown("## 📋 Menu")
 
     # Togliere per riattivare password e nome
     #st.session_state["logged_as"] = "GUEST"
@@ -844,7 +843,7 @@ with st.sidebar:
     if "user" not in st.session_state or st.session_state.user is None:
         if "user" not in st.session_state or st.session_state.user is None:
             page = "Home"
-            st.subheader("🔑 Login")
+            st.markdown("🔑 Login")
             email = st.text_input("Email")
             password = st.text_input("Password", type="password")
             if st.button("Accedi"):
@@ -852,7 +851,8 @@ with st.sidebar:
                     st.rerun()  # ricarica subito la pagina senza messaggio
     else:
         st.write(f"Accesso eseguito come: {st.session_state.utente["nome"]}")
-
+        
+        st.markdown("## 📋 Menu")
         # --- Menu principale verticale ---
         main_page = option_menu(
             menu_title=None,
