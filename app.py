@@ -952,7 +952,7 @@ with st.sidebar:
             )
             #page = f"{main_page_name} - {sub_page}"
 
-    page = f"{main_page} - {sub_page}" if submenu_items else main_page
+    page = f"{main_page} - {sub_page}" if submenu_items elif if "user" not in st.session_state or st.session_state.user is None "Home" else main_page
 
 
 # ---------------------------
