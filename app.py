@@ -914,10 +914,9 @@ with st.sidebar:
         )
 
         # Rimuovo icone/emoji per gestire page name
-        #main_page_name = main_page.split(' ', 1)[1]
-        #main_page_name = main_page
+        main_page_name = main_page
 
-        #page = main_page_name  # default
+        page = main_page_name  # default
 
         submenu_items = []
         submenu_icons = []
@@ -950,7 +949,7 @@ with st.sidebar:
                     },
                 },
             )
-            page = f"{main_page} - {sub_page}"
+            page = f"{main_page_name} - {sub_page}"
 
 
 
