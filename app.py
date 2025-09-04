@@ -1,455 +1,126 @@
-# =============================================================
-# Streamlit — Modern, Elegant, Professional App Template
-# Author: ChatGPT (GPT-5 Thinking)
-# Last updated: 2025-09-04
-# =============================================================
-#
-# ✅ Features
-# - Polished, modern layout with clean UI/UX
-# - Sidebar navigation with icons (streamlit-option-menu)
-# - Reusable UI components: metric cards, section cards, chips, tables
-# - Light/Dark theming via CSS variables
-# - Dashboard, Data, Tasks, Settings, About pages (single-file)
-# - Responsiveness and subtle animations
-# - Minimal dependencies; easy to deploy on Streamlit Cloud
-#
-# 📦 Suggested requirements.txt (create as a separate file):
-# streamlit>=1.36
-# streamlit-option-menu>=0.3.12
-# streamlit-extras>=0.4.7
-# plotly>=5.20
-# pandas>=2.0
-#
-# Tip: In Streamlit Cloud, add a small logo to a folder named "assets" if you want.
-#      e.g., assets/logo.svg or assets/logo.png (optional)
-# =============================================================
-
-from __future__ import annotations
-import os
-import time
-from pathlib import Path
-from typing import List, Dict, Any
-
-import pandas as pd
-import plotly.express as px
 import streamlit as st
 from streamlit_option_menu import option_menu
-from streamlit_extras.metric_cards import style_metric_cards
-from streamlit_extras.stylable_container import stylable_container
 
-# ------------------------------
-# App Config
-# ------------------------------
+# =========================
+# CONFIGURAZIONE BASE
+# =========================
 st.set_page_config(
-    page_title="Your App — Modern Template",
-    page_icon="🧭",
+    page_title="Demo App",
+    page_icon="✨",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded"
 )
 
-# ------------------------------
-# Session State Defaults
-# ------------------------------
-def _init_state():
-    defaults = {
-        "theme": "auto",  # "auto" | "light" | "dark"
-        "primary": "#6C5CE7",
-        "accent": "#20C997",
-        "data": None,
-        "tasks": [],
-        "active_page": "Dashboard",
-    }
-    for k, v in defaults.items():
-        if k not in st.session_state:
-            st.session_state[k] = v
-
-_init_state()
-
-# ------------------------------
-# Theming via CSS Variables
-# ------------------------------
-LIGHT_THEME = {
-    "bg": "#0b0c10",  # page background beneath Streamlit shell (kept dark for contrast)
-    "surface": "#ffffff",
-    "text": "#1f2937",
-    "muted": "#6b7280",
-    "primary": st.session_state["primary"],
-    "accent": st.session_state["accent"],
-    "card": "#fafafa",
-    "border": "#e5e7eb",
-}
-
-DARK_THEME = {
-    "bg": "#0b0c10",
-    "surface": "#0f172a",
-    "text": "#e5e7eb",
-    "muted": "#9ca3af",
-    "primary": st.session_state["primary"],
-    "accent": st.session_state["accent"],
-    "card": "#111827",
-    "border": "#1f2937",
-}
-
-
-def current_palette() -> Dict[str, str]:
-    mode = st.session_state.get("theme", "auto")
-    if mode == "dark":
-        return DARK_THEME
-    if mode == "light":
-        return LIGHT_THEME
-    # auto: try to read from Streamlit theme if possible; fallback to light
-    return LIGHT_THEME
-
-
-# ------------------------------
-# Global Styles & Fonts
-# ------------------------------
-
-def inject_global_css():
-    pal = current_palette()
-    google_font = "Inter:wght@400;500;600;700"
-    st.markdown(
-        f"""
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family={google_font.replace(' ', '+')}&display=swap');
-
-        :root {{
-            --bg: {pal['bg']};
-            --surface: {pal['surface']};
-            --text: {pal['text']};
-            --muted: {pal['muted']};
-            --primary: {pal['primary']};
-            --accent: {pal['accent']};
-            --card: {pal['card']};
-            --border: {pal['border']};
-            --radius: 16px;
-            --shadow: 0 8px 30px rgba(0,0,0,0.06);
-        }}
-
-        /* Base */
-        html, body, [data-testid="stAppViewContainer"] {{
-            background: var(--bg);
-        }}
-        [data-testid="stAppViewContainer"] > .main {{
-            padding-top: 1.2rem;
-        }}
-        * {{ font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }}
-
-        /* Headers */
-        h1, h2, h3, h4, h5, h6 {{ color: var(--text); letter-spacing: -0.02em; }}
-        h1 {{ font-weight: 700; }}
-
-        /* Cards */
-        .card {{
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 1.25rem;
-        }}
-
-        /* Chips */
-        .chip {{
-            display: inline-flex;
-            align-items: center;
-            gap: .5rem;
-            padding: .35rem .7rem;
-            border-radius: 999px;
-            background: rgba(108,92,231,0.08);
-            border: 1px solid var(--border);
-            color: var(--text);
-            font-size: 0.85rem;
-        }}
-        .chip .dot {{
-            width: .5rem; height: .5rem; border-radius: 50%; background: var(--primary);
-        }}
-
-        /* Tables */
-        .stDataFrame {{ border-radius: var(--radius); overflow: hidden; }}
-
-        /* Sidebar tweaks */
-        section[data-testid="stSidebar"] {{
-            background: var(--surface) !important;
-            border-right: 1px solid var(--border);
-        }}
-
-        /* Buttons */
-        .stButton>button {{
-            border-radius: 12px;
-            padding: .6rem 1rem;
-            font-weight: 600;
-        }}
-
-        /* Metrics */
-        .metric-title {{ color: var(--muted); font-size: .85rem; }}
-        .metric-value {{ font-size: 1.6rem; font-weight: 700; }}
-
-        /* Subtle fade-in */
-        .fade-in {{ animation: fadeIn .4s ease-in-out both; }}
-        @keyframes fadeIn {{ from {{opacity:0; transform: translateY(6px)}} to {{opacity:1; transform: none}} }}
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-inject_global_css()
-
-# ------------------------------
-# Utilities / Components
-# ------------------------------
-
-def header(title: str, subtitle: str | None = None, badge: str | None = None):
-    with stylable_container(key=f"hdr_{title}", css_styles="""
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 18px; padding: 1.2rem 1.4rem; margin-bottom: 1rem;
-    """):
-        cols = st.columns([1, 1])
-        with cols[0]:
-            st.markdown(f"<h1 style='margin:0'>{title}</h1>", unsafe_allow_html=True)
-            if subtitle:
-                st.markdown(f"<div style='color:var(--muted); margin-top:.35rem'>{subtitle}</div>", unsafe_allow_html=True)
-        with cols[1]:
-            st.markdown("""
-                <div style='display:flex; gap:.5rem; justify-content:flex-end; align-items:center; height:100%'>
-                    <span class='chip'><span class='dot'></span>Stable</span>
-                    <span class='chip'><span class='dot' style='background:var(--accent)'></span>v1.0</span>
-                </div>
-            """, unsafe_allow_html=True)
-
-
-def metric(kpi: str, value: str, delta: str | None = None, help: str | None = None):
-    c = st.container()
-    with c:
-        st.markdown(
-            f"""
-            <div class='card fade-in'>
-                <div class='metric-title'>{kpi}</div>
-                <div class='metric-value'>{value}</div>
-                {f"<div style='color: var(--muted); font-size:.85rem'>Δ {delta}</div>" if delta else ''}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    return c
-
-
-def section(title: str, description: str | None = None):
-    st.markdown(
-        f"""
-        <div class='card fade-in'>
-            <div style='display:flex;justify-content:space-between;align-items:center;'>
-                <h3 style='margin:0'>{title}</h3>
-                <div class='chip'><span class='dot'></span>Section</div>
-            </div>
-            {f"<div style='color:var(--muted); margin-top:.4rem'>{description}</div>" if description else ''}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def show_chart(df: pd.DataFrame):
-    fig = px.line(
-        df,
-        x="date",
-        y="value",
-        markers=True,
-        title="Monthly Trend",
-    )
-    fig.update_layout(
-        margin=dict(l=0, r=0, t=40, b=0),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(size=14),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-
-# ------------------------------
-# Sidebar
-# ------------------------------
-logo_path_svg = Path("assets/logo.svg")
-logo_path_png = Path("assets/logo.png")
-if logo_path_svg.exists() or logo_path_png.exists():
-    if logo_path_svg.exists():
-        st.sidebar.image(str(logo_path_svg), use_container_width=True)
-    else:
-        st.sidebar.image(str(logo_path_png), use_container_width=True)
-else:
-    st.sidebar.markdown("### Your Company")
-    st.sidebar.caption("Modern Analytics Suite")
-
-st.sidebar.markdown("---")
-
-with st.sidebar:
-    selected = option_menu(
-        menu_title=None,
-        options=["Dashboard", "Data", "Tasks", "Settings", "About"],
-        icons=["speedometer2", "table", "check2-square", "sliders", "info-circle"],
-        default_index=["Dashboard", "Data", "Tasks", "Settings", "About"].index(st.session_state["active_page"]),
-        styles={
-            "container": {"padding": "0!important"},
-            "icon": {"font-size": "18px"},
-            "nav-link": {"font-weight": "500", "font-size": "15px", "border-radius": "10px"},
-            "nav-link-selected": {"background-color": "rgba(108,92,231,0.15)"},
-        },
-    )
-
-st.session_state["active_page"] = selected
-
-# ------------------------------
-# Pages
-# ------------------------------
-
-if selected == "Dashboard":
-    header("Dashboard", "Overview & quick insights")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1: metric("Revenue", "€ 84,200", "+12% vs last mo")
-    with col2: metric("Orders", "1,248", "+5%")
-    with col3: metric("AOV", "€ 67.5", "+2%")
-    with col4: metric("Churn", "3.1%", "-0.4pp")
-    style_metric_cards(background_color="var(--card)", border_color="var(--border)", border_left_color="var(--primary)")
-
-    st.markdown("\n")
-    with st.container():
-        c1, c2 = st.columns([2, 1])
-        with c1:
-            st.markdown("<div class='card fade-in'>", unsafe_allow_html=True)
-            # Sample data
-            dates = pd.date_range("2024-11-01", periods=10, freq="MS")
-            df = pd.DataFrame({"date": dates, "value": [50, 60, 55, 70, 68, 80, 78, 82, 90, 95]})
-            show_chart(df)
-            st.markdown("</div>", unsafe_allow_html=True)
-        with c2:
-            st.markdown("""
-                <div class='card fade-in'>
-                    <h4 style='margin-top:0'>Quick Actions</h4>
-                    <div style='display:flex; gap:.5rem; flex-wrap:wrap'>
-                        <span class='chip'><span class='dot'></span>Create Report</span>
-                        <span class='chip'><span class='dot'></span>Export CSV</span>
-                        <span class='chip'><span class='dot'></span>Invite User</span>
-                    </div>
-                    <div style='margin-top:1rem; color:var(--muted)'>
-                        Pro tips: Use the sidebar to switch sections. Settings → customize theme.
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-
-    st.markdown("\n")
-    with st.container():
-        st.markdown("""
-            <div class='card fade-in'>
-                <h4 style='margin-top:0'>Recent Activity</h4>
-            """, unsafe_allow_html=True)
-        a1, a2, a3 = st.columns(3)
-        for col, txt in zip([a1, a2, a3], [
-            "Uploaded 3 CSV files",
-            "Generated monthly report",
-            "Updated product taxonomy",
-        ]):
-            with col:
-                st.markdown(f"<div class='chip'><span class='dot' style='background:var(--accent)'></span>{txt}</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-elif selected == "Data":
-    header("Data", "Upload, preview & filter datasets")
-    st.markdown("<div class='card fade-in'>", unsafe_allow_html=True)
-    upl = st.file_uploader("Upload CSV file", type=["csv"]) 
-    if upl is not None:
-        try:
-            df = pd.read_csv(upl)
-        except Exception:
-            upl.seek(0)
-            df = pd.read_csv(upl, sep=";")
-        st.session_state["data"] = df
-        st.success(f"Loaded {df.shape[0]} rows × {df.shape[1]} cols")
-        with st.expander("Preview", expanded=True):
-            st.dataframe(df.head(100), use_container_width=True)
-
-        with st.expander("Quick Filters", expanded=False):
-            cols = df.columns.tolist()
-            if cols:
-                col = st.selectbox("Select column", cols)
-                if pd.api.types.is_numeric_dtype(df[col]):
-                    min_v, max_v = float(df[col].min()), float(df[col].max())
-                    rng = st.slider("Range", min_v, max_v, (min_v, max_v))
-                    st.dataframe(df[(df[col] >= rng[0]) & (df[col] <= rng[1])].head(200), use_container_width=True)
-                else:
-                    vals = st.multiselect("Values", sorted(df[col].dropna().unique()[:500]))
-                    if vals:
-                        st.dataframe(df[df[col].isin(vals)].head(200), use_container_width=True)
-    else:
-        st.info("Upload a CSV to get started.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-elif selected == "Tasks":
-    header("Tasks", "Simple personal to‑do")
-    st.markdown("<div class='card fade-in'>", unsafe_allow_html=True)
-    cols = st.columns([4, 1])
-    with cols[0]:
-        new_task = st.text_input("Add a task", placeholder="Describe the task…")
-    with cols[1]:
-        if st.button("Add", type="primary", use_container_width=True):
-            if new_task:
-                st.session_state["tasks"].append({"text": new_task, "done": False})
-                st.toast("Task added", icon="✅")
-                st.rerun()
-
-    if st.session_state["tasks"]:
-        for i, task in enumerate(st.session_state["tasks"]):
-            c1, c2, c3 = st.columns([0.06, 0.84, 0.10])
-            with c1:
-                task["done"] = st.checkbox("", value=task["done"], key=f"task_done_{i}")
-            with c2:
-                st.text_input("", value=task["text"], key=f"task_txt_{i}")
-            with c3:
-                if st.button("Delete", key=f"del_{i}"):
-                    st.session_state["tasks"].pop(i)
-                    st.toast("Deleted", icon="🗑️")
-                    st.rerun()
-    else:
-        st.caption("No tasks yet.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-elif selected == "Settings":
-    header("Settings", "Fine‑tune appearance & behavior")
-    st.markdown("<div class='card fade-in'>", unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        theme = st.radio("Theme", ["auto", "light", "dark"], index=["auto","light","dark"].index(st.session_state["theme"]))
-        st.session_state["theme"] = theme
-    with col2:
-        st.session_state["primary"] = st.color_picker("Primary", value=st.session_state["primary"])
-    with col3:
-        st.session_state["accent"] = st.color_picker("Accent", value=st.session_state["accent"])
-
-    st.info("Theme changes apply instantly. Colors persist in session.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-elif selected == "About":
-    header("About", "Product & team")
+# =========================
+# STILI PERSONALIZZATI
+# =========================
+def inject_css():
     st.markdown(
         """
-        <div class='card fade-in'>
-            <p><strong>Your App</strong> is a modern Streamlit template designed for data apps and internal tools. Built with clean, reusable components and smooth UX.</p>
-            <ul>
-                <li>Modern, elegant, professional UI</li>
-                <li>Fast to customize: colors, typography, cards</li>
-                <li>Production‑friendly single‑file structure</li>
-            </ul>
-            <p style='color:var(--muted)'>© 2025 Your Company</p>
-        </div>
+        <style>
+        /* Font & background */
+        html, body, [data-testid="stAppViewContainer"] {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+            color: #1a1a1a;
+        }
+
+        /* Sidebar */
+        [data-testid="stSidebar"] {
+            background-color: #ffffff;
+            border-right: 1px solid #e5e5e5;
+        }
+
+        /* Card style */
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+
+        /* Buttons */
+        div.stButton > button {
+            border-radius: 10px;
+            padding: 0.6em 1.2em;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+        }
+        div.stButton > button:hover {
+            background-color: #357ab8;
+            color: white;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #888;
+            padding: 1rem 0;
+            border-top: 1px solid #e5e5e5;
+            margin-top: 2rem;
+        }
+        </style>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
-# Subtle footer
-st.markdown("""
-    <div style='text-align:center; color:var(--muted); margin: 2rem 0 1rem 0;'>
-        Built with ❤️ on Streamlit — Template by ChatGPT
+inject_css()
+
+# =========================
+# SIDEBAR MENU
+# =========================
+with st.sidebar:
+    st.image("https://streamlit.io/images/brand/streamlit-mark-color.png", width=120)
+    selected = option_menu(
+        menu_title="Navigazione",
+        options=["Home", "Dashboard", "Impostazioni"],
+        icons=["house", "bar-chart", "gear"],
+        menu_icon="cast",
+        default_index=0,
+    )
+    st.markdown("---")
+    st.markdown("### Info")
+    st.markdown("Applicativo demo con UI/UX moderna.")
+
+# =========================
+# HEADER
+# =========================
+st.title("✨ Applicativo Demo")
+st.markdown("Interfaccia moderna, elegante e professionale, pronta all'uso.")
+
+# =========================
+# MAIN CONTENT
+# =========================
+if selected == "Home":
+    st.header("🏠 Home")
+    st.write("Benvenuto nella tua nuova applicazione Streamlit con layout personalizzato.")
+    st.button("Inizia subito")
+
+elif selected == "Dashboard":
+    st.header("📊 Dashboard")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Utenti", "1,024", "+12%")
+    with col2:
+        st.metric("Entrate", "€ 8,560", "+8%")
+    with col3:
+        st.metric("Conversioni", "4.3%", "-1%")
+
+    st.line_chart({"Vendite": [3, 6, 9, 12, 8, 5, 7]})
+
+elif selected == "Impostazioni":
+    st.header("⚙️ Impostazioni")
+    st.text_input("Nome applicazione", value="Demo App")
+    st.color_picker("Colore tema", "#4a90e2")
+
+# =========================
+# FOOTER
+# =========================
+st.markdown(
+    """
+    <div class="footer">
+        Creato con ❤️ usando Streamlit
     </div>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
