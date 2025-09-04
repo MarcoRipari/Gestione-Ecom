@@ -153,9 +153,47 @@ def download_csv_from_dropbox(dbx, folder_path: str, file_name: str) -> io.Bytes
 # ---------------------------
 supabase_url = st.secrets["SUPABASE_URL"]
 supabase_key = st.secrets["SUPABASE_KEY"]
+service_role_key = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
 supabase: Client = create_client(supabase_url, supabase_key)
+supabase_admin = create_client(url, service_role_key)
 
-def login(email: str, password: str) -> bool:
+def login(username: str, password: str) -> bool:
+    try:
+        # Recupera email dalla tabella profiles
+        res_profile = supabase.table("profiles").select("user_id, username").eq("username", username).single().execute()
+        if not res_profile.data:
+            st.error("❌ Username non trovato")
+            return False
+        
+        # Recupera l'utente supabase per ottenere l'email
+        user_id = res_profile.data["user_id"]
+        res_user = supabase_admin.auth.admin.get_user_by_id(user_id)  # richiede service role key
+        email = res_user.user.email
+
+        # Login con email e password
+        res = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+
+        if res.user:
+            st.session_state.user = res.user
+            st.session_state.utente = {
+                "email": email,
+                "username": username,
+                "nome": res_profile.data.get("nome", ""),
+                "cognome": res_profile.data.get("cognome", ""),
+                "role": res_profile.data.get("role", "guest")
+            }
+            return True
+        else:
+            st.error("❌ Credenziali errate")
+            return False
+    except Exception as e:
+        st.error(f"Errore login: {e}")
+        return False
+        
+def login_old(email: str, password: str) -> bool:
     try:
         res = supabase.auth.sign_in_with_password({
             "email": email,
