@@ -852,7 +852,6 @@ with st.sidebar:
     }
 
     if "user" not in st.session_state or st.session_state.user is None:
-        user = "GUEST"
         page = "Home"
         st.markdown("## 🔑 Login")
         email = st.text_input("Email")
@@ -861,7 +860,7 @@ with st.sidebar:
             if login(email, password):
                 st.rerun()  # ricarica subito la pagina senza messaggio
     else:
-        user = st.session_state.utente
+        utente = st.session_state.utente
         st.write(f"Accesso eseguito come: {user["name"]}")
 
         menu_item_list = [{name:"Home", icon:"house", role:["guest","logistica","customercare","admin"]},
