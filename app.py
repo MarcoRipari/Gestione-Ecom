@@ -870,13 +870,24 @@ with st.sidebar:
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customercare","admin"]},
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customercare","admin"]}
                          ]
-
-        menu_item = []
-        icon_item = []
+        
+        submenu_item_list = [{"main":"Foto","name":"Gestione", "icon":"gear", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Foto","name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Foto","name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Foto","name":"Storico", "icon":"book", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Foto","name":"Aggiungi prelevate", "icon":"hand-index", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Giacenze","name":"Importa", "icon":"download", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Giacenze","name":"Per corridoio", "icon":"1-circle", "role":["guest","logistica","admin"]},
+                             {"main":"Giacenze","name":"Per corridoio/marchio", "2-circle":"download", "role":["guest","logistica","admin"]},
+                             {"main":"Giacenze","name":"Old import", "icon":"download", "role":["admin"]}
+                            ]
+        
+        menu_items = []
+        icon_items = []
         for item in menu_item_list:
             if user["role"] in item["role"]:
-                menu_item.append(item["name"])
-                icon_item.append(item["icon"])
+                menu_items.append(item["name"])
+                icon_items.append(item["icon"])
         
         
         st.markdown("## 📋 Menu")
@@ -884,9 +895,9 @@ with st.sidebar:
         main_page = option_menu(
             menu_title=None,
             #options=["Home", "Descrizioni", "Foto", "Giacenze", "Logout"],
-            options=menu_item,
+            options=menu_items,
             #icons=["house","list","camera","box","key"],
-            icons=icon_item,
+            icons=icon_items,
             default_index=0,
             orientation="vertical",
             styles={
@@ -913,37 +924,17 @@ with st.sidebar:
 
         page = main_page_name  # default
 
-        # --- Sottomenu Foto ---
-        if main_page_name == "Foto":
-            sub_page = option_menu(
-                menu_title=None,
-                options=["Gestione", "SKU da riscattare", "Aggiungi SKU", "Storico", "Aggiungi prelevate"],
-                icons=["gear","repeat","plus","book","hand-index"],
-                default_index=0,
-                orientation="vertical",
-                styles={
-                    "container": {"padding": "0!important", "background-color": "#f0f0f0"},
-                    "nav-link": {
-                        "font-size": "15px",
-                        "text-align": "left",
-                        "margin": "2px",
-                        "padding": "5px 15px",
-                        "border-radius": "5px",
-                        "--hover-color": "#e0e0e0",
-                    },
-                    "nav-link-selected": {
-                        "background-color": "#4CAF50",
-                        "color": "white",
-                        "border-radius": "5px",
-                    },
-                },
-            )
-            #page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
-            page = f"{main_page_name} - {sub_page}"
+        submenu_items = []
+        submenu_icons = []
+        for item in submenu_item_list:
+            if page == item["main"] and user["role"] in item["role"]:
+                submenu_items.append(item["name"])
+                submenu_icons.append(item["icon"])
+                
+        if submenu_items:
+            st.write("ok")
 
-        # --- Sottomenu Giacenze ---
-        elif main_page_name == "Giacenze":
-            sub_page = option_menu(
+        sub_page = option_menu(
                 menu_title=None,
                 options=["Importa giacenze", "Per corridoio", "Per corridoio/marchio", "Old import"],
                 icons=["download","1-circle","2-circle","download"],
@@ -966,8 +957,6 @@ with st.sidebar:
                     },
                 },
             )
-            #page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
-            page = f"{main_page_name} - {sub_page}"
 
 # ---------------------------
 # 🏠 HOME
