@@ -162,6 +162,14 @@ def login(email: str, password: str) -> bool:
             "password": password
         })
         if res.user is not None:
+            profile = supabase.table("profiles").select("*").eq("user_id", user_id).single().execute()
+            utente = {"data": res.user,
+                      "email": res.user.email,
+                      "nome": profile.data["nome"],
+                      "cognome": profile.data["cognome"],
+                      "username": profile.data["username"]
+                     }
+            st.session_state.utente = utente
             st.session_state.user = res.user
             st.session_state.username = res.user.email  # o nickname se lo recuperi
             return True
@@ -826,6 +834,7 @@ with st.sidebar:
 
     if "user" not in st.session_state or st.session_state.user is None:
         if "user" not in st.session_state or st.session_state.user is None:
+            page = "Home"
             st.subheader("🔑 Login")
             email = st.text_input("Email")
             password = st.text_input("Password", type="password")
@@ -833,7 +842,9 @@ with st.sidebar:
                 if login(email, password):
                     st.rerun()  # ricarica subito la pagina senza messaggio
     else:
-        st.write(f"Accesso eseguito come: {st.session_state.username}")
+        st.write(f"Accesso eseguito come: {st.session_state.utente["nome"]}")
+        st.write(f"Accesso eseguito come: {st.session_state.utente["cognome"]}")
+        st.write(f"Accesso eseguito come: {st.session_state.utente.username}")
 
         # --- Menu principale verticale ---
         main_page = option_menu(
