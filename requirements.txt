@@ -24,7 +24,6 @@
 #      e.g., assets/logo.svg or assets/logo.png (optional)
 # =============================================================
 
-from __future__ import annotations
 import os
 import time
 from pathlib import Path
