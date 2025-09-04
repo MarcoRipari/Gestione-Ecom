@@ -864,9 +864,11 @@ with st.sidebar:
         st.write(f"Accesso eseguito come: {user["nome"]}")
 
         menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customercare","admin"]},
-                     {"name":"Descrizioni", "icon":"list", "role":["guest","customercare","admin"]},
-                     {"name":"Foto", "icon":"list", "role":["logistica","customercare","admin"]}
-                    ]
+                          {"name":"Descrizioni", "icon":"list", "role":["customercare","admin"]},
+                          {"name":"Foto", "icon":"list", "role":["logistica","customercare","admin"]},
+                          {"name":"Giacenze", "icon":"list", "role":["logistica","customercare","admin"]},
+                          {"name":"Logout", "icon":"list", "role":["guest","logistica","customercare","admin"]}
+                         ]
 
         menu_item = []
         icon_item = []
@@ -885,7 +887,8 @@ with st.sidebar:
             menu_title=None,
             #options=["Home", "Descrizioni", "Foto", "Giacenze", "Logout"],
             options=menu_item,
-            icons=["house","list","camera","box","key"],
+            #icons=["house","list","camera","box","key"],
+            icons=icon_item
             default_index=0,
             orientation="vertical",
             styles={
