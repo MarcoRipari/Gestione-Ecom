@@ -888,7 +888,7 @@ with st.sidebar:
             #options=["Home", "Descrizioni", "Foto", "Giacenze", "Logout"],
             options=menu_item,
             #icons=["house","list","camera","box","key"],
-            icons=icon_item
+            icons=icon_item,
             default_index=0,
             orientation="vertical",
             styles={
