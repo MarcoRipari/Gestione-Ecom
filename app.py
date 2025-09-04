@@ -1681,7 +1681,7 @@ elif page == "Foto - Aggiungi prelevate":
                 st.success(f"✅ {len(skus_to_append_clean)} nuove SKU aggiunte al foglio PRELEVATE!")
             else:
                 st.info("⚠️ Tutte le SKU inserite sono già presenti nel foglio.")
-elif page == "Giacenze - Importa giacenze":
+elif page == "Giacenze - Importa":
     st.header("Importa giacenze")
 
     options = ["Manuale", "UBIC", "PIM"]
