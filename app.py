@@ -840,7 +840,9 @@ with st.sidebar:
             email = st.text_input("Email")
             password = st.text_input("Password", type="password")
             if st.button("Accedi"):
-                login(email, password)
+                success = login(email, password)
+                if success:
+                    st.experimental_rerun()
     else:
         st.write(f"Accesso eseguito come: {st.session_state.username}")
 
