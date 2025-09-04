@@ -839,6 +839,7 @@ with st.sidebar:
 
     # Togliere per riattivare password e nome
     #st.session_state["logged_as"] = "GUEST"
+    st.session_state.user = "MARCO"
 
     if "user" not in st.session_state or st.session_state.user is None:
         if "user" not in st.session_state or st.session_state.user is None:
