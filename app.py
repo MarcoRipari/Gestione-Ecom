@@ -157,7 +157,11 @@ supabase: Client = create_client(supabase_url, supabase_key)
 
 def login(email: str, password: str):
     try:
-        res = supabase.auth.sign_in(email=email, password=password)
+        res = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+        
         if res.user is not None:
             user_id = res.user.id
             # Recupera username dalla tabella profiles
