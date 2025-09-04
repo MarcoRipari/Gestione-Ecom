@@ -178,7 +178,7 @@ def logout():
         supabase.auth.sign_out()
         st.session_state.user = None
         st.session_state.username = None
-        st.experimental_rerun()
+        st.rerun()
 
 
 # ---------------------------
