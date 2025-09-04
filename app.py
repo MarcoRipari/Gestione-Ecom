@@ -841,7 +841,7 @@ with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     # Togliere per riattivare password e nome
     #st.session_state["logged_as"] = "GUEST"
-    if DEBUG == True:
+    if DEBUG:
         st.session_state.user = "GUEST"
         st.session_state.utente = {
             "data": "data",
@@ -851,10 +851,6 @@ with st.sidebar:
             "username": "Username",
             "role": "admin"
         }
-    else:
-        st.session_state.user = None
-        st.session_state.utente = None
-        st.rerun()
 
     if "user" not in st.session_state or st.session_state.user is None:
         page = "Home"
