@@ -861,7 +861,7 @@ with st.sidebar:
                 st.rerun()  # ricarica subito la pagina senza messaggio
     else:
         utente = st.session_state.utente
-        st.write(f"Accesso eseguito come: {user["name"]}")
+        st.write(f"Accesso eseguito come: {utente["nome"]}")
 
         menu_item_list = [{name:"Home", icon:"house", role:["guest","logistica","customercare","admin"]},
                      {name:"Descrizioni", icon:"list", role:["guest","customercare","admin"]},
