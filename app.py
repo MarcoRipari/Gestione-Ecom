@@ -852,8 +852,6 @@ with st.sidebar:
                     st.rerun()  # ricarica subito la pagina senza messaggio
     else:
         st.write(f"Accesso eseguito come: {st.session_state.utente["nome"]}")
-        st.write(f"Accesso eseguito come: {st.session_state.utente["cognome"]}")
-        st.write(f"Accesso eseguito come: {st.session_state.utente.username}")
 
         # --- Menu principale verticale ---
         main_page = option_menu(
