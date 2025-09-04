@@ -165,7 +165,7 @@ def login(email: str, password: str):
         if res.user is not None:
             user_id = res.user.id
             # Recupera username dalla tabella profiles
-            profile = supabase.table("utenti").select("username").eq("user_id", user_id).single().execute()
+            profile = supabase.table("users").select("username").eq("user_id", user_id).single().execute()
             username = profile.data["username"] if profile.data else "Utente"
             # Salva tutto in session_state
             st.session_state.user = res.user
