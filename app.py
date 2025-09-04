@@ -163,8 +163,7 @@ def login(email: str, password: str) -> bool:
         })
         if res.user is not None:
             st.session_state.user = res.user
-            st.session_state.username = res.user.email  # oppure il nickname se lo recuperi
-            st.success(f"✅ Login effettuato come {st.session_state.username}")
+            st.session_state.username = res.user.email  # o nickname se lo recuperi
             return True
         else:
             st.error("❌ Email o password errati")
@@ -831,9 +830,8 @@ with st.sidebar:
             email = st.text_input("Email")
             password = st.text_input("Password", type="password")
             if st.button("Accedi"):
-                success = login(email, password)
-                if success:
-                    st.experimental_rerun()
+                if login(email, password):
+                    st.experimental_rerun()  # ricarica subito la pagina senza messaggio
     else:
         st.write(f"Accesso eseguito come: {st.session_state.username}")
 
