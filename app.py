@@ -166,7 +166,7 @@ def login(email: str, password: str) -> bool:
             st.write("UID login:", res.user.email)
             
             # Recupera il profilo dell'utente usando user_id
-            profile = supabase.table("public.profiles").select("*").eq("email", res.user.is).single().execute()
+            profile = supabase.table("public.profiles").select("*").eq("email", res.user.id).single().execute()
             
             if profile.data is None:
                 st.error("❌ Profilo utente non trovato")
