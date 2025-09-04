@@ -156,25 +156,31 @@ supabase_key = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(supabase_url, supabase_key)
 
 def login(email: str, password: str):
+    """
+    Login tramite Supabase Auth con email e password.
+    Salva l'utente in st.session_state.user e username in st.session_state.username.
+    """
     try:
+        # Effettua il login
         res = supabase.auth.sign_in_with_password({
             "email": email,
             "password": password
         })
-        
+
         if res.user is not None:
-            user_id = res.user.id
-            # Recupera username dalla tabella profiles
-            profile = supabase.table("users").select("username").eq("user_id", user_id).single().execute()
-            username = profile.data["username"] if profile.data else "Utente"
-            # Salva tutto in session_state
+            # Salva user object in session_state
             st.session_state.user = res.user
-            st.session_state.username = username
-            st.success(f"✅ Login effettuato come {username}")
+            # Recupera username: se non presente, usa parte dell'email prima della @
+            st.session_state.username = res.user.user_metadata.get("username", email.split("@")[0])
+            st.success(f"✅ Login effettuato come {st.session_state.username}")
+            return True
         else:
             st.error("❌ Email o password errati")
+            return False
+
     except Exception as e:
         st.error(f"Errore login: {e}")
+        return False
 
 
 def logout():
