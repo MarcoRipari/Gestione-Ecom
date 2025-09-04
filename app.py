@@ -865,7 +865,7 @@ with st.sidebar:
 
         menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customercare","admin"]},
                      {"name":"Descrizioni", "icon":"list", "role":["guest","customercare","admin"]},
-                     {"name":"Foto", "icon":"list", "role":["guest","logistica","customercare","admin"]}
+                     {"name":"Foto", "icon":"list", "role":["logistica","customercare","admin"]}
                     ]
 
         menu_item = []
