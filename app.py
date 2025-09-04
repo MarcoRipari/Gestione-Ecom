@@ -870,10 +870,10 @@ with st.sidebar:
 
         menu_item = []
         icon_item = []
-        for i in menu_item_list:
-            if user["role"] in menu_item_list[i]["role"]:
-                menu_item.append(menu_item_list[i]["name"])
-                icon_item.append(menu_item_list[i]["icon"])
+        for item in menu_item_list:
+            if user["role"] in item["role"]:
+                menu_item.append(item["name"])
+                icon_item.append(item["icon"])
 
         st.write(menu_item)
         st.write(icon_item)
