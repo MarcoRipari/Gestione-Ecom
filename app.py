@@ -862,7 +862,12 @@ with st.sidebar:
                 st.rerun()  # ricarica subito la pagina senza messaggio
     else:
         user = st.session_state.utente
-        st.write(f"Accesso eseguito come: user['name']")
+        st.write(f"Accesso eseguito come: {user["name"]}")
+
+        if user["role"] == "logistica":
+            menu_item = ["Home", "Foto", "Giacenze", "Logout"]
+        elif: user["role"] == "customercare":
+            menu_item = ["Home", "Descrizioni", "Foto", "Giacenze", "Logout"]
         
         st.markdown("## 📋 Menu")
         # --- Menu principale verticale ---
