@@ -166,7 +166,7 @@ def login(email: str, password: str) -> bool:
             st.write("UID login:", res.user.email)
             
             # Recupera il profilo dell'utente usando user_id
-            test = supabase.table("profiles").select("*")
+            test = supabase.table("profiles").select("*").execute()
             st.write(test)
             profile = supabase.table("profiles").select("*").eq("email", res.user.id).single().execute()
             
