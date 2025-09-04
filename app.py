@@ -834,9 +834,6 @@ st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
 
 # 📁 Caricamento dati
 # Sidebar: menu
-
-
-
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
     # Togliere per riattivare password e nome
@@ -878,7 +875,7 @@ with st.sidebar:
                              {"main":"Foto","name":"Aggiungi prelevate", "icon":"hand-index", "role":["guest","logistica","customercare","admin"]},
                              {"main":"Giacenze","name":"Importa", "icon":"download", "role":["guest","logistica","customercare","admin"]},
                              {"main":"Giacenze","name":"Per corridoio", "icon":"1-circle", "role":["guest","logistica","admin"]},
-                             {"main":"Giacenze","name":"Per corridoio/marchio", "2-circle":"download", "role":["guest","logistica","admin"]},
+                             {"main":"Giacenze","name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
                              {"main":"Giacenze","name":"Old import", "icon":"download", "role":["admin"]}
                             ]
         
@@ -953,8 +950,6 @@ with st.sidebar:
                     },
                 },
             )
-            submenu_items = []
-            submenu_icons = []
 
 
 # ---------------------------
