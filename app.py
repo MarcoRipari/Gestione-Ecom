@@ -1,188 +1,455 @@
-# app.py
-import streamlit as st
-from supabase import create_client
-import requests
-import jwt
-from dataclasses import dataclass
+# =============================================================
+# Streamlit — Modern, Elegant, Professional App Template
+# Author: ChatGPT (GPT-5 Thinking)
+# Last updated: 2025-09-04
+# =============================================================
+#
+# ✅ Features
+# - Polished, modern layout with clean UI/UX
+# - Sidebar navigation with icons (streamlit-option-menu)
+# - Reusable UI components: metric cards, section cards, chips, tables
+# - Light/Dark theming via CSS variables
+# - Dashboard, Data, Tasks, Settings, About pages (single-file)
+# - Responsiveness and subtle animations
+# - Minimal dependencies; easy to deploy on Streamlit Cloud
+#
+# 📦 Suggested requirements.txt (create as a separate file):
+# streamlit>=1.36
+# streamlit-option-menu>=0.3.12
+# streamlit-extras>=0.4.7
+# plotly>=5.20
+# pandas>=2.0
+#
+# Tip: In Streamlit Cloud, add a small logo to a folder named "assets" if you want.
+#      e.g., assets/logo.svg or assets/logo.png (optional)
+# =============================================================
+
+from __future__ import annotations
+import os
+import time
+from pathlib import Path
+from typing import List, Dict, Any
+
+import pandas as pd
 import plotly.express as px
-from streamlit_elements import elements, mui
-from streamlit_chat import message
+import streamlit as st
+from streamlit_option_menu import option_menu
+from streamlit_extras.metric_cards import style_metric_cards
+from streamlit_extras.stylable_container import stylable_container
 
-# -------------------------
-# Config Supabase
-# -------------------------
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_ANON_KEY = st.secrets["SUPABASE_ANON_KEY"]
-#SUPABASE_SERVICE_ROLE_KEY = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
-REDIRECT_URL = f"https://{st.secrets['APP_DOMAIN']}/"
+# ------------------------------
+# App Config
+# ------------------------------
+st.set_page_config(
+    page_title="Your App — Modern Template",
+    page_icon="🧭",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
-supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-# -------------------------
-# User dataclass
-# -------------------------
-@dataclass
-class User:
-    id: str
-    email: str
-    name: str
-    role: str
-
-# -------------------------
-# Genera URL login Google
-# -------------------------
-def google_oauth_url():
-    return f"{SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to={REDIRECT_URL}"
-
-# -------------------------
-# Scambia code per token
-# -------------------------
-def exchange_code_for_token(code: str):
-    url = f"{SUPABASE_URL}/auth/v1/token"
-    headers = {"apikey": SUPABASE_ANON_KEY, "Content-Type": "application/x-www-form-urlencoded"}
-    data = {
-        "grant_type": "authorization_code",
-        "code": code,
-        "redirect_to": REDIRECT_URL
+# ------------------------------
+# Session State Defaults
+# ------------------------------
+def _init_state():
+    defaults = {
+        "theme": "auto",  # "auto" | "light" | "dark"
+        "primary": "#6C5CE7",
+        "accent": "#20C997",
+        "data": None,
+        "tasks": [],
+        "active_page": "Dashboard",
     }
-    resp = requests.post(url, headers=headers, data=data)
-    if resp.status_code == 200:
-        return resp.json()  # contiene access_token, refresh_token
-    else:
-        st.error(f"Errore durante lo scambio code -> token: {resp.text}")
-        return None
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
 
-# -------------------------
-# Carica utente dal token
-# -------------------------
-def load_user():
-    if "user" in st.session_state:
-        return
+_init_state()
 
-    query_params = st.query_params
-    # Flusso Authorization Code Flow
-    if "code" in query_params:
-        code = query_params["code"][0]
-        token_data = exchange_code_for_token(code)
-        if token_data and "access_token" in token_data:
-            access_token = token_data["access_token"]
-            payload = jwt.decode(access_token, options={"verify_signature": False})
-            user_id = payload.get("sub")
-            email = payload.get("email")
-            name = payload.get("name")
-
-            # Carica ruolo da Supabase (table profiles)
-            profile_resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
-            profile = profile_resp.data
-            role = profile["role"] if profile else "viewer"
-
-            st.session_state["user"] = User(id=user_id, email=email, name=name, role=role)
-            st.session_state["access_token"] = access_token
-
-# -------------------------
-# Controllo login
-# -------------------------
-load_user()
-
-if "user" not in st.session_state:
-    st.markdown(
-        f"<a href='{google_oauth_url()}'><button style='padding:10px 20px;border-radius:8px;background:#4f46e5;color:white;border:none;'>Login con Google</button></a>",
-        unsafe_allow_html=True
-    )
-    st.stop()
-
-user = st.session_state["user"]
-
-# -------------------------
-# Logout
-# -------------------------
-if st.sidebar.button("Logout"):
-    st.session_state.pop("user", None)
-    st.experimental_rerun()
-
-# -------------------------
-# Topbar
-# -------------------------
-st.markdown(f"""
-<div style='display:flex;justify-content:space-between;align-items:center;padding:1rem;background:#1f2937;color:white;border-bottom:2px solid #4f46e5;'>
-    <div style='display:flex;align-items:center;gap:1rem;'>
-        <img src='https://cdn-icons-png.flaticon.com/512/3652/3652191.png' width='32'/>
-        <h3 style='margin:0'>Pro Business App</h3>
-    </div>
-    <div>
-        <input placeholder='Cerca...' style='padding:6px 12px;border-radius:8px;border:none;background:#374151;color:white;'/>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# -------------------------
-# Sidebar con sotto-menu
-# -------------------------
-st.sidebar.write(f"Benvenuto, {user.name} ({user.role})")
-main_menu = st.sidebar.selectbox("Seleziona pagina", ["Dashboard","Data","Editor","Chat","Settings","About"])
-submenu = None
-if main_menu == "Data":
-    options = ["Overview"]
-    if user.role in ["editor","admin"]:
-        options += ["Analytics","Export"]
-    submenu = st.sidebar.selectbox("Opzioni Data", options)
-
-# -------------------------
-# Funzioni pagine
-# -------------------------
-def require_role(roles):
-    if user.role not in roles:
-        st.error("Accesso negato!")
-        st.stop()
-
-def page_dashboard():
-    require_role(["viewer","editor","admin"])
-    st.subheader("Dashboard")
-    with elements("metrics", key="dash_metrics"):
-        mui.Card(style={"margin":"10px","padding":"10px","backgroundColor":"#1f2937","color":"white"}).write("Metriche principali")
-    fig = px.bar(x=["A","B","C"], y=[10,20,30], title="Grafico esempio")
-    st.plotly_chart(fig, use_container_width=True)
-
-def page_data(submenu=None):
-    require_role(["viewer","editor","admin"])
-    st.subheader(f"Data - {submenu or 'Overview'}")
-    st.write("Qui inserisci le tabelle dati, grafici, export…")
-
-def page_editor():
-    require_role(["editor","admin"])
-    st.subheader("Editor")
-    st.write("Area di modifica dati")
-
-def page_chat():
-    require_role(["viewer","editor","admin"])
-    st.subheader("Chat")
-    message("Ciao! Questa è una chat demo", is_user=False)
-
-def page_settings():
-    require_role(["admin"])
-    st.subheader("Settings")
-    st.write("Solo admin possono modificare impostazioni globali")
-
-def page_about():
-    st.subheader("About")
-    st.write("App professionale multiutente con Google OAuth e Streamlit Cloud")
-
-# -------------------------
-# Mappa pagine
-# -------------------------
-PAGE_MAP = {
-    "Dashboard": page_dashboard,
-    "Data": page_data,
-    "Editor": page_editor,
-    "Chat": page_chat,
-    "Settings": page_settings,
-    "About": page_about
+# ------------------------------
+# Theming via CSS Variables
+# ------------------------------
+LIGHT_THEME = {
+    "bg": "#0b0c10",  # page background beneath Streamlit shell (kept dark for contrast)
+    "surface": "#ffffff",
+    "text": "#1f2937",
+    "muted": "#6b7280",
+    "primary": st.session_state["primary"],
+    "accent": st.session_state["accent"],
+    "card": "#fafafa",
+    "border": "#e5e7eb",
 }
 
-# -------------------------
-# Mostra pagina selezionata
-# -------------------------
-if main_menu == "Data":
-    PAGE_MAP[main_menu](submenu)
+DARK_THEME = {
+    "bg": "#0b0c10",
+    "surface": "#0f172a",
+    "text": "#e5e7eb",
+    "muted": "#9ca3af",
+    "primary": st.session_state["primary"],
+    "accent": st.session_state["accent"],
+    "card": "#111827",
+    "border": "#1f2937",
+}
+
+
+def current_palette() -> Dict[str, str]:
+    mode = st.session_state.get("theme", "auto")
+    if mode == "dark":
+        return DARK_THEME
+    if mode == "light":
+        return LIGHT_THEME
+    # auto: try to read from Streamlit theme if possible; fallback to light
+    return LIGHT_THEME
+
+
+# ------------------------------
+# Global Styles & Fonts
+# ------------------------------
+
+def inject_global_css():
+    pal = current_palette()
+    google_font = "Inter:wght@400;500;600;700"
+    st.markdown(
+        f"""
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family={google_font.replace(' ', '+')}&display=swap');
+
+        :root {{
+            --bg: {pal['bg']};
+            --surface: {pal['surface']};
+            --text: {pal['text']};
+            --muted: {pal['muted']};
+            --primary: {pal['primary']};
+            --accent: {pal['accent']};
+            --card: {pal['card']};
+            --border: {pal['border']};
+            --radius: 16px;
+            --shadow: 0 8px 30px rgba(0,0,0,0.06);
+        }}
+
+        /* Base */
+        html, body, [data-testid="stAppViewContainer"] {{
+            background: var(--bg);
+        }}
+        [data-testid="stAppViewContainer"] > .main {{
+            padding-top: 1.2rem;
+        }}
+        * {{ font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }}
+
+        /* Headers */
+        h1, h2, h3, h4, h5, h6 {{ color: var(--text); letter-spacing: -0.02em; }}
+        h1 {{ font-weight: 700; }}
+
+        /* Cards */
+        .card {{
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.25rem;
+        }}
+
+        /* Chips */
+        .chip {{
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .35rem .7rem;
+            border-radius: 999px;
+            background: rgba(108,92,231,0.08);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 0.85rem;
+        }}
+        .chip .dot {{
+            width: .5rem; height: .5rem; border-radius: 50%; background: var(--primary);
+        }}
+
+        /* Tables */
+        .stDataFrame {{ border-radius: var(--radius); overflow: hidden; }}
+
+        /* Sidebar tweaks */
+        section[data-testid="stSidebar"] {{
+            background: var(--surface) !important;
+            border-right: 1px solid var(--border);
+        }}
+
+        /* Buttons */
+        .stButton>button {{
+            border-radius: 12px;
+            padding: .6rem 1rem;
+            font-weight: 600;
+        }}
+
+        /* Metrics */
+        .metric-title {{ color: var(--muted); font-size: .85rem; }}
+        .metric-value {{ font-size: 1.6rem; font-weight: 700; }}
+
+        /* Subtle fade-in */
+        .fade-in {{ animation: fadeIn .4s ease-in-out both; }}
+        @keyframes fadeIn {{ from {{opacity:0; transform: translateY(6px)}} to {{opacity:1; transform: none}} }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+inject_global_css()
+
+# ------------------------------
+# Utilities / Components
+# ------------------------------
+
+def header(title: str, subtitle: str | None = None, badge: str | None = None):
+    with stylable_container(key=f"hdr_{title}", css_styles="""
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px; padding: 1.2rem 1.4rem; margin-bottom: 1rem;
+    """):
+        cols = st.columns([1, 1])
+        with cols[0]:
+            st.markdown(f"<h1 style='margin:0'>{title}</h1>", unsafe_allow_html=True)
+            if subtitle:
+                st.markdown(f"<div style='color:var(--muted); margin-top:.35rem'>{subtitle}</div>", unsafe_allow_html=True)
+        with cols[1]:
+            st.markdown("""
+                <div style='display:flex; gap:.5rem; justify-content:flex-end; align-items:center; height:100%'>
+                    <span class='chip'><span class='dot'></span>Stable</span>
+                    <span class='chip'><span class='dot' style='background:var(--accent)'></span>v1.0</span>
+                </div>
+            """, unsafe_allow_html=True)
+
+
+def metric(kpi: str, value: str, delta: str | None = None, help: str | None = None):
+    c = st.container()
+    with c:
+        st.markdown(
+            f"""
+            <div class='card fade-in'>
+                <div class='metric-title'>{kpi}</div>
+                <div class='metric-value'>{value}</div>
+                {f"<div style='color: var(--muted); font-size:.85rem'>Δ {delta}</div>" if delta else ''}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    return c
+
+
+def section(title: str, description: str | None = None):
+    st.markdown(
+        f"""
+        <div class='card fade-in'>
+            <div style='display:flex;justify-content:space-between;align-items:center;'>
+                <h3 style='margin:0'>{title}</h3>
+                <div class='chip'><span class='dot'></span>Section</div>
+            </div>
+            {f"<div style='color:var(--muted); margin-top:.4rem'>{description}</div>" if description else ''}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def show_chart(df: pd.DataFrame):
+    fig = px.line(
+        df,
+        x="date",
+        y="value",
+        markers=True,
+        title="Monthly Trend",
+    )
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=40, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(size=14),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# ------------------------------
+# Sidebar
+# ------------------------------
+logo_path_svg = Path("assets/logo.svg")
+logo_path_png = Path("assets/logo.png")
+if logo_path_svg.exists() or logo_path_png.exists():
+    if logo_path_svg.exists():
+        st.sidebar.image(str(logo_path_svg), use_container_width=True)
+    else:
+        st.sidebar.image(str(logo_path_png), use_container_width=True)
 else:
-    PAGE_MAP[main_menu]()
+    st.sidebar.markdown("### Your Company")
+    st.sidebar.caption("Modern Analytics Suite")
+
+st.sidebar.markdown("---")
+
+with st.sidebar:
+    selected = option_menu(
+        menu_title=None,
+        options=["Dashboard", "Data", "Tasks", "Settings", "About"],
+        icons=["speedometer2", "table", "check2-square", "sliders", "info-circle"],
+        default_index=["Dashboard", "Data", "Tasks", "Settings", "About"].index(st.session_state["active_page"]),
+        styles={
+            "container": {"padding": "0!important"},
+            "icon": {"font-size": "18px"},
+            "nav-link": {"font-weight": "500", "font-size": "15px", "border-radius": "10px"},
+            "nav-link-selected": {"background-color": "rgba(108,92,231,0.15)"},
+        },
+    )
+
+st.session_state["active_page"] = selected
+
+# ------------------------------
+# Pages
+# ------------------------------
+
+if selected == "Dashboard":
+    header("Dashboard", "Overview & quick insights")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1: metric("Revenue", "€ 84,200", "+12% vs last mo")
+    with col2: metric("Orders", "1,248", "+5%")
+    with col3: metric("AOV", "€ 67.5", "+2%")
+    with col4: metric("Churn", "3.1%", "-0.4pp")
+    style_metric_cards(background_color="var(--card)", border_color="var(--border)", border_left_color="var(--primary)")
+
+    st.markdown("\n")
+    with st.container():
+        c1, c2 = st.columns([2, 1])
+        with c1:
+            st.markdown("<div class='card fade-in'>", unsafe_allow_html=True)
+            # Sample data
+            dates = pd.date_range("2024-11-01", periods=10, freq="MS")
+            df = pd.DataFrame({"date": dates, "value": [50, 60, 55, 70, 68, 80, 78, 82, 90, 95]})
+            show_chart(df)
+            st.markdown("</div>", unsafe_allow_html=True)
+        with c2:
+            st.markdown("""
+                <div class='card fade-in'>
+                    <h4 style='margin-top:0'>Quick Actions</h4>
+                    <div style='display:flex; gap:.5rem; flex-wrap:wrap'>
+                        <span class='chip'><span class='dot'></span>Create Report</span>
+                        <span class='chip'><span class='dot'></span>Export CSV</span>
+                        <span class='chip'><span class='dot'></span>Invite User</span>
+                    </div>
+                    <div style='margin-top:1rem; color:var(--muted)'>
+                        Pro tips: Use the sidebar to switch sections. Settings → customize theme.
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("\n")
+    with st.container():
+        st.markdown("""
+            <div class='card fade-in'>
+                <h4 style='margin-top:0'>Recent Activity</h4>
+            """, unsafe_allow_html=True)
+        a1, a2, a3 = st.columns(3)
+        for col, txt in zip([a1, a2, a3], [
+            "Uploaded 3 CSV files",
+            "Generated monthly report",
+            "Updated product taxonomy",
+        ]):
+            with col:
+                st.markdown(f"<div class='chip'><span class='dot' style='background:var(--accent)'></span>{txt}</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+elif selected == "Data":
+    header("Data", "Upload, preview & filter datasets")
+    st.markdown("<div class='card fade-in'>", unsafe_allow_html=True)
+    upl = st.file_uploader("Upload CSV file", type=["csv"]) 
+    if upl is not None:
+        try:
+            df = pd.read_csv(upl)
+        except Exception:
+            upl.seek(0)
+            df = pd.read_csv(upl, sep=";")
+        st.session_state["data"] = df
+        st.success(f"Loaded {df.shape[0]} rows × {df.shape[1]} cols")
+        with st.expander("Preview", expanded=True):
+            st.dataframe(df.head(100), use_container_width=True)
+
+        with st.expander("Quick Filters", expanded=False):
+            cols = df.columns.tolist()
+            if cols:
+                col = st.selectbox("Select column", cols)
+                if pd.api.types.is_numeric_dtype(df[col]):
+                    min_v, max_v = float(df[col].min()), float(df[col].max())
+                    rng = st.slider("Range", min_v, max_v, (min_v, max_v))
+                    st.dataframe(df[(df[col] >= rng[0]) & (df[col] <= rng[1])].head(200), use_container_width=True)
+                else:
+                    vals = st.multiselect("Values", sorted(df[col].dropna().unique()[:500]))
+                    if vals:
+                        st.dataframe(df[df[col].isin(vals)].head(200), use_container_width=True)
+    else:
+        st.info("Upload a CSV to get started.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+elif selected == "Tasks":
+    header("Tasks", "Simple personal to‑do")
+    st.markdown("<div class='card fade-in'>", unsafe_allow_html=True)
+    cols = st.columns([4, 1])
+    with cols[0]:
+        new_task = st.text_input("Add a task", placeholder="Describe the task…")
+    with cols[1]:
+        if st.button("Add", type="primary", use_container_width=True):
+            if new_task:
+                st.session_state["tasks"].append({"text": new_task, "done": False})
+                st.toast("Task added", icon="✅")
+                st.rerun()
+
+    if st.session_state["tasks"]:
+        for i, task in enumerate(st.session_state["tasks"]):
+            c1, c2, c3 = st.columns([0.06, 0.84, 0.10])
+            with c1:
+                task["done"] = st.checkbox("", value=task["done"], key=f"task_done_{i}")
+            with c2:
+                st.text_input("", value=task["text"], key=f"task_txt_{i}")
+            with c3:
+                if st.button("Delete", key=f"del_{i}"):
+                    st.session_state["tasks"].pop(i)
+                    st.toast("Deleted", icon="🗑️")
+                    st.rerun()
+    else:
+        st.caption("No tasks yet.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+elif selected == "Settings":
+    header("Settings", "Fine‑tune appearance & behavior")
+    st.markdown("<div class='card fade-in'>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        theme = st.radio("Theme", ["auto", "light", "dark"], index=["auto","light","dark"].index(st.session_state["theme"]))
+        st.session_state["theme"] = theme
+    with col2:
+        st.session_state["primary"] = st.color_picker("Primary", value=st.session_state["primary"])
+    with col3:
+        st.session_state["accent"] = st.color_picker("Accent", value=st.session_state["accent"])
+
+    st.info("Theme changes apply instantly. Colors persist in session.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+elif selected == "About":
+    header("About", "Product & team")
+    st.markdown(
+        """
+        <div class='card fade-in'>
+            <p><strong>Your App</strong> is a modern Streamlit template designed for data apps and internal tools. Built with clean, reusable components and smooth UX.</p>
+            <ul>
+                <li>Modern, elegant, professional UI</li>
+                <li>Fast to customize: colors, typography, cards</li>
+                <li>Production‑friendly single‑file structure</li>
+            </ul>
+            <p style='color:var(--muted)'>© 2025 Your Company</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# Subtle footer
+st.markdown("""
+    <div style='text-align:center; color:var(--muted); margin: 2rem 0 1rem 0;'>
+        Built with ❤️ on Streamlit — Template by ChatGPT
+    </div>
+""", unsafe_allow_html=True)
