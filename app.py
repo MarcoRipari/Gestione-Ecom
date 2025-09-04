@@ -201,7 +201,7 @@ def login(username: str, password: str) -> bool:
 
 
       
-def login_old(email: str, password: str) -> bool:
+def login_password(email: str, password: str) -> bool:
     try:
         res = supabase.auth.sign_in_with_password({
             "email": email,
@@ -243,6 +243,38 @@ def logout():
         #st.session_state.username = None
         st.rerun()
 
+def register_user(email: str, password: str, **param) -> bool:
+    try:
+        # 1. Crea l'utente in Supabase Auth
+        res = supabase.auth.admin.create_user({
+            "email": email,
+            "password": password,
+            "email_confirm": False
+        })
+
+        if not res.user:
+            st.error("❌ Errore nella creazione utente in Auth")
+            return False
+
+        user_id = res.user.id
+
+        # 2. Inserisci il profilo nella tabella profiles
+        profile = {
+            "user_id": user_id,
+            "nome": param.get("nome", None),
+            "cognome": param.get("cognome", None),
+            "username": param.get("username", None),
+            "role": param.get("role", None)
+        }
+
+        supabase.table("profiles").insert(profile).execute()
+
+        st.success(f"✅ Utente {username} creato correttamente")
+        return True
+
+    except Exception as e:
+        st.error(f"Errore registrazione: {e}")
+        return False
 
 # ---------------------------
 # 📦 Embedding & FAISS Setup
@@ -914,15 +946,16 @@ with st.sidebar:
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customercare","admin"]}
                          ]
         
-        submenu_item_list = [{"main":"Foto","name":"Gestione", "icon":"gear", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Foto","name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Foto","name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Foto","name":"Storico", "icon":"book", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Foto","name":"Aggiungi prelevate", "icon":"hand-index", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Giacenze","name":"Importa", "icon":"download", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Giacenze","name":"Per corridoio", "icon":"1-circle", "role":["guest","logistica","admin"]},
-                             {"main":"Giacenze","name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
-                             {"main":"Giacenze","name":"Old import", "icon":"download", "role":["admin"]}
+        submenu_item_list = [{"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Foto", "name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Foto", "name":"Storico", "icon":"book", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Foto", "name":"Aggiungi prelevate", "icon":"hand-index", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Giacenze", "name":"Importa", "icon":"download", "role":["guest","logistica","customercare","admin"]},
+                             {"main":"Giacenze", "name":"Per corridoio", "icon":"1-circle", "role":["guest","logistica","admin"]},
+                             {"main":"Giacenze", "name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
+                             {"main":"Giacenze", "name":"Old import", "icon":"download", "role":["admin"]},
+                             {"main":"Admin", "name":"Aggiungi utente", "icon":"add", "role":["admin"]}
                             ]
         
         menu_items = []
@@ -2253,3 +2286,22 @@ elif page == "Giacenze - Old import":
             format_cell_ranges(sheet, ranges_to_format)
     
             st.success("✅ Giacenze importate con successo!")
+
+elif page == "Admin":
+    st.write("Sezione admin")
+
+elif page == "Admin - Aggiungi utente":
+    st.header("Aggiungi nuovo utente")
+    st.markdown("Crea un nuovo utente nella tabella Supabase.")
+
+    with st.form("register_form"):
+        nome = st.text_input("Nome")
+        cognome = st.text_input("Cognome")
+        email = st.text_input("Email", type="email")
+        password = st.text_input("Password", type="password")
+        role = st.selectbox("Ruolo",["Guest","Logistica","CustomerCare","Admin"])
+        
+        submit = st.formu_submit_button("Crea utente")
+        if submit:
+            register_user(email, password, nome=nome, cognome=cognome, username=username, role=role)
+    
