@@ -852,7 +852,8 @@ with st.sidebar:
             "role": "admin"
         }
     else:
-        st.rerun()
+        st.session_state.user = None
+        st.session_state.utente = None
 
     if "user" not in st.session_state or st.session_state.user is None:
         page = "Home"
