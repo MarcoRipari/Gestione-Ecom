@@ -854,6 +854,7 @@ with st.sidebar:
     else:
         st.session_state.user = None
         st.session_state.utente = None
+        st.rerun()
 
     if "user" not in st.session_state or st.session_state.user is None:
         page = "Home"
