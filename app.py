@@ -831,7 +831,7 @@ with st.sidebar:
             password = st.text_input("Password", type="password")
             if st.button("Accedi"):
                 if login(email, password):
-                    st.experimental_rerun()  # ricarica subito la pagina senza messaggio
+                    st.rerun()  # ricarica subito la pagina senza messaggio
     else:
         st.write(f"Accesso eseguito come: {st.session_state.username}")
 
