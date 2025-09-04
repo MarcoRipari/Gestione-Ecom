@@ -848,7 +848,7 @@ with st.sidebar:
         "nome": "GUEST",
         "cognome": "Test2",
         "username": "Username",
-        "role": "admin"
+        "role": "guest"
     }
 
     if "user" not in st.session_state or st.session_state.user is None:
@@ -865,9 +865,9 @@ with st.sidebar:
 
         menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customercare","admin"]},
                           {"name":"Descrizioni", "icon":"list", "role":["customercare","admin"]},
-                          {"name":"Foto", "icon":"list", "role":["logistica","customercare","admin"]},
-                          {"name":"Giacenze", "icon":"list", "role":["logistica","customercare","admin"]},
-                          {"name":"Logout", "icon":"list", "role":["guest","logistica","customercare","admin"]}
+                          {"name":"Foto", "icon":"camera", "role":["logistica","customercare","admin"]},
+                          {"name":"Giacenze", "icon":"box", "role":["logistica","customercare","admin"]},
+                          {"name":"Logout", "icon":"key", "role":["guest","logistica","customercare","admin"]}
                          ]
 
         menu_item = []
