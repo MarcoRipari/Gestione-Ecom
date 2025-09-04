@@ -863,9 +863,9 @@ with st.sidebar:
         utente = st.session_state.utente
         st.write(f"Accesso eseguito come: {utente["nome"]}")
 
-        menu_item_list = [{name:"Home", icon:"house", role:["guest","logistica","customercare","admin"]},
-                     {name:"Descrizioni", icon:"list", role:["guest","customercare","admin"]},
-                     {name:"Foto", icon:"list", role:["guest","logistica","customercare","admin"]}
+        menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customercare","admin"]},
+                     {"name":"Descrizioni", "icon":"list", "role":["guest","customercare","admin"]},
+                     {"name":"Foto", "icon":"list", "role":["guest","logistica","customercare","admin"]}
                     ]
 
         menu_item = []
