@@ -171,7 +171,7 @@ def login(email: str, password: str) -> bool:
                 return False
             
             # Salva tutto in session_state
-            st.session_state.utente = {
+            st.session_state.user = {
                 "data": res.user,
                 "email": res.user.email,
                 "nome": profile.data["nome"],
@@ -179,8 +179,8 @@ def login(email: str, password: str) -> bool:
                 "username": profile.data["username"],
                 "role": profile.data["role"]
             }
-            st.session_state.user = res.user
-            st.session_state.username = profile.data.get("username", res.user.email)
+            #st.session_state.user = res.user
+            #st.session_state.username = profile.data.get("username", res.user.email)
             return True
         else:
             st.error("❌ Email o password errati")
@@ -194,7 +194,7 @@ def logout():
     if "user" in st.session_state:
         supabase.auth.sign_out()
         st.session_state.user = None
-        st.session_state.username = None
+        #st.session_state.username = None
         st.rerun()
 
 
@@ -797,7 +797,7 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 
 def aggiungi_sku(sheet_id: str, sku: str):
     sheet_lista = get_sheet(sheet_id, "LISTA")
-    sheet_lista.append_row([sku, st.session_state.username])
+    sheet_lista.append_row([sku, st.session_state.user["username"]])
 
 @st.cache_data(ttl=300)
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
@@ -839,8 +839,7 @@ with st.sidebar:
     # Togliere per riattivare password e nome
     #st.session_state["logged_as"] = "GUEST"
     if DEBUG:
-        st.session_state.user = "GUEST"
-        st.session_state.utente = {
+        st.session_state.user = {
             "data": "data",
             "email": "test@test.it",
             "nome": "GUEST",
@@ -858,7 +857,7 @@ with st.sidebar:
             if login(email, password):
                 st.rerun()  # ricarica subito la pagina senza messaggio
     else:
-        user = st.session_state.utente
+        user = st.session_state.user
         st.write(f"Accesso eseguito come: {user["nome"]}")
 
         menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customercare","admin"]},
@@ -950,6 +949,7 @@ with st.sidebar:
                     },
                 },
             )
+            page = f"{main_page_name} - {sub_page}"
 
 
 # ---------------------------
