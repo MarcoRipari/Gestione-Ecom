@@ -885,7 +885,7 @@ with st.sidebar:
         main_page = option_menu(
             menu_title=None,
             #options=["Home", "Descrizioni", "Foto", "Giacenze", "Logout"],
-            options=menu_item
+            options=menu_item,
             icons=["house","list","camera","box","key"],
             default_index=0,
             orientation="vertical",
