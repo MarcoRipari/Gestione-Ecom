@@ -864,7 +864,7 @@ with st.sidebar:
                           {"name":"Descrizioni", "icon":"list", "role":["customercare","admin"]},
                           {"name":"Foto", "icon":"camera", "role":["logistica","customercare","admin"]},
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customercare","admin"]},
-                          {"name":"Admin", "icon":"crown", "role":["admin"],
+                          {"name":"Admin", "icon":"crown", "role":["admin"]},
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customercare","admin"]}
                          ]
         
