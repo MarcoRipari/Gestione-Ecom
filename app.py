@@ -54,6 +54,7 @@ from dateutil import parser
 from dateutil.tz import tzlocal
 import locale
 from zoneinfo import ZoneInfo
+from supabase import create_client, Client
 
 
 logging.basicConfig(level=logging.INFO)
@@ -150,14 +151,35 @@ def download_csv_from_dropbox(dbx, folder_path: str, file_name: str) -> io.Bytes
 # ---------------------------
 # Auth system
 # ---------------------------
-def login_as(name: str):
-    st.session_state["logged_as"] = name
-    st.rerun()
+supabase_url = st.secrets["SUPABASE_URL"]
+supabase_key = st.secrets["SUPABASE_KEY"]
+supabase: Client = create_client(supabase_url, supabase_key)
+
+def login(email: str, password: str):
+    try:
+        res = supabase.auth.sign_in(email=email, password=password)
+        if res.user is not None:
+            user_id = res.user.id
+            # Recupera username dalla tabella profiles
+            profile = supabase.table("utenti").select("username").eq("user_id", user_id).single().execute()
+            username = profile.data["username"] if profile.data else "Utente"
+            # Salva tutto in session_state
+            st.session_state.user = res.user
+            st.session_state.username = username
+            st.success(f"✅ Login effettuato come {username}")
+        else:
+            st.error("❌ Email o password errati")
+    except Exception as e:
+        st.error(f"Errore login: {e}")
+
 
 def logout():
-    del st.session_state.logged_as
-    del st.session_state.password_ok
-    st.rerun()
+    if "user" in st.session_state:
+        supabase.auth.sign_out()
+        st.session_state.user = None
+        st.session_state.username = None
+        st.experimental_rerun()
+
 
 # ---------------------------
 # 📦 Embedding & FAISS Setup
@@ -758,7 +780,7 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 
 def aggiungi_sku(sheet_id: str, sku: str):
     sheet_lista = get_sheet(sheet_id, "LISTA")
-    sheet_lista.append_row([sku, st.session_state.get("logged_as").upper()])
+    sheet_lista.append_row([sku, st.session_state.username])
 
 @st.cache_data(ttl=300)
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
@@ -800,10 +822,17 @@ with st.sidebar:
     st.markdown("## 📋 Menu")
 
     # Togliere per riattivare password e nome
-    st.session_state["logged_as"] = "GUEST"
+    #st.session_state["logged_as"] = "GUEST"
 
-    if st.session_state.get("logged_as"):
-        st.write(f"Accesso eseguito come: {st.session_state.get('logged_as')}")
+    if "user" not in st.session_state or st.session_state.user is None:
+        if "user" not in st.session_state or st.session_state.user is None:
+            st.subheader("🔑 Login")
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+            if st.button("Accedi"):
+                login(email, password)
+    else:
+        st.write(f"Accesso eseguito come: {st.session_state.username}")
 
         # --- Menu principale verticale ---
         main_page = option_menu(
@@ -891,9 +920,6 @@ with st.sidebar:
             )
             #page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
             page = f"{main_page_name} - {sub_page}"
-
-    else:
-        page = "Login"
 
 # ---------------------------
 # 🏠 HOME
