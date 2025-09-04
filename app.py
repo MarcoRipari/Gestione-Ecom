@@ -181,9 +181,6 @@ def login(email: str, password: str) -> bool:
             }
             st.session_state.user = res.user
             st.session_state.username = profile.data.get("username", res.user.email)
-
-            # Ricarica la pagina senza messaggi di login
-            st.experimental_rerun()
             return True
         else:
             st.error("❌ Email o password errati")
