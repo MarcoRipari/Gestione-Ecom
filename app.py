@@ -864,6 +864,7 @@ with st.sidebar:
                           {"name":"Descrizioni", "icon":"list", "role":["customercare","admin"]},
                           {"name":"Foto", "icon":"camera", "role":["logistica","customercare","admin"]},
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customercare","admin"]},
+                          {"name":"Admin", "icon":"crown", "role":["admin"],
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customercare","admin"]}
                          ]
         
@@ -1435,7 +1436,7 @@ elif page == "Foto - Gestione":
         # ✅ Visualizzazione
         st.dataframe(df_vista, use_container_width=True)
 
-elif page == "Foto - SKU da riscattare":
+elif page == "Foto - Riscatta SKU":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
 
@@ -1542,7 +1543,7 @@ elif page == "Foto - SKU da riscattare":
             except Exception as e:
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
                 
-elif page == "Foto - Aggiungi SKU":
+elif page == "Foto - Aggiungi SKUs":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     new_sku = st.session_state.get("aggiunta_confermata", set())
 
