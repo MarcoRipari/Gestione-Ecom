@@ -159,50 +159,46 @@ supabase_admin = create_client(supabase_url, service_role_key)
 
 def login(username: str, password: str) -> bool:
     try:
-        # 1. Recupera l'email dal profilo usando lo username
-        profile = supabase.table("profiles").select("*").eq("username", username).single().execute()
-
-        if not profile.data:
+        # 1. Recupera il profilo dallo username
+        res_profile = supabase.table("profiles").select("*").eq("username", username).single().execute()
+        if not res_profile.data:
             st.error("❌ Username non trovato")
             return False
 
-        email = profile.data.get("email")
+        user_id = res_profile.data["user_id"]
+
+        # 2. Recupera l'utente auth per ottenere l'email (richiede service_role_key)
+        res_user = supabase_admin.auth.admin.get_user_by_id(user_id)
+        email = res_user.user.email
+
         if not email:
-            st.error("❌ Nessuna email associata a questo username")
+            st.error("❌ Nessuna email trovata per questo utente")
             return False
 
-        # 2. Login con email + password
+        # 3. Login usando email + password
         res = supabase.auth.sign_in_with_password({
             "email": email,
             "password": password
         })
 
-        if res.user is not None:
-            # 3. Recupera il profilo completo con user_id
-            profile = supabase.table("profiles").select("*").eq("user_id", res.user.id).single().execute()
-
-            if not profile.data:
-                st.error("❌ Profilo utente non trovato")
-                return False
-
+        if res.user:
             # 4. Salva in session_state
             st.session_state.user = {
-                "data": res.user,
-                "email": res.user.email,
-                "nome": profile.data.get("nome", ""),
-                "cognome": profile.data.get("cognome", ""),
-                "username": profile.data.get("username", username),
-                "role": profile.data.get("role", "guest")
+                "email": email,
+                "username": res_profile.data.get("username", ""),
+                "nome": res_profile.data.get("nome", ""),
+                "cognome": res_profile.data.get("cognome", ""),
+                "role": res_profile.data.get("role", "guest"),
             }
-
             return True
         else:
-            st.error("❌ Username o password errati")
+            st.error("❌ Credenziali errate")
             return False
 
     except Exception as e:
         st.error(f"Errore login: {e}")
         return False
+
 
       
 def login_old(email: str, password: str) -> bool:
