@@ -1791,7 +1791,7 @@ elif page == "Giacenze - Per corridoio":
     st.header("Riepilogo per corridoio")
 
     # Calcolo anno e stagione di default
-    oggi = datetime.datetime.now()
+    oggi = datetime.now()
     anno_default = oggi.year
     mese = oggi.month
     stagione_default = 1 if mese in [1, 2, 11, 12] else 2
@@ -1949,7 +1949,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     st.header("Riepilogo per corridoio e marchio")
 
     # --- Calcolo anno e stagione di default ---
-    oggi = datetime.datetime.now()
+    oggi = datetime.now()
     anno_default, mese = oggi.year, oggi.month
     stagione_default = 1 if mese in [1,2,11,12] else 2
 
