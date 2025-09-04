@@ -162,6 +162,7 @@ def login(email: str, password: str) -> bool:
             "password": password
         })
         if res.user is not None:
+            st.write(res.user.id)
             profile = supabase.table("profiles").select("*").eq("user_id", res.user.id).single().execute()
             utente = {"data": res.user,
                       "email": res.user.email,
