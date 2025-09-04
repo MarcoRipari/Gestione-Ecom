@@ -864,16 +864,28 @@ with st.sidebar:
         user = st.session_state.utente
         st.write(f"Accesso eseguito come: {user["name"]}")
 
-        if user["role"] == "logistica":
-            menu_item = ["Home", "Foto", "Giacenze", "Logout"]
-        elif: user["role"] == "customercare":
-            menu_item = ["Home", "Descrizioni", "Foto", "Giacenze", "Logout"]
+        menu_item_list = [{name:"Home", icon:"house", role:["guest","logistica","customercare","admin"},
+                     {name:"Descrizioni", icon:"list", role:["guest","customercare","admin"},
+                     {name:"Foto", icon:"list", role:["guest","logistica","customercare","admin"}
+                    ]
+
+        menu_item = []
+        icon_item = []
+        for i in menu_item_list:
+            if user["role"] in menu_item_list[i]["role"]:
+                menu_item.append(menu_item_list[i]["name"])
+                icon_item.append(menu_item_list[i]["icon"])
+
+        st.write(menu_item)
+        st.write(icon_item)
+        
         
         st.markdown("## 📋 Menu")
         # --- Menu principale verticale ---
         main_page = option_menu(
             menu_title=None,
-            options=["Home", "Descrizioni", "Foto", "Giacenze", "Logout"],
+            #options=["Home", "Descrizioni", "Foto", "Giacenze", "Logout"],
+            options=menu_item
             icons=["house","list","camera","box","key"],
             default_index=0,
             orientation="vertical",
