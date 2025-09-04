@@ -162,17 +162,27 @@ def login(email: str, password: str) -> bool:
             "password": password
         })
         if res.user is not None:
-            st.write(res.user.id)
+            # Recupera il profilo dell'utente usando user_id
             profile = supabase.table("profiles").select("*").eq("user_id", res.user.id).single().execute()
-            utente = {"data": res.user,
-                      "email": res.user.email,
-                      "nome": profile.data["nome"],
-                      "cognome": profile.data["cognome"],
-                      "username": profile.data["username"]
-                     }
-            st.session_state.utente = utente
+            
+            if profile.data is None:
+                st.error("❌ Profilo utente non trovato")
+                return False
+            
+            # Salva tutto in session_state
+            st.session_state.utente = {
+                "data": res.user,
+                "email": res.user.email,
+                "nome": profile.data.get("nome", ""),
+                "cognome": profile.data.get("cognome", ""),
+                "username": profile.data.get("username", ""),
+                "role": profile.data.get("role", "")
+            }
             st.session_state.user = res.user
-            st.session_state.username = res.user.email  # o nickname se lo recuperi
+            st.session_state.username = profile.data.get("username", res.user.email)
+
+            # Ricarica la pagina senza messaggi di login
+            st.experimental_rerun()
             return True
         else:
             st.error("❌ Email o password errati")
