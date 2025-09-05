@@ -769,7 +769,7 @@ def genera_pdf(df_disp, **param):
 
 def process_csv_and_update(sheet, uploaded_file):
     # Leggi CSV
-    df = read_csv_auto_encoding(uploaded_file).fillna("")
+    df = read_csv_auto_encoding(uploaded_file)
 
     # Rinomina colonne in base allo schema che mi hai passato
     df.columns = [
