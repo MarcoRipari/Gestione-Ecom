@@ -775,7 +775,7 @@ def update_row(sheet, row_idx, row):
     sheet.update(cell_range, [row_clean])
 
 
-def process_csv_and_update(sheet, uploaded_file):
+def process_csv_and_update(sheet_id, uploaded_file):
     # Leggi CSV
     df = read_csv_auto_encoding(uploaded_file)
 
@@ -2284,13 +2284,12 @@ elif page == "Giacenze - Aggiorna anagrafica":
     st.header("Aggiorna anagrafica da CSV")
 
     sheet_id = st.secrets["ANAGRAFICA_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "PRELEVATE")
 
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
 
     if uploaded_file:
         if st.button("Carica su GSheet"):
-            added, updated = process_csv_and_update(sheet, uploaded_file)
+            added, updated = process_csv_and_update(sheet_id, uploaded_file)
             st.success(f"✅ Aggiunte {added} nuove SKU, aggiornate {updated} SKU già presenti.")
 
     
