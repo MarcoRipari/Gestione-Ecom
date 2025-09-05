@@ -769,7 +769,8 @@ def genera_pdf(df_disp, **param):
 
 def process_csv_and_update(sheet, uploaded_file):
     # Leggi CSV
-    df = pd.read_csv(uploaded_file, dtype=str, skiprows=[1]).fillna("")
+    #df = pd.read_csv(uploaded_file, dtype=str, skiprows=[1]).fillna("")
+    df = read_csv_auto_encoding(uploaded_file).fillna("")
 
     # Costruisci la SKU
     df["SKU"] = df["Cod"] + df["Var."] + df["Col."]
