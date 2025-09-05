@@ -907,8 +907,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
 # ---------------------------
 # 📦 Streamlit UI
 # ---------------------------
-st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
-# st.title("👟 Generatore Descrizioni di Scarpe con RAG")
+st.set_page_config(page_title="Gestione ECOM", layout="wide")
 
 # 📁 Caricamento dati
 # Sidebar: menu
@@ -1040,17 +1039,9 @@ with st.sidebar:
 # 🏠 HOME
 # ---------------------------
 if page == "Home":
-    st.subheader("📌 Benvenuto")
+    st.subheader("📌 HomePage")
     st.markdown("""
-    Benvenuto nell'app di generazione descrizioni prodotto per calzature.  
-    Utilizza il menu a sinistra per iniziare.
     
-    Funzionalità disponibili:
-    - Generazione asincrona di descrizioni multilingua
-    - Supporto RAG con FAISS
-    - Captioning automatico immagine (BLIP)
-    - Logging su Google Sheets
-    - Salvataggio ZIP con CSV multilingua
     """)
 
 # ---------------------------
