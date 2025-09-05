@@ -793,6 +793,10 @@ def process_csv_and_update(sheet, uploaded_file):
     df.columns = expected_cols
     df["SKU"] = df["Cod"] + df["Var."] + df["Col."]
 
+    # Sposta SKU all'inizio
+    cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
+    df = df[cols]
+    
     # Dati esistenti dal foglio
     existing = sheet.get_all_values()
     header = existing[0]
