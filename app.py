@@ -74,13 +74,21 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 def check_openai_key():
     try:
-        openai.Model.list()
+        # Chiamata minima per testare la key
+        openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role":"user","content":"test"}],
+            max_tokens=1
+        )
         return True
-    except Exception as e:  # Catch generico per versioni nuove
-        if "Incorrect API key" in str(e) or "authentication" in str(e).lower():
+    except openai.error.AuthenticationError:
+        return False
+    except Exception as e:
+        msg = str(e).lower()
+        if "invalid" in msg or "authentication" in msg or "api key" in msg:
             return False
         else:
-            raise e
+            raise
     
 
 credentials = service_account.Credentials.from_service_account_info(
