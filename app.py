@@ -767,6 +767,11 @@ def genera_pdf(df_disp, **param):
     buffer.seek(0)
     return buffer
 
+def update_row(sheet, row_idx, row):
+    row_clean = ["" if pd.isna(x) else str(x) for x in row]
+    sheet.update(f"A{row_idx}:{chr(65+len(row_clean)-1)}{row_idx}", [row_clean])
+
+
 def process_csv_and_update(sheet, uploaded_file):
     # Leggi CSV
     df = read_csv_auto_encoding(uploaded_file)
@@ -826,7 +831,8 @@ def process_csv_and_update(sheet, uploaded_file):
 
             if new_year_stage > existing_year_stage:
                 idx = existing_df.index[existing_df["SKU"] == sku][0]
-                sheet.update(f"A{idx+2}:K{idx+2}", [row.tolist()])
+                #sheet.update(f"A{idx+2}:K{idx+2}", [row.tolist()])
+                update_row(sheet, idx+2, row)
                 updated_count += 1
 
     if new_rows:
