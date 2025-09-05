@@ -776,9 +776,10 @@ def update_row(sheet, row_idx, row):
     sheet.update(cell_range, [row_clean])
 
 def process_csv_and_update(sheet, uploaded_file):
-    # Leggi CSV e gestisci celle vuote
-    df = read_csv_auto_encoding(uploaded_file).fillna("").astype(str)
+    # Leggi CSV
+    df = read_csv_auto_encoding(uploaded_file)
 
+    # Definisci colonne attese
     expected_cols = [
         "Anno","Stag.","Clz.","Descr.","Serie","Descriz1","Annullato",
         "Campionato","Cat","Cod","Descriz2","Var.","DescrizVar","Col.",
@@ -791,17 +792,17 @@ def process_csv_and_update(sheet, uploaded_file):
         return 0, 0
 
     df.columns = expected_cols
-    df["SKU"] = df["Cod"] + df["Var."] + df["Col."]
 
-    # Sposta SKU all'inizio
+    # Costruisci SKU e spostala come prima colonna
+    df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
     cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
     df = df[cols]
-    
-    # Dati esistenti dal foglio
+
+    # Dati esistenti
     existing = sheet.get_all_values()
     header = existing[0]
     data = existing[1:]
-    
+
     # Rendi univoci eventuali duplicati di colonne
     seen = {}
     unique_header = []
@@ -813,46 +814,41 @@ def process_csv_and_update(sheet, uploaded_file):
             seen[h] = 0
             unique_header.append(h)
 
-    existing_df = pd.DataFrame(data, columns=unique_header).fillna("").astype(str)
+    existing_df = pd.DataFrame(data, columns=unique_header)
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     new_rows = []
-    updates = []
+    updated_count = 0
 
-    for idx, row in df.iterrows():
+    for _, row in df.iterrows():
         sku = row["SKU"]
         new_year_stage = f"{row['Anno']}/{row['Stag.']}"
 
+        # Converti eventuali NaN in stringa vuota
+        single_row = ["" if pd.isna(x) else str(x) for x in row]
+
         if sku not in existing_dict:
-            new_rows.append(row.tolist())
+            new_rows.append(single_row)
         else:
             existing_row = existing_dict[sku]
             existing_year_stage = f"{existing_row['Anno']}/{existing_row['Stag.']}"
+
             if new_year_stage > existing_year_stage:
-                # Indice riga nel foglio (1-based, header=1)
-                row_idx = existing_df.index[existing_df["SKU"] == sku][0] + 2
-                updates.append((row_idx, row.tolist()))
+                idx = existing_df.index[existing_df["SKU"] == sku][0]
 
-    # Append nuove righe
+                # Aggiorna direttamente il range dalla colonna A
+                start_col = "A"
+                end_col = chr(ord("A") + len(single_row) - 1)
+                cell_range = f"{start_col}{idx+2}:{end_col}{idx+2}"  # +2 per header
+                sheet.update(cell_range, [single_row], value_input_option="RAW")
+                updated_count += 1
+
+    # Append nuove righe alla fine del foglio
     if new_rows:
-        df_new = pd.DataFrame(new_rows, columns=df.columns).fillna("").astype(str)
-        append_to_sheet(sheet.spreadsheet.id, "DATA", df_new)
+        df_new = pd.DataFrame(new_rows, columns=df.columns)
+        append_to_sheet(sheet.spreadsheet.id, "DATA", df_new)  # append da colonna A
 
-    # Aggiornamento batch righe esistenti
-    if updates:
-        batch_data = []
-        for row_idx, row_values in updates:
-            row_clean = ["" if pd.isna(x) else str(x) for x in row_values]
-            batch_data.append({
-                "range": f"A{row_idx}:U{row_idx}",
-                "values": [row_clean]
-            })
-        sheet.spreadsheet.values_batch_update(body={
-            "valueInputOption": "RAW",
-            "data": batch_data
-        })
-
-    return len(new_rows), len(updates)
+    return len(new_rows), updated_count
     
 # --- Funzione per generare PDF ---
 def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
