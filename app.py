@@ -801,13 +801,13 @@ def process_csv_and_update(sheet, uploaded_file):
     })
 
     # Dati esistenti
-    sheet = get_sheet(sheet_id, "PRELEVATE")
+    sheet = get_sheet(sheet_id, "ANAGRAFICA")
     existing = sheet.get_all_records()
     existing_df = pd.DataFrame(existing)
 
     if existing_df.empty:
-        append_to_sheet(sheet_id, "PRELEVATE", df_out)   # ✅ usa la funzione
-        return len(df_out), 0, df_out
+        append_to_sheet(sheet_id, "ANAGRAFICA", df_out)   # ✅ usa la funzione
+        return len(df_out), 0
 
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
@@ -831,9 +831,9 @@ def process_csv_and_update(sheet, uploaded_file):
 
     if new_rows:
         df_new = pd.DataFrame(new_rows, columns=df_out.columns)
-        append_to_sheet(sheet_id, "PRELEVATE", df_new)   # ✅ append pulito
+        append_to_sheet(sheet_id, "ANAGRAFICA", df_new)   # ✅ append pulito
 
-    return len(new_rows), updated_count, df_new
+    return len(new_rows), updated_count
     
 # --- Funzione per generare PDF ---
 def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
@@ -2299,8 +2299,7 @@ elif page == "Giacenze - Aggiorna anagrafica":
 
     if uploaded_file:
         if st.button("Carica su GSheet"):
-            added, updated, df_out = process_csv_and_update(sheet, uploaded_file)
-            st.write(df_out)
+            added, updated = process_csv_and_update(sheet, uploaded_file)
             st.success(f"✅ Aggiunte {added} nuove SKU, aggiornate {updated} SKU già presenti.")
 
     
