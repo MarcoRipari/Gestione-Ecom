@@ -784,10 +784,8 @@ def process_csv_and_update(sheet, uploaded_file):
 
     df.columns = expected_cols
 
-    # Costruisci la SKU = Cod + Var. + Col.
-    df["SKU"] = df["Cod"] + df["Var."] + df["Col."]
+    df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
 
-    # Prepara DataFrame per Google Sheet (ignorando la colonna 'Vuota')
     df_out = pd.DataFrame({
         "SKU": df["SKU"],
         "ANNO": df["Anno"],
@@ -796,18 +794,19 @@ def process_csv_and_update(sheet, uploaded_file):
         "DESC. COLLEZIONE": df["Descr."],
         "COD VAR": df["Var."],
         "COL": df["Col."],
-        "DESCRIZIONE": df["Descriz2"],  # seconda Descriz
+        "DESCRIZIONE": df["Descriz2"],
         "TG CAMPIONE": df["TAGLIA"],
         "CONT": df["N=NOOS"],
         "MADE IN": ""
     })
 
-    # Leggi dati esistenti dal foglio
+    # Dati esistenti
+    sheet = get_sheet(sheet_id, "PRELEVATE")
     existing = sheet.get_all_records()
     existing_df = pd.DataFrame(existing)
 
     if existing_df.empty:
-        sheet.append_rows(df_out.values.tolist(), value_input_option="USER_ENTERED")
+        append_to_sheet(sheet_id, "PRELEVATE", df_out)   # ✅ usa la funzione
         return len(df_out), 0
 
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
@@ -831,7 +830,8 @@ def process_csv_and_update(sheet, uploaded_file):
                 updated_count += 1
 
     if new_rows:
-        sheet.append_rows(new_rows, value_input_option="USER_ENTERED")
+        df_new = pd.DataFrame(new_rows, columns=df_out.columns)
+        append_to_sheet(sheet_id, "PRELEVATE", df_new)   # ✅ append pulito
 
     return len(new_rows), updated_count
     
