@@ -796,8 +796,11 @@ def process_csv_and_update(sheet, uploaded_file):
 
     # Dati esistenti
     existing = sheet.get_all_values()
-    existing_df = pd.DataFrame(existing)
-
+    
+    header = existing[0]
+    data = existing[1:]  # tutte le righe successive
+    existing_df = pd.DataFrame(data, columns=header)
+    
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     new_rows = []
@@ -2285,7 +2288,11 @@ elif page == "Giacenze - Aggiorna anagrafica":
     sheet_id = st.secrets["ANAGRAFICA_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "DATA")
 
-    existing_df = pd.DataFrame(sheet.get_all_values())
+    
+    existing = sheet.get_all_values()
+    header = existing[0]
+    data = existing[1:]  # tutte le righe successive
+    existing_df = pd.DataFrame(data, columns=header)
 
     st.write(existing_df)
     
