@@ -769,7 +769,10 @@ def genera_pdf(df_disp, **param):
 
 def update_row(sheet, row_idx, row):
     row_clean = ["" if pd.isna(x) else str(x) for x in row]
-    sheet.update(f"A{row_idx}:{chr(65+len(row_clean)-1)}{row_idx}", [row_clean])
+    start = rowcol_to_a1(row_idx, 1)  # es. A2
+    end = rowcol_to_a1(row_idx, len(row_clean))  # ultima colonna giusta
+    cell_range = f"{start}:{end}"
+    sheet.update(cell_range, [row_clean])
 
 
 def process_csv_and_update(sheet, uploaded_file):
