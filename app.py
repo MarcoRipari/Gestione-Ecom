@@ -798,7 +798,7 @@ def process_csv_and_update(sheet, uploaded_file):
     existing = sheet.get_all_values()
     
     # Prima riga = header
-    header = all_values[0]
+    header = existing[0]
 
     # Rendi univoci eventuali duplicati di colonne
     seen = {}
