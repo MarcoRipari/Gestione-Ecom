@@ -55,7 +55,6 @@ from dateutil.tz import tzlocal
 import locale
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
-from openai.error import AuthenticationError, OpenAIError
 
 
 logging.basicConfig(level=logging.INFO)
