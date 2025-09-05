@@ -794,37 +794,19 @@ def process_csv_and_update(sheet, uploaded_file):
 
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
 
-    df_out = pd.DataFrame({
-        "SKU": df["SKU"],
-        "ANNO": df["Anno"],
-        "STAG": df["Stag."],
-        "COD. COLLEZION": df["Clz."],
-        "DESC. COLLEZIONE": df["Descr."],
-        "COD VAR": df["Var."],
-        "COL": df["Col."],
-        "DESCRIZIONE": df["Descriz2"],
-        "TG CAMPIONE": df["TAGLIA"],
-        "CONT": df["N=NOOS"],
-        "MADE IN": ""
-    })
-
     # Dati esistenti
-    sheet = get_sheet(sheet_id, "ANAGRAFICA")
+    sheet = get_sheet(sheet_id, "DATA")
     existing = sheet.get_all_records()
     existing_df = pd.DataFrame(existing)
-
-    if existing_df.empty:
-        append_to_sheet(sheet_id, "ANAGRAFICA", df_out)   # ✅ usa la funzione
-        return len(df_out), 0
 
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     new_rows = []
     updated_count = 0
 
-    for _, row in df_out.iterrows():
+    for _, row in df.iterrows():
         sku = row["SKU"]
-        new_year_stage = f"{row['ANNO']}/{row['STAG']}"
+        new_year_stage = f"{row['Anno']}/{row['Stag.']}"
 
         if sku not in existing_dict:
             new_rows.append(row.tolist())
@@ -839,8 +821,8 @@ def process_csv_and_update(sheet, uploaded_file):
                 updated_count += 1
 
     if new_rows:
-        df_new = pd.DataFrame(new_rows, columns=df_out.columns)
-        append_to_sheet(sheet_id, "ANAGRAFICA", df_new)   # ✅ append pulito
+        df_new = pd.DataFrame(new_rows, columns=df.columns)
+        append_to_sheet(sheet_id, "DATA", df_new)   # ✅ append pulito
 
     return len(new_rows), updated_count
     
