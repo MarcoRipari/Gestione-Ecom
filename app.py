@@ -775,7 +775,7 @@ def update_row(sheet, row_idx, row):
     sheet.update(cell_range, [row_clean])
 
 
-def process_csv_and_update(sheet_id, uploaded_file):
+def process_csv_and_update(sheet, uploaded_file):
     # Leggi CSV
     df = read_csv_auto_encoding(uploaded_file)
 
@@ -795,7 +795,6 @@ def process_csv_and_update(sheet_id, uploaded_file):
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
 
     # Dati esistenti
-    sheet = get_sheet(sheet_id, "DATA")
     existing = sheet.get_all_records()
     existing_df = pd.DataFrame(existing)
 
@@ -822,7 +821,7 @@ def process_csv_and_update(sheet_id, uploaded_file):
 
     if new_rows:
         df_new = pd.DataFrame(new_rows, columns=df.columns)
-        append_to_sheet(sheet_id, "DATA", df_new)   # ✅ append pulito
+        append_to_sheet(sheet, "DATA", df_new)   # ✅ append pulito
 
     return len(new_rows), updated_count
     
@@ -2284,12 +2283,13 @@ elif page == "Giacenze - Aggiorna anagrafica":
     st.header("Aggiorna anagrafica da CSV")
 
     sheet_id = st.secrets["ANAGRAFICA_GSHEET_ID"]
-
+    sheet = get_sheet(sheet_id, "DATA")
+    
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
 
     if uploaded_file:
         if st.button("Carica su GSheet"):
-            added, updated = process_csv_and_update(sheet_id, uploaded_file)
+            added, updated = process_csv_and_update(sheet, uploaded_file)
             st.success(f"✅ Aggiunte {added} nuove SKU, aggiornate {updated} SKU già presenti.")
 
     
