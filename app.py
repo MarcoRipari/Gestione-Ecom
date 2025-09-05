@@ -827,7 +827,7 @@ def process_csv_and_update(sheet, uploaded_file):
             new_rows.append(row.tolist())
         else:
             existing_row = existing_dict[sku]
-            existing_year_stage = f"{existing_row['ANNO']}/{existing_row['STAG']}"
+            existing_year_stage = f"{existing_row['Anno']}/{existing_row['Stag.']}"
 
             if new_year_stage > existing_year_stage:
                 idx = existing_df.index[existing_df["SKU"] == sku][0]
@@ -1040,7 +1040,7 @@ with st.sidebar:
                              {"main":"Giacenze", "name":"Importa", "icon":"download", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Giacenze", "name":"Per corridoio", "icon":"1-circle", "role":["guest","logistica","admin"]},
                              {"main":"Giacenze", "name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
-                             {"main":"Giacenze", "name":"Aggiorna anagrafica", "icon":"graph", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Giacenze", "name":"Aggiorna anagrafica", "icon":"refresh", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Giacenze", "name":"Old import", "icon":"download", "role":["admin"]},
                              {"main":"Admin", "name":"Aggiungi utente", "icon":"plus", "role":["admin"]}
                             ]
