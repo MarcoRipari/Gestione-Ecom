@@ -2284,9 +2284,11 @@ elif page == "Giacenze - Aggiorna anagrafica":
 
     sheet_id = st.secrets["ANAGRAFICA_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "DATA")
+
+    st.write(sheet)
     
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
-
+    
     if uploaded_file:
         if st.button("Carica su GSheet"):
             added, updated = process_csv_and_update(sheet, uploaded_file)
