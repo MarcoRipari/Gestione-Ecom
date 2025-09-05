@@ -1309,6 +1309,7 @@ elif page == "Descrizioni":
                         all_outputs[lang].append(output_row)
         
                     log_entry = {
+                        "utente": st.session_state.user["username"]
                         "sku": row.get("SKU", ""),
                         "status": "OK",
                         "prompt": all_prompts[i],
