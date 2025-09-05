@@ -1212,7 +1212,7 @@ elif page == "Descrizioni":
                 """)
     
         # 🪄 Generazione descrizioni
-        if not check_openai_key(api_key):
+        if not check_openai_key():
             st.error("❌ La chiave OpenAI non è valida o mancante. Inserisci una chiave valida prima di generare descrizioni.")
         else:
             if st.button("🚀 Genera Descrizioni"):
