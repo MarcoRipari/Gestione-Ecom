@@ -55,6 +55,7 @@ from dateutil.tz import tzlocal
 import locale
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
+from openai.error import AuthenticationError, OpenAIError
 
 
 logging.basicConfig(level=logging.INFO)
@@ -75,13 +76,16 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 def check_openai_key():
     openai.api_key = st.secrets["OPENAI_API_KEY"]
     try:
-        # Proviamo a fare una richiesta leggera per testare la chiave
         openai.Model.list()
         return True
-    except openai.error.AuthenticationError:
+    except AuthenticationError:
+        st.error("❌ Chiave OpenAI non valida o scaduta.")
+        return False
+    except OpenAIError as e:
+        st.error(f"Errore OpenAI: {e}")
         return False
     except Exception as e:
-        st.error(f"Errore generico OpenAI: {e}")
+        st.error(f"Errore generico: {e}")
         return False
     
 
