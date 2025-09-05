@@ -1077,8 +1077,8 @@ elif page == "Descrizioni":
     uploaded = st.file_uploader("Carica un file CSV", type="csv")
     
     if uploaded:
-        df_input_desc = read_csv_auto_encoding(uploaded)
-        st.session_state["df_input_desc"] = df_input_desc
+        df_input = read_csv_auto_encoding(uploaded)
+        st.session_state["df_input"] = df_input
          # ✅ Inizializza variabili di stato se non esistono
         if "col_weights" not in st.session_state:
             st.session_state.col_weights = {}
@@ -1093,15 +1093,15 @@ elif page == "Descrizioni":
         st.success("✅ File caricato con successo!")
 
     # 📊 Anteprima dati
-    if "df_input_desc" in st.session_state:
-        df_input_desc = st.session_state.df_input_desc
+    if "df_input" in st.session_state:
+        df_input = st.session_state.df_input
         st.subheader("🧾 Anteprima CSV")
-        st.dataframe(df_input_desc.head())
+        st.dataframe(df_input.head())
 
         # 🧩 Configurazione colonne
         with st.expander("⚙️ Configura colonne per il prompt", expanded=True):
             st.markdown("### 1. Seleziona colonne")
-            available_cols = [col for col in df_input_desc.columns if col not in ["Description", "Description2"]]
+            available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
     
             def_column = ["skuarticolo",
                           "Classification",
@@ -1121,7 +1121,7 @@ elif page == "Descrizioni":
                           "Sp.feature"
                          ]
     
-            missing = not_in_array(df_input_desc.columns, def_column)
+            missing = not_in_array(df_input.columns, def_column)
             if missing:
                 def_column = []
                 
@@ -1182,7 +1182,7 @@ elif page == "Descrizioni":
         # 💵 Stima costi
         if st.button("💰 Stima costi generazione"):
             token_est, cost_est, prompt = calcola_tokens(
-                df_input=df_input_desc,
+                df_input=df_input,
                 col_display_names=st.session_state.col_display_names,
                 selected_langs=selected_langs,
                 selected_tones=selected_tones,
@@ -1232,7 +1232,7 @@ elif page == "Descrizioni":
                     except:
                         existing_data[lang] = pd.DataFrame(columns=["Description", "Description2"])
         
-                for i, row in df_input_desc.iterrows():
+                for i, row in df_input.iterrows():
                     sku = str(row.get("SKU", "")).strip()
                     if not sku:
                         rows_to_generate.append(i)
@@ -1259,7 +1259,7 @@ elif page == "Descrizioni":
                     else:
                         rows_to_generate.append(i)
         
-                df_input_to_generate = df_input_desc.iloc[rows_to_generate]
+                df_input_to_generate = df_input.iloc[rows_to_generate]
         
                 # Costruzione dei prompt
                 all_prompts = []
@@ -1351,8 +1351,8 @@ elif page == "Descrizioni":
     
         # 🔍 Prompt Preview & Benchmark
         with st.expander("🔍 Strumenti di debug & Anteprima"):
-            row_index = st.number_input("Indice riga per anteprima", 0, len(df_input_desc) - 1, 0)
-            test_row = df_input_desc.iloc[row_index]
+            row_index = st.number_input("Indice riga per anteprima", 0, len(df_input) - 1, 0)
+            test_row = df_input.iloc[row_index]
     
             if st.button("💬 Mostra Prompt di Anteprima"):
                 with st.spinner("Generazione..."):
@@ -1385,7 +1385,7 @@ elif page == "Descrizioni":
     
             if st.button("🧪 Esegui Benchmark FAISS"):
                 with st.spinner("In corso..."):
-                    benchmark_faiss(df_input_desc, st.session_state.col_weights)
+                    benchmark_faiss(df_input, st.session_state.col_weights)
 
 elif page == "Foto - Gestione":
     st.header("📸 Gestione Foto")
