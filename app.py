@@ -80,12 +80,9 @@ def check_openai_key():
             max_tokens=1
         )
         return True
-    except Exception as e:  # cattura tutto, poi filtriamo il messaggio
+    except Exception as e:  
         msg = str(e).lower()
-        if "invalid" in msg or "authentication" in msg or "api key" in msg:
-            return False
-        else:
-            raise
+        return False
     
 
 credentials = service_account.Credentials.from_service_account_info(
