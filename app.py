@@ -775,7 +775,6 @@ def update_row(sheet, row_idx, row):
     cell_range = f"{start}:{end}"
     sheet.update(cell_range, [row_clean])
 
-
 def process_csv_and_update(sheet, uploaded_file):
     # Leggi CSV
     df = read_csv_auto_encoding(uploaded_file)
@@ -796,8 +795,8 @@ def process_csv_and_update(sheet, uploaded_file):
 
     # Dati esistenti nello Sheet
     existing = sheet.get_all_values()
-    header = existing[0]              # prima riga = header
-    data = existing[1:]               # tutte le altre righe
+    header = existing[0]
+    data = existing[1:]
     existing_df = pd.DataFrame(data, columns=header)
 
     # Dizionario: SKU → riga esistente
@@ -805,37 +804,37 @@ def process_csv_and_update(sheet, uploaded_file):
 
     new_rows = []
     updated_count = 0
-
-    # Numero colonne effettive del foglio
-    max_cols = len(header)
+    max_cols = len(header)  # numero colonne del foglio
 
     for _, row in df.iterrows():
         sku = row["SKU"]
         new_year_stage = f"{row['Anno']}/{row['Stag.']}"
 
         if sku not in existing_dict:
-            # Nuovo SKU → aggiungo
             new_rows.append(row.tolist())
         else:
             existing_row = existing_dict[sku]
             existing_year_stage = f"{existing_row['Anno']}/{existing_row['Stag.']}"
 
             if new_year_stage > existing_year_stage:
-                # Aggiorna riga esistente
                 idx = existing_df.index[existing_df["SKU"] == sku][0]
                 row_idx = idx + 2   # +2 perché header = riga 1
 
-                # Pulizia e troncamento alle colonne effettive
+                # Pulizia e troncamento
                 row_clean = ["" if pd.isna(x) else str(x) for x in row.tolist()]
                 row_clean = row_clean[:max_cols]
 
-                # Update diretto sul foglio
-                sheet.update(f"A{row_idx}", [row_clean])
+                # Range corretto es. A5:T5
+                end_col = chr(64 + max_cols)
+                cell_range = f"A{row_idx}:{end_col}{row_idx}"
+
+                sheet.update(cell_range, [row_clean])
                 updated_count += 1
 
     # Append dei nuovi
     if new_rows:
         df_new = pd.DataFrame(new_rows, columns=df.columns)
+        df_new = df_new.iloc[:, :max_cols]  # tronca alle colonne del foglio
         append_to_sheet(sheet.spreadsheet.id, "DATA", df_new)
 
     return len(new_rows), updated_count
