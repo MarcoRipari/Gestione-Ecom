@@ -72,8 +72,7 @@ LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 # ---------------------------
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-def check_openai_key(api_key):
-    openai.api_key = api_key
+def check_openai_key():
     try:
         # Proviamo a fare una richiesta leggera per testare la chiave
         openai.Model.list()
