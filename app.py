@@ -797,9 +797,22 @@ def process_csv_and_update(sheet, uploaded_file):
     # Dati esistenti
     existing = sheet.get_all_values()
     
-    header = existing[0]
-    data = existing[1:]  # tutte le righe successive
-    existing_df = pd.DataFrame(data, columns=header)
+    # Prima riga = header
+    header = all_values[0]
+
+    # Rendi univoci eventuali duplicati di colonne
+    seen = {}
+    unique_header = []
+    for h in header:
+        if h in seen:
+            seen[h] += 1
+            unique_header.append(f"{h}_{seen[h]}")
+        else:
+            seen[h] = 0
+            unique_header.append(h)
+
+    data = existing[1:]
+    existing_df = pd.DataFrame(data, columns=unique_header)
     
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
@@ -2287,25 +2300,6 @@ elif page == "Giacenze - Aggiorna anagrafica":
 
     sheet_id = st.secrets["ANAGRAFICA_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "DATA")
-
-    all_values = sheet.get_all_values()
-    # Prima riga = header
-    header = all_values[0]
-
-    # Rendi univoci eventuali duplicati di colonne
-    seen = {}
-    unique_header = []
-    for h in header:
-        if h in seen:
-            seen[h] += 1
-            unique_header.append(f"{h}_{seen[h]}")
-        else:
-            seen[h] = 0
-            unique_header.append(h)
-
-    data = all_values[1:]
-    existing_df = pd.DataFrame(data, columns=unique_header)
-    st.write(existing_df)
     
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
     
