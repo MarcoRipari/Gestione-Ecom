@@ -752,7 +752,7 @@ elif page == "📝 Descrizioni":
                         })
                     logs.append(log_entry)
 
-                st.write(all_outputs)
+                st.write(result)
                 
                 # 🔄 Salvataggio solo dei nuovi risultati
                 with st.spinner("📤 Salvataggio nuovi dati..."):
