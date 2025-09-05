@@ -72,6 +72,19 @@ LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 # ---------------------------
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
+def check_openai_key(api_key):
+    openai.api_key = api_key
+    try:
+        # Proviamo a fare una richiesta leggera per testare la chiave
+        openai.Model.list()
+        return True
+    except openai.error.AuthenticationError:
+        return False
+    except Exception as e:
+        st.error(f"Errore generico OpenAI: {e}")
+        return False
+    
+
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["GCP_SERVICE_ACCOUNT"],
     scopes=[
@@ -1204,7 +1217,10 @@ elif page == "Descrizioni":
             st.session_state["generate"] = True
         
         if st.session_state.get("generate"):
-            from io import BytesIO
+            if not api_key or not check_openai_key(api_key):
+                st.error("❌ La chiave OpenAI non è valida o mancante. Inserisci una chiave valida prima di generare descrizioni.")
+                st.stop()
+                
             try:
                 with st.spinner("📚 Carico storico e indice FAISS..."):
                     tab_storico = f"STORICO_{marchio}"
