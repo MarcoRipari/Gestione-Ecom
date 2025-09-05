@@ -76,9 +76,6 @@ def check_openai_key():
     openai.api_key = st.secrets["OPENAI_API_KEY"]
     try:
         openai.Model.list()
-    except openai.error.AuthenticationError:
-        st.error("❌ Chiave OpenAI non valida")
-        st.stop()
     except openai.error.OpenAIError as e:
         st.error(f"❌ Errore OpenAI: {e}")
         st.stop()
