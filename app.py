@@ -55,6 +55,7 @@ from dateutil.tz import tzlocal
 import locale
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
+from gspread.utils import rowcol_to_a1
 
 
 logging.basicConfig(level=logging.INFO)
@@ -837,7 +838,7 @@ def process_csv_and_update(sheet, uploaded_file):
 
     if new_rows:
         df_new = pd.DataFrame(new_rows, columns=df.columns)
-        append_to_sheet(sheet, "DATA", df_new)   # ✅ append pulito
+        append_to_sheet(sheet.spreadsheet.id, "DATA", df_new)   # ✅ append pulito
 
     return len(new_rows), updated_count
     
