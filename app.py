@@ -771,29 +771,35 @@ def process_csv_and_update(sheet, uploaded_file):
     # Leggi CSV
     df = read_csv_auto_encoding(uploaded_file)
 
-    # Rinomina colonne in base allo schema che mi hai passato
-    df.columns = [
-        "Anno", "Stag.", "Clz.", "Descr.", "Serie", "Descriz1", "Annullato",
-        "Campionato", "Cat", "Cod", "Descriz2", "Var.", "DescrizVar", "Col.",
-        "DescrizCol", "TAGLIA", "QUANTIA", "DATA_CREAZIONE", "N=NOOS"
+    expected_cols = [
+        "Anno","Stag.","Clz.","Descr.","Serie","Descriz1","Annullato",
+        "Campionato","Cat","Cod","Descriz2","Var.","DescrizVar","Col.",
+        "DescrizCol","TAGLIA","QUANTIA","Vuota","DATA_CREAZIONE","N=NOOS"
     ]
+
+    if df.shape[1] != len(expected_cols):
+        st.error(f"⚠️ CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}. Controlla separatore o formato!")
+        st.dataframe(df.head())
+        return 0, 0
+
+    df.columns = expected_cols
 
     # Costruisci la SKU = Cod + Var. + Col.
     df["SKU"] = df["Cod"] + df["Var."] + df["Col."]
 
-    # Prepara DataFrame per Google Sheet
+    # Prepara DataFrame per Google Sheet (ignorando la colonna 'Vuota')
     df_out = pd.DataFrame({
         "SKU": df["SKU"],
         "ANNO": df["Anno"],
         "STAG": df["Stag."],
         "COD. COLLEZION": df["Clz."],
-        "DESC. COLLEZIONE": df["Descr."],      # Descr. = Collezione
+        "DESC. COLLEZIONE": df["Descr."],
         "COD VAR": df["Var."],
         "COL": df["Col."],
-        "DESCRIZIONE": df["Descriz2"],         # seconda colonna Descriz.
+        "DESCRIZIONE": df["Descriz2"],  # seconda Descriz
         "TG CAMPIONE": df["TAGLIA"],
         "CONT": df["N=NOOS"],
-        "MADE IN": ""                          # sempre vuoto
+        "MADE IN": ""
     })
 
     # Leggi dati esistenti dal foglio
