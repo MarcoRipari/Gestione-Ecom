@@ -77,16 +77,12 @@ def check_openai_key():
     openai.api_key = st.secrets["OPENAI_API_KEY"]
     try:
         openai.Model.list()
-        return True
-    except AuthenticationError:
-        st.error("❌ Chiave OpenAI non valida o scaduta.")
-        return False
-    except OpenAIError as e:
-        st.error(f"Errore OpenAI: {e}")
-        return False
-    except Exception as e:
-        st.error(f"Errore generico: {e}")
-        return False
+    except openai.error.AuthenticationError:
+        st.error("❌ Chiave OpenAI non valida")
+        st.stop()
+    except openai.error.OpenAIError as e:
+        st.error(f"❌ Errore OpenAI: {e}")
+        st.stop()
     
 
 credentials = service_account.Credentials.from_service_account_info(
