@@ -2284,7 +2284,11 @@ elif page == "Giacenze - Aggiorna anagrafica":
 
     sheet_id = st.secrets["ANAGRAFICA_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "DATA")
-        
+
+    existing_df = pd.DataFrame(sheet.get_all_values())
+
+    st.write(existing_df)
+    
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
     
     if uploaded_file:
