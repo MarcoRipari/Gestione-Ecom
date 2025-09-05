@@ -929,9 +929,13 @@ with st.sidebar:
     if "user" not in st.session_state or st.session_state.user is None:
         page = "Home"
         st.markdown("## 🔑 Login")
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
-        if st.button("Accedi"):
+        with st.form("login_user"):
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+
+            login_button = st.form_submit_button("Accedi")
+            
+        if login_button:
             if login(email, password):
                 st.rerun()  # ricarica subito la pagina senza messaggio
     else:
