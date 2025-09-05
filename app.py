@@ -828,6 +828,9 @@ def process_csv_and_update(sheet, uploaded_file):
                 end_col = chr(64 + max_cols)
                 cell_range = f"A{row_idx}:{end_col}{row_idx}"
 
+                st.write(f"Updating row {row_idx} with range {cell_range}")
+                st.write(row_clean)
+                st.write(len(row_clean))
                 sheet.update(cell_range, [row_clean])
                 updated_count += 1
 
