@@ -767,11 +767,68 @@ def genera_pdf(df_disp, **param):
     buffer.seek(0)
     return buffer
 
-# --- Funzione per generare PDF ---
-from reportlab.lib.pagesizes import landscape, A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-from reportlab.lib import colors
+def process_csv_and_update(sheet, uploaded_file):
+    # Leggi CSV
+    df = pd.read_csv(uploaded_file, dtype=str, skiprows=[1]).fillna("")
 
+    # Costruisci la SKU
+    df["SKU"] = df["Cod"] + df["Var."] + df["Col."]
+
+    # Mappa le colonne in un nuovo DataFrame compatibile con GSheet
+    df_out = pd.DataFrame({
+        "SKU": df["SKU"],
+        "ANNO": df["Anno"],
+        "STAG": df["Stag."],
+        "COD. COLLEZION": df["Clz."],
+        "DESC. COLLEZIONE": df["Descr."],
+        "COD VAR": df["Var."],
+        "COL": df["Col."],
+        "DESCRIZIONE": df["Descriz."],   # secondo campo Descriz.
+        "TG CAMPIONE": df["TAGLIA"],
+        "CONT": df["N=NOOS"],
+        "MADE IN": ""  # sempre vuoto
+    })
+
+    # Leggi dati esistenti dal foglio
+    existing = sheet.get_all_records()
+    existing_df = pd.DataFrame(existing)
+
+    # Se il foglio è vuoto, inserisci tutti i dati
+    if existing_df.empty:
+        sheet.append_rows(df_out.values.tolist(), value_input_option="USER_ENTERED")
+        return len(df_out), 0
+
+    # Trasformiamo in dizionario per lookup rapido
+    existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
+
+    new_rows = []
+    updated_count = 0
+
+    for _, row in df_out.iterrows():
+        sku = row["SKU"]
+        new_year_stage = f"{row['ANNO']}/{row['STAG']}"
+
+        if sku not in existing_dict:
+            # nuova SKU
+            new_rows.append(row.tolist())
+        else:
+            # SKU già presente → confronto anno/stagione
+            existing_row = existing_dict[sku]
+            existing_year_stage = f"{existing_row['ANNO']}/{existing_row['STAG']}"
+
+            if new_year_stage > existing_year_stage:
+                # Trova l’indice della riga da sostituire
+                idx = existing_df.index[existing_df["SKU"] == sku][0]
+                sheet.update(f"A{idx+2}:K{idx+2}", [row.tolist()])
+                updated_count += 1
+
+    # Aggiungi le nuove righe
+    if new_rows:
+        sheet.append_rows(new_rows, value_input_option="USER_ENTERED")
+
+    return len(new_rows), updated_count
+    
+# --- Funzione per generare PDF ---
 def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
     doc = SimpleDocTemplate(file_path, pagesize=landscape(A4))
     elements = []
@@ -970,6 +1027,7 @@ with st.sidebar:
                              {"main":"Giacenze", "name":"Importa", "icon":"download", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Giacenze", "name":"Per corridoio", "icon":"1-circle", "role":["guest","logistica","admin"]},
                              {"main":"Giacenze", "name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
+                             {"main":"Giacenze", "name":"Anagrafica", "icon":"graph", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Giacenze", "name":"Old import", "icon":"download", "role":["admin"]},
                              {"main":"Admin", "name":"Aggiungi utente", "icon":"plus", "role":["admin"]}
                             ]
@@ -1773,6 +1831,7 @@ elif page == "Foto - Aggiungi prelevate":
                 st.success(f"✅ {len(skus_to_append_clean)} nuove SKU aggiunte al foglio PRELEVATE!")
             else:
                 st.info("⚠️ Tutte le SKU inserite sono già presenti nel foglio.")
+                
 elif page == "Giacenze - Importa":
     st.header("Importa giacenze")
 
@@ -2223,6 +2282,18 @@ elif page == "Giacenze - Per corridoio/marchio":
             mime="application/pdf"
         )
 
+elif page == "Giacenze - Aggiorna anagrafica":
+    st.header("Aggiorna anagrafica da CSV")
+
+    sheet_id = st.secrets["ANAGRAFICA_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "PRELEVATE")
+
+    uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
+
+    if uploaded_file:
+        if st.button("Carica su GSheet"):
+            added, updated = process_csv_and_update(sheet, uploaded_file)
+            st.success(f"✅ Aggiunte {added} nuove SKU, aggiornate {updated} SKU già presenti.")
 
     
 elif page == "Logout":
