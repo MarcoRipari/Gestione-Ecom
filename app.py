@@ -1217,9 +1217,7 @@ elif page == "Descrizioni":
             st.session_state["generate"] = True
         
         if st.session_state.get("generate"):
-            if not api_key or not check_openai_key(api_key):
-                st.error("❌ La chiave OpenAI non è valida o mancante. Inserisci una chiave valida prima di generare descrizioni.")
-                st.stop()
+
                 
             try:
                 with st.spinner("📚 Carico storico e indice FAISS..."):
