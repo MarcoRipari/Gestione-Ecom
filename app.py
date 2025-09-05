@@ -795,7 +795,7 @@ def process_csv_and_update(sheet, uploaded_file):
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
 
     # Dati esistenti
-    existing = sheet.get_all_records()
+    existing = sheet.get_all_values()
     existing_df = pd.DataFrame(existing)
 
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
@@ -2284,10 +2284,7 @@ elif page == "Giacenze - Aggiorna anagrafica":
 
     sheet_id = st.secrets["ANAGRAFICA_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "DATA")
-    df2 = sheet.get_all_values()
-    
-    st.write(df2)
-    
+        
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
     
     if uploaded_file:
