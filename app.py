@@ -942,7 +942,7 @@ with st.sidebar:
                           {"name":"Descrizioni", "icon":"list", "role":["customer care","admin"]},
                           {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customer care","admin"]},
-                          {"name":"Admin", "icon":"crown", "role":["admin"]},
+                          {"name":"Admin", "icon":"gear", "role":["admin"]},
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
                          ]
         
@@ -955,7 +955,7 @@ with st.sidebar:
                              {"main":"Giacenze", "name":"Per corridoio", "icon":"1-circle", "role":["guest","logistica","admin"]},
                              {"main":"Giacenze", "name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
                              {"main":"Giacenze", "name":"Old import", "icon":"download", "role":["admin"]},
-                             {"main":"Admin", "name":"Aggiungi utente", "icon":"add", "role":["admin"]}
+                             {"main":"Admin", "name":"Aggiungi utente", "icon":"plus", "role":["admin"]}
                             ]
         
         menu_items = []
