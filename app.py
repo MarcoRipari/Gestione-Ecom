@@ -752,11 +752,13 @@ elif page == "📝 Descrizioni":
                         })
                     logs.append(log_entry)
 
+                st.write(all_outputs)
+                
                 # 🔄 Salvataggio solo dei nuovi risultati
                 with st.spinner("📤 Salvataggio nuovi dati..."):
                     for lang in selected_langs:
                         df_out = pd.DataFrame(all_outputs[lang])
-                        st.write(df_out)
+                        
                         df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
                         if not df_new.empty:
                             append_to_sheet(sheet_id, lang, df_new)
