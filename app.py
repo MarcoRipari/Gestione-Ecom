@@ -249,7 +249,7 @@ def register_user(email: str, password: str, **param) -> bool:
         res = supabase_admin.auth.admin.create_user({
             "email": email,
             "password": password,
-            "email_confirm": False
+            "email_confirm": True
         })
 
         if not res.user:
