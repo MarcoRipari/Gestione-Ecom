@@ -938,20 +938,20 @@ with st.sidebar:
         user = st.session_state.user
         st.write(f"Accesso eseguito come: {user["nome"]}")
 
-        menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customercare","admin"]},
-                          {"name":"Descrizioni", "icon":"list", "role":["customercare","admin"]},
-                          {"name":"Foto", "icon":"camera", "role":["logistica","customercare","admin"]},
-                          {"name":"Giacenze", "icon":"box", "role":["logistica","customercare","admin"]},
+        menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customer care","admin"]},
+                          {"name":"Descrizioni", "icon":"list", "role":["customer care","admin"]},
+                          {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
+                          {"name":"Giacenze", "icon":"box", "role":["logistica","customer care","admin"]},
                           {"name":"Admin", "icon":"crown", "role":["admin"]},
-                          {"name":"Logout", "icon":"key", "role":["guest","logistica","customercare","admin"]}
+                          {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
                          ]
         
-        submenu_item_list = [{"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Foto", "name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Foto", "name":"Storico", "icon":"book", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Foto", "name":"Aggiungi prelevate", "icon":"hand-index", "role":["guest","logistica","customercare","admin"]},
-                             {"main":"Giacenze", "name":"Importa", "icon":"download", "role":["guest","logistica","customercare","admin"]},
+        submenu_item_list = [{"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Foto", "name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Foto", "name":"Storico", "icon":"book", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Foto", "name":"Aggiungi prelevate", "icon":"hand-index", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Giacenze", "name":"Importa", "icon":"download", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Giacenze", "name":"Per corridoio", "icon":"1-circle", "role":["guest","logistica","admin"]},
                              {"main":"Giacenze", "name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
                              {"main":"Giacenze", "name":"Old import", "icon":"download", "role":["admin"]},
@@ -2299,9 +2299,10 @@ elif page == "Admin - Aggiungi utente":
         cognome = st.text_input("Cognome")
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
-        role = st.selectbox("Ruolo",["Guest","Logistica","CustomerCare","Admin"])
+        role = st.selectbox("Ruolo",["Guest","Logistica","Customer Care","Admin"])
+        username = nome + " " + cognome
         
         submit = st.form_submit_button("Crea utente")
         if submit:
-            register_user(email, password, nome=nome, cognome=cognome, username=username, role=role)
+            register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
     
