@@ -81,9 +81,7 @@ def check_openai_key():
             max_tokens=1
         )
         return True
-    except openai.error.AuthenticationError:
-        return False
-    except openai.error.OpenAIError as e:
+    except openai.OpenAIError as e:
         msg = str(e).lower()
         if "invalid" in msg or "authentication" in msg or "api key" in msg:
             return False
