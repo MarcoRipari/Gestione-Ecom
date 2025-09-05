@@ -1027,7 +1027,7 @@ with st.sidebar:
                              {"main":"Giacenze", "name":"Importa", "icon":"download", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Giacenze", "name":"Per corridoio", "icon":"1-circle", "role":["guest","logistica","admin"]},
                              {"main":"Giacenze", "name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
-                             {"main":"Giacenze", "name":"Anagrafica", "icon":"graph", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Giacenze", "name":"Aggiorna anagrafica", "icon":"graph", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Giacenze", "name":"Old import", "icon":"download", "role":["admin"]},
                              {"main":"Admin", "name":"Aggiungi utente", "icon":"plus", "role":["admin"]}
                             ]
