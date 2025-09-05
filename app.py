@@ -73,12 +73,16 @@ LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 def check_openai_key():
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
     try:
         openai.Model.list()
-    except openai.error.OpenAIError as e:
-        st.error(f"❌ Errore OpenAI: {e}")
-        st.stop()
+        return True
+    except openai.error.AuthenticationError:  # Se versione < 1.0
+        return False
+    except Exception as e:  # Catch generico per versioni nuove
+        if "Incorrect API key" in str(e) or "authentication" in str(e).lower():
+            return False
+        else:
+            raise e
     
 
 credentials = service_account.Credentials.from_service_account_info(
