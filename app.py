@@ -769,37 +769,41 @@ def genera_pdf(df_disp, **param):
 
 def process_csv_and_update(sheet, uploaded_file):
     # Leggi CSV
-    #df = pd.read_csv(uploaded_file, dtype=str, skiprows=[1]).fillna("")
     df = read_csv_auto_encoding(uploaded_file).fillna("")
 
-    # Costruisci la SKU
+    # Rinomina colonne in base allo schema che mi hai passato
+    df.columns = [
+        "Anno", "Stag.", "Clz.", "Descr.", "Serie", "Descriz1", "Annullato",
+        "Campionato", "Cat", "Cod", "Descriz2", "Var.", "DescrizVar", "Col.",
+        "DescrizCol", "TAGLIA", "QUANTIA", "DATA_CREAZIONE", "N=NOOS"
+    ]
+
+    # Costruisci la SKU = Cod + Var. + Col.
     df["SKU"] = df["Cod"] + df["Var."] + df["Col."]
 
-    # Mappa le colonne in un nuovo DataFrame compatibile con GSheet
+    # Prepara DataFrame per Google Sheet
     df_out = pd.DataFrame({
         "SKU": df["SKU"],
         "ANNO": df["Anno"],
         "STAG": df["Stag."],
         "COD. COLLEZION": df["Clz."],
-        "DESC. COLLEZIONE": df["Descr."],
+        "DESC. COLLEZIONE": df["Descr."],      # Descr. = Collezione
         "COD VAR": df["Var."],
         "COL": df["Col."],
-        "DESCRIZIONE": df["Descriz."],   # secondo campo Descriz.
+        "DESCRIZIONE": df["Descriz2"],         # seconda colonna Descriz.
         "TG CAMPIONE": df["TAGLIA"],
         "CONT": df["N=NOOS"],
-        "MADE IN": ""  # sempre vuoto
+        "MADE IN": ""                          # sempre vuoto
     })
 
     # Leggi dati esistenti dal foglio
     existing = sheet.get_all_records()
     existing_df = pd.DataFrame(existing)
 
-    # Se il foglio è vuoto, inserisci tutti i dati
     if existing_df.empty:
         sheet.append_rows(df_out.values.tolist(), value_input_option="USER_ENTERED")
         return len(df_out), 0
 
-    # Trasformiamo in dizionario per lookup rapido
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     new_rows = []
@@ -810,20 +814,16 @@ def process_csv_and_update(sheet, uploaded_file):
         new_year_stage = f"{row['ANNO']}/{row['STAG']}"
 
         if sku not in existing_dict:
-            # nuova SKU
             new_rows.append(row.tolist())
         else:
-            # SKU già presente → confronto anno/stagione
             existing_row = existing_dict[sku]
             existing_year_stage = f"{existing_row['ANNO']}/{existing_row['STAG']}"
 
             if new_year_stage > existing_year_stage:
-                # Trova l’indice della riga da sostituire
                 idx = existing_df.index[existing_df["SKU"] == sku][0]
                 sheet.update(f"A{idx+2}:K{idx+2}", [row.tolist()])
                 updated_count += 1
 
-    # Aggiungi le nuove righe
     if new_rows:
         sheet.append_rows(new_rows, value_input_option="USER_ENTERED")
 
