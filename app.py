@@ -792,53 +792,51 @@ def process_csv_and_update(sheet, uploaded_file):
         return 0, 0
 
     df.columns = expected_cols
-
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
 
-    # Dati esistenti
+    # Dati esistenti nello Sheet
     existing = sheet.get_all_values()
-    
-    # Prima riga = header
-    header = existing[0]
+    header = existing[0]              # prima riga = header
+    data = existing[1:]               # tutte le altre righe
+    existing_df = pd.DataFrame(data, columns=header)
 
-    # Rendi univoci eventuali duplicati di colonne
-    seen = {}
-    unique_header = []
-    for h in header:
-        if h in seen:
-            seen[h] += 1
-            unique_header.append(f"{h}_{seen[h]}")
-        else:
-            seen[h] = 0
-            unique_header.append(h)
-
-    data = existing[1:]
-    existing_df = pd.DataFrame(data, columns=unique_header)
-    
+    # Dizionario: SKU → riga esistente
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     new_rows = []
     updated_count = 0
+
+    # Numero colonne effettive del foglio
+    max_cols = len(header)
 
     for _, row in df.iterrows():
         sku = row["SKU"]
         new_year_stage = f"{row['Anno']}/{row['Stag.']}"
 
         if sku not in existing_dict:
+            # Nuovo SKU → aggiungo
             new_rows.append(row.tolist())
         else:
             existing_row = existing_dict[sku]
             existing_year_stage = f"{existing_row['Anno']}/{existing_row['Stag.']}"
 
             if new_year_stage > existing_year_stage:
+                # Aggiorna riga esistente
                 idx = existing_df.index[existing_df["SKU"] == sku][0]
-                #sheet.update(f"A{idx+2}:K{idx+2}", [row.tolist()])
-                update_row(sheet, idx+2, row)
+                row_idx = idx + 2   # +2 perché header = riga 1
+
+                # Pulizia e troncamento alle colonne effettive
+                row_clean = ["" if pd.isna(x) else str(x) for x in row.tolist()]
+                row_clean = row_clean[:max_cols]
+
+                # Update diretto sul foglio
+                sheet.update(f"A{row_idx}", [row_clean])
                 updated_count += 1
 
+    # Append dei nuovi
     if new_rows:
         df_new = pd.DataFrame(new_rows, columns=df.columns)
-        append_to_sheet(sheet.spreadsheet.id, "DATA", df_new)   # ✅ append pulito
+        append_to_sheet(sheet.spreadsheet.id, "DATA", df_new)
 
     return len(new_rows), updated_count
     
