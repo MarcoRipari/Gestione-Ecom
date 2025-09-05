@@ -76,8 +76,6 @@ def check_openai_key():
     try:
         openai.Model.list()
         return True
-    except openai.error.AuthenticationError:  # Se versione < 1.0
-        return False
     except Exception as e:  # Catch generico per versioni nuove
         if "Incorrect API key" in str(e) or "authentication" in str(e).lower():
             return False
