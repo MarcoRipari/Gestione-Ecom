@@ -826,12 +826,12 @@ def process_csv_and_update(sheet, uploaded_file):
 
                 # Range corretto es. A5:T5
                 end_col = chr(64 + max_cols)
-                cell_range = f"A{row_idx}:{end_col}{row_idx}"
+                #cell_range = f"A{row_idx}:{end_col}{row_idx}"
+                #sheet.update(cell_range, [row_clean])
 
-                st.write(f"Updating row {row_idx} with range {cell_range}")
-                st.write(row_clean)
-                st.write(len(row_clean))
-                sheet.update(cell_range, [row_clean])
+                single_row = row_clean
+                cell_range = f"A{row_idx}:U{row_idx}"
+                sheet.update(cell_range, [single_row])
                 updated_count += 1
 
     # Append dei nuovi
