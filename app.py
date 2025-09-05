@@ -246,7 +246,7 @@ def logout():
 def register_user(email: str, password: str, **param) -> bool:
     try:
         # 1. Crea l'utente in Supabase Auth
-        res = supabase.auth.admin.create_user({
+        res = supabase_admin.auth.admin.create_user({
             "email": email,
             "password": password,
             "email_confirm": False
@@ -267,7 +267,7 @@ def register_user(email: str, password: str, **param) -> bool:
             "role": param.get("role", None)
         }
 
-        supabase.table("profiles").insert(profile).execute()
+        supabase_admin.table("profiles").insert(profile).execute()
 
         st.success(f"✅ Utente {username} creato correttamente")
         return True
