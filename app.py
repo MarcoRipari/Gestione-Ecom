@@ -1295,6 +1295,7 @@ elif page == "Descrizioni":
                         descr_breve = lang_data.get("desc_breve", "").strip()
         
                         output_row = row.to_dict()
+                        output_row["SKU"] = str(row.get("SKU", "")).strip()
                         output_row["Description"] = descr_lunga
                         output_row["Description2"] = descr_breve
                         all_outputs[lang].append(output_row)
