@@ -807,7 +807,7 @@ def process_csv_and_update(sheet, uploaded_file):
 
     if existing_df.empty:
         append_to_sheet(sheet_id, "PRELEVATE", df_out)   # ✅ usa la funzione
-        return len(df_out), 0
+        return len(df_out), 0, df_out
 
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
@@ -833,7 +833,7 @@ def process_csv_and_update(sheet, uploaded_file):
         df_new = pd.DataFrame(new_rows, columns=df_out.columns)
         append_to_sheet(sheet_id, "PRELEVATE", df_new)   # ✅ append pulito
 
-    return len(new_rows), updated_count
+    return len(new_rows), updated_count, df_new
     
 # --- Funzione per generare PDF ---
 def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
@@ -2299,7 +2299,8 @@ elif page == "Giacenze - Aggiorna anagrafica":
 
     if uploaded_file:
         if st.button("Carica su GSheet"):
-            added, updated = process_csv_and_update(sheet, uploaded_file)
+            added, updated, df_out = process_csv_and_update(sheet, uploaded_file)
+            st.write(df_out)
             st.success(f"✅ Aggiunte {added} nuove SKU, aggiornate {updated} SKU già presenti.")
 
     
