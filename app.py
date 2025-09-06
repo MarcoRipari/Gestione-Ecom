@@ -775,72 +775,7 @@ def update_row(sheet, row_idx, row):
     cell_range = f"{start}:{end}"
     sheet.update(cell_range, [row_clean])
 
-def process_csv_and_update(sheet, uploaded_file):
-    # Leggi CSV
-    df = read_csv_auto_encoding(uploaded_file)
 
-    expected_cols = [
-        "Anno","Stag.","Clz.","Descr.","Serie","Descriz1","Annullato",
-        "Campionato","Cat","Cod","Descriz2","Var.","DescrizVar","Col.",
-        "DescrizCol","TAGLIA","QUANTIA","Vuota","DATA_CREAZIONE","N=NOOS"
-    ]
-
-    if df.shape[1] != len(expected_cols):
-        st.error(f"⚠️ CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}. Controlla separatore o formato!")
-        st.dataframe(df.head())
-        return 0, 0
-
-    df.columns = expected_cols
-
-    # Crea SKU e spostala come prima colonna
-    df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
-    cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
-    df = df[cols]
-
-    # Dati esistenti
-    existing = sheet.get_all_values()
-    header = existing[0]
-    data = existing[1:]
-    existing_df = pd.DataFrame(data, columns=header)
-
-    # Map SKU -> riga (indice + 2 in GSheet)
-    existing_dict = {row["SKU"]: idx + 2 for idx, row in existing_df.iterrows()}
-
-    new_rows = []
-    updates = []
-    total = len(df)
-    progress = st.progress(0)
-
-    for i, row in enumerate(df.itertuples(index=False, name=None)):
-        sku = row[0]  # SKU
-        new_year_stage = f"{row[1]}/{row[2]}"  # Anno/Stag
-
-        if sku not in existing_dict:
-            new_rows.append(row)
-        else:
-            idx = existing_dict[sku]
-            existing_year_stage = f"{existing_df.at[idx-2, 'Anno']}/{existing_df.at[idx-2, 'Stag.']}"
-            if new_year_stage > existing_year_stage:
-                updates.append((idx, ["" if pd.isna(x) else str(x) for x in row]))
-
-        progress.progress((i + 1) / total)
-
-    # Aggiornamento batch: costruisci valori e range
-    if updates:
-        cell_ranges = [f"A{idx}:U{idx}" for idx, _ in updates]
-        values = [row for _, row in updates]
-        sheet.batch_update([{
-            "range": r,
-            "values": [v]
-        } for r, v in zip(cell_ranges, values)])
-
-    # Append batch
-    if new_rows:
-        df_new = pd.DataFrame(new_rows, columns=df.columns)
-        df_new = df_new.fillna("").astype(str)
-        sheet.append_rows(df_new.values.tolist(), value_input_option="RAW")
-
-    return len(new_rows), len(updates)
 
     
 # --- Funzione per generare PDF ---
