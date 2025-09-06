@@ -856,10 +856,17 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     # =======================
     st.text("5️⃣ Aggiungo nuove righe in fondo...")
     if new_rows:
-        batch_size = 100
-        for start in range(0, len(new_rows), batch_size):
-            batch = new_rows[start:start+batch_size]
-            sheet.insert_rows(batch, row=sheet.row_count+1, value_input_option="RAW")
+        # pulizia valori
+        new_rows_clean = [[str(cell) if cell is not None else "" for cell in row] for row in new_rows]
+    
+        start_row = len(existing_df) + len(updates) + 2  # +2 per header e base 1
+        end_row = start_row + len(new_rows_clean) - 1
+        missing_rows = end_row - sheet.row_count
+        if missing_rows > 0:
+            sheet.add_rows(missing_rows)
+        cell_range = f"A{start_row}:U{end_row}"
+    
+        sheet.update(cell_range, new_rows_clean, value_input_option="RAW")
 
     st.text("✅ Operazione completata!")
     return len(new_rows), len(updates)
