@@ -56,7 +56,7 @@ import locale
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 from gspread.utils import rowcol_to_a1
-from concurrent.futures import ThreadPoolExecutor, as_complete
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 logging.basicConfig(level=logging.INFO)
