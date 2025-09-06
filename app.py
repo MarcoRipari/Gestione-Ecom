@@ -823,9 +823,6 @@ def process_csv_and_update(sheet, uploaded_file):
     for _, row in df.iterrows():
         sku = row["SKU"]
         new_year_stage = f"{row['Anno']}/{row['Stag.']}"
-
-        # Converti eventuali NaN in stringa vuota
-        #single_row = ["" if pd.isna(x) else str(x) for x in row]
         single_row = ["" if pd.isna(x) else str(x) for x in row.tolist()]
 
         if sku not in existing_dict:
@@ -833,23 +830,23 @@ def process_csv_and_update(sheet, uploaded_file):
         else:
             existing_row = existing_dict[sku]
             existing_year_stage = f"{existing_row['Anno']}/{existing_row['Stag.']}"
-
             if new_year_stage > existing_year_stage:
-                idx = existing_df.index[existing_df["SKU"] == sku][0]
-
-                # Aggiorna direttamente il range dalla colonna A
-                start_col = "A"
-                end_col = chr(ord("A") + len(single_row) - 1)
-                cell_range = f"{start_col}{idx+2}:{end_col}{idx+2}"  # +2 per header
-                idx = int(existing_df.index[existing_df["SKU"] == sku][0])
-                sheet.delete_rows(idx + 2)  # ora è int vero
-                sheet.insert_row(single_row, idx + 2)
+                idx = int(existing_df.index[existing_df["SKU"] == sku][0]) + 2
+                cell_range = f"A{idx}:U{idx}"
+                updates.append({
+                    "range": cell_range,
+                    "values": [single_row]
+                })
                 updated_count += 1
 
-    # Append nuove righe alla fine del foglio
+    # 🔹 fai update in batch (1 sola chiamata)
+    if updates:
+        body = {"valueInputOption": "RAW", "data": updates}
+        sheet.spreadsheet.values_batch_update(body)
+
+    # 🔹 append nuove righe (sempre batch, unica chiamata)
     if new_rows:
-        df_new = pd.DataFrame(new_rows, columns=df.columns)
-        append_to_sheet(sheet.spreadsheet.id, "DATA", df_new)  # append da colonna A
+        sheet.append_rows(new_rows, value_input_option="RAW")
 
     return len(new_rows), updated_count
     
