@@ -825,8 +825,8 @@ def process_csv_and_update(sheet, uploaded_file):
         new_year_stage = f"{row['Anno']}/{row['Stag.']}"
 
         # Converti eventuali NaN in stringa vuota
-        #single_row = ["" if pd.isna(x) else str(x) for x in row]
-        single_row = ["" if pd.isna(x) else str(x) for x in row.tolist()]
+        single_row = ["" if pd.isna(x) else str(x) for x in row]
+        #single_row = ["" if pd.isna(x) else str(x) for x in row.tolist()]
 
         if sku not in existing_dict:
             new_rows.append(single_row)
@@ -841,10 +841,8 @@ def process_csv_and_update(sheet, uploaded_file):
                 start_col = "A"
                 end_col = chr(ord("A") + len(single_row) - 1)
                 cell_range = f"{start_col}{idx+2}:{end_col}{idx+2}"  # +2 per header
-                if len(single_row) != 21:  # 21 colonne da A a U
-                    st.error(f"❌ Riga SKU {sku} ha {len(single_row)} colonne invece di 21")
-                else:
-                    sheet.update(f"A{idx+2}:U{idx+2}", [single_row], value_input_option="RAW")
+                sheet.delete_rows(idx+2)  # elimina la riga vecchia
+                sheet.insert_row(single_row, idx+2)  # scrive la riga nuova
                 updated_count += 1
 
     # Append nuove righe alla fine del foglio
