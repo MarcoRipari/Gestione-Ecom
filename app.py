@@ -811,9 +811,8 @@ def process_csv_and_update(sheet, uploaded_file):
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     # ---------- Preparazione batch ----------
-    updates = []
-    new_rows = []
-
+    update_data = []  # per batch_update
+    append_data = []  # nuove righe
     total = len(df)
     progress_bar = st.progress(0)
     status_text = st.empty()
@@ -823,40 +822,48 @@ def process_csv_and_update(sheet, uploaded_file):
         sku = row_dict["SKU"]
         new_year_stage = f"{row_dict['Anno']}/{row_dict['Stag.']}"
 
+        # converti NaN in stringa vuota
+        row_values = [str(x) if pd.notna(x) else "" for x in row]
+
         if sku not in existing_dict:
-            new_rows.append([str(x) if pd.notna(x) else "" for x in row])
+            append_data.append(row_values)
         else:
             existing_row = existing_dict[sku]
             existing_year_stage = f"{existing_row['Anno']}/{existing_row['Stag.']}"
             if new_year_stage > existing_year_stage:
                 idx = existing_df.index[existing_df["SKU"] == sku][0]
-                updates.append({
-                    "row_idx": idx + 2,  # +2 perché Google Sheets parte da 1 e header è riga 1
-                    "values": [str(x) if pd.notna(x) else "" for x in row]
+                cell_range = f"A{idx+2}:U{idx+2}"  # colonna A-U
+                update_data.append({
+                    "range": cell_range,
+                    "values": [row_values]
                 })
 
-        # Aggiorna progress bar ogni 50 righe
         if i % 50 == 0 or i == total - 1:
             progress_bar.progress((i + 1) / total)
             status_text.text(f"Preparati {i+1}/{total} righe")
 
-    # ---------- Esegui aggiornamenti batch ----------
-    if updates:
-        batch_updates = {}
-        for upd in updates:
-            row_idx = upd["row_idx"]
-            batch_updates[f"A{row_idx}:U{row_idx}"] = upd["values"]  # A:U sono le colonne fisse
-        # gspread non ha un vero batch update singolo per celle diverse,
-        # quindi si possono usare update per ciascun range, ma fatto dopo la preparazione
-        for cell_range, vals in batch_updates.items():
-            sheet.update(cell_range, [vals], value_input_option="RAW")
+    # ---------- Esegui batch update unico ----------
+    if update_data:
+        batch_body = {
+            "valueInputOption": "RAW",
+            "data": update_data
+        }
+        sheet.spreadsheet.batch_update(batch_body)
 
-    # ---------- Esegui append per nuove righe ----------
-    if new_rows:
-        sheet.append_rows(new_rows, value_input_option="RAW")
+    # ---------- Append nuove righe in un unico batch ----------
+    if append_data:
+        start_row = len(existing_df) + 2  # dopo l'ultima riga esistente
+        append_ranges = [f"A{start_row + i}:U{start_row + i}" for i in range(len(append_data))]
+        batch_append = [
+            {"range": rng, "values": [vals]} for rng, vals in zip(append_ranges, append_data)
+        ]
+        sheet.spreadsheet.batch_update({
+            "valueInputOption": "RAW",
+            "data": batch_append
+        })
 
-    st.success(f"✅ Aggiunte {len(new_rows)} nuove SKU, aggiornate {len(updates)} SKU già presenti.")
-    return len(new_rows), len(updates)
+    st.success(f"✅ Aggiunte {len(append_data)} nuove SKU, aggiornate {len(update_data)} SKU già presenti.")
+    return len(append_data), len(update_data)
 
     
 # --- Funzione per generare PDF ---
