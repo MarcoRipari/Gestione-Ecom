@@ -780,9 +780,9 @@ def process_csv_and_update(sheet, uploaded_file):
     df = read_csv_auto_encoding(uploaded_file)
 
     expected_cols = [
-        "Anno","Stag.","Clz.","Descr.","Serie","Descriz1","Annullato",
-        "Campionato","Cat","Cod","Descr2","Var.","DescrizVar","Col.",
-        "DescrCol","TAGLIA","QUANTIA","Vuota","DATA_CREAZIONE","N=NOOS"
+        "Anno", "Stag.", "Clz.", "Descr.", "Serie", "Descriz1", "Annullato",
+        "Campionato", "Cat", "Cod", "Descr2", "Var.", "DescrizVar", "Col.",
+        "DescrCol", "TAGLIA", "QUANTIA", "Vuota", "DATA_CREAZIONE", "N=NOOS"
     ]
 
     if df.shape[1] != len(expected_cols):
@@ -798,8 +798,7 @@ def process_csv_and_update(sheet, uploaded_file):
     df = df[cols]
 
     st.text("2️⃣ Carico dati esistenti dal foglio...")
-    existing_values = sheet.get("A:U")
-    
+    existing_values = sheet.get("A:U")  # limita le colonne
     if not existing_values:
         st.text("⚠️ Foglio vuoto, creo DataFrame vuoto.")
         header = df.columns.tolist()  # usa le colonne del CSV come header
@@ -808,9 +807,7 @@ def process_csv_and_update(sheet, uploaded_file):
         header = existing_values[0]
         data = existing_values[1:]
         existing_df = pd.DataFrame(data, columns=header)
-        
-    data = existing_values[1:]
-    existing_df = pd.DataFrame(data, columns=header)
+
 
     # Converte valori numerici e NaN in stringa per sicurezza
     existing_df = existing_df.fillna("").astype(str)
@@ -826,7 +823,6 @@ def process_csv_and_update(sheet, uploaded_file):
     progress = st.progress(0)
     total = len(df)
 
-    #for i, row in enumerate(df.itertuples(index=False)):
     for i, row in df.iterrows():
         sku = row["SKU"]
         new_year_stage = (row["Anno"], row["Stag."])  # tupla per confronto
@@ -842,24 +838,21 @@ def process_csv_and_update(sheet, uploaded_file):
             if int(new_year_stage[0]) > int(existing_year_stage[0]) or \
                (int(new_year_stage[0]) == int(existing_year_stage[0]) and int(new_year_stage[1]) > int(existing_year_stage[1])):
                 idx = existing_df.index[existing_df["SKU"] == sku][0]
-                updates.append((idx+2, single_row))  # +2 perché foglio include header e base-1
+                updates.append((idx + 2, single_row))  # +2 perché foglio include header e base-1
 
         # Aggiornamento progress bar ogni 50 righe
         if i % 50 == 0:
             progress.progress(i / total)
 
     progress.progress(1.0)
+
     st.text(f"✅ Nuove righe da aggiungere: {len(new_rows)}")
     st.text(f"✅ Aggiornamenti da effettuare: {len(updates)}")
 
     st.text("4️⃣ Aggiorno righe esistenti...")
-    for idx, _ in sorted(updates, key=lambda x: x[0], reverse=True):
-        sheet.delete_rows(idx)
-    
-    # reinserisci tutte le righe aggiornate in un colpo
-    updated_rows = [row for _, row in updates]
-    if updated_rows:
-        sheet.append_rows(updated_rows, value_input_option="RAW")
+    for idx, single_row in updates:
+        cell_range = f"A{idx}:{chr(64 + len(single_row))}{idx}"
+        sheet.update(cell_range, [single_row], value_input_option="RAW")
 
     st.text("5️⃣ Aggiungo nuove righe in fondo...")
     if new_rows:
@@ -867,6 +860,7 @@ def process_csv_and_update(sheet, uploaded_file):
 
     st.text("✅ Operazione completata!")
     return len(new_rows), len(updates)
+
 
     
 # --- Funzione per generare PDF ---
