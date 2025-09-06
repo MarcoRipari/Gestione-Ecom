@@ -856,11 +856,16 @@ def process_csv_and_update(sheet, uploaded_file):
     # reinserisci tutte le righe aggiornate in un colpo
     updated_rows = [row for _, row in updates]
     if updated_rows:
-        sheet.append_rows(updated_rows, value_input_option="RAW")
+        cell_range = f"A{len(existing_df)+2}:U{len(existing_df)+1+len(updated_rows)}"
+        sheet.update(cell_range, updated_rows, value_input_option="RAW")
 
     st.text("5️⃣ Aggiungo nuove righe in fondo...")
     if new_rows:
-        sheet.append_rows(new_rows, value_input_option="RAW")
+        # determina la riga di partenza corretta
+        start_row = len(existing_df) + len(updated_rows) + 2
+        end_row = start_row + len(new_rows) - 1
+        cell_range = f"A{start_row}:U{end_row}"
+        sheet.update(cell_range, new_rows, value_input_option="RAW")
 
     st.text("✅ Operazione completata!")
     return len(new_rows), len(updates)
