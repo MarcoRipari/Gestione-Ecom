@@ -775,14 +775,14 @@ def update_row(sheet, row_idx, row):
     cell_range = f"{start}:{end}"
     sheet.update(cell_range, [row_clean])
 
-def process_csv_and_update(sheet, uploaded_file):
+def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     st.text("1️⃣ Leggo CSV...")
     df = read_csv_auto_encoding(uploaded_file)
 
     expected_cols = [
-        "Anno", "Stag.", "Clz.", "Descr.", "Serie", "Descriz1", "Annullato",
-        "Campionato", "Cat", "Cod", "Descr2", "Var.", "DescrizVar", "Col.",
-        "DescrCol", "TAGLIA", "QUANTIA", "Vuota", "DATA_CREAZIONE", "N=NOOS"
+        "Anno","Stag.","Clz.","Descr.","Serie","Descriz1","Annullato",
+        "Campionato","Cat","Cod","Descr2","Var.","DescrizVar","Col.",
+        "DescrCol","TAGLIA","QUANTIA","Vuota","DATA_CREAZIONE","N=NOOS"
     ]
 
     if df.shape[1] != len(expected_cols):
@@ -798,72 +798,70 @@ def process_csv_and_update(sheet, uploaded_file):
     df = df[cols]
 
     st.text("2️⃣ Carico dati esistenti dal foglio...")
-    existing_values = sheet.get("A:U")  # limita le colonne
+    existing_values = sheet.get("A:U")
     if not existing_values:
-        st.text("⚠️ Foglio vuoto, creo DataFrame vuoto.")
-        header = df.columns.tolist()  # usa le colonne del CSV come header
+        header = df.columns.tolist()
         existing_df = pd.DataFrame(columns=header)
     else:
         header = existing_values[0]
         data = existing_values[1:]
         existing_df = pd.DataFrame(data, columns=header)
 
-
-    # Converte valori numerici e NaN in stringa per sicurezza
     existing_df = existing_df.fillna("").astype(str)
-
-    # Dizionario per accesso rapido alle SKU esistenti
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     st.text("3️⃣ Identifico nuove righe e aggiornamenti...")
     new_rows = []
     updates = []
 
-    # Progress bar
-    progress = st.progress(0)
     total = len(df)
+    progress = st.progress(0)
 
     for i, row in df.iterrows():
         sku = row["SKU"]
-        new_year_stage = (row["Anno"], row["Stag."])  # tupla per confronto
-
+        new_year_stage = (int(row["Anno"]), int(row["Stag."]))
         single_row = ["" if pd.isna(x) else str(x) for x in row]
 
         if sku not in existing_dict:
             new_rows.append(single_row)
         else:
             existing_row = existing_dict[sku]
-            existing_year_stage = (existing_row["Anno"], existing_row["Stag."])
-            # Controllo se aggiornare: anno maggiore o stesso anno ma stagione maggiore
-            if int(new_year_stage[0]) > int(existing_year_stage[0]) or \
-               (int(new_year_stage[0]) == int(existing_year_stage[0]) and int(new_year_stage[1]) > int(existing_year_stage[1])):
-                idx = existing_df.index[existing_df["SKU"] == sku][0]
-                updates.append((idx + 2, single_row))  # +2 perché foglio include header e base-1
+            existing_year_stage = (int(existing_row["Anno"]), int(existing_row["Stag."]))
+            if new_year_stage[0] > existing_year_stage[0] or \
+               (new_year_stage[0] == existing_year_stage[0] and new_year_stage[1] > existing_year_stage[1]):
+                idx = existing_df.index[existing_df["SKU"] == sku][0] + 2  # +2 per header e base 1
+                updates.append((idx, single_row))
 
-        # Aggiornamento progress bar ogni 50 righe
         if i % 50 == 0:
             progress.progress(i / total)
-
     progress.progress(1.0)
 
     st.text(f"✅ Nuove righe da aggiungere: {len(new_rows)}")
     st.text(f"✅ Aggiornamenti da effettuare: {len(updates)}")
 
-    st.text("4️⃣ Aggiorno righe esistenti...")
-    for idx, single_row in updates:
-        cell_range = f"A{idx}:U{idx}"  # aggiorna dalla colonna A alla U
-        sheet.update(cell_range, [single_row], value_input_option="RAW")
+    # =======================
+    # Aggiornamenti batch
+    # =======================
+    st.text("4️⃣ Aggiorno righe esistenti in batch...")
+    for start in range(0, len(updates), batch_size):
+        batch = updates[start:start+batch_size]
+        ranges = [f"A{idx}:U{idx}" for idx, _ in batch]
+        values = [row for _, row in batch]
+        body = [{"range": r, "values": [v]} for r, v in zip(ranges, values)]
+        if body:
+            sheet.batch_update(body)
 
+    # =======================
+    # Aggiunta nuove righe
+    # =======================
     st.text("5️⃣ Aggiungo nuove righe in fondo...")
     if new_rows:
-        # determina la riga di partenza corretta
-        start_row = len(existing_df) + len(updated_rows) + 2
-        end_row = start_row + len(new_rows) - 1
-        cell_range = f"A{start_row}:U{end_row}"
-        sheet.update(cell_range, new_rows, value_input_option="RAW")
+        for start in range(0, len(new_rows), batch_size):
+            sheet.append_rows(new_rows[start:start+batch_size], value_input_option="RAW")
 
     st.text("✅ Operazione completata!")
     return len(new_rows), len(updates)
+
 
 
     
