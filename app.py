@@ -776,6 +776,7 @@ def update_row(sheet, row_idx, row):
     sheet.update(cell_range, [row_clean])
 
 def process_csv_and_update(sheet, uploaded_file):
+    st.write(sheet)
     st.text("1️⃣ Leggo CSV...")
     df = read_csv_auto_encoding(uploaded_file)
 
