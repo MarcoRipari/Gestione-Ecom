@@ -776,10 +776,7 @@ def update_row(sheet, row_idx, row):
     sheet.update(cell_range, [row_clean])
 
 def process_csv_and_update(sheet, uploaded_file):
-    import streamlit as st
-    import pandas as pd
-    from gspread.exceptions import APIError
-
+    # Leggi CSV
     df = read_csv_auto_encoding(uploaded_file)
 
     expected_cols = [
@@ -789,57 +786,51 @@ def process_csv_and_update(sheet, uploaded_file):
     ]
 
     if df.shape[1] != len(expected_cols):
-        st.error(f"⚠️ CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}")
+        st.error(f"⚠️ CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}. Controlla separatore o formato!")
         st.dataframe(df.head())
         return 0, 0
 
     df.columns = expected_cols
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
-    df = df[["SKU"] + [c for c in df.columns if c != "SKU"]]
+
+    # Porta SKU come prima colonna
+    cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
+    df = df[cols]
 
     # Dati esistenti
-    existing_values = sheet.get_all_values()
-    if not existing_values:
-        existing_df = pd.DataFrame(columns=df.columns)
-    else:
-        header = existing_values[0]
-        data = existing_values[1:]
-        existing_df = pd.DataFrame(data, columns=header)
-
+    existing = sheet.get_all_values()
+    header = existing[0]
+    data = existing[1:]
+    existing_df = pd.DataFrame(data, columns=header)
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
-    new_rows, updated_count = 0, 0
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+    new_rows = []
+    updated_count = 0
 
-    for i, row in enumerate(df.itertuples(index=False, name=None)):
-        single_row = [str(x) if pd.notna(x) else "" for x in row]
-        sku = row[0]  # SKU è la prima colonna
-        new_year_stage = f"{row[1]}/{row[2]}"  # Anno/Stag.
+    for _, row in df.iterrows():
+        sku = row["SKU"]
+        new_year_stage = f"{row['Anno']}/{row['Stag.']}"
+
+        single_row = ["" if pd.isna(x) else str(x) for x in row.tolist()]
 
         if sku not in existing_dict:
-            try:
-                sheet.append_row(single_row, value_input_option="RAW")
-                new_rows += 1
-            except APIError as e:
-                st.error(f"Errore append riga SKU {sku}: {e}")
+            new_rows.append(single_row)
         else:
             existing_row = existing_dict[sku]
             existing_year_stage = f"{existing_row['Anno']}/{existing_row['Stag.']}"
+
             if new_year_stage > existing_year_stage:
-                idx = existing_df.index[existing_df["SKU"] == sku][0] + 2
-                try:
-                    sheet.update(f"A{idx}:U{idx}", [single_row], value_input_option="RAW")
-                    updated_count += 1
-                except APIError as e:
-                    st.error(f"Errore update riga SKU {sku}: {e}")
+                idx = int(existing_df.index[existing_df["SKU"] == sku][0])
+                # sostituisci la riga in posizione idx+2
+                sheet.delete_rows(idx+2)
+                sheet.insert_row(single_row, idx+2)
+                updated_count += 1
 
-        if i % 10 == 0 or i == len(df) - 1:
-            progress_bar.progress((i+1)/len(df))
-            status_text.text(f"Elaborate {i+1}/{len(df)} righe")
+    # Append righe nuove in fondo
+    if new_rows:
+        sheet.append_rows(new_rows, value_input_option="RAW")
 
-    st.success(f"✅ Aggiunte {new_rows} nuove SKU, aggiornate {updated_count} SKU già presenti.")
-    return new_rows, updated_count
+    return len(new_rows), updated_count
 
     
 # --- Funzione per generare PDF ---
