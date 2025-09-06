@@ -850,9 +850,13 @@ def process_csv_and_update(sheet, uploaded_file):
     st.text(f"✅ Aggiornamenti da effettuare: {len(updates)}")
 
     st.text("4️⃣ Aggiorno righe esistenti...")
-    for idx, single_row in updates:
-        cell_range = f"A{idx}:{chr(64 + len(single_row))}{idx}"
-        sheet.update(cell_range, [single_row], value_input_option="RAW")
+    for idx, _ in sorted(updates, key=lambda x: x[0], reverse=True):
+        sheet.delete_rows(idx)
+    
+    # reinserisci tutte le righe aggiornate in un colpo
+    updated_rows = [row for _, row in updates]
+    if updated_rows:
+        sheet.append_rows(updated_rows, value_input_option="RAW")
 
     st.text("5️⃣ Aggiungo nuove righe in fondo...")
     if new_rows:
