@@ -776,6 +776,12 @@ def update_row(sheet, row_idx, row):
     sheet.update(cell_range, [row_clean])
 
 def process_csv_and_update(sheet, uploaded_file):
+    """
+    Aggiorna un Google Sheet a partire da un CSV.
+    - La colonna SKU viene creata e messa all'inizio.
+    - Se la SKU esiste già, viene aggiornata solo se Anno/Stagione è maggiore.
+    - Se la SKU non esiste, viene aggiunta in fondo.
+    """
     # Leggi CSV
     df = read_csv_auto_encoding(uploaded_file)
 
@@ -791,46 +797,72 @@ def process_csv_and_update(sheet, uploaded_file):
         return 0, 0
 
     df.columns = expected_cols
+
+    # Crea SKU e spostala come prima colonna
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
+    df = df[["SKU"] + [c for c in df.columns if c != "SKU"]]
 
-    # Porta SKU come prima colonna
-    cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
-    df = df[cols]
+    # Recupera dati esistenti
+    existing_values = sheet.get_all_values()
+    if not existing_values or len(existing_values) < 1:
+        # Foglio vuoto
+        existing_df = pd.DataFrame(columns=df.columns)
+    else:
+        header = existing_values[0]
+        data = existing_values[1:]
+        existing_df = pd.DataFrame(data, columns=header)
 
-    # Dati esistenti
-    existing = sheet.get_all_values()
-    header = existing[0]
-    data = existing[1:]
-    existing_df = pd.DataFrame(data, columns=header)
+    # Costruisci dict per lookup rapido per SKU
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     new_rows = []
-    updated_count = 0
+    updates = []
 
-    for _, row in df.iterrows():
-        sku = row["SKU"]
-        new_year_stage = f"{row['Anno']}/{row['Stag.']}"
-
-        single_row = ["" if pd.isna(x) else str(x) for x in row.tolist()]
+    # Progress bar
+    progress = st.progress(0)
+    total = len(df)
+    
+    for idx, row in enumerate(df.itertuples(index=False)):
+        sku = row.SKU
+        row_dict = row._asdict()
+        single_row = ["" if pd.isna(x) else str(x) for x in row]
 
         if sku not in existing_dict:
+            # Nuova riga -> append in batch
             new_rows.append(single_row)
         else:
             existing_row = existing_dict[sku]
-            existing_year_stage = f"{existing_row['Anno']}/{existing_row['Stag.']}"
+            # Confronto Anno/Stagione
+            try:
+                new_year = int(row_dict["Anno"])
+                new_stage = int(row_dict["Stag."])
+                exist_year = int(existing_row["Anno"])
+                exist_stage = int(existing_row["Stag."])
+            except:
+                # Se valori non convertibili in int, salta aggiornamento
+                continue
 
-            if new_year_stage > existing_year_stage:
-                idx = int(existing_df.index[existing_df["SKU"] == sku][0])
-                # sostituisci la riga in posizione idx+2
-                sheet.delete_rows(idx+2)
-                sheet.insert_row(single_row, idx+2)
-                updated_count += 1
+            # Condizione aggiornamento
+            if (new_year > exist_year) or (new_year == exist_year and new_stage > exist_stage):
+                # Aggiorna riga esistente
+                # Trova indice nel foglio (i+2 perché header è prima riga)
+                row_index = existing_df.index[existing_df["SKU"] == sku][0] + 2
+                updates.append({"range": f"A{row_index}:{chr(64 + len(single_row))}{row_index}", "values": [single_row]})
 
-    # Append righe nuove in fondo
+        # Aggiorna progress bar
+        progress.progress((idx + 1) / total)
+
+    # Applica aggiornamenti esistenti in batch
+    if updates:
+        body = {"valueInputOption": "RAW", "data": updates}
+        sheet.spreadsheet.batch_update(body)
+
+    # Aggiungi nuove righe in fondo
     if new_rows:
         sheet.append_rows(new_rows, value_input_option="RAW")
 
-    return len(new_rows), updated_count
+    progress.empty()  # rimuove progress bar
+    return len(new_rows), len(updates)
 
     
 # --- Funzione per generare PDF ---
