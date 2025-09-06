@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 import os
-from typing import List, Dict, Any
+from typing import List, Dict, AnyF
 from google.oauth2 import service_account
 import gspread
 from io import BytesIO
@@ -825,8 +825,8 @@ def process_csv_and_update(sheet, uploaded_file):
         new_year_stage = f"{row['Anno']}/{row['Stag.']}"
 
         # Converti eventuali NaN in stringa vuota
-        single_row = ["" if pd.isna(x) else str(x) for x in row]
-        #single_row = ["" if pd.isna(x) else str(x) for x in row.tolist()]
+        #single_row = ["" if pd.isna(x) else str(x) for x in row]
+        single_row = ["" if pd.isna(x) else str(x) for x in row.tolist()]
 
         if sku not in existing_dict:
             new_rows.append(single_row)
