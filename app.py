@@ -775,7 +775,67 @@ def update_row(sheet, row_idx, row):
     cell_range = f"{start}:{end}"
     sheet.update(cell_range, [row_clean])
 
+def process_csv_and_update(sheet, uploaded_file):
+    df = read_csv_auto_encoding(uploaded_file)
 
+    expected_cols = [
+        "Anno","Stag.","Clz.","Descr.","Serie","Descriz1","Annullato",
+        "Campionato","Cat","Cod","Descriz2","Var.","DescrizVar","Col.",
+        "DescrizCol","TAGLIA","QUANTIA","Vuota","DATA_CREAZIONE","N=NOOS"
+    ]
+    if df.shape[1] != len(expected_cols):
+        st.error(f"CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}")
+        st.dataframe(df.head())
+        return 0,0
+    df.columns = expected_cols
+
+    # Sposta SKU all'inizio
+    df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
+    df = df[["SKU"] + [c for c in df.columns if c != "SKU"]]
+
+    # Leggi foglio in memoria
+    existing = sheet.get_all_values()
+    header = existing[0]
+    data = existing[1:]
+    existing_df = pd.DataFrame(data, columns=header)
+
+    existing_dict = {row["SKU"]: idx+2 for idx, row in existing_df.iterrows()}
+
+    new_rows = []
+    updates = []
+
+    total = len(df)
+    progress = st.progress(0)
+
+    # Solo calcolo in memoria
+    for i, row in enumerate(df.itertuples(index=False, name=None)):
+        sku = row[0]
+        new_year_stage = f"{row[1]}/{row[2]}"  # Anno/Stag
+        if sku not in existing_dict:
+            new_rows.append(row)
+        else:
+            idx = existing_dict[sku]
+            existing_year_stage = f"{existing_df.at[idx-2,'Anno']}/{existing_df.at[idx-2,'Stag.']}"
+            if new_year_stage > existing_year_stage:
+                updates.append((idx, ["" if pd.isna(x) else str(x) for x in row]))
+        if i % 50 == 0:
+            progress.progress((i+1)/total)
+
+    # Aggiornamento batch
+    if updates:
+        batch_request = [{
+            "range": f"A{idx}:U{idx}",
+            "values": [row]
+        } for idx, row in updates]
+        sheet.batch_update(batch_request)
+
+    # Append batch
+    if new_rows:
+        df_new = pd.DataFrame(new_rows, columns=df.columns)
+        sheet.append_rows(df_new.fillna("").astype(str).values.tolist(), value_input_option="RAW")
+
+    progress.progress(1.0)
+    return len(new_rows), len(updates)
 
     
 # --- Funzione per generare PDF ---
