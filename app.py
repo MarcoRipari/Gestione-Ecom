@@ -776,10 +776,8 @@ def update_row(sheet, row_idx, row):
     sheet.update(cell_range, [row_clean])
 
 def process_csv_and_update(sheet, uploaded_file):
-    # Leggi CSV
     df = read_csv_auto_encoding(uploaded_file)
 
-    # Definisci colonne attese
     expected_cols = [
         "Anno","Stag.","Clz.","Descr.","Serie","Descriz1","Annullato",
         "Campionato","Cat","Cod","Descriz2","Var.","DescrizVar","Col.",
@@ -787,38 +785,23 @@ def process_csv_and_update(sheet, uploaded_file):
     ]
 
     if df.shape[1] != len(expected_cols):
-        st.error(f"⚠️ CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}. Controlla separatore o formato!")
+        st.error(f"⚠️ CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}")
         st.dataframe(df.head())
         return 0, 0
 
     df.columns = expected_cols
-
-    # Costruisci SKU e spostala come prima colonna
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
-    cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
-    df = df[cols]
+    df = df[["SKU"] + expected_cols]  # sposta SKU in prima colonna
 
-    # Dati esistenti
+    # dati esistenti
     existing = sheet.get_all_values()
-    header = existing[0]
-    data = existing[1:]
+    header, data = existing[0], existing[1:]
+    existing_df = pd.DataFrame(data, columns=header)
 
-    # Rendi univoci eventuali duplicati di colonne
-    seen = {}
-    unique_header = []
-    for h in header:
-        if h in seen:
-            seen[h] += 1
-            unique_header.append(f"{h}_{seen[h]}")
-        else:
-            seen[h] = 0
-            unique_header.append(h)
-
-    existing_df = pd.DataFrame(data, columns=unique_header)
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     new_rows = []
-    updates = []
+    updates = []  # 🔹 INIZIALIZZO QUI
     updated_count = 0
 
     for _, row in df.iterrows():
@@ -840,12 +823,12 @@ def process_csv_and_update(sheet, uploaded_file):
                 })
                 updated_count += 1
 
-    # 🔹 fai update in batch (1 sola chiamata)
+    # 🔹 fai update in batch
     if updates:
         body = {"valueInputOption": "RAW", "data": updates}
         sheet.spreadsheet.values_batch_update(body)
 
-    # 🔹 append nuove righe (sempre batch, unica chiamata)
+    # 🔹 append nuove righe in batch
     if new_rows:
         sheet.append_rows(new_rows, value_input_option="RAW")
 
