@@ -817,9 +817,10 @@ def process_csv_and_update(sheet, uploaded_file):
     progress = st.progress(0)
     total = len(df)
 
-    for i, row in enumerate(df.itertuples(index=False)):
-        sku = row.SKU
-        new_year_stage = (row.Anno, row.Stag.)  # tupla per confronto
+    #for i, row in enumerate(df.itertuples(index=False)):
+    for i, row in df.iterrows():
+        sku = row["SKU"]
+        new_year_stage = (row["Anno"], row["Stag."])  # tupla per confronto
 
         single_row = ["" if pd.isna(x) else str(x) for x in row]
 
