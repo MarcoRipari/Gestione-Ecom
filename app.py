@@ -799,9 +799,11 @@ def process_csv_and_update(sheet, uploaded_file):
 
     st.text("2️⃣ Carico dati esistenti dal foglio...")
     try:
-        existing_values = sheet.get_all_values()
+        #existing_values = sheet.get_all_values()
+        existing_values = sheet.get("A:U")
     except Exception as e:
         st.write(e)
+    st.text("ok");
     header = existing_values[0]
     data = existing_values[1:]
     existing_df = pd.DataFrame(data, columns=header)
