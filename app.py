@@ -802,66 +802,47 @@ def process_csv_and_update(sheet, uploaded_file):
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
     df = df[["SKU"] + [c for c in df.columns if c != "SKU"]]
 
+    # Converte Anno/Stagione in int
+    df["Anno"] = pd.to_numeric(df["Anno"], errors="coerce").fillna(0).astype(int)
+    df["Stag."] = pd.to_numeric(df["Stag."], errors="coerce").fillna(0).astype(int)
+
     # Recupera dati esistenti
     existing_values = sheet.get_all_values()
     if not existing_values or len(existing_values) < 1:
-        # Foglio vuoto
         existing_df = pd.DataFrame(columns=df.columns)
     else:
         header = existing_values[0]
         data = existing_values[1:]
         existing_df = pd.DataFrame(data, columns=header)
+        existing_df["Anno"] = pd.to_numeric(existing_df["Anno"], errors="coerce").fillna(0).astype(int)
+        existing_df["Stag."] = pd.to_numeric(existing_df["Stag."], errors="coerce").fillna(0).astype(int)
 
-    # Costruisci dict per lookup rapido per SKU
-    existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
+    # Merge per individuare nuove righe e aggiornamenti
+    merged = df.merge(existing_df, on="SKU", how="left", suffixes=("", "_old"), indicator=True)
 
-    new_rows = []
+    # Nuove righe (SKU non presenti)
+    new_rows = merged.loc[merged["_merge"] == "left_only", df.columns].fillna("").astype(str).values.tolist()
+
+    # Aggiornamenti: SKU presenti e Anno/Stag maggiore
     updates = []
+    update_rows = merged.loc[merged["_merge"] == "both"]
+    for _, row in update_rows.iterrows():
+        if (row["Anno"] > row["Anno_old"]) or (row["Anno"] == row["Anno_old"] and row["Stag."] > row["Stag._old"]):
+            # Trova indice nel foglio
+            idx = int(existing_df.index[existing_df["SKU"] == row["SKU"]][0]) + 2
+            single_row = ["" if pd.isna(x) else str(x) for x in row[df.columns]]
+            cell_range = f"A{idx}:{chr(64 + len(single_row))}{idx}"
+            updates.append({"range": cell_range, "values": [single_row]})
 
-    # Progress bar
-    progress = st.progress(0)
-    total = len(df)
-    
-    for idx, row in enumerate(df.itertuples(index=False)):
-        sku = row.SKU
-        row_dict = row._asdict()
-        single_row = ["" if pd.isna(x) else str(x) for x in row]
-
-        if sku not in existing_dict:
-            # Nuova riga -> append in batch
-            new_rows.append(single_row)
-        else:
-            existing_row = existing_dict[sku]
-            # Confronto Anno/Stagione
-            try:
-                new_year = int(row_dict["Anno"])
-                new_stage = int(row_dict["Stag."])
-                exist_year = int(existing_row["Anno"])
-                exist_stage = int(existing_row["Stag."])
-            except:
-                # Se valori non convertibili in int, salta aggiornamento
-                continue
-
-            # Condizione aggiornamento
-            if (new_year > exist_year) or (new_year == exist_year and new_stage > exist_stage):
-                # Aggiorna riga esistente
-                # Trova indice nel foglio (i+2 perché header è prima riga)
-                row_index = existing_df.index[existing_df["SKU"] == sku][0] + 2
-                updates.append({"range": f"A{row_index}:{chr(64 + len(single_row))}{row_index}", "values": [single_row]})
-
-        # Aggiorna progress bar
-        progress.progress((idx + 1) / total)
-
-    # Applica aggiornamenti esistenti in batch
+    # Applica aggiornamenti in batch
     if updates:
         body = {"valueInputOption": "RAW", "data": updates}
         sheet.spreadsheet.batch_update(body)
 
-    # Aggiungi nuove righe in fondo
+    # Append nuove righe in batch
     if new_rows:
         sheet.append_rows(new_rows, value_input_option="RAW")
 
-    progress.empty()  # rimuove progress bar
     return len(new_rows), len(updates)
 
     
