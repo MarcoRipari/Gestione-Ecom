@@ -776,7 +776,6 @@ def update_row(sheet, row_idx, row):
     sheet.update(cell_range, [row_clean])
 
 def process_csv_and_update(sheet, uploaded_file):
-    st.write(sheet)
     st.text("1️⃣ Leggo CSV...")
     df = read_csv_auto_encoding(uploaded_file)
 
@@ -799,12 +798,13 @@ def process_csv_and_update(sheet, uploaded_file):
     df = df[cols]
 
     st.text("2️⃣ Carico dati esistenti dal foglio...")
-    existing_values = sheet.get_all_values()
-    st.text("2️⃣ Carico dati esistenti dal foglio...2")
+    try:
+        existing_values = sheet.get_all_values()
+    except Exception as e:
+        st.write(e)
     header = existing_values[0]
     data = existing_values[1:]
     existing_df = pd.DataFrame(data, columns=header)
-    st.text("2️⃣ Carico dati esistenti dal foglio...3")
 
     # Converte valori numerici e NaN in stringa per sicurezza
     existing_df = existing_df.fillna("").astype(str)
