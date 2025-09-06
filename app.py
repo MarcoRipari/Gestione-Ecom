@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 import os
-from typing import List, Dict, AnyF
+from typing import List, Dict, Any
 from google.oauth2 import service_account
 import gspread
 from io import BytesIO
