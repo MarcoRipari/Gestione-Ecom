@@ -841,8 +841,9 @@ def process_csv_and_update(sheet, uploaded_file):
                 start_col = "A"
                 end_col = chr(ord("A") + len(single_row) - 1)
                 cell_range = f"{start_col}{idx+2}:{end_col}{idx+2}"  # +2 per header
-                sheet.delete_rows(idx+2)  # elimina la riga vecchia
-                sheet.insert_row(single_row, idx+2)  # scrive la riga nuova
+                idx = int(existing_df.index[existing_df["SKU"] == sku][0])
+                sheet.delete_rows(idx + 2)  # ora è int vero
+                sheet.insert_row(single_row, idx + 2)
                 updated_count += 1
 
     # Append nuove righe alla fine del foglio
