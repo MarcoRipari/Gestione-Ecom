@@ -839,8 +839,9 @@ def process_csv_and_update(sheet, uploaded_file):
                 # Aggiorna direttamente il range dalla colonna A
                 start_col = "A"
                 end_col = chr(ord("A") + len(single_row) - 1)
-                cell_range = f"{start_col}{idx+2}:{end_col}{idx+2}"  # +2 per header
-                sheet.update(cell_range, [single_row], value_input_option="RAW")
+                #cell_range = f"{start_col}{idx+2}:{end_col}{idx+2}"  # +2 per header
+                #sheet.update(cell_range, [single_row], value_input_option="RAW")
+                sheet.update(f"A{idx+2}:U{idx+2}", [single_row], value_input_option="RAW")
                 updated_count += 1
 
     # Append nuove righe alla fine del foglio
