@@ -797,40 +797,42 @@ def process_csv_and_update(sheet, uploaded_file):
     cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
     df = df[cols]
 
-    # Dati esistenti dal foglio
+    # Dati esistenti
     existing = sheet.get_all_values()
     header = existing[0]
     data = existing[1:]
     existing_df = pd.DataFrame(data, columns=header)
 
-    # Map per velocizzare la ricerca
-    existing_dict = {row["SKU"]: idx for idx, row in existing_df.iterrows()}
+    # Map SKU -> riga (indice + 2 in GSheet)
+    existing_dict = {row["SKU"]: idx + 2 for idx, row in existing_df.iterrows()}
 
     new_rows = []
-    update_batches = []
+    updates = []
     total = len(df)
     progress = st.progress(0)
 
     for i, row in enumerate(df.itertuples(index=False, name=None)):
-        sku = row[0]  # SKU è prima colonna
+        sku = row[0]  # SKU
         new_year_stage = f"{row[1]}/{row[2]}"  # Anno/Stag
 
         if sku not in existing_dict:
             new_rows.append(row)
         else:
             idx = existing_dict[sku]
-            existing_year_stage = f"{existing_df.at[idx, 'Anno']}/{existing_df.at[idx, 'Stag.']}"
+            existing_year_stage = f"{existing_df.at[idx-2, 'Anno']}/{existing_df.at[idx-2, 'Stag.']}"
             if new_year_stage > existing_year_stage:
-                update_batches.append((idx+2, row))  # idx+2 per riga effettiva in GSheet
+                updates.append((idx, ["" if pd.isna(x) else str(x) for x in row]))
 
         progress.progress((i + 1) / total)
 
-    # Aggiornamenti batch
-    for idx, row in update_batches:
-        row_clean = ["" if pd.isna(x) else str(x) for x in row]
-        end_col = rowcol_to_a1(idx, len(row_clean))
-        cell_range = f"A{idx}:{end_col}"
-        sheet.update(cell_range, [row_clean], value_input_option="RAW")
+    # Aggiornamento batch: costruisci valori e range
+    if updates:
+        cell_ranges = [f"A{idx}:U{idx}" for idx, _ in updates]
+        values = [row for _, row in updates]
+        sheet.batch_update([{
+            "range": r,
+            "values": [v]
+        } for r, v in zip(cell_ranges, values)])
 
     # Append batch
     if new_rows:
@@ -838,7 +840,7 @@ def process_csv_and_update(sheet, uploaded_file):
         df_new = df_new.fillna("").astype(str)
         sheet.append_rows(df_new.values.tolist(), value_input_option="RAW")
 
-    return len(new_rows), len(update_batches)
+    return len(new_rows), len(updates)
 
     
 # --- Funzione per generare PDF ---
