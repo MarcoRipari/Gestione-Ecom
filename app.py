@@ -859,7 +859,7 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=100):
         # pulizia valori
         new_rows_clean = [[str(cell) if cell is not None else "" for cell in row] for row in new_rows]
     
-        start_row = len(existing_df) + len(updates) + 2  # +2 per header e base 1
+        start_row = len(existing_df) + 2  # +2 per header e base 1
         end_row = start_row + len(new_rows_clean) - 1
         missing_rows = end_row - sheet.row_count
         if missing_rows > 0:
