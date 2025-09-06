@@ -776,13 +776,13 @@ def update_row(sheet, row_idx, row):
     sheet.update(cell_range, [row_clean])
 
 def process_csv_and_update(sheet, uploaded_file):
-    st.text("1️⃣ Lettura CSV...")
+    st.text("1️⃣ Leggo CSV...")
     df = read_csv_auto_encoding(uploaded_file)
 
     expected_cols = [
         "Anno","Stag.","Clz.","Descr.","Serie","Descriz1","Annullato",
-        "Campionato","Cat","Cod","Descriz2","Var.","DescrizVar","Col.",
-        "DescrizCol","TAGLIA","QUANTIA","Vuota","DATA_CREAZIONE","N=NOOS"
+        "Campionato","Cat","Cod","Descr2","Var.","DescrizVar","Col.",
+        "DescrCol","TAGLIA","QUANTIA","Vuota","DATA_CREAZIONE","N=NOOS"
     ]
 
     if df.shape[1] != len(expected_cols):
@@ -791,56 +791,67 @@ def process_csv_and_update(sheet, uploaded_file):
         return 0, 0
 
     df.columns = expected_cols
-    st.text("2️⃣ Creazione colonna SKU...")
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
-    df = df[["SKU"] + [c for c in df.columns if c != "SKU"]]
 
-    df["Anno"] = pd.to_numeric(df["Anno"], errors="coerce").fillna(0).astype(int)
-    df["Stag."] = pd.to_numeric(df["Stag."], errors="coerce").fillna(0).astype(int)
+    # Porta SKU come prima colonna
+    cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
+    df = df[cols]
 
-    st.text("3️⃣ Recupero dati esistenti da Google Sheet...")
+    st.text("2️⃣ Carico dati esistenti dal foglio...")
     existing_values = sheet.get_all_values()
-    if not existing_values or len(existing_values) < 1:
-        existing_df = pd.DataFrame(columns=df.columns)
-        st.text("⚠️ Foglio vuoto, nessun dato esistente.")
-    else:
-        header = existing_values[0]
-        data = existing_values[1:]
-        existing_df = pd.DataFrame(data, columns=header)
-        existing_df["Anno"] = pd.to_numeric(existing_df["Anno"], errors="coerce").fillna(0).astype(int)
-        existing_df["Stag."] = pd.to_numeric(existing_df["Stag."], errors="coerce").fillna(0).astype(int)
-        st.text(f"✅ Trovate {len(existing_df)} righe esistenti.")
+    header = existing_values[0]
+    data = existing_values[1:]
+    existing_df = pd.DataFrame(data, columns=header)
 
-    st.text("4️⃣ Merge per individuare nuove righe e aggiornamenti...")
-    merged = df.merge(existing_df, on="SKU", how="left", suffixes=("", "_old"), indicator=True)
+    # Converte valori numerici e NaN in stringa per sicurezza
+    existing_df = existing_df.fillna("").astype(str)
 
-    st.text("5️⃣ Preparazione nuove righe...")
-    new_rows = merged.loc[merged["_merge"] == "left_only", df.columns].fillna("").astype(str).values.tolist()
-    st.text(f"✅ Nuove righe da aggiungere: {len(new_rows)}")
+    # Dizionario per accesso rapido alle SKU esistenti
+    existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
-    st.text("6️⃣ Preparazione aggiornamenti...")
+    st.text("3️⃣ Identifico nuove righe e aggiornamenti...")
+    new_rows = []
     updates = []
-    update_rows = merged.loc[merged["_merge"] == "both"]
-    for _, row in update_rows.iterrows():
-        if (row["Anno"] > row["Anno_old"]) or (row["Anno"] == row["Anno_old"] and row["Stag."] > row["Stag._old"]):
-            idx = int(existing_df.index[existing_df["SKU"] == row["SKU"]][0]) + 2
-            single_row = ["" if pd.isna(x) else str(x) for x in row[df.columns]]
-            cell_range = f"A{idx}:{chr(64 + len(single_row))}{idx}"
-            updates.append({"range": cell_range, "values": [single_row]})
-    st.text(f"✅ Righe da aggiornare: {len(updates)}")
 
-    if updates:
-        st.text("7️⃣ Applicazione aggiornamenti in batch...")
-        body = {"valueInputOption": "RAW", "data": updates}
-        sheet.spreadsheet.batch_update(body)
-        st.text("✅ Aggiornamenti completati.")
+    # Progress bar
+    progress = st.progress(0)
+    total = len(df)
 
+    for i, row in enumerate(df.itertuples(index=False)):
+        sku = row.SKU
+        new_year_stage = (row.Anno, row.Stag.)  # tupla per confronto
+
+        single_row = ["" if pd.isna(x) else str(x) for x in row]
+
+        if sku not in existing_dict:
+            new_rows.append(single_row)
+        else:
+            existing_row = existing_dict[sku]
+            existing_year_stage = (existing_row["Anno"], existing_row["Stag."])
+            # Controllo se aggiornare: anno maggiore o stesso anno ma stagione maggiore
+            if int(new_year_stage[0]) > int(existing_year_stage[0]) or \
+               (int(new_year_stage[0]) == int(existing_year_stage[0]) and int(new_year_stage[1]) > int(existing_year_stage[1])):
+                idx = existing_df.index[existing_df["SKU"] == sku][0]
+                updates.append((idx+2, single_row))  # +2 perché foglio include header e base-1
+
+        # Aggiornamento progress bar ogni 50 righe
+        if i % 50 == 0:
+            progress.progress(i / total)
+
+    progress.progress(1.0)
+    st.text(f"✅ Nuove righe da aggiungere: {len(new_rows)}")
+    st.text(f"✅ Aggiornamenti da effettuare: {len(updates)}")
+
+    st.text("4️⃣ Aggiorno righe esistenti...")
+    for idx, single_row in updates:
+        cell_range = f"A{idx}:{chr(64 + len(single_row))}{idx}"
+        sheet.update(cell_range, [single_row], value_input_option="RAW")
+
+    st.text("5️⃣ Aggiungo nuove righe in fondo...")
     if new_rows:
-        st.text("8️⃣ Append nuove righe...")
         sheet.append_rows(new_rows, value_input_option="RAW")
-        st.text("✅ Append completato.")
 
-    st.text("9️⃣ Fine elaborazione!")
+    st.text("✅ Operazione completata!")
     return len(new_rows), len(updates)
 
     
