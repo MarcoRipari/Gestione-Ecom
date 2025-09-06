@@ -818,6 +818,7 @@ def process_csv_and_update(sheet, uploaded_file):
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     new_rows = []
+    updates = []
     updated_count = 0
 
     for _, row in df.iterrows():
