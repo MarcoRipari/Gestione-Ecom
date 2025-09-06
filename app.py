@@ -775,7 +775,7 @@ def update_row(sheet, row_idx, row):
     cell_range = f"{start}:{end}"
     sheet.update(cell_range, [row_clean])
 
-def process_csv_and_update(sheet, uploaded_file):
+def process_csv_and_update(sheet, uploaded_file, batch_size=500):
     df = read_csv_auto_encoding(uploaded_file)
 
     expected_cols = [
@@ -793,18 +793,23 @@ def process_csv_and_update(sheet, uploaded_file):
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
     df = df[["SKU"] + expected_cols]  # sposta SKU in prima colonna
 
-    # dati esistenti
+    # leggo dati esistenti
     existing = sheet.get_all_values()
-    header, data = existing[0], existing[1:]
-    existing_df = pd.DataFrame(data, columns=header)
+    if not existing:
+        header = df.columns.tolist()
+        sheet.insert_row(header, 1)
+        existing_df = pd.DataFrame(columns=header)
+    else:
+        header, data = existing[0], existing[1:]
+        existing_df = pd.DataFrame(data, columns=header)
 
     existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
     new_rows = []
-    updates = []  # 🔹 INIZIALIZZO QUI
+    updates = []
     updated_count = 0
 
-    for _, row in df.iterrows():
+    for i, row in df.iterrows():
         sku = row["SKU"]
         new_year_stage = f"{row['Anno']}/{row['Stag.']}"
         single_row = ["" if pd.isna(x) else str(x) for x in row.tolist()]
@@ -817,22 +822,24 @@ def process_csv_and_update(sheet, uploaded_file):
             if new_year_stage > existing_year_stage:
                 idx = int(existing_df.index[existing_df["SKU"] == sku][0]) + 2
                 cell_range = f"A{idx}:U{idx}"
-                updates.append({
-                    "range": cell_range,
-                    "values": [single_row]
-                })
+                updates.append({"range": cell_range, "values": [single_row]})
                 updated_count += 1
 
-    # 🔹 fai update in batch
+    # 🔹 batch update
     if updates:
-        body = {"valueInputOption": "RAW", "data": updates}
-        sheet.spreadsheet.values_batch_update(body)
+        for i in range(0, len(updates), batch_size):
+            batch = updates[i:i+batch_size]
+            body = {"valueInputOption": "RAW", "data": batch}
+            sheet.spreadsheet.values_batch_update(body)
 
-    # 🔹 append nuove righe in batch
+    # 🔹 batch append
     if new_rows:
-        sheet.append_rows(new_rows, value_input_option="RAW")
+        for i in range(0, len(new_rows), batch_size):
+            batch = new_rows[i:i+batch_size]
+            sheet.append_rows(batch, value_input_option="RAW")
 
     return len(new_rows), updated_count
+
     
 # --- Funzione per generare PDF ---
 def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
