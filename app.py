@@ -856,10 +856,10 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     # =======================
     st.text("5️⃣ Aggiungo nuove righe in fondo...")
     if new_rows:
-        sheet.resize(rows=sheet.row_count, cols=len(df.columns))
+        batch_size = 100
         for start in range(0, len(new_rows), batch_size):
-            sheet.insert_rows(new_rows, row=sheet.row_count+1, value_input_option="RAW")
-            #sheet.append_rows(new_rows[start:start+batch_size], value_input_option="RAW")
+            batch = new_rows[start:start+batch_size]
+            sheet.insert_rows(batch, row=sheet.row_count+1, value_input_option="RAW")
 
     st.text("✅ Operazione completata!")
     return len(new_rows), len(updates)
