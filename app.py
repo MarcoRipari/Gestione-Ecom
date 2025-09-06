@@ -799,9 +799,11 @@ def process_csv_and_update(sheet, uploaded_file):
 
     st.text("2️⃣ Carico dati esistenti dal foglio...")
     existing_values = sheet.get_all_values()
+    st.text("2️⃣ Carico dati esistenti dal foglio...2")
     header = existing_values[0]
     data = existing_values[1:]
     existing_df = pd.DataFrame(data, columns=header)
+    st.text("2️⃣ Carico dati esistenti dal foglio...3")
 
     # Converte valori numerici e NaN in stringa per sicurezza
     existing_df = existing_df.fillna("").astype(str)
