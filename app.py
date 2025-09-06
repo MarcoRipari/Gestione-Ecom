@@ -56,6 +56,7 @@ import locale
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 from gspread.utils import rowcol_to_a1
+from concurrent.futures import ThreadPoolExecutor, as_complete
 
 
 logging.basicConfig(level=logging.INFO)
@@ -775,7 +776,7 @@ def update_row(sheet, row_idx, row):
     cell_range = f"{start}:{end}"
     sheet.update(cell_range, [row_clean])
 
-def process_csv_and_update(sheet, uploaded_file, batch_size=500):
+def process_csv_and_update(sheet, uploaded_file, batch_size=500, max_workers=8):
     df = read_csv_auto_encoding(uploaded_file)
 
     expected_cols = [
@@ -791,7 +792,7 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=500):
 
     df.columns = expected_cols
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
-    df = df[["SKU"] + expected_cols]  # sposta SKU in prima colonna
+    df = df[["SKU"] + expected_cols]  # sposta SKU all'inizio
 
     # leggo dati esistenti
     existing = sheet.get_all_values()
@@ -825,19 +826,44 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=500):
                 updates.append({"range": cell_range, "values": [single_row]})
                 updated_count += 1
 
-    # 🔹 batch update
-    if updates:
+    # 🔹 funzioni batch
+    def send_update(batch):
+        body = {"valueInputOption": "RAW", "data": batch}
+        return sheet.spreadsheet.values_batch_update(body)
+
+    def send_append(batch):
+        return sheet.append_rows(batch, value_input_option="RAW")
+
+    # 🔹 progress bar
+    total_batches = (len(updates) // batch_size + (1 if updates else 0)) + \
+                    (len(new_rows) // batch_size + (1 if new_rows else 0))
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    futures = []
+    done_count = 0
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # submit updates
         for i in range(0, len(updates), batch_size):
-            batch = updates[i:i+batch_size]
-            body = {"valueInputOption": "RAW", "data": batch}
-            sheet.spreadsheet.values_batch_update(body)
+            futures.append(executor.submit(send_update, updates[i:i+batch_size]))
 
-    # 🔹 batch append
-    if new_rows:
+        # submit appends
         for i in range(0, len(new_rows), batch_size):
-            batch = new_rows[i:i+batch_size]
-            sheet.append_rows(batch, value_input_option="RAW")
+            futures.append(executor.submit(send_append, new_rows[i:i+batch_size]))
 
+        # gestisci completamento batch
+        for future in as_completed(futures):
+            done_count += 1
+            progress = done_count / total_batches
+            progress_bar.progress(progress)
+            status_text.text(f"✅ Completati {done_count}/{total_batches} batch...")
+            try:
+                future.result()
+            except Exception as e:
+                st.error(f"❌ Errore batch: {e}")
+
+    status_text.text("🎉 Aggiornamento completato!")
     return len(new_rows), updated_count
 
     
