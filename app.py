@@ -56,7 +56,6 @@ import locale
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 from gspread.utils import rowcol_to_a1
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 logging.basicConfig(level=logging.INFO)
@@ -776,7 +775,8 @@ def update_row(sheet, row_idx, row):
     cell_range = f"{start}:{end}"
     sheet.update(cell_range, [row_clean])
 
-def process_csv_and_update(sheet, uploaded_file, batch_size=500, max_workers=8):
+def process_csv_and_update(sheet, uploaded_file):
+    # Leggi CSV
     df = read_csv_auto_encoding(uploaded_file)
 
     expected_cols = [
@@ -786,85 +786,59 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=500, max_workers=8):
     ]
 
     if df.shape[1] != len(expected_cols):
-        st.error(f"⚠️ CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}")
+        st.error(f"⚠️ CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}. Controlla separatore o formato!")
         st.dataframe(df.head())
         return 0, 0
 
     df.columns = expected_cols
+
+    # Crea SKU e spostala come prima colonna
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
-    df = df[["SKU"] + expected_cols]  # sposta SKU all'inizio
+    cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
+    df = df[cols]
 
-    # leggo dati esistenti
+    # Dati esistenti dal foglio
     existing = sheet.get_all_values()
-    if not existing:
-        header = df.columns.tolist()
-        sheet.insert_row(header, 1)
-        existing_df = pd.DataFrame(columns=header)
-    else:
-        header, data = existing[0], existing[1:]
-        existing_df = pd.DataFrame(data, columns=header)
+    header = existing[0]
+    data = existing[1:]
+    existing_df = pd.DataFrame(data, columns=header)
 
-    existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
+    # Map per velocizzare la ricerca
+    existing_dict = {row["SKU"]: idx for idx, row in existing_df.iterrows()}
 
     new_rows = []
-    updates = []
-    updated_count = 0
+    update_batches = []
+    total = len(df)
+    progress = st.progress(0)
 
-    for i, row in df.iterrows():
-        sku = row["SKU"]
-        new_year_stage = f"{row['Anno']}/{row['Stag.']}"
-        single_row = ["" if pd.isna(x) else str(x) for x in row.tolist()]
+    for i, row in enumerate(df.itertuples(index=False, name=None)):
+        sku = row[0]  # SKU è prima colonna
+        new_year_stage = f"{row[1]}/{row[2]}"  # Anno/Stag
 
         if sku not in existing_dict:
-            new_rows.append(single_row)
+            new_rows.append(row)
         else:
-            existing_row = existing_dict[sku]
-            existing_year_stage = f"{existing_row['Anno']}/{existing_row['Stag.']}"
+            idx = existing_dict[sku]
+            existing_year_stage = f"{existing_df.at[idx, 'Anno']}/{existing_df.at[idx, 'Stag.']}"
             if new_year_stage > existing_year_stage:
-                idx = int(existing_df.index[existing_df["SKU"] == sku][0]) + 2
-                cell_range = f"A{idx}:U{idx}"
-                updates.append({"range": cell_range, "values": [single_row]})
-                updated_count += 1
+                update_batches.append((idx+2, row))  # idx+2 per riga effettiva in GSheet
 
-    # 🔹 funzioni batch
-    def send_update(batch):
-        body = {"valueInputOption": "RAW", "data": batch}
-        return sheet.spreadsheet.values_batch_update(body)
+        progress.progress((i + 1) / total)
 
-    def send_append(batch):
-        return sheet.append_rows(batch, value_input_option="RAW")
+    # Aggiornamenti batch
+    for idx, row in update_batches:
+        row_clean = ["" if pd.isna(x) else str(x) for x in row]
+        end_col = rowcol_to_a1(idx, len(row_clean))
+        cell_range = f"A{idx}:{end_col}"
+        sheet.update(cell_range, [row_clean], value_input_option="RAW")
 
-    # 🔹 progress bar
-    total_batches = (len(updates) // batch_size + (1 if updates else 0)) + \
-                    (len(new_rows) // batch_size + (1 if new_rows else 0))
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+    # Append batch
+    if new_rows:
+        df_new = pd.DataFrame(new_rows, columns=df.columns)
+        df_new = df_new.fillna("").astype(str)
+        sheet.append_rows(df_new.values.tolist(), value_input_option="RAW")
 
-    futures = []
-    done_count = 0
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # submit updates
-        for i in range(0, len(updates), batch_size):
-            futures.append(executor.submit(send_update, updates[i:i+batch_size]))
-
-        # submit appends
-        for i in range(0, len(new_rows), batch_size):
-            futures.append(executor.submit(send_append, new_rows[i:i+batch_size]))
-
-        # gestisci completamento batch
-        for future in as_completed(futures):
-            done_count += 1
-            progress = done_count / total_batches
-            progress_bar.progress(progress)
-            status_text.text(f"✅ Completati {done_count}/{total_batches} batch...")
-            try:
-                future.result()
-            except Exception as e:
-                st.error(f"❌ Errore batch: {e}")
-
-    status_text.text("🎉 Aggiornamento completato!")
-    return len(new_rows), updated_count
+    return len(new_rows), len(update_batches)
 
     
 # --- Funzione per generare PDF ---
