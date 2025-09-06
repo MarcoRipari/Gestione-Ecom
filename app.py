@@ -776,6 +776,7 @@ def update_row(sheet, row_idx, row):
     sheet.update(cell_range, [row_clean])
 
 def process_csv_and_update(sheet, uploaded_file):
+    # ---------- Leggi CSV ----------
     df = read_csv_auto_encoding(uploaded_file)
 
     expected_cols = [
@@ -783,58 +784,78 @@ def process_csv_and_update(sheet, uploaded_file):
         "Campionato","Cat","Cod","Descriz2","Var.","DescrizVar","Col.",
         "DescrizCol","TAGLIA","QUANTIA","Vuota","DATA_CREAZIONE","N=NOOS"
     ]
+
     if df.shape[1] != len(expected_cols):
-        st.error(f"CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}")
+        st.error(f"⚠️ CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}. Controlla separatore o formato!")
         st.dataframe(df.head())
-        return 0,0
+        return 0, 0
+
     df.columns = expected_cols
 
-    # Sposta SKU all'inizio
+    # ---------- Crea SKU e sposta all'inizio ----------
     df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
-    df = df[["SKU"] + [c for c in df.columns if c != "SKU"]]
+    cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
+    df = df[cols]
 
-    # Leggi foglio in memoria
-    existing = sheet.get_all_values()
-    header = existing[0]
-    data = existing[1:]
+    # ---------- Leggi foglio esistente ----------
+    existing_values = sheet.get_all_values()
+    if not existing_values:
+        st.error("Foglio vuoto o non accessibile")
+        return 0, 0
+
+    header = existing_values[0]
+    data = existing_values[1:]
     existing_df = pd.DataFrame(data, columns=header)
 
-    existing_dict = {row["SKU"]: idx+2 for idx, row in existing_df.iterrows()}
+    # ---------- Mappa SKU esistenti ----------
+    existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
 
-    new_rows = []
+    # ---------- Preparazione batch ----------
     updates = []
+    new_rows = []
 
     total = len(df)
-    progress = st.progress(0)
+    progress_bar = st.progress(0)
+    status_text = st.empty()
 
-    # Solo calcolo in memoria
     for i, row in enumerate(df.itertuples(index=False, name=None)):
-        sku = row[0]
-        new_year_stage = f"{row[1]}/{row[2]}"  # Anno/Stag
+        row_dict = dict(zip(df.columns, row))
+        sku = row_dict["SKU"]
+        new_year_stage = f"{row_dict['Anno']}/{row_dict['Stag.']}"
+
         if sku not in existing_dict:
-            new_rows.append(row)
+            new_rows.append([str(x) if pd.notna(x) else "" for x in row])
         else:
-            idx = existing_dict[sku]
-            existing_year_stage = f"{existing_df.at[idx-2,'Anno']}/{existing_df.at[idx-2,'Stag.']}"
+            existing_row = existing_dict[sku]
+            existing_year_stage = f"{existing_row['Anno']}/{existing_row['Stag.']}"
             if new_year_stage > existing_year_stage:
-                updates.append((idx, ["" if pd.isna(x) else str(x) for x in row]))
-        if i % 50 == 0:
-            progress.progress((i+1)/total)
+                idx = existing_df.index[existing_df["SKU"] == sku][0]
+                updates.append({
+                    "row_idx": idx + 2,  # +2 perché Google Sheets parte da 1 e header è riga 1
+                    "values": [str(x) if pd.notna(x) else "" for x in row]
+                })
 
-    # Aggiornamento batch
+        # Aggiorna progress bar ogni 50 righe
+        if i % 50 == 0 or i == total - 1:
+            progress_bar.progress((i + 1) / total)
+            status_text.text(f"Preparati {i+1}/{total} righe")
+
+    # ---------- Esegui aggiornamenti batch ----------
     if updates:
-        batch_request = [{
-            "range": f"A{idx}:U{idx}",
-            "values": [row]
-        } for idx, row in updates]
-        sheet.batch_update(batch_request)
+        batch_updates = {}
+        for upd in updates:
+            row_idx = upd["row_idx"]
+            batch_updates[f"A{row_idx}:U{row_idx}"] = upd["values"]  # A:U sono le colonne fisse
+        # gspread non ha un vero batch update singolo per celle diverse,
+        # quindi si possono usare update per ciascun range, ma fatto dopo la preparazione
+        for cell_range, vals in batch_updates.items():
+            sheet.update(cell_range, [vals], value_input_option="RAW")
 
-    # Append batch
+    # ---------- Esegui append per nuove righe ----------
     if new_rows:
-        df_new = pd.DataFrame(new_rows, columns=df.columns)
-        sheet.append_rows(df_new.fillna("").astype(str).values.tolist(), value_input_option="RAW")
+        sheet.append_rows(new_rows, value_input_option="RAW")
 
-    progress.progress(1.0)
+    st.success(f"✅ Aggiunte {len(new_rows)} nuove SKU, aggiornate {len(updates)} SKU già presenti.")
     return len(new_rows), len(updates)
 
     
