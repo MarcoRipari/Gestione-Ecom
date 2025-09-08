@@ -1985,7 +1985,8 @@ elif page == "Giacenze - Importa":
             st.session_state.df_input = read_csv_auto_encoding(csv_import, "\t")
 
     df_input = st.session_state.df_input
-    
+
+    default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
     sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
     
     if df_input is not None:
@@ -2020,9 +2021,7 @@ elif page == "Giacenze - Importa":
 
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
 
-        # --- Destinazione GSheet ---
-        default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
-        
+        # --- Destinazione GSheet ---       
         sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
         sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
         sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
