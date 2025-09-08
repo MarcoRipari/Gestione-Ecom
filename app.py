@@ -108,60 +108,6 @@ def get_sheet(sheet_id, tab):
     # Se non trovato, lo crea
     return spreadsheet.add_worksheet(title=tab, rows="10000", cols="50")
 
-def get_dropbox_access_token():
-    refresh_token = st.secrets["DROPBOX_REFRESH_TOKEN"]
-    client_id = st.secrets["DROPBOX_CLIENT_ID"]
-    client_secret = st.secrets["DROPBOX_CLIENT_SECRET"]
-
-    auth_header = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
-
-    response = requests.post(
-        "https://api.dropbox.com/oauth2/token",
-        headers={
-            "Authorization": f"Basic {auth_header}",
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
-        data={
-            "grant_type": "refresh_token",
-            "refresh_token": refresh_token
-        },
-    )
-    response.raise_for_status()
-    return response.json()["access_token"]
-
-def get_dropbox_client():
-    access_token = get_dropbox_access_token()
-    return dropbox.Dropbox(access_token)
-
-def upload_csv_to_dropbox(dbx, folder_path: str, file_name: str, file_bytes: bytes):
-    dbx_path = f"{folder_path}/{file_name}"
-    try:
-        dbx.files_create_folder_v2(folder_path)
-    except dropbox.exceptions.ApiError:
-        pass  # cartella già esiste
-    try:
-        dbx.files_upload(file_bytes, dbx_path, mode=WriteMode("overwrite"))
-        
-        st.success(f"✅ CSV caricato su Dropbox: {dbx_path}")
-    except Exception as e:
-        st.error(f"❌ Errore caricando CSV su Dropbox: {e}")
-
-def download_csv_from_dropbox(dbx, folder_path: str, file_name: str) -> io.BytesIO:
-    file_path = f"{folder_path}/{file_name}"
-
-    try:
-        metadata, res = dbx.files_download(file_path)
-        return io.BytesIO(res.content), metadata
-    except dropbox.exceptions.ApiError as e:
-        # Se l'errore è 'path/not_found' -> file mancante
-        if (hasattr(e.error, "is_path") and e.error.is_path() 
-                and e.error.get_path().is_not_found()):
-            return None, None
-        else:
-            # altri errori (permessi, connessione, ecc.)
-            st.error(f"Errore scaricando da Dropbox: {e}")
-            return None, None
-
 # ---------------------------
 # Auth system
 # ---------------------------
@@ -496,15 +442,6 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 {sim_text}
 """
     return prompt
-
-def generate_descriptions(prompt):
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=3000
-    )
-    return response.choices[0].message.content
     
 # ---------------------------
 # 📊 Audit Trail & Google Sheets
@@ -513,19 +450,6 @@ def append_log(sheet_id, log_data):
     sheet = get_sheet(sheet_id, "logs")
     sheet.append_row(list(log_data.values()), value_input_option="RAW")
 
-def overwrite_sheet(sheet_id, tab, df):
-    sheet = get_sheet(sheet_id, tab)
-    sheet.clear()
-
-    # ✅ Sostituisci NaN con stringa vuota e converti tutto in stringa (safe per JSON)
-    df = df.fillna("").astype(str)
-
-    # ✅ Prepara i dati: intestazione + righe
-    data = [df.columns.tolist()] + df.values.tolist()
-
-    # ✅ Scrittura nel foglio Google Sheets
-    sheet.update(data)
-
 def append_to_sheet(sheet_id, tab, df):
     sheet = get_sheet(sheet_id, tab)
     df = df.fillna("").astype(str)
@@ -533,85 +457,63 @@ def append_to_sheet(sheet_id, tab, df):
     sheet.append_rows(values, value_input_option="RAW")  # ✅ chiamata unica
 
 # ---------------------------
-# SetUp Google Drive
+# DropBox
 # ---------------------------
-def get_latest_file_from_gdrive(folder_id, nome_file):
-    drive_service = build("drive", "v3", credentials=credentials)
-    query = f"'{folder_id}' in parents and trashed=false and name='{nome_file}.csv'"
-    response = drive_service.files().list(
-        q=query,
-        orderBy="modifiedTime desc",
-        pageSize=1,
-        fields="files(id, name, modifiedTime)"
-    ).execute()
-    files = response.get("files", [])
-    return files[0] if files else None
 
+def get_dropbox_access_token():
+    refresh_token = st.secrets["DROPBOX_REFRESH_TOKEN"]
+    client_id = st.secrets["DROPBOX_CLIENT_ID"]
+    client_secret = st.secrets["DROPBOX_CLIENT_SECRET"]
 
-def download_file_from_gdrive(file_id):
+    auth_header = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+
+    response = requests.post(
+        "https://api.dropbox.com/oauth2/token",
+        headers={
+            "Authorization": f"Basic {auth_header}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token
+        },
+    )
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+def get_dropbox_client():
+    access_token = get_dropbox_access_token()
+    return dropbox.Dropbox(access_token)
+
+def upload_csv_to_dropbox(dbx, folder_path: str, file_name: str, file_bytes: bytes):
+    dbx_path = f"{folder_path}/{file_name}"
     try:
-        drive_service = build("drive", "v3", credentials=credentials)
-        fh = io.BytesIO()
-        request = drive_service.files().get_media(fileId=file_id)
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        while not done:
-            status, done = downloader.next_chunk()
-        fh.seek(0)
-        return fh.read()
+        dbx.files_create_folder_v2(folder_path)
+    except dropbox.exceptions.ApiError:
+        pass  # cartella già esiste
+    try:
+        dbx.files_upload(file_bytes, dbx_path, mode=WriteMode("overwrite"))
+        
+        st.success(f"✅ CSV caricato su Dropbox: {dbx_path}")
     except Exception as e:
-        st.error(f"Errore nel download del file da Drive: {e}")
-        return None
+        st.error(f"❌ Errore caricando CSV su Dropbox: {e}")
 
-
-def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"):
-    """
-    Carica un file CSV su Google Drive, sovrascrivendo se esiste già.
-    Compatibile con Shared Drives.
-    """
-    drive_service = build("drive", "v3", credentials=credentials)
-
-    if not file_bytes or len(file_bytes) == 0:
-        st.error(f"⚠️ Il file {file_name} è vuoto, upload annullato.")
-        return None
-
-    query = f"'{folder_id}' in parents and name='{file_name}' and trashed=false"
-    response = drive_service.files().list(
-        q=query,
-        fields="files(id, name)",
-        supportsAllDrives=True,
-        includeItemsFromAllDrives=True
-    ).execute()
-    files = response.get("files", [])
-
-    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=False)
+def download_csv_from_dropbox(dbx, folder_path: str, file_name: str) -> io.BytesIO:
+    file_path = f"{folder_path}/{file_name}"
 
     try:
-        if files:
-            # Aggiorna file esistente
-            file_id = files[0]["id"]
-            updated_file = drive_service.files().update(
-                fileId=file_id,
-                media_body=media,
-                supportsAllDrives=True
-            ).execute()
-            st.info(f"♻️ File aggiornato su Drive: {updated_file.get('name')}")
-            return updated_file
+        metadata, res = dbx.files_download(file_path)
+        return io.BytesIO(res.content), metadata
+    except dropbox.exceptions.ApiError as e:
+        # Se l'errore è 'path/not_found' -> file mancante
+        if (hasattr(e.error, "is_path") and e.error.is_path() 
+                and e.error.get_path().is_not_found()):
+            return None, None
         else:
-            # Crea nuovo file
-            file_metadata = {"name": file_name, "parents": [folder_id]}
-            new_file = drive_service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields="id, name",
-                supportsAllDrives=True
-            ).execute()
-            st.success(f"✅ File creato su Drive: {new_file.get('name')}")
-            return new_file
-    except Exception as e:
-        st.error(f"❌ Errore nell'upload su Drive: {e}")
-        return None
-
+            # altri errori (permessi, connessione, ecc.)
+            st.error(f"Errore scaricando da Dropbox: {e}")
+            return None, None
+            
 def format_dropbox_date(dt):
     if dt is None:
         return "Data non disponibile"
@@ -767,13 +669,6 @@ def genera_pdf(df_disp, **param):
     doc.build(elements)
     buffer.seek(0)
     return buffer
-
-def update_row(sheet, row_idx, row):
-    row_clean = ["" if pd.isna(x) else str(x) for x in row]
-    start = rowcol_to_a1(row_idx, 1)  # es. A2
-    end = rowcol_to_a1(row_idx, len(row_clean))  # ultima colonna giusta
-    cell_range = f"{start}:{end}"
-    sheet.update(cell_range, [row_clean])
 
 def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     st.text("1️⃣ Leggo CSV...")
