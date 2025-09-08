@@ -2044,9 +2044,10 @@ elif page == "Giacenze - Importa":
             if nome_file == "Manuale" and file_bytes_for_upload:
                 with st.spinner("Carico il file su DropBox..."):
                     upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+                    
         with col2:
-            if st.button("Importa Giacenze"):
-                with st.spinner("Aggiorno giacenze su GSheet..."):
+            if st.button("Importa Giacenze & Anagrafica"):
+                with st.spinner("Aggiorno giacenze e anagrafica su GSheet..."):
                     sheet_upload_giacenze.clear()
                     sheet_upload_giacenze.update("A1", data_to_write)
                     last_row = len(df_input) + 1
