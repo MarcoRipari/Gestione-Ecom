@@ -1992,6 +1992,8 @@ elif page == "Giacenze - Importa":
     sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
     sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
     
+    col1, col2, col3 = st.columns(3)
+    
     if df_input is not None:
         view_df = st.checkbox("Visualizza il dataframe?", value=False)
         if view_df:
@@ -2042,12 +2044,53 @@ elif page == "Giacenze - Importa":
             if nome_file == "Manuale" and file_bytes_for_upload:
                 with st.spinner("Carico il file su DropBox..."):
                     upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+        with col2:
+            if st.button("Importa Giacenze"):
+                with st.spinner("Aggiorno giacenze su GSheet..."):
+                    sheet_upload_giacenze.clear()
+                    sheet_upload_giacenze.update("A1", data_to_write)
+                    last_row = len(df_input) + 1
+    
+                    ranges_to_format = [
+                        (f"{col_letter}2:{col_letter}{last_row}",
+                            CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                        for col_letter, pattern in numeric_cols_info.items()
+                    ]
+                    format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
+                    st.success("✅ Giacenze importate con successo!")
+    
+                if nome_file == "Manuale" and file_bytes_for_upload:
+                    with st.spinner("Carico il file su DropBox..."):
+                        upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+                        
+        with col3:
+            if st.button("Importa Giacenze & Anagrafica"):
+                with st.spinner("Aggiorno giacenze su GSheet..."):
+                    sheet_upload_giacenze.clear()
+                    sheet_upload_giacenze.update("A1", data_to_write)
+                    last_row = len(df_input) + 1
+    
+                    ranges_to_format = [
+                        (f"{col_letter}2:{col_letter}{last_row}",
+                            CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                        for col_letter, pattern in numeric_cols_info.items()
+                    ]
+                    format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
 
-    if st.button("Importa Anagrafica"):
-        with st.spinner("Aggiorno anagrafica su GSheet..."):
-            sheet_upload_anagrafica.clear()
-            sheet_upload_anagrafica.update("A1", sheet_anagrafica.get_all_values())
-            st.success("✅ Giacenze importate con successo!")
+                    sheet_upload_anagrafica.clear()
+                    sheet_upload_anagrafica.update("A1", sheet_anagrafica.get_all_values())
+                    st.success("✅ Giacenze e anagrafica importate con successo!")
+    
+                if nome_file == "Manuale" and file_bytes_for_upload:
+                    with st.spinner("Carico il file su DropBox..."):
+                        upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+                    
+    with col1:
+        if st.button("Importa Anagrafica"):
+            with st.spinner("Aggiorno anagrafica su GSheet..."):
+                sheet_upload_anagrafica.clear()
+                sheet_upload_anagrafica.update("A1", sheet_anagrafica.get_all_values())
+                st.success("✅ Anagrafica importata con successo!")
             
 elif page == "Giacenze - Per corridoio":
     st.header("Riepilogo per corridoio")
