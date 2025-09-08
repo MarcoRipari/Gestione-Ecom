@@ -2043,11 +2043,11 @@ elif page == "Giacenze - Importa":
                 with st.spinner("Carico il file su DropBox..."):
                     upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
 
-        if st.button("Importa Anagrafica"):
-            with st.spinner("Aggiorno anagrafica su GSheet..."):
-                sheet_upload_anagrafica.clear()
-                sheet_upload_anagrafica.update("A1", sheet_anagrafica.get_all_values())
-                st.success("✅ Giacenze importate con successo!")
+    if st.button("Importa Anagrafica"):
+        with st.spinner("Aggiorno anagrafica su GSheet..."):
+            sheet_upload_anagrafica.clear()
+            sheet_upload_anagrafica.update("A1", sheet_anagrafica.get_all_values())
+            st.success("✅ Giacenze importate con successo!")
             
 elif page == "Giacenze - Per corridoio":
     st.header("Riepilogo per corridoio")
