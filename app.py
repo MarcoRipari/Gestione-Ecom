@@ -1045,7 +1045,7 @@ with st.sidebar:
         page = "Home"
         st.markdown("## 🔑 Login")
         with st.form("login_user"):
-            email = st.text_input("Email")
+            email = st.text_input("Username")
             password = st.text_input("Password", type="password")
 
             login_button = st.form_submit_button("Accedi")
