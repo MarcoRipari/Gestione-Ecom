@@ -54,6 +54,8 @@ from dateutil import parser
 from dateutil.tz import tzlocal
 import locale
 from zoneinfo import ZoneInfo
+from supabase import create_client, Client
+from gspread.utils import rowcol_to_a1
 
 
 logging.basicConfig(level=logging.INFO)
@@ -70,6 +72,19 @@ LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 # 🔐 Setup API keys and credentials
 # ---------------------------
 openai.api_key = st.secrets["OPENAI_API_KEY"]
+
+def check_openai_key():
+    try:
+        openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": "test"}],
+            max_tokens=1
+        )
+        return True
+    except Exception as e:  
+        msg = str(e).lower()
+        return False
+    
 
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["GCP_SERVICE_ACCOUNT"],
@@ -150,14 +165,130 @@ def download_csv_from_dropbox(dbx, folder_path: str, file_name: str) -> io.Bytes
 # ---------------------------
 # Auth system
 # ---------------------------
-def login_as(name: str):
-    st.session_state["logged_as"] = name
-    st.rerun()
+supabase_url = st.secrets["SUPABASE_URL"]
+supabase_key = st.secrets["SUPABASE_KEY"]
+service_role_key = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
+supabase: Client = create_client(supabase_url, supabase_key)
+supabase_admin = create_client(supabase_url, service_role_key)
+
+def login(username: str, password: str) -> bool:
+    try:
+        # 1. Recupera il profilo dallo username
+        res_profile = supabase.table("profiles").select("*").eq("username", username).single().execute()
+        if not res_profile.data:
+            st.error("❌ Username non trovato")
+            return False
+
+        user_id = res_profile.data["user_id"]
+
+        # 2. Recupera l'utente auth per ottenere l'email (richiede service_role_key)
+        res_user = supabase_admin.auth.admin.get_user_by_id(user_id)
+        email = res_user.user.email
+
+        if not email:
+            st.error("❌ Nessuna email trovata per questo utente")
+            return False
+
+        # 3. Login usando email + password
+        res = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+
+        if res.user:
+            # 4. Salva in session_state
+            st.session_state.user = {
+                "email": email,
+                "username": res_profile.data.get("username", ""),
+                "nome": res_profile.data.get("nome", ""),
+                "cognome": res_profile.data.get("cognome", ""),
+                "role": res_profile.data.get("role", "guest"),
+            }
+            return True
+        else:
+            st.error("❌ Credenziali errate")
+            return False
+
+    except Exception as e:
+        st.error(f"Errore login: {e}")
+        return False
+
+
+      
+def login_password(email: str, password: str) -> bool:
+    try:
+        res = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+        if res.user is not None:
+           
+            # Recupera il profilo dell'utente usando user_id
+            profile = supabase.table("profiles").select("*").eq("user_id", res.user.id).single().execute()
+            
+            if profile.data is None:
+                st.error("❌ Profilo utente non trovato")
+                return False
+            
+            # Salva tutto in session_state
+            st.session_state.user = {
+                "data": res.user,
+                "email": res.user.email,
+                "nome": profile.data["nome"],
+                "cognome": profile.data["cognome"],
+                "username": profile.data["username"],
+                "role": profile.data["role"]
+            }
+            #st.session_state.user = res.user
+            #st.session_state.username = profile.data.get("username", res.user.email)
+            return True
+        else:
+            st.error("❌ Email o password errati")
+            return False
+    except Exception as e:
+        st.error(f"Errore login: {e}")
+        return False
+
 
 def logout():
-    del st.session_state.logged_as
-    del st.session_state.password_ok
-    st.rerun()
+    if "user" in st.session_state:
+        supabase.auth.sign_out()
+        st.session_state.user = None
+        #st.session_state.username = None
+        st.rerun()
+
+def register_user(email: str, password: str, **param) -> bool:
+    try:
+        # 1. Crea l'utente in Supabase Auth
+        res = supabase_admin.auth.admin.create_user({
+            "email": email,
+            "password": password,
+            "email_confirm": True
+        })
+
+        if not res.user:
+            st.error("❌ Errore nella creazione utente in Auth")
+            return False
+
+        user_id = res.user.id
+
+        # 2. Inserisci il profilo nella tabella profiles
+        profile = {
+            "user_id": user_id,
+            "nome": param.get("nome", None),
+            "cognome": param.get("cognome", None),
+            "username": param.get("username", None),
+            "role": param.get("role", None)
+        }
+
+        supabase_admin.table("profiles").insert(profile).execute()
+
+        st.success(f"✅ Utente {username} creato correttamente")
+        return True
+
+    except Exception as e:
+        st.error(f"Errore registrazione: {e}")
+        return False
 
 # ---------------------------
 # 📦 Embedding & FAISS Setup
@@ -637,11 +768,113 @@ def genera_pdf(df_disp, **param):
     buffer.seek(0)
     return buffer
 
-# --- Funzione per generare PDF ---
-from reportlab.lib.pagesizes import landscape, A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-from reportlab.lib import colors
+def update_row(sheet, row_idx, row):
+    row_clean = ["" if pd.isna(x) else str(x) for x in row]
+    start = rowcol_to_a1(row_idx, 1)  # es. A2
+    end = rowcol_to_a1(row_idx, len(row_clean))  # ultima colonna giusta
+    cell_range = f"{start}:{end}"
+    sheet.update(cell_range, [row_clean])
 
+def process_csv_and_update(sheet, uploaded_file, batch_size=100):
+    st.text("1️⃣ Leggo CSV...")
+    df = read_csv_auto_encoding(uploaded_file)
+
+    expected_cols = [
+        "Anno","Stag.","Clz.","Descr.","Serie","Descriz1","Annullato",
+        "Campionato","Cat","Cod","Descr2","Var.","DescrizVar","Col.",
+        "DescrCol","TAGLIA","QUANTIA","Vuota","DATA_CREAZIONE","N=NOOS"
+    ]
+
+    if df.shape[1] != len(expected_cols):
+        st.error(f"⚠️ CSV ha {df.shape[1]} colonne invece di {len(expected_cols)}. Controlla separatore o formato!")
+        st.dataframe(df.head())
+        return 0, 0
+
+    df.columns = expected_cols
+    df["SKU"] = df["Cod"].astype(str) + df["Var."].astype(str) + df["Col."].astype(str)
+
+    # Porta SKU come prima colonna
+    cols = ["SKU"] + [c for c in df.columns if c != "SKU"]
+    df = df[cols]
+
+    st.text("2️⃣ Carico dati esistenti dal foglio...")
+    existing_values = sheet.get("A:U")
+    if not existing_values:
+        header = df.columns.tolist()
+        existing_df = pd.DataFrame(columns=header)
+    else:
+        header = existing_values[0]
+        data = existing_values[1:]
+        existing_df = pd.DataFrame(data, columns=header)
+
+    existing_df = existing_df.fillna("").astype(str)
+    existing_dict = {row["SKU"]: row for _, row in existing_df.iterrows()}
+
+    st.text("3️⃣ Identifico nuove righe e aggiornamenti...")
+    new_rows = []
+    updates = []
+
+    total = len(df)
+    progress = st.progress(0)
+
+    for i, row in df.iterrows():
+        sku = row["SKU"]
+        new_year_stage = (int(row["Anno"]), int(row["Stag."]))
+        single_row = ["" if pd.isna(x) else str(x) for x in row]
+
+        if sku not in existing_dict:
+            new_rows.append(single_row)
+        else:
+            existing_row = existing_dict[sku]
+            existing_year_stage = (int(existing_row["Anno"]), int(existing_row["Stag."]))
+            if new_year_stage[0] > existing_year_stage[0] or \
+               (new_year_stage[0] == existing_year_stage[0] and new_year_stage[1] > existing_year_stage[1]):
+                idx = existing_df.index[existing_df["SKU"] == sku][0] + 2  # +2 per header e base 1
+                updates.append((idx, single_row))
+
+        if i % 50 == 0:
+            progress.progress(i / total)
+    progress.progress(1.0)
+
+    st.text(f"✅ Nuove righe da aggiungere: {len(new_rows)}")
+    st.text(f"✅ Aggiornamenti da effettuare: {len(updates)}")
+
+    # =======================
+    # Aggiornamenti batch
+    # =======================
+    st.text("4️⃣ Aggiorno righe esistenti in batch...")
+    for start in range(0, len(updates), batch_size):
+        batch = updates[start:start+batch_size]
+        ranges = [f"A{idx}:U{idx}" for idx, _ in batch]
+        values = [row for _, row in batch]
+        body = [{"range": r, "values": [v]} for r, v in zip(ranges, values)]
+        if body:
+            sheet.batch_update(body)
+
+    # =======================
+    # Aggiunta nuove righe
+    # =======================
+    st.text("5️⃣ Aggiungo nuove righe in fondo...")
+    if new_rows:
+        # pulizia valori
+        new_rows_clean = [[str(cell) if cell is not None else "" for cell in row] for row in new_rows]
+    
+        start_row = len(existing_df) + 2  # +2 per header e base 1
+        end_row = start_row + len(new_rows_clean) - 1
+        missing_rows = end_row - sheet.row_count
+        if missing_rows > 0:
+            sheet.add_rows(missing_rows)
+        cell_range = f"A{start_row}:U{end_row}"
+    
+        sheet.update(cell_range, new_rows_clean, value_input_option="RAW")
+
+    st.text("✅ Operazione completata!")
+    return len(new_rows), len(updates)
+
+
+
+    
+# --- Funzione per generare PDF ---
 def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
     doc = SimpleDocTemplate(file_path, pagesize=landscape(A4))
     elements = []
@@ -758,7 +991,7 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 
 def aggiungi_sku(sheet_id: str, sku: str):
     sheet_lista = get_sheet(sheet_id, "LISTA")
-    sheet_lista.append_row([sku, st.session_state.get("logged_as").upper()])
+    sheet_lista.append_row([sku, st.session_state.user["username"]])
 
 @st.cache_data(ttl=300)
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
@@ -790,26 +1023,75 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
 # ---------------------------
 # 📦 Streamlit UI
 # ---------------------------
-st.set_page_config(page_title="Generatore Descrizioni Calzature", layout="wide")
-# st.title("👟 Generatore Descrizioni di Scarpe con RAG")
+st.set_page_config(page_title="Gestione ECOM", layout="wide")
 
 # 📁 Caricamento dati
 # Sidebar: menu
 with st.sidebar:
     DEBUG = st.checkbox("🪛 Debug")
-    st.markdown("## 📋 Menu")
-
     # Togliere per riattivare password e nome
-    st.session_state["logged_as"] = "GUEST"
+    #st.session_state["logged_as"] = "GUEST"
+    if DEBUG:
+        st.session_state.user = {
+            "data": "data",
+            "email": "test@test.it",
+            "nome": "GUEST",
+            "cognome": "Test2",
+            "username": "Username",
+            "role": "admin"
+        }
 
-    if st.session_state.get("logged_as"):
-        st.write(f"Accesso eseguito come: {st.session_state.get('logged_as')}")
+    if "user" not in st.session_state or st.session_state.user is None:
+        page = "Home"
+        st.markdown("## 🔑 Login")
+        with st.form("login_user"):
+            email = st.text_input("Username")
+            password = st.text_input("Password", type="password")
 
+            login_button = st.form_submit_button("Accedi")
+            
+        if login_button:
+            if login(email, password):
+                st.rerun()  # ricarica subito la pagina senza messaggio
+    else:
+        user = st.session_state.user
+        st.write(f"Accesso eseguito come: {user["nome"]}")
+
+        menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customer care","admin"]},
+                          {"name":"Descrizioni", "icon":"list", "role":["customer care","admin"]},
+                          {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
+                          {"name":"Giacenze", "icon":"box", "role":["logistica","customer care","admin"]},
+                          {"name":"Admin", "icon":"gear", "role":["admin"]},
+                          {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
+                         ]
+        
+        submenu_item_list = [{"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Foto", "name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Foto", "name":"Storico", "icon":"book", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Foto", "name":"Aggiungi prelevate", "icon":"hand-index", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Giacenze", "name":"Importa", "icon":"download", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Giacenze", "name":"Per corridoio", "icon":"1-circle", "role":["guest","logistica","admin"]},
+                             {"main":"Giacenze", "name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
+                             {"main":"Giacenze", "name":"Aggiorna anagrafica", "icon":"refresh", "role":["guest","logistica","customer care","admin"]},
+                             {"main":"Giacenze", "name":"Old import", "icon":"download", "role":["admin"]},
+                             {"main":"Admin", "name":"Aggiungi utente", "icon":"plus", "role":["admin"]}
+                            ]
+        
+        menu_items = []
+        icon_items = []
+        for item in menu_item_list:
+            if user["role"] in item["role"]:
+                menu_items.append(item["name"])
+                icon_items.append(item["icon"])
+        
+        
+        st.markdown("## 📋 Menu")
         # --- Menu principale verticale ---
         main_page = option_menu(
             menu_title=None,
-            options=["Home", "Descrizioni", "Foto", "Giacenze", "Logout"],
-            icons=["house","list","camera","box","key"],
+            options=menu_items,
+            icons=icon_items,
             default_index=0,
             orientation="vertical",
             styles={
@@ -831,17 +1113,22 @@ with st.sidebar:
         )
 
         # Rimuovo icone/emoji per gestire page name
-        #main_page_name = main_page.split(' ', 1)[1]
         main_page_name = main_page
 
         page = main_page_name  # default
 
-        # --- Sottomenu Foto ---
-        if main_page_name == "Foto":
+        submenu_items = []
+        submenu_icons = []
+        for item in submenu_item_list:
+            if main_page == item["main"] and user["role"] in item["role"]:
+                submenu_items.append(item["name"])
+                submenu_icons.append(item["icon"])
+                
+        if submenu_items:
             sub_page = option_menu(
                 menu_title=None,
-                options=["Gestione", "SKU da riscattare", "Aggiungi SKU", "Storico", "Aggiungi prelevate"],
-                icons=["gear","repeat","plus","book","hand-index"],
+                options=submenu_items,
+                icons=submenu_icons,
                 default_index=0,
                 orientation="vertical",
                 styles={
@@ -861,55 +1148,17 @@ with st.sidebar:
                     },
                 },
             )
-            #page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
             page = f"{main_page_name} - {sub_page}"
 
-        # --- Sottomenu Giacenze ---
-        elif main_page_name == "Giacenze":
-            sub_page = option_menu(
-                menu_title=None,
-                options=["Importa giacenze", "Per corridoio", "Per corridoio/marchio", "Old import"],
-                icons=["download","1-circle","2-circle","download"],
-                default_index=0,
-                orientation="vertical",
-                styles={
-                    "container": {"padding": "0!important", "background-color": "#f0f0f0"},
-                    "nav-link": {
-                        "font-size": "15px",
-                        "text-align": "left",
-                        "margin": "2px",
-                        "padding": "5px 15px",
-                        "border-radius": "5px",
-                        "--hover-color": "#e0e0e0",
-                    },
-                    "nav-link-selected": {
-                        "background-color": "#4CAF50",
-                        "color": "white",
-                        "border-radius": "5px",
-                    },
-                },
-            )
-            #page = f"{main_page_name} - {sub_page.split(' ', 1)[1]}"
-            page = f"{main_page_name} - {sub_page}"
 
-    else:
-        page = "Login"
 
 # ---------------------------
 # 🏠 HOME
 # ---------------------------
 if page == "Home":
-    st.subheader("📌 Benvenuto")
+    st.subheader("📌 HomePage")
     st.markdown("""
-    Benvenuto nell'app di generazione descrizioni prodotto per calzature.  
-    Utilizza il menu a sinistra per iniziare.
     
-    Funzionalità disponibili:
-    - Generazione asincrona di descrizioni multilingua
-    - Supporto RAG con FAISS
-    - Captioning automatico immagine (BLIP)
-    - Logging su Google Sheets
-    - Salvataggio ZIP con CSV multilingua
     """)
 
 # ---------------------------
@@ -1068,153 +1317,157 @@ elif page == "Descrizioni":
                 """)
     
         # 🪄 Generazione descrizioni
-        if st.button("🚀 Genera Descrizioni"):
-            st.session_state["generate"] = True
-        
-        if st.session_state.get("generate"):
-            from io import BytesIO
-            try:
-                with st.spinner("📚 Carico storico e indice FAISS..."):
-                    tab_storico = f"STORICO_{marchio}"
-                    data_sheet = get_sheet(sheet_id, tab_storico)
-                    df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
-        
-                    if "faiss_index" not in st.session_state:
-                        index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
-                        st.session_state["faiss_index"] = (index, index_df)
-                    else:
-                        index, index_df = st.session_state["faiss_index"]
-        
-                # ✅ Recupera descrizioni già esistenti su GSheet
-                st.info("🔄 Verifico se alcune righe sono già state generate...")
-                existing_data = {}
-                already_generated = {lang: [] for lang in selected_langs}
-                rows_to_generate = []
-        
-                for lang in selected_langs:
-                    try:
-                        tab_df = pd.DataFrame(get_sheet(sheet_id, lang).get_all_records())
-                        tab_df = tab_df[["SKU", "Description", "Description2"]].dropna(subset=["SKU"])
-                        tab_df["SKU"] = tab_df["SKU"].astype(str)
-                        existing_data[lang] = tab_df.set_index("SKU")
-                    except:
-                        existing_data[lang] = pd.DataFrame(columns=["Description", "Description2"])
-        
-                for i, row in df_input.iterrows():
-                    sku = str(row.get("SKU", "")).strip()
-                    if not sku:
-                        rows_to_generate.append(i)
-                        continue
-        
-                    all_present = True
+        if not check_openai_key():
+            st.error("❌ La chiave OpenAI non è valida o mancante. Inserisci una chiave valida prima di generare descrizioni.")
+        else:
+            if st.button("🚀 Genera Descrizioni"):
+                st.session_state["generate"] = True
+            
+            if st.session_state.get("generate"):
+    
+                    
+                try:
+                    with st.spinner("📚 Carico storico e indice FAISS..."):
+                        tab_storico = f"STORICO_{marchio}"
+                        data_sheet = get_sheet(sheet_id, tab_storico)
+                        df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
+            
+                        if "faiss_index" not in st.session_state:
+                            index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
+                            st.session_state["faiss_index"] = (index, index_df)
+                        else:
+                            index, index_df = st.session_state["faiss_index"]
+            
+                    # ✅ Recupera descrizioni già esistenti su GSheet
+                    st.info("🔄 Verifico se alcune righe sono già state generate...")
+                    existing_data = {}
+                    already_generated = {lang: [] for lang in selected_langs}
+                    rows_to_generate = []
+            
                     for lang in selected_langs:
-                        df_lang = existing_data.get(lang)
-                        if df_lang is None or sku not in df_lang.index:
-                            all_present = False
-                            break
-                        desc = df_lang.loc[sku]
-                        if not desc["Description"] or not desc["Description2"]:
-                            all_present = False
-                            break
-        
-                    if all_present:
+                        try:
+                            tab_df = pd.DataFrame(get_sheet(sheet_id, lang).get_all_records())
+                            tab_df = tab_df[["SKU", "Description", "Description2"]].dropna(subset=["SKU"])
+                            tab_df["SKU"] = tab_df["SKU"].astype(str)
+                            existing_data[lang] = tab_df.set_index("SKU")
+                        except:
+                            existing_data[lang] = pd.DataFrame(columns=["Description", "Description2"])
+            
+                    for i, row in df_input.iterrows():
+                        sku = str(row.get("SKU", "")).strip()
+                        if not sku:
+                            rows_to_generate.append(i)
+                            continue
+            
+                        all_present = True
                         for lang in selected_langs:
-                            desc = existing_data[lang].loc[sku]
+                            df_lang = existing_data.get(lang)
+                            if df_lang is None or sku not in df_lang.index:
+                                all_present = False
+                                break
+                            desc = df_lang.loc[sku]
+                            if not desc["Description"] or not desc["Description2"]:
+                                all_present = False
+                                break
+            
+                        if all_present:
+                            for lang in selected_langs:
+                                desc = existing_data[lang].loc[sku]
+                                output_row = row.to_dict()
+                                output_row["Description"] = desc["Description"]
+                                output_row["Description2"] = desc["Description2"]
+                                already_generated[lang].append(output_row)
+                        else:
+                            rows_to_generate.append(i)
+            
+                    df_input_to_generate = df_input.iloc[rows_to_generate]
+            
+                    # Costruzione dei prompt
+                    all_prompts = []
+                    with st.spinner("✍️ Costruisco i prompt..."):
+                        for _, row in df_input_to_generate.iterrows():
+                            simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
+                            caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
+                            prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
+                            all_prompts.append(prompt)
+            
+                    with st.spinner("🚀 Generazione asincrona in corso..."):
+                        results = asyncio.run(generate_all_prompts(all_prompts))
+            
+                    # Parsing risultati
+                    all_outputs = already_generated.copy()
+                    logs = []
+            
+                    for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
+                        result = results.get(i, {})
+                        if "error" in result:
+                            logs.append({
+                                "sku": row.get("SKU", ""),
+                                "status": f"Errore: {result['error']}",
+                                "prompt": all_prompts[i],
+                                "output": "",
+                                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                            })
+                            continue
+            
+                        for lang in selected_langs:
+                            lang_data = result.get("result", {}).get(lang.lower(), {})
+                            descr_lunga = lang_data.get("desc_lunga", "").strip()
+                            descr_breve = lang_data.get("desc_breve", "").strip()
+            
                             output_row = row.to_dict()
-                            output_row["Description"] = desc["Description"]
-                            output_row["Description2"] = desc["Description2"]
-                            already_generated[lang].append(output_row)
-                    else:
-                        rows_to_generate.append(i)
-        
-                df_input_to_generate = df_input.iloc[rows_to_generate]
-        
-                # Costruzione dei prompt
-                all_prompts = []
-                with st.spinner("✍️ Costruisco i prompt..."):
-                    for _, row in df_input_to_generate.iterrows():
-                        simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
-                        caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
-                        prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
-                        all_prompts.append(prompt)
-        
-                with st.spinner("🚀 Generazione asincrona in corso..."):
-                    results = asyncio.run(generate_all_prompts(all_prompts))
-        
-                # Parsing risultati
-                all_outputs = already_generated.copy()
-                logs = []
-        
-                for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
-                    result = results.get(i, {})
-                    if "error" in result:
-                        logs.append({
+                            output_row["Description"] = descr_lunga
+                            output_row["Description2"] = descr_breve
+                            all_outputs[lang].append(output_row)
+            
+                        log_entry = {
                             "sku": row.get("SKU", ""),
-                            "status": f"Errore: {result['error']}",
+                            "status": "OK",
                             "prompt": all_prompts[i],
-                            "output": "",
+                            "output": json.dumps(result["result"], ensure_ascii=False),
                             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                        })
-                        continue
-        
-                    for lang in selected_langs:
-                        lang_data = result.get("result", {}).get(lang.lower(), {})
-                        descr_lunga = lang_data.get("desc_lunga", "").strip()
-                        descr_breve = lang_data.get("desc_breve", "").strip()
-        
-                        output_row = row.to_dict()
-                        output_row["Description"] = descr_lunga
-                        output_row["Description2"] = descr_breve
-                        all_outputs[lang].append(output_row)
-        
-                    log_entry = {
-                        "sku": row.get("SKU", ""),
-                        "status": "OK",
-                        "prompt": all_prompts[i],
-                        "output": json.dumps(result["result"], ensure_ascii=False),
-                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                    }
-                    if "usage" in result:
-                        usage = result["usage"]
-                        log_entry.update({
-                            "prompt_tokens": usage.get("prompt_tokens", 0),
-                            "completion_tokens": usage.get("completion_tokens", 0),
-                            "total_tokens": usage.get("total_tokens", 0),
-                            "estimated_cost_usd": round(usage.get("total_tokens", 0) / 1000 * 0.001, 6)
-                        })
-                    logs.append(log_entry)
-        
-                # 🔄 Salvataggio solo dei nuovi risultati
-                with st.spinner("📤 Salvataggio nuovi dati..."):
-                    for lang in selected_langs:
-                        df_out = pd.DataFrame(all_outputs[lang])
-                        df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
-                        if not df_new.empty:
-                            append_to_sheet(sheet_id, lang, df_new)
-                    for log in logs:
-                        append_log(sheet_id, log)
-        
-                # 📦 ZIP finale
-                with st.spinner("📦 Generazione ZIP..."):
-                    mem_zip = BytesIO()
-                    with zipfile.ZipFile(mem_zip, "w") as zf:
+                        }
+                        if "usage" in result:
+                            usage = result["usage"]
+                            log_entry.update({
+                                "prompt_tokens": usage.get("prompt_tokens", 0),
+                                "completion_tokens": usage.get("completion_tokens", 0),
+                                "total_tokens": usage.get("total_tokens", 0),
+                                "estimated_cost_usd": round(usage.get("total_tokens", 0) / 1000 * 0.001, 6)
+                            })
+                        logs.append(log_entry)
+            
+                    # 🔄 Salvataggio solo dei nuovi risultati
+                    with st.spinner("📤 Salvataggio nuovi dati..."):
                         for lang in selected_langs:
                             df_out = pd.DataFrame(all_outputs[lang])
-                            df_export = pd.DataFrame({
-                                "SKU": df_out.get("SKU", ""),
-                                "Descrizione lunga": df_out.get("Description", ""),
-                                "Descrizione breve": df_out.get("Description2", "")
-                            })
-                            zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
-                    mem_zip.seek(0)
-        
-                st.success("✅ Tutto fatto!")
-                st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
-                st.session_state["generate"] = False
-        
-            except Exception as e:
-                st.error(f"Errore durante la generazione: {str(e)}")
-                st.text(traceback.format_exc())
+                            df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
+                            if not df_new.empty:
+                                append_to_sheet(sheet_id, lang, df_new)
+                        for log in logs:
+                            append_log(sheet_id, log)
+            
+                    # 📦 ZIP finale
+                    with st.spinner("📦 Generazione ZIP..."):
+                        mem_zip = BytesIO()
+                        with zipfile.ZipFile(mem_zip, "w") as zf:
+                            for lang in selected_langs:
+                                df_out = pd.DataFrame(all_outputs[lang])
+                                df_export = pd.DataFrame({
+                                    "SKU": df_out.get("SKU", ""),
+                                    "Descrizione lunga": df_out.get("Description", ""),
+                                    "Descrizione breve": df_out.get("Description2", "")
+                                })
+                                zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
+                        mem_zip.seek(0)
+            
+                    st.success("✅ Tutto fatto!")
+                    st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
+                    st.session_state["generate"] = False
+            
+                except Exception as e:
+                    st.error(f"Errore durante la generazione: {str(e)}")
+                    st.text(traceback.format_exc())
     
         # 🔍 Prompt Preview & Benchmark
         with st.expander("🔍 Strumenti di debug & Anteprima"):
@@ -1378,7 +1631,7 @@ elif page == "Foto - Gestione":
         # ✅ Visualizzazione
         st.dataframe(df_vista, use_container_width=True)
 
-elif page == "Foto - SKU da riscattare":
+elif page == "Foto - Riscatta SKU":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
 
@@ -1485,7 +1738,7 @@ elif page == "Foto - SKU da riscattare":
             except Exception as e:
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
                 
-elif page == "Foto - Aggiungi SKU":
+elif page == "Foto - Aggiungi SKUs":
     sheet_id = st.secrets["FOTO_GSHEET_ID"]
     new_sku = st.session_state.get("aggiunta_confermata", set())
 
@@ -1624,7 +1877,8 @@ elif page == "Foto - Aggiungi prelevate":
                 st.success(f"✅ {len(skus_to_append_clean)} nuove SKU aggiunte al foglio PRELEVATE!")
             else:
                 st.info("⚠️ Tutte le SKU inserite sono già presenti nel foglio.")
-elif page == "Giacenze - Importa giacenze":
+                
+elif page == "Giacenze - Importa":
     st.header("Importa giacenze")
 
     options = ["Manuale", "UBIC", "PIM"]
@@ -1732,6 +1986,14 @@ elif page == "Giacenze - Importa giacenze":
 
     df_input = st.session_state.df_input
 
+    default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
+    sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
+    sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
+    sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
+    
+    col1, col2, col3 = st.columns(3)
+    
     if df_input is not None:
         view_df = st.checkbox("Visualizza il dataframe?", value=False)
         if view_df:
@@ -1764,28 +2026,54 @@ elif page == "Giacenze - Importa giacenze":
 
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
 
-        # --- Destinazione GSheet ---
-        default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
-        sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
-        sheet = get_sheet(sheet_id, "GIACENZE")
+        # --- Destinazione GSheet ---       
+        with col2:
+            if st.button("Importa Giacenze"):
+                with st.spinner("Aggiorno giacenze su GSheet..."):
+                    sheet_upload_giacenze.clear()
+                    sheet_upload_giacenze.update("A1", data_to_write)
+                    last_row = len(df_input) + 1
+    
+                    ranges_to_format = [
+                        (f"{col_letter}2:{col_letter}{last_row}",
+                            CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                        for col_letter, pattern in numeric_cols_info.items()
+                    ]
+                    format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
+                    st.success("✅ Giacenze importate con successo!")
+    
+                if nome_file == "Manuale" and file_bytes_for_upload:
+                    with st.spinner("Carico il file su DropBox..."):
+                        upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+                        
+        with col3:
+            if st.button("Importa Giacenze & Anagrafica"):
+                with st.spinner("Aggiorno giacenze e anagrafica su GSheet..."):
+                    sheet_upload_giacenze.clear()
+                    sheet_upload_giacenze.update("A1", data_to_write)
+                    last_row = len(df_input) + 1
+    
+                    ranges_to_format = [
+                        (f"{col_letter}2:{col_letter}{last_row}",
+                            CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                        for col_letter, pattern in numeric_cols_info.items()
+                    ]
+                    format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
 
-        if st.button("Importa"):
-            with st.spinner("Aggiorno giacenze su GSheet..."):
-                sheet.clear()
-                sheet.update("A1", data_to_write)
-                last_row = len(df_input) + 1
-
-                ranges_to_format = [
-                    (f"{col_letter}2:{col_letter}{last_row}",
-                        CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
-                    for col_letter, pattern in numeric_cols_info.items()
-                ]
-                format_cell_ranges(sheet, ranges_to_format)
-                st.success("✅ Giacenze importate con successo!")
-
-            if nome_file == "Manuale" and file_bytes_for_upload:
-                with st.spinner("Carico il file su DropBox..."):
-                    upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+                    sheet_upload_anagrafica.clear()
+                    sheet_upload_anagrafica.update("A1", sheet_anagrafica.get_all_values())
+                    st.success("✅ Giacenze e anagrafica importate con successo!")
+    
+                if nome_file == "Manuale" and file_bytes_for_upload:
+                    with st.spinner("Carico il file su DropBox..."):
+                        upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+                    
+    with col1:
+        if st.button("Importa Anagrafica"):
+            with st.spinner("Aggiorno anagrafica su GSheet..."):
+                sheet_upload_anagrafica.clear()
+                sheet_upload_anagrafica.update("A1", sheet_anagrafica.get_all_values())
+                st.success("✅ Anagrafica importata con successo!")
             
 elif page == "Giacenze - Per corridoio":
     st.header("Riepilogo per corridoio")
@@ -2074,6 +2362,18 @@ elif page == "Giacenze - Per corridoio/marchio":
             mime="application/pdf"
         )
 
+elif page == "Giacenze - Aggiorna anagrafica":
+    st.header("Aggiorna anagrafica da CSV")
+
+    sheet_id = st.secrets["ANAGRAFICA_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "DATA")
+    
+    uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
+    
+    if uploaded_file:
+        if st.button("Carica su GSheet"):
+            added, updated = process_csv_and_update(sheet, uploaded_file)
+            st.success(f"✅ Aggiunte {added} nuove SKU, aggiornate {updated} SKU già presenti.")
 
     
 elif page == "Logout":
@@ -2149,3 +2449,22 @@ elif page == "Giacenze - Old import":
             format_cell_ranges(sheet, ranges_to_format)
     
             st.success("✅ Giacenze importate con successo!")
+
+elif page == "Admin":
+    st.write("Sezione admin")
+
+elif page == "Admin - Aggiungi utente":
+    st.header("Aggiungi nuovo utente")
+    st.markdown("Crea un nuovo utente nella tabella Supabase.")
+
+    with st.form("register_form"):
+        nome = st.text_input("Nome")
+        cognome = st.text_input("Cognome")
+        email = st.text_input("Email")
+        password = st.text_input("Password", type="password")
+        role = st.selectbox("Ruolo",["Guest","Logistica","Customer Care","Admin"])
+        username = nome + " " + cognome
+        
+        submit = st.form_submit_button("Crea utente")
+        if submit:
+            register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
