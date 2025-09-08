@@ -1988,6 +1988,9 @@ elif page == "Giacenze - Importa":
 
     default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
     sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
+    sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
+    sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
+    sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
     
     if df_input is not None:
         view_df = st.checkbox("Visualizza il dataframe?", value=False)
@@ -2022,10 +2025,6 @@ elif page == "Giacenze - Importa":
         data_to_write = [df_input.columns.tolist()] + df_input.values.tolist()
 
         # --- Destinazione GSheet ---       
-        sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
-        sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
-        sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
-
         if st.button("Importa Giacenze"):
             with st.spinner("Aggiorno giacenze su GSheet..."):
                 sheet_upload_giacenze.clear()
