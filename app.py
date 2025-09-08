@@ -2048,7 +2048,7 @@ elif page == "Giacenze - Importa":
                         
         with col3:
             if st.button("Importa Giacenze & Anagrafica"):
-                with st.spinner("Aggiorno giacenze su GSheet..."):
+                with st.spinner("Aggiorno giacenze e anagrafica su GSheet..."):
                     sheet_upload_giacenze.clear()
                     sheet_upload_giacenze.update("A1", data_to_write)
                     last_row = len(df_input) + 1
