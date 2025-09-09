@@ -2373,7 +2373,8 @@ elif page == "Dashboard - Analizzatore PDF":
         data = {}
         
         # Marketplace
-        marketplace_match = re.search(r"Marketplace:\s*([a-zA-Z0-9\s.-]+)Shipping details", page_text, re.IGNORECASE)
+        #marketplace_match = re.search(r"Marketplace:\s*([a-zA-Z0-9\s.-]+)Shipping details", page_text, re.IGNORECASE)
+        marketplace_match = re.search(r"Marketplace:\s([a-zA-Z0-9]+)", page_text, re.IGNORECASE)
         if marketplace_match:
             data['Marketplace'] = marketplace_match.group(1).strip()
         else:
@@ -2461,7 +2462,7 @@ elif page == "Dashboard - Analizzatore PDF":
                 
                 # Controlla se la pagina è un ordine
                 if "ORDINE ECOMMERCE" in page_text:
-                    st.write(f"Analizzo la pagina {page_num + 1}...")
+                    #st.write(f"Analizzo la pagina {page_num + 1}...")
                     data = extract_data_from_page(page_text)
                     extracted_data.append(data)
                     
