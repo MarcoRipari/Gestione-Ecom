@@ -2373,12 +2373,16 @@ elif page == "Dashboard - Analizzatore PDF":
         data = {}
         
         # Marketplace
-        #marketplace_match = re.search(r"Marketplace:\s*([a-zA-Z0-9\s.-]+)", page_text, re.IGNORECASE)
-        marketplace_match = re.search(r"Marketplace: (.*)", page_text, re.IGNORECASE)
-        if marketplace_match:
-            data['Marketplace'] = marketplace_match.group(1).strip()
-        else:
-            data['Marketplace'] = "N/A"
+       marketplace_match = re.search(r"Marketplace:\s*([a-zA-Z0-9\s.-]+)", page_text, re.IGNORECASE)
+            if marketplace_match:
+                data['Marketplace'] = marketplace_match.group(1).strip()
+            else:
+                # Nuova regex per gestire il Marketplace su più righe
+                marketplace_match_multiline = re.search(r"Marketplace:\s*([^\n]+)\n([^\n]+)", page_text, re.IGNORECASE)
+                if marketplace_match_multiline:
+                    data['Marketplace'] = (marketplace_match_multiline.group(1) + marketplace_match_multiline.group(2)).strip()
+                else:
+                    data['Marketplace'] = "N/A"
     
         # Numero Ordine
         order_match = re.search(r"Marketplace order\s*([a-zA-Z0-9-]+)", page_text)
