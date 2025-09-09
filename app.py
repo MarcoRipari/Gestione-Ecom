@@ -2373,7 +2373,8 @@ elif page == "Dashboard - Analizzatore PDF":
         data = {}
         
         # Marketplace e Numero Ordine
-        combined_match = re.search(r"Marketplace:\s*(.*?)\s*Marketplace order\s*([a-zA-Z0-9-]+)", page_text, re.DOTALL | re.IGNORECASE)
+        # Ho reso la regex meno generica per evitare di catturare testo non pertinente
+        combined_match = re.search(r"Marketplace:\s*([a-zA-Z0-9.\s-]+?)\s*Marketplace order\s*([a-zA-Z0-9-]+)", page_text, re.DOTALL | re.IGNORECASE)
         if combined_match:
             data['Marketplace'] = combined_match.group(1).strip()
             data['Numero Ordine'] = combined_match.group(2).strip()
