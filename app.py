@@ -2373,7 +2373,7 @@ elif page == "Dashboard - Analizzatore PDF":
         data = {}
         
         # Marketplace
-        marketplace_match = re.search(r"Marketplace:\s*([a-zA-Z0-9\s.-]+)", page_text, re.IGNORECASE)
+        marketplace_match = re.search(r"Marketplace:\s*([a-zA-Z0-9\s.-]+)Shipping details", page_text, re.IGNORECASE)
         if marketplace_match:
             data['Marketplace'] = marketplace_match.group(1).strip()
         else:
