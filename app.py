@@ -2379,6 +2379,13 @@ elif page == "Dashboard - Analizzatore PDF":
         else:
             data['Marketplace'] = "N/A"
     
+        # Numero Ordine
+        order_match = re.search(r"Marketplace order\s*([a-zA-Z0-9-]+)", page_text)
+        if order_match:
+            data['Numero Ordine'] = order_match.group(1).strip()
+        else:
+            data['Numero Ordine'] = "N/A"
+    
         # Data
         date_match = re.search(r"Data vendita:\s*(\d{2}/\d{2}/\d{4})", page_text)
         if date_match:
@@ -2466,6 +2473,7 @@ elif page == "Dashboard - Analizzatore PDF":
                 for order in extracted_data:
                     for item in order['Articoli']:
                         row = {
+                            'Numero Ordine': order['Numero Ordine'],
                             'Marketplace': order['Marketplace'],
                             'Data': order['Data'],
                             'Nazione': order['Nazione'],
@@ -2486,7 +2494,7 @@ elif page == "Dashboard - Analizzatore PDF":
                 
                 col1, col2, col3 = st.columns(3)
                 
-                total_orders = len(extracted_data)
+                total_orders = df['Numero Ordine'].nunique()
                 col1.metric("Ordini Analizzati", total_orders)
     
                 total_items = df['Quantita'].sum()
