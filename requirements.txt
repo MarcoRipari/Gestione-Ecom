@@ -41,6 +41,7 @@ supabase
 pyjwt
 streamlit-authenticator
 pdfplumber
+PyPDF2
 
 # UI / UX
 streamlit-option-menu
