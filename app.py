@@ -2392,10 +2392,14 @@ elif page == "Dashboard - Analizzatore PDF":
             
             # Estrai marketplace (cerca la linea che contiene "Marketplace:")
             marketplace = "Unknown"
-            for line in lines:
+            for i, line in enumerate(lines):
                 if 'Marketplace:' in line:
-                    marketplace = line.replace('Marketplace:', '').strip()
+                    # Prendi il testo dopo "Marketplace:"
+                    marketplace = line.split('Marketplace:')[-1].strip()
                     marketplace = re.sub(r'[\*\#]', '', marketplace).strip()
+                    # Se è vuoto, cerca nella linea successiva
+                    if not marketplace and i + 1 < len(lines):
+                        marketplace = lines[i + 1].strip()
                     break
             
             # Estrai data vendita
@@ -2407,13 +2411,18 @@ elif page == "Dashboard - Analizzatore PDF":
                         sale_date = date_match.group(1)
                     break
             
-            # Estrai paese (cerca sigle di 2 lettere maiuscole)
+            # Estrai paese (cerca nelle shipping address)
             country = "Unknown"
-            for line in lines:
-                if any(country_code in line for country_code in [' DE', ' IT', ' FR', ' ES', ' GB', ' BE', ' AT', ' DK']):
-                    country_match = re.search(r'\b([A-Z]{2})\b', line)
-                    if country_match:
-                        country = country_match.group(1)
+            for i, line in enumerate(lines):
+                if 'Shipping address' in line:
+                    # Cerca nelle prossime 5 linee dopo Shipping address
+                    for j in range(i + 1, min(i + 6, len(lines))):
+                        if any(country_code in lines[j] for country_code in ['DE', 'IT', 'FR', 'ES', 'GB', 'BE', 'AT', 'DK']):
+                            country_match = re.search(r'\b([A-Z]{2})\b', lines[j])
+                            if country_match:
+                                country = country_match.group(1)
+                                break
+                    if country != "Unknown":
                         break
             
             # Estrai numero ordine
@@ -2425,36 +2434,50 @@ elif page == "Dashboard - Analizzatore PDF":
                         order_number = order_match.group(1).strip()
                         break
             
-            # Estrai articoli - approccio semplificato
+            # Estrai articoli - approccio migliorato
             articles = []
-            in_articles_section = False
             
-            for line in lines:
-                # Inizia a cercare articoli dopo l'intestazione
+            # Cerca la sezione articoli
+            start_index = -1
+            end_index = -1
+            
+            for i, line in enumerate(lines):
                 if 'Articolo' in line and ('Taglia' in line or 'Quantità' in line):
-                    in_articles_section = True
-                    continue
+                    start_index = i + 1
+                if start_index != -1 and ('ISTRUZIONI' in line or 'FINE ORDINE' in line or 'Shipping details' in line):
+                    end_index = i
+                    break
+            
+            # Se troviamo la sezione articoli, processala
+            if start_index != -1 and end_index != -1:
+                article_lines = lines[start_index:end_index]
                 
-                if in_articles_section:
-                    # Fermati quando trovi le istruzioni o fine ordine
-                    if 'ISTRUZIONI' in line or 'FINE ORDINE' in line:
-                        break
+                current_article = None
+                for line in article_lines:
+                    line = line.strip()
+                    if not line:
+                        continue
                     
                     # Cerca pattern di articoli (codice articolo + taglia + quantità)
-                    article_match = re.search(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)', line)
+                    article_match = re.match(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s*(.*)', line)
                     if article_match:
-                        # Cerca la descrizione (potrebbe essere nella linea successiva)
-                        descrizione = ""
-                        article_lines = lines[lines.index(line):lines.index(line)+3]
-                        if len(article_lines) > 1 and not re.match(r'\d{10,15}\.', article_lines[1]):
-                            descrizione = article_lines[1].strip()
+                        # Salva l'articolo precedente se esiste
+                        if current_article:
+                            articles.append(current_article)
                         
-                        articles.append({
+                        current_article = {
                             'codice_articolo': article_match.group(1),
                             'taglia': article_match.group(2),
                             'quantita': int(article_match.group(3)),
-                            'descrizione': descrizione
-                        })
+                            'descrizione': article_match.group(4).strip()
+                        }
+                    elif current_article and line:
+                        # Aggiungi alla descrizione dell'articolo corrente
+                        current_article['descrizione'] += ' ' + line
+                
+                # Aggiungi l'ultimo articolo
+                if current_article:
+                    articles.append(current_article)
             
             return {
                 'page': page_num,
@@ -2489,107 +2512,110 @@ elif page == "Dashboard - Analizzatore PDF":
                 })
         
         return pd.DataFrame(data)
-        
-    st.set_page_config(page_title="Analisi Ordini Ecommerce", layout="wide")
-    st.title("📊 Analisi Ordini Ecommerce da PDF")
     
-    uploaded_file = st.file_uploader("Carica il file PDF degli ordini", type="pdf")
-    
-    if uploaded_file is not None:
-        with st.spinner("Elaborazione del PDF in corso..."):
-            orders = extract_orders_from_pdf(uploaded_file)
+    def main():
+        st.set_page_config(page_title="Analisi Ordini Ecommerce", layout="wide")
+        st.title("📊 Analisi Ordini Ecommerce da PDF")
         
-        if orders:
-            st.success(f"✅ Trovati {len(orders)} ordini")
+        uploaded_file = st.file_uploader("Carica il file PDF degli ordini", type="pdf")
+        
+        if uploaded_file is not None:
+            with st.spinner("Elaborazione del PDF in corso..."):
+                orders = extract_orders_from_pdf(uploaded_file)
             
-            # Mostra informazioni di debug
-            st.subheader("Informazioni di debug")
-            st.write(f"Primo ordine estratto: {orders[0]}")
-            
-            df = create_summary_dataframe(orders)
-            
-            if not df.empty:
-                st.success(f"✅ Trovati {len(df)} articoli")
+            if orders:
+                st.success(f"✅ Trovati {len(orders)} ordini")
                 
-                # Mostra statistiche generali
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.metric("Totale Ordini", len(orders))
-                with col2:
-                    st.metric("Totale Articoli", df['Quantita'].sum())
-                with col3:
-                    st.metric("Marketplace Unici", df['Marketplace'].nunique())
-                with col4:
-                    st.metric("Paesi", df['Paese'].nunique())
+                # Mostra informazioni di debug
+                st.subheader("Informazioni di debug")
+                st.write(f"Primo ordine estratto: {orders[0]}")
                 
-                # Mostra anteprima dati
-                st.subheader("Anteprima Dati")
-                st.dataframe(df.head(), use_container_width=True)
+                df = create_summary_dataframe(orders)
                 
-                # Filtri
-                st.subheader("🔍 Filtri")
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    selected_marketplaces = st.multiselect(
-                        "Marketplace",
-                        options=sorted(df['Marketplace'].unique()),
-                        default=sorted(df['Marketplace'].unique())
-                    )
-                
-                with col2:
-                    selected_countries = st.multiselect(
-                        "Paesi",
-                        options=sorted(df['Paese'].unique()),
-                        default=sorted(df['Paese'].unique())
-                    )
-                
-                # Applica filtri
-                filtered_df = df[
-                    (df['Marketplace'].isin(selected_marketplaces)) &
-                    (df['Paese'].isin(selected_countries))
-                ]
-                
-                # Layout principale
-                tab1, tab2 = st.tabs(["Dati Completi", "Statistiche"])
-                
-                with tab1:
-                    st.dataframe(filtered_df, use_container_width=True)
+                if not df.empty:
+                    st.success(f"✅ Trovati {len(df)} articoli")
                     
-                    # Download dati
-                    csv = filtered_df.to_csv(index=False, sep=';').encode('utf-8')
-                    st.download_button(
-                        "📥 Scarica CSV",
-                        csv,
-                        "ordini_analizzati.csv",
-                        "text/csv"
-                    )
-                
-                with tab2:
+                    # Mostra statistiche generali
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Totale Ordini", len(orders))
+                    with col2:
+                        st.metric("Totale Articoli", df['Quantita'].sum())
+                    with col3:
+                        st.metric("Marketplace Unici", df['Marketplace'].nunique())
+                    with col4:
+                        st.metric("Paesi", df['Paese'].nunique())
+                    
+                    # Mostra anteprima dati
+                    st.subheader("Anteprima Dati")
+                    st.dataframe(df.head(), use_container_width=True)
+                    
+                    # Filtri
+                    st.subheader("🔍 Filtri")
                     col1, col2 = st.columns(2)
                     
                     with col1:
-                        st.subheader("Ordini per Paese")
-                        country_counts = filtered_df.groupby('Paese').size()
-                        st.bar_chart(country_counts)
+                        selected_marketplaces = st.multiselect(
+                            "Marketplace",
+                            options=sorted(df['Marketplace'].unique()),
+                            default=sorted(df['Marketplace'].unique())
+                        )
                     
                     with col2:
-                        st.subheader("Articoli per Marketplace")
-                        marketplace_counts = filtered_df.groupby('Marketplace')['Quantita'].sum()
-                        st.bar_chart(marketplace_counts)
+                        selected_countries = st.multiselect(
+                            "Paesi",
+                            options=sorted(df['Paese'].unique()),
+                            default=sorted(df['Paese'].unique())
+                        )
+                    
+                    # Applica filtri
+                    filtered_df = df[
+                        (df['Marketplace'].isin(selected_marketplaces)) &
+                        (df['Paese'].isin(selected_countries))
+                    ]
+                    
+                    # Layout principale
+                    tab1, tab2 = st.tabs(["Dati Completi", "Statistiche"])
+                    
+                    with tab1:
+                        st.dataframe(filtered_df, use_container_width=True)
+                        
+                        # Download dati
+                        csv = filtered_df.to_csv(index=False, sep=';').encode('utf-8')
+                        st.download_button(
+                            "📥 Scarica CSV",
+                            csv,
+                            "ordini_analizzati.csv",
+                            "text/csv"
+                        )
+                    
+                    with tab2:
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.subheader("Ordini per Paese")
+                            country_counts = filtered_df.groupby('Paese').size()
+                            st.bar_chart(country_counts)
+                        
+                        with col2:
+                            st.subheader("Articoli per Marketplace")
+                            marketplace_counts = filtered_df.groupby('Marketplace')['Quantita'].sum()
+                            st.bar_chart(marketplace_counts)
+                else:
+                    st.warning("Nessun articolo trovato negli ordini")
+                    # Mostra il testo della prima pagina per debug articoli
+                    pdf_reader = PyPDF2.PdfReader(uploaded_file)
+                    first_page = pdf_reader.pages[0].extract_text()
+                    st.text("Testo prima pagina (sezione articoli):")
+                    lines = first_page.split('\n')
+                    for i, line in enumerate(lines):
+                        if 'Articolo' in line or '001201' in line:
+                            st.text(f"Linea {i}: {line}")
+            
             else:
-                st.warning("Nessun articolo trovato negli ordini")
-                st.write("Dettaglio ordini trovati:")
-                for i, order in enumerate(orders[:3]):  # Mostra primi 3 ordini per debug
-                    st.write(f"Ordine {i+1}: {order}")
+                st.warning("Nessun ordine trovato nel PDF")
         
         else:
-            st.warning("Nessun ordine trovato nel PDF")
-            # Mostra il testo della prima pagina per debug
-            pdf_reader = PyPDF2.PdfReader(uploaded_file)
-            first_page = pdf_reader.pages[0].extract_text()
-            st.text("Testo prima pagina per debug:")
-            st.text(first_page[:500])  # Mostra primi 500 caratteri
-    
-    else:
-        st.info("👆 Please carica un file PDF per iniziare l'analisi")
+            st.info("👆 Please carica un file PDF per iniziare l'analisi")
+
+    main()
