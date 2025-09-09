@@ -2378,7 +2378,7 @@ elif page == "Dashboard - Analizzatore PDF":
             text = page.extract_text()
             
             order_data = extract_order_data(text, page_num + 1)
-            if order_data:
+            if order_data and order_data['articles']:
                 orders.append(order_data)
         
         return orders
@@ -2386,21 +2386,34 @@ elif page == "Dashboard - Analizzatore PDF":
     def extract_order_data(text, page_num):
         """Estrai i dati di un singolo ordine dal testo della pagina"""
         try:
-            # Trova marketplace
-            marketplace_match = re.search(r'Marketplace:\s*\*?(\w+[\w_]*)', text)
+            # Debug: mostra il testo della prima pagina per analisi
+            if page_num == 1:
+                st.write("Testo della prima pagina per debug:")
+                st.text(text[:1000])  # Mostra solo i primi 1000 caratteri
+            
+            # Trova marketplace - pattern migliorato
+            marketplace_match = re.search(r'Marketplace:\s*\*?([^\n]+)', text)
             marketplace = marketplace_match.group(1).strip() if marketplace_match else "Unknown"
+            marketplace = re.sub(r'[\*\#]', '', marketplace).strip()
             
             # Trova data vendita
             date_match = re.search(r'Data vendita:\s*(\d{2}/\d{2}/\d{4})', text)
             sale_date = date_match.group(1) if date_match else None
             
             # Trova shipping address e estrai paese
-            shipping_match = re.search(r'Shipping address[\s\S]*?([A-Z]{2})\s*$', text, re.MULTILINE)
-            country = shipping_match.group(1) if shipping_match else "Unknown"
+            country = "Unknown"
+            shipping_match = re.search(r'Shipping address[^\n]*\n(?:[^\n]*\n){1,3}.*?([A-Z]{2})\s*$', text, re.MULTILINE)
+            if shipping_match:
+                country = shipping_match.group(1)
+            else:
+                # Prova pattern alternativo
+                country_match = re.search(r'DE|IT|FR|ES|BE|GB|AT|DK', text)
+                if country_match:
+                    country = country_match.group(0)
             
             # Trova numero ordine marketplace
-            order_match = re.search(r'Marketplace order\s*([A-Za-z0-9\-]+)', text)
-            order_number = order_match.group(1) if order_match else f"Unknown_{page_num}"
+            order_match = re.search(r'Marketplace order\s*([^\n]+)', text)
+            order_number = order_match.group(1).strip() if order_match else f"Unknown_{page_num}"
             
             # Estrai articoli
             articles = extract_articles(text)
@@ -2423,50 +2436,59 @@ elif page == "Dashboard - Analizzatore PDF":
         """Estrai gli articoli dall'ordine"""
         articles = []
         
-        # Cerca il pattern della tabella articoli
-        # Pattern migliorato per catturare gli articoli
-        article_pattern = r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s+([^\n]+?)(?=\n\s*\d|$|\n\s*ISTRUZIONI|\n\s*FINE)'
-        matches = re.finditer(article_pattern, text, re.DOTALL)
+        # Cerca la sezione articoli usando diversi pattern
+        lines = text.split('\n')
+        in_article_section = False
+        article_lines = []
         
-        for match in matches:
-            article_code = match.group(1).strip()
-            size = match.group(2).strip()
-            quantity = match.group(3).strip()
-            description = match.group(4).strip()
+        for i, line in enumerate(lines):
+            # Cerca l'inizio della tabella articoli
+            if 'Articolo' in line and ('Taglia' in line or 'Quantità' in line):
+                in_article_section = True
+                continue
             
-            # Pulisci la descrizione
-            description = re.sub(r'\s+', ' ', description).strip()
+            # Cerca la fine della sezione articoli
+            if in_article_section and ('ISTRUZIONI' in line or 'FINE' in line or 'Shipping details' in line):
+                break
             
-            articles.append({
-                'codice_articolo': article_code,
-                'taglia': size,
-                'quantita': int(quantity),
-                'descrizione': description
-            })
-        
-        # Se non trova articoli con il primo pattern, prova un approccio alternativo
-        if not articles:
-            lines = text.split('\n')
-            in_article_section = False
-            
-            for line in lines:
-                if 'Articolo' in line and 'Taglia' in line and 'Quantità' in line:
-                    in_article_section = True
-                    continue
-                
-                if in_article_section:
-                    if 'ISTRUZIONI' in line or 'FINE' in line or not line.strip():
-                        break
-                    
-                    # Prova a estrarre dati articolo dalla linea
-                    article_match = re.search(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s+(.+)', line)
-                    if article_match:
+            if in_article_section and line.strip():
+                # Processa le linee degli articoli
+                article_match = re.match(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s+(.+)', line)
+                if article_match:
+                    articles.append({
+                        'codice_articolo': article_match.group(1).strip(),
+                        'taglia': article_match.group(2).strip(),
+                        'quantita': int(article_match.group(3).strip()),
+                        'descrizione': article_match.group(4).strip()
+                    })
+                else:
+                    # Prova pattern alternativo senza descrizione
+                    article_match_simple = re.match(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)', line)
+                    if article_match_simple:
+                        # Cerca la descrizione nella linea successiva
+                        descrizione = ""
+                        if i + 1 < len(lines) and not re.match(r'\d{10,15}\.', lines[i + 1]):
+                            descrizione = lines[i + 1].strip()
+                        
                         articles.append({
-                            'codice_articolo': article_match.group(1).strip(),
-                            'taglia': article_match.group(2).strip(),
-                            'quantita': int(article_match.group(3).strip()),
-                            'descrizione': article_match.group(4).strip()
+                            'codice_articolo': article_match_simple.group(1).strip(),
+                            'taglia': article_match_simple.group(2).strip(),
+                            'quantita': int(article_match_simple.group(3).strip()),
+                            'descrizione': descrizione
                         })
+        
+        # Se non trova articoli, prova con regex più generica
+        if not articles:
+            article_pattern = r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s+([^\n]+?)(?=\n\s*\d{10,15}|$|\n\s*[A-Z])'
+            matches = re.finditer(article_pattern, text, re.DOTALL)
+            
+            for match in matches:
+                articles.append({
+                    'codice_articolo': match.group(1).strip(),
+                    'taglia': match.group(2).strip(),
+                    'quantita': int(match.group(3).strip()),
+                    'descrizione': match.group(4).strip()
+                })
         
         return articles
     
@@ -2502,9 +2524,6 @@ elif page == "Dashboard - Analizzatore PDF":
         if orders:
             df = create_summary_dataframe(orders)
             
-            # Debug: mostra le colonne disponibili
-            st.write(f"Colonne disponibili: {list(df.columns)}")
-            
             st.success(f"✅ File elaborato con successo! Trovati {len(orders)} ordini e {len(df)} articoli")
             
             # Mostra statistiche generali
@@ -2512,110 +2531,84 @@ elif page == "Dashboard - Analizzatore PDF":
             with col1:
                 st.metric("Totale Ordini", len(orders))
             with col2:
-                st.metric("Totale Articoli", df['Quantita'].sum() if 'Quantita' in df.columns else 0)
+                st.metric("Totale Articoli", df['Quantita'].sum() if not df.empty else 0)
             with col3:
-                st.metric("Marketplace Unici", df['Marketplace'].nunique() if 'Marketplace' in df.columns else 0)
+                st.metric("Marketplace Unici", df['Marketplace'].nunique() if not df.empty else 0)
             with col4:
-                st.metric("Paesi", df['Paese'].nunique() if 'Paese' in df.columns else 0)
+                st.metric("Paesi", df['Paese'].nunique() if not df.empty else 0)
             
             # Mostra anteprima dati
             st.subheader("Anteprima Dati")
-            st.dataframe(df.head(), use_container_width=True)
+            st.dataframe(df.head() if not df.empty else pd.DataFrame(), use_container_width=True)
             
-            # Filtri
-            st.subheader("🔍 Filtri")
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                selected_marketplaces = st.multiselect(
-                    "Marketplace",
-                    options=sorted(df['Marketplace'].unique()) if 'Marketplace' in df.columns else [],
-                    default=sorted(df['Marketplace'].unique()) if 'Marketplace' in df.columns else []
-                )
-            
-            with col2:
-                selected_countries = st.multiselect(
-                    "Paesi",
-                    options=sorted(df['Paese'].unique()) if 'Paese' in df.columns else [],
-                    default=sorted(df['Paese'].unique()) if 'Paese' in df.columns else []
-                )
-            
-            with col3:
-                # Gestione date sicura
-                try:
-                    date_min = pd.to_datetime(df['Data_Vendita'].min(), format='%d/%m/%Y', errors='coerce')
-                    date_max = pd.to_datetime(df['Data_Vendita'].max(), format='%d/%m/%Y', errors='coerce')
-                    date_range = st.date_input(
-                        "Intervallo date",
-                        value=(date_min, date_max) if pd.notna(date_min) and pd.notna(date_max) else None
-                    )
-                except:
-                    date_range = None
-            
-            # Applica filtri
-            filtered_df = df.copy()
-            
-            if selected_marketplaces and 'Marketplace' in df.columns:
-                filtered_df = filtered_df[filtered_df['Marketplace'].isin(selected_marketplaces)]
-            
-            if selected_countries and 'Paese' in df.columns:
-                filtered_df = filtered_df[filtered_df['Paese'].isin(selected_countries)]
-            
-            if isinstance(date_range, tuple) and len(date_range) == 2 and 'Data_Vendita' in df.columns:
-                start_date, end_date = date_range
-                filtered_df = filtered_df[
-                    (pd.to_datetime(filtered_df['Data_Vendita'], format='%d/%m/%Y', errors='coerce') >= pd.to_datetime(start_date)) &
-                    (pd.to_datetime(filtered_df['Data_Vendita'], format='%d/%m/%Y', errors='coerce') <= pd.to_datetime(end_date))
-                ]
-            
-            # Layout principale
-            tab1, tab2, tab3, tab4 = st.tabs(["Dati Completi", "Statistiche", "Marketplace", "Articoli"])
-            
-            with tab1:
-                st.dataframe(filtered_df, use_container_width=True)
-                
-                # Download dati
-                csv = filtered_df.to_csv(index=False, sep=';').encode('utf-8')
-                st.download_button(
-                    "📥 Scarica CSV",
-                    csv,
-                    "ordini_analizzati.csv",
-                    "text/csv"
-                )
-            
-            with tab2:
-                col1, col2 = st.columns(2)
+            if not df.empty:
+                # Filtri
+                st.subheader("🔍 Filtri")
+                col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    st.subheader("Ordini per Paese")
-                    if 'Paese' in filtered_df.columns:
-                        country_counts = filtered_df.groupby('Paese').size()
-                        st.bar_chart(country_counts)
+                    selected_marketplaces = st.multiselect(
+                        "Marketplace",
+                        options=sorted(df['Marketplace'].unique()),
+                        default=sorted(df['Marketplace'].unique())
+                    )
                 
                 with col2:
-                    st.subheader("Articoli per Marketplace")
-                    if 'Marketplace' in filtered_df.columns and 'Quantita' in filtered_df.columns:
+                    selected_countries = st.multiselect(
+                        "Paesi",
+                        options=sorted(df['Paese'].unique()),
+                        default=sorted(df['Paese'].unique())
+                    )
+                
+                # Layout principale
+                tab1, tab2, tab3, tab4 = st.tabs(["Dati Completi", "Statistiche", "Marketplace", "Articoli"])
+                
+                with tab1:
+                    filtered_df = df[
+                        (df['Marketplace'].isin(selected_marketplaces)) &
+                        (df['Paese'].isin(selected_countries))
+                    ]
+                    st.dataframe(filtered_df, use_container_width=True)
+                    
+                    # Download dati
+                    csv = filtered_df.to_csv(index=False, sep=';').encode('utf-8')
+                    st.download_button(
+                        "📥 Scarica CSV",
+                        csv,
+                        "ordini_analizzati.csv",
+                        "text/csv"
+                    )
+                
+                with tab2:
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.subheader("Ordini per Paese")
+                        country_counts = filtered_df.groupby('Paese').size()
+                        st.bar_chart(country_counts)
+                    
+                    with col2:
+                        st.subheader("Articoli per Marketplace")
                         marketplace_counts = filtered_df.groupby('Marketplace')['Quantita'].sum()
                         st.bar_chart(marketplace_counts)
-            
-            with tab3:
-                st.subheader("Dettaglio per Marketplace")
-                if 'Marketplace' in filtered_df.columns:
+                
+                with tab3:
+                    st.subheader("Dettaglio per Marketplace")
                     for marketplace in selected_marketplaces:
                         marketplace_data = filtered_df[filtered_df['Marketplace'] == marketplace]
                         with st.expander(f"📦 {marketplace} ({len(marketplace_data)} articoli)"):
                             st.dataframe(marketplace_data, use_container_width=True)
-            
-            with tab4:
-                st.subheader("Articoli più venduti")
-                if 'Codice_Articolo' in filtered_df.columns and 'Quantita' in filtered_df.columns:
+                
+                with tab4:
+                    st.subheader("Articoli più venduti")
                     top_articles = filtered_df.groupby(['Codice_Articolo', 'Descrizione'])['Quantita'].sum().nlargest(10)
                     st.bar_chart(top_articles)
-                
-                st.subheader("Taglie più richieste")
-                if 'Taglia' in filtered_df.columns and 'Quantita' in filtered_df.columns:
+                    
+                    st.subheader("Taglie più richieste")
                     top_sizes = filtered_df.groupby('Taglia')['Quantita'].sum().nlargest(10)
                     st.bar_chart(top_sizes)
+            else:
+                st.warning("Nessun articolo trovato negli ordini")
         
         else:
             st.warning("Nessun ordine trovato nel PDF")
