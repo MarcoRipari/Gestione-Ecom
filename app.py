@@ -2377,46 +2377,84 @@ elif page == "Dashboard - Analizzatore PDF":
             page = pdf_reader.pages[page_num]
             text = page.extract_text()
             
-            order_data = extract_order_data(text, page_num + 1)
-            if order_data and order_data['articles']:
-                orders.append(order_data)
+            # Verifica se questa pagina contiene un ordine
+            if any(keyword in text for keyword in ['ORDINE ECOMMERCE', 'Marketplace:', 'Shipping address']):
+                order_data = extract_order_data(text, page_num + 1)
+                if order_data:
+                    orders.append(order_data)
         
         return orders
     
     def extract_order_data(text, page_num):
         """Estrai i dati di un singolo ordine dal testo della pagina"""
         try:
-            # Debug: mostra il testo della prima pagina per analisi
-            if page_num == 1:
-                st.write("Testo della prima pagina per debug:")
-                st.text(text[:1000])  # Mostra solo i primi 1000 caratteri
+            lines = text.split('\n')
             
-            # Trova marketplace - pattern migliorato
-            marketplace_match = re.search(r'Marketplace:\s*\*?([^\n]+)', text)
-            marketplace = marketplace_match.group(1).strip() if marketplace_match else "Unknown"
-            marketplace = re.sub(r'[\*\#]', '', marketplace).strip()
+            # Estrai marketplace (cerca la linea che contiene "Marketplace:")
+            marketplace = "Unknown"
+            for line in lines:
+                if 'Marketplace:' in line:
+                    marketplace = line.replace('Marketplace:', '').strip()
+                    marketplace = re.sub(r'[\*\#]', '', marketplace).strip()
+                    break
             
-            # Trova data vendita
-            date_match = re.search(r'Data vendita:\s*(\d{2}/\d{2}/\d{4})', text)
-            sale_date = date_match.group(1) if date_match else None
+            # Estrai data vendita
+            sale_date = None
+            for line in lines:
+                if 'Data vendita:' in line:
+                    date_match = re.search(r'Data vendita:\s*(\d{2}/\d{2}/\d{4})', line)
+                    if date_match:
+                        sale_date = date_match.group(1)
+                    break
             
-            # Trova shipping address e estrai paese
+            # Estrai paese (cerca sigle di 2 lettere maiuscole)
             country = "Unknown"
-            shipping_match = re.search(r'Shipping address[^\n]*\n(?:[^\n]*\n){1,3}.*?([A-Z]{2})\s*$', text, re.MULTILINE)
-            if shipping_match:
-                country = shipping_match.group(1)
-            else:
-                # Prova pattern alternativo
-                country_match = re.search(r'DE|IT|FR|ES|BE|GB|AT|DK', text)
-                if country_match:
-                    country = country_match.group(0)
+            for line in lines:
+                if any(country_code in line for country_code in [' DE', ' IT', ' FR', ' ES', ' GB', ' BE', ' AT', ' DK']):
+                    country_match = re.search(r'\b([A-Z]{2})\b', line)
+                    if country_match:
+                        country = country_match.group(1)
+                        break
             
-            # Trova numero ordine marketplace
-            order_match = re.search(r'Marketplace order\s*([^\n]+)', text)
-            order_number = order_match.group(1).strip() if order_match else f"Unknown_{page_num}"
+            # Estrai numero ordine
+            order_number = f"Unknown_{page_num}"
+            for line in lines:
+                if 'Marketplace order' in line:
+                    order_match = re.search(r'Marketplace order\s*([^\n]+)', line)
+                    if order_match:
+                        order_number = order_match.group(1).strip()
+                        break
             
-            # Estrai articoli
-            articles = extract_articles(text)
+            # Estrai articoli - approccio semplificato
+            articles = []
+            in_articles_section = False
+            
+            for line in lines:
+                # Inizia a cercare articoli dopo l'intestazione
+                if 'Articolo' in line and ('Taglia' in line or 'Quantità' in line):
+                    in_articles_section = True
+                    continue
+                
+                if in_articles_section:
+                    # Fermati quando trovi le istruzioni o fine ordine
+                    if 'ISTRUZIONI' in line or 'FINE ORDINE' in line:
+                        break
+                    
+                    # Cerca pattern di articoli (codice articolo + taglia + quantità)
+                    article_match = re.search(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)', line)
+                    if article_match:
+                        # Cerca la descrizione (potrebbe essere nella linea successiva)
+                        descrizione = ""
+                        article_lines = lines[lines.index(line):lines.index(line)+3]
+                        if len(article_lines) > 1 and not re.match(r'\d{10,15}\.', article_lines[1]):
+                            descrizione = article_lines[1].strip()
+                        
+                        articles.append({
+                            'codice_articolo': article_match.group(1),
+                            'taglia': article_match.group(2),
+                            'quantita': int(article_match.group(3)),
+                            'descrizione': descrizione
+                        })
             
             return {
                 'page': page_num,
@@ -2431,66 +2469,6 @@ elif page == "Dashboard - Analizzatore PDF":
         except Exception as e:
             st.error(f"Errore nell'elaborazione pagina {page_num}: {str(e)}")
             return None
-    
-    def extract_articles(text):
-        """Estrai gli articoli dall'ordine"""
-        articles = []
-        
-        # Cerca la sezione articoli usando diversi pattern
-        lines = text.split('\n')
-        in_article_section = False
-        article_lines = []
-        
-        for i, line in enumerate(lines):
-            # Cerca l'inizio della tabella articoli
-            if 'Articolo' in line and ('Taglia' in line or 'Quantità' in line):
-                in_article_section = True
-                continue
-            
-            # Cerca la fine della sezione articoli
-            if in_article_section and ('ISTRUZIONI' in line or 'FINE' in line or 'Shipping details' in line):
-                break
-            
-            if in_article_section and line.strip():
-                # Processa le linee degli articoli
-                article_match = re.match(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s+(.+)', line)
-                if article_match:
-                    articles.append({
-                        'codice_articolo': article_match.group(1).strip(),
-                        'taglia': article_match.group(2).strip(),
-                        'quantita': int(article_match.group(3).strip()),
-                        'descrizione': article_match.group(4).strip()
-                    })
-                else:
-                    # Prova pattern alternativo senza descrizione
-                    article_match_simple = re.match(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)', line)
-                    if article_match_simple:
-                        # Cerca la descrizione nella linea successiva
-                        descrizione = ""
-                        if i + 1 < len(lines) and not re.match(r'\d{10,15}\.', lines[i + 1]):
-                            descrizione = lines[i + 1].strip()
-                        
-                        articles.append({
-                            'codice_articolo': article_match_simple.group(1).strip(),
-                            'taglia': article_match_simple.group(2).strip(),
-                            'quantita': int(article_match_simple.group(3).strip()),
-                            'descrizione': descrizione
-                        })
-        
-        # Se non trova articoli, prova con regex più generica
-        if not articles:
-            article_pattern = r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s+([^\n]+?)(?=\n\s*\d{10,15}|$|\n\s*[A-Z])'
-            matches = re.finditer(article_pattern, text, re.DOTALL)
-            
-            for match in matches:
-                articles.append({
-                    'codice_articolo': match.group(1).strip(),
-                    'taglia': match.group(2).strip(),
-                    'quantita': int(match.group(3).strip()),
-                    'descrizione': match.group(4).strip()
-                })
-        
-        return articles
     
     def create_summary_dataframe(orders):
         """Crea un DataFrame riassuntivo degli ordini"""
@@ -2522,29 +2500,35 @@ elif page == "Dashboard - Analizzatore PDF":
             orders = extract_orders_from_pdf(uploaded_file)
         
         if orders:
+            st.success(f"✅ Trovati {len(orders)} ordini")
+            
+            # Mostra informazioni di debug
+            st.subheader("Informazioni di debug")
+            st.write(f"Primo ordine estratto: {orders[0]}")
+            
             df = create_summary_dataframe(orders)
             
-            st.success(f"✅ File elaborato con successo! Trovati {len(orders)} ordini e {len(df)} articoli")
-            
-            # Mostra statistiche generali
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("Totale Ordini", len(orders))
-            with col2:
-                st.metric("Totale Articoli", df['Quantita'].sum() if not df.empty else 0)
-            with col3:
-                st.metric("Marketplace Unici", df['Marketplace'].nunique() if not df.empty else 0)
-            with col4:
-                st.metric("Paesi", df['Paese'].nunique() if not df.empty else 0)
-            
-            # Mostra anteprima dati
-            st.subheader("Anteprima Dati")
-            st.dataframe(df.head() if not df.empty else pd.DataFrame(), use_container_width=True)
-            
             if not df.empty:
+                st.success(f"✅ Trovati {len(df)} articoli")
+                
+                # Mostra statistiche generali
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Totale Ordini", len(orders))
+                with col2:
+                    st.metric("Totale Articoli", df['Quantita'].sum())
+                with col3:
+                    st.metric("Marketplace Unici", df['Marketplace'].nunique())
+                with col4:
+                    st.metric("Paesi", df['Paese'].nunique())
+                
+                # Mostra anteprima dati
+                st.subheader("Anteprima Dati")
+                st.dataframe(df.head(), use_container_width=True)
+                
                 # Filtri
                 st.subheader("🔍 Filtri")
-                col1, col2, col3 = st.columns(3)
+                col1, col2 = st.columns(2)
                 
                 with col1:
                     selected_marketplaces = st.multiselect(
@@ -2560,14 +2544,16 @@ elif page == "Dashboard - Analizzatore PDF":
                         default=sorted(df['Paese'].unique())
                     )
                 
+                # Applica filtri
+                filtered_df = df[
+                    (df['Marketplace'].isin(selected_marketplaces)) &
+                    (df['Paese'].isin(selected_countries))
+                ]
+                
                 # Layout principale
-                tab1, tab2, tab3, tab4 = st.tabs(["Dati Completi", "Statistiche", "Marketplace", "Articoli"])
+                tab1, tab2 = st.tabs(["Dati Completi", "Statistiche"])
                 
                 with tab1:
-                    filtered_df = df[
-                        (df['Marketplace'].isin(selected_marketplaces)) &
-                        (df['Paese'].isin(selected_countries))
-                    ]
                     st.dataframe(filtered_df, use_container_width=True)
                     
                     # Download dati
@@ -2591,27 +2577,19 @@ elif page == "Dashboard - Analizzatore PDF":
                         st.subheader("Articoli per Marketplace")
                         marketplace_counts = filtered_df.groupby('Marketplace')['Quantita'].sum()
                         st.bar_chart(marketplace_counts)
-                
-                with tab3:
-                    st.subheader("Dettaglio per Marketplace")
-                    for marketplace in selected_marketplaces:
-                        marketplace_data = filtered_df[filtered_df['Marketplace'] == marketplace]
-                        with st.expander(f"📦 {marketplace} ({len(marketplace_data)} articoli)"):
-                            st.dataframe(marketplace_data, use_container_width=True)
-                
-                with tab4:
-                    st.subheader("Articoli più venduti")
-                    top_articles = filtered_df.groupby(['Codice_Articolo', 'Descrizione'])['Quantita'].sum().nlargest(10)
-                    st.bar_chart(top_articles)
-                    
-                    st.subheader("Taglie più richieste")
-                    top_sizes = filtered_df.groupby('Taglia')['Quantita'].sum().nlargest(10)
-                    st.bar_chart(top_sizes)
             else:
                 st.warning("Nessun articolo trovato negli ordini")
+                st.write("Dettaglio ordini trovati:")
+                for i, order in enumerate(orders[:3]):  # Mostra primi 3 ordini per debug
+                    st.write(f"Ordine {i+1}: {order}")
         
         else:
             st.warning("Nessun ordine trovato nel PDF")
+            # Mostra il testo della prima pagina per debug
+            pdf_reader = PyPDF2.PdfReader(uploaded_file)
+            first_page = pdf_reader.pages[0].extract_text()
+            st.text("Testo prima pagina per debug:")
+            st.text(first_page[:500])  # Mostra primi 500 caratteri
     
     else:
         st.info("👆 Please carica un file PDF per iniziare l'analisi")
