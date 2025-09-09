@@ -2372,14 +2372,19 @@ elif page == "Dashboard - Analizzatore PDF":
     def extract_data_from_page(page_text):
         data = {}
         
-        # Marketplace e Numero Ordine
-        # Ho reso la regex meno generica per evitare di catturare testo non pertinente
-        combined_match = re.search(r"Marketplace:\s*([a-zA-Z0-9.\s-]+?)\s*Marketplace order\s*([a-zA-Z0-9-]+)", page_text, re.DOTALL | re.IGNORECASE)
-        if combined_match:
-            data['Marketplace'] = combined_match.group(1).strip()
-            data['Numero Ordine'] = combined_match.group(2).strip()
+        # Marketplace
+        # Ricerca separata per essere più robusti alle variazioni di layout
+        marketplace_match = re.search(r"Marketplace:\s*([a-zA-Z0-9_.-]+)", page_text, re.IGNORECASE)
+        if marketplace_match:
+            data['Marketplace'] = marketplace_match.group(1).strip()
         else:
             data['Marketplace'] = "N/A"
+    
+        # Numero Ordine
+        order_match = re.search(r"Marketplace order\s*([a-zA-Z0-9-]+)", page_text, re.IGNORECASE)
+        if order_match:
+            data['Numero Ordine'] = order_match.group(1).strip()
+        else:
             data['Numero Ordine'] = "N/A"
     
         # Data
