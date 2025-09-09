@@ -2390,20 +2390,33 @@ elif page == "Dashboard - Analizzatore PDF":
         try:
             lines = text.split('\n')
             
-            # Estrai marketplace (cerca la linea che contiene "Marketplace:")
+            # Estrai marketplace - approccio migliorato
             marketplace = "Unknown"
             for i, line in enumerate(lines):
                 if 'Marketplace:' in line:
-                    # Prendi il testo dopo "Marketplace:"
-                    marketplace_part = line.split('Marketplace:')[-1].strip()
-                    if marketplace_part:
-                        marketplace = re.sub(r'[\*\#]', '', marketplace_part).strip()
-                    # Se è vuoto, cerca nella linea successiva
-                    if marketplace == "Unknown" and i + 1 < len(lines):
+                    # Cerca il marketplace dopo i due punti
+                    marketplace_match = re.search(r'Marketplace:\s*\*?([^\n]+)', line)
+                    if marketplace_match:
+                        marketplace = marketplace_match.group(1).strip()
+                        marketplace = re.sub(r'[\*\#]', '', marketplace).strip()
+                        # Pulisci il marketplace da eventuali altre informazioni
+                        marketplace = re.split(r'\s+Articolo|\s+Shipping|\s+Quantità', marketplace)[0].strip()
+                        break
+                    # Se non trova nella stessa linea, cerca nelle successive
+                    elif i + 1 < len(lines):
                         next_line = lines[i + 1].strip()
-                        if next_line and not any(x in next_line for x in ['Shipping', 'Articolo', 'Quantità']):
+                        if next_line and not any(x in next_line for x in ['Shipping', 'Articolo', 'Quantità', 'Taglia']):
                             marketplace = next_line
-                    break
+                            break
+            
+            # Se ancora unknown, cerca zalando/amazon ecc. nel testo
+            if marketplace == "Unknown":
+                for line in lines:
+                    if any(mp in line.lower() for mp in ['zalando', 'amazon', 'la_redoute', 'sarenza', 'venteprivee']):
+                        marketplace_match = re.search(r'([a-zA-Z_]+)', line)
+                        if marketplace_match:
+                            marketplace = marketplace_match.group(1)
+                            break
             
             # Estrai data vendita
             sale_date = None
@@ -2414,30 +2427,41 @@ elif page == "Dashboard - Analizzatore PDF":
                         sale_date = date_match.group(1)
                     break
             
-            # Estrai paese (cerca nelle shipping address)
+            # Estrai paese - approccio migliorato
             country = "Unknown"
+            
+            # Cerca nelle shipping address
             for i, line in enumerate(lines):
-                if 'Shipping address' in line:
-                    # Cerca nelle prossime 10 linee dopo Shipping address
+                if 'Shipping address' in line or 'Shipping details' in line:
+                    # Cerca nelle prossime 10 linee
                     for j in range(i + 1, min(i + 11, len(lines))):
-                        if any(country_code in lines[j] for country_code in [' DE', ' IT', ' FR', ' ES', ' GB', ' BE', ' AT', ' DK']):
-                            country_match = re.search(r'\b([A-Z]{2})\b', lines[j])
-                            if country_match:
-                                country = country_match.group(1)
-                                break
+                        line_to_check = lines[j].strip()
+                        # Cerca sigle paese isolate o alla fine della linea
+                        country_match = re.search(r'\b(DE|IT|FR|ES|GB|BE|AT|DK|NL|SE)\b', line_to_check)
+                        if country_match:
+                            country = country_match.group(1)
+                            break
                     if country != "Unknown":
+                        break
+            
+            # Se non trova, cerca in tutto il testo
+            if country == "Unknown":
+                for line in lines:
+                    country_match = re.search(r'\b(DE|IT|FR|ES|GB|BE|AT|DK|NL|SE)\b', line)
+                    if country_match:
+                        country = country_match.group(1)
                         break
             
             # Estrai numero ordine
             order_number = f"Unknown_{page_num}"
             for line in lines:
                 if 'Marketplace order' in line:
-                    order_match = re.search(r'Marketplace order\s*([^\n]+)', line)
+                    order_match = re.search(r'Marketplace order\s*([A-Za-z0-9\-]+)', line)
                     if order_match:
                         order_number = order_match.group(1).strip()
                         break
             
-            # Estrai articoli - pattern corretto per la struttura reale
+            # Estrai articoli
             articles = []
             
             # Cerca tutte le linee che contengono codici articolo
@@ -2460,15 +2484,37 @@ elif page == "Dashboard - Analizzatore PDF":
                         'quantita': int(quantity),
                         'descrizione': descrizione.strip()
                     })
+                    continue
                 
-                # Pattern alternativo: solo codice articolo + taglia + quantità
-                else:
-                    article_match_alt = re.match(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s*(.*)', line)
-                    if article_match_alt:
-                        codice = article_match_alt.group(1)
-                        taglia = article_match_alt.group(2)
-                        quantity = article_match_alt.group(3)
-                        descrizione = article_match_alt.group(4)
+                # Pattern alternativo: codice articolo + taglia + quantità + descrizione
+                article_match_alt = re.match(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s*(.*)', line)
+                if article_match_alt:
+                    codice = article_match_alt.group(1)
+                    taglia = article_match_alt.group(2)
+                    quantity = article_match_alt.group(3)
+                    descrizione = article_match_alt.group(4)
+                    
+                    articles.append({
+                        'codice_articolo': codice,
+                        'taglia': taglia,
+                        'quantita': int(quantity),
+                        'descrizione': descrizione.strip()
+                    })
+                    continue
+                
+                # Pattern per articoli su più linee (solo codice)
+                article_code_match = re.match(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)', line)
+                if article_code_match and i + 2 < len(lines):
+                    # Controlla se le prossime linee contengono taglia e quantità
+                    next_line1 = lines[i + 1].strip()
+                    next_line2 = lines[i + 2].strip() if i + 2 < len(lines) else ""
+                    
+                    size_qty_match = re.match(r'(\d+)\s+(\d+)', next_line1)
+                    if size_qty_match:
+                        codice = article_code_match.group(1)
+                        taglia = size_qty_match.group(1)
+                        quantity = size_qty_match.group(2)
+                        descrizione = next_line2 if next_line2 else ""
                         
                         articles.append({
                             'codice_articolo': codice,
@@ -2511,6 +2557,32 @@ elif page == "Dashboard - Analizzatore PDF":
         
         return pd.DataFrame(data)
     
+    def clean_marketplace_data(df):
+        """Pulisce e standardizza i nomi dei marketplace"""
+        marketplace_mapping = {
+            'zalando_de': 'zalando_de',
+            'zalando_fr': 'zalando_fr', 
+            'zalando_it': 'zalando_it',
+            'amazon_fr': 'amazon_fr',
+            'amazon_de': 'amazon_de',
+            'amazon_it': 'amazon_it',
+            'amazon_es': 'amazon_es',
+            'la_redoute_mirakl_fr': 'la_redoute_fr',
+            'sarenza_eu': 'sarenza_eu',
+            'venteprivee_fr': 'venteprivee_fr',
+            'venteprivee_it': 'venteprivee_it',
+            'vertbaudet_eu': 'vertbaudet_eu'
+        }
+        
+        if 'Marketplace' in df.columns:
+            df['Marketplace_Clean'] = df['Marketplace'].str.lower()
+            for pattern, replacement in marketplace_mapping.items():
+                df['Marketplace_Clean'] = df['Marketplace_Clean'].apply(
+                    lambda x: replacement if pattern in x else x
+                )
+        
+        return df
+    
     def main():
         st.set_page_config(page_title="Analisi Ordini Ecommerce", layout="wide")
         st.title("📊 Analisi Ordini Ecommerce da PDF")
@@ -2522,15 +2594,13 @@ elif page == "Dashboard - Analizzatore PDF":
                 orders = extract_orders_from_pdf(uploaded_file)
             
             if orders:
-                st.success(f"✅ Trovati {len(orders)} ordini")
-                
-                # Mostra informazioni di debug
-                st.subheader("Informazioni di debug")
-                
                 df = create_summary_dataframe(orders)
                 
                 if not df.empty:
-                    st.success(f"✅ Trovati {len(df)} articoli")
+                    # Pulisci i dati dei marketplace
+                    df = clean_marketplace_data(df)
+                    
+                    st.success(f"✅ Trovati {len(orders)} ordini e {len(df)} articoli")
                     
                     # Mostra statistiche generali
                     col1, col2, col3, col4 = st.columns(4)
@@ -2539,23 +2609,41 @@ elif page == "Dashboard - Analizzatore PDF":
                     with col2:
                         st.metric("Totale Articoli", df['Quantita'].sum())
                     with col3:
-                        st.metric("Marketplace Unici", df['Marketplace'].nunique())
+                        st.metric("Marketplace Unici", df['Marketplace_Clean'].nunique() if 'Marketplace_Clean' in df.columns else df['Marketplace'].nunique())
                     with col4:
                         st.metric("Paesi", df['Paese'].nunique())
                     
+                    # Mostra distribuzione marketplace
+                    st.subheader("Distribuzione Marketplace")
+                    if 'Marketplace_Clean' in df.columns:
+                        marketplace_counts = df['Marketplace_Clean'].value_counts()
+                    else:
+                        marketplace_counts = df['Marketplace'].value_counts()
+                    st.bar_chart(marketplace_counts)
+                    
+                    # Mostra distribuzione paesi
+                    st.subheader("Distribuzione Paesi")
+                    country_counts = df['Paese'].value_counts()
+                    st.bar_chart(country_counts)
+                    
                     # Mostra anteprima dati
                     st.subheader("Anteprima Dati")
-                    st.dataframe(df.head(), use_container_width=True)
+                    st.dataframe(df.head(10), use_container_width=True)
                     
                     # Filtri
                     st.subheader("🔍 Filtri")
                     col1, col2 = st.columns(2)
                     
                     with col1:
+                        if 'Marketplace_Clean' in df.columns:
+                            marketplace_options = sorted(df['Marketplace_Clean'].unique())
+                        else:
+                            marketplace_options = sorted(df['Marketplace'].unique())
+                        
                         selected_marketplaces = st.multiselect(
                             "Marketplace",
-                            options=sorted(df['Marketplace'].unique()),
-                            default=sorted(df['Marketplace'].unique())
+                            options=marketplace_options,
+                            default=marketplace_options
                         )
                     
                     with col2:
@@ -2566,13 +2654,19 @@ elif page == "Dashboard - Analizzatore PDF":
                         )
                     
                     # Applica filtri
-                    filtered_df = df[
-                        (df['Marketplace'].isin(selected_marketplaces)) &
-                        (df['Paese'].isin(selected_countries))
-                    ]
+                    if 'Marketplace_Clean' in df.columns:
+                        filtered_df = df[
+                            (df['Marketplace_Clean'].isin(selected_marketplaces)) &
+                            (df['Paese'].isin(selected_countries))
+                        ]
+                    else:
+                        filtered_df = df[
+                            (df['Marketplace'].isin(selected_marketplaces)) &
+                            (df['Paese'].isin(selected_countries))
+                        ]
                     
                     # Layout principale
-                    tab1, tab2 = st.tabs(["Dati Completi", "Statistiche"])
+                    tab1, tab2, tab3 = st.tabs(["Dati Completi", "Statistiche", "Articoli Popolari"])
                     
                     with tab1:
                         st.dataframe(filtered_df, use_container_width=True)
@@ -2596,15 +2690,22 @@ elif page == "Dashboard - Analizzatore PDF":
                         
                         with col2:
                             st.subheader("Articoli per Marketplace")
-                            marketplace_counts = filtered_df.groupby('Marketplace')['Quantita'].sum()
+                            if 'Marketplace_Clean' in filtered_df.columns:
+                                marketplace_counts = filtered_df.groupby('Marketplace_Clean')['Quantita'].sum()
+                            else:
+                                marketplace_counts = filtered_df.groupby('Marketplace')['Quantita'].sum()
                             st.bar_chart(marketplace_counts)
+                    
+                    with tab3:
+                        st.subheader("Articoli più venduti")
+                        top_articles = filtered_df.groupby(['Codice_Articolo', 'Descrizione'])['Quantita'].sum().nlargest(10)
+                        st.bar_chart(top_articles)
+                        
+                        st.subheader("Taglie più richieste")
+                        top_sizes = filtered_df.groupby('Taglia')['Quantita'].sum().nlargest(10)
+                        st.bar_chart(top_sizes)
                 else:
                     st.warning("Nessun articolo trovato negli ordini")
-                    # Mostra il testo della prima pagina per debug
-                    pdf_reader = PyPDF2.PdfReader(uploaded_file)
-                    first_page = pdf_reader.pages[0].extract_text()
-                    st.text("Testo completo prima pagina:")
-                    st.text(first_page)
             
             else:
                 st.warning("Nessun ordine trovato nel PDF")
