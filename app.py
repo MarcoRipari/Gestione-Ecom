@@ -2391,36 +2391,6 @@ def analyze_pdf_structure(pdf_file):
     
     return True
 
-def extract_orders_with_patterns(pdf_file, patterns):
-    """
-    Estrae ordini dal PDF usando pattern personalizzabili
-    """
-    orders = []
-    
-    with pdfplumber.open(pdf_file) as pdf:
-        for page_num, page in enumerate(pdf.pages):
-            text = page.extract_text()
-            
-            order_data = {"page": page_num + 1}
-            
-            # Estrazione con pattern configurabili
-            for field, pattern in patterns.items():
-                match = re.search(pattern, text, re.IGNORECASE)
-                if match:
-                    order_data[field] = match.group(1).strip()
-                else:
-                    order_data[field] = "N/D"
-            
-            # Estrazione articoli (pattern più complesso)
-            article_pattern = r'(?:articolo|item|prodotto)[\s:]*([^\n]+?)\s*(?=€|\$|\d+,\d{2}|$|articolo|item|prodotto)'
-            articles = re.findall(article_pattern, text, re.IGNORECASE)
-            order_data["articles"] = articles
-            
-            orders.append(order_data)
-    
-    return orders
-
-
 elif page == "Dashboard - Analizzatore PDF":
     st.header("📊 Analizzatore PDF Interattivo")
     
@@ -2508,24 +2478,3 @@ elif page == "Dashboard - Prestazioni Prodotti":
             # ... il resto del codice della dashboard ...
         else:
             st.info("Prima analizza un PDF per estrarre i dati degli ordini.")
-
-
-def enhanced_products_dashboard():
-    """
-    Dashboard migliorata con analisi PDF integrata
-    """
-    st.header("📊 Dashboard Prestazioni Prodotti")
-    
-    tab1, tab2 = st.tabs(["Analizza PDF", "Dashboard"])
-    
-    with tab1:
-        interactive_pdf_analyzer()
-    
-    with tab2:
-        # Qui la dashboard esistente che usa i dati estratti
-        if 'pdf_patterns' in st.session_state and 'orders_data' in st.session_state:
-            st.subheader("Analisi Prestazioni")
-            # ... il resto del codice della dashboard ...
-        else:
-            st.info("Prima analizza un PDF per estrarre i dati degli ordini.")
-
