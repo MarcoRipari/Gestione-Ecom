@@ -2368,11 +2368,12 @@ elif page == "Admin - Aggiungi utente":
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
 
 elif page == "Dashboard - Analizzatore PDF":
+    # Funzione per estrarre i dati da una pagina PDF
     def extract_data_from_page(page_text):
         data = {}
         
         # Marketplace
-        marketplace_match = re.search(r"Marketplace:\s*([a-zA-Z0-9\s.]+|zalando de)", page_text, re.IGNORECASE)
+        marketplace_match = re.search(r"Marketplace:\s*([a-zA-Z0-9\s.-]+)", page_text, re.IGNORECASE)
         if marketplace_match:
             data['Marketplace'] = marketplace_match.group(1).strip()
         else:
@@ -2392,7 +2393,7 @@ elif page == "Dashboard - Analizzatore PDF":
         else:
             data['Nazione'] = "N/A"
         
-        # Articoli e quantità
+        # Articoli, quantità e taglia
         items = []
         items_section = re.search(r"Articolo\s+Quantità\s+Descrizione articolo\s+Taglia(.*?)ISTRUZIONI IMBALLO", page_text, re.DOTALL)
         if not items_section:
@@ -2403,22 +2404,26 @@ elif page == "Dashboard - Analizzatore PDF":
             item_lines = items_text.split('\n')
             for line in item_lines:
                 if line.strip():
-                    # Adjusted regex to handle the specific format
-                    item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+(.*)", line)
+                    # Adjusted regex to handle different formats and include size
+                    # Case 1: Quantity Code Size Description
+                    item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+(\d+)\s+(.*)", line)
                     if item_match:
                         item_data = {
                             'quantita': item_match.group(1).strip(),
                             'codice': item_match.group(2).strip(),
-                            'descrizione': item_match.group(3).strip()
+                            'taglia': item_match.group(3).strip(),
+                            'descrizione': item_match.group(4).strip()
                         }
                         items.append(item_data)
                     else:
-                        item_match = re.search(r"^\s*([^\s]+)\s+(\d+)\s+(.*)", line)
+                        # Case 2: Code Size Quantity Description
+                        item_match = re.search(r"^\s*([^\s]+)\s+(\d+)\s+(\d+)\s+(.*)", line)
                         if item_match:
                             item_data = {
                                 'codice': item_match.group(1).strip(),
-                                'quantita': item_match.group(2).strip(),
-                                'descrizione': item_match.group(3).strip()
+                                'taglia': item_match.group(2).strip(),
+                                'quantita': item_match.group(3).strip(),
+                                'descrizione': item_match.group(4).strip()
                             }
                             items.append(item_data)
                             
@@ -2455,19 +2460,52 @@ elif page == "Dashboard - Analizzatore PDF":
                     
             if extracted_data:
                 st.subheader("Dati Estratti:")
-                for i, order in enumerate(extracted_data):
-                    st.markdown(f"**Ordine {i+1}:**")
-                    st.markdown(f"**Marketplace:** {order.get('Marketplace')}")
-                    st.markdown(f"**Data:** {order.get('Data')}")
-                    st.markdown(f"**Nazione:** {order.get('Nazione')}")
-                    st.markdown("**Articoli:**")
-                    
-                    if order.get('Articoli'):
-                        for item in order['Articoli']:
-                            st.markdown(f"- Quantità: {item.get('quantita')}, Codice: {item.get('codice')}, Descrizione: {item.get('descrizione')}")
-                    else:
-                        st.markdown("- Nessun articolo trovato.")
-                    st.markdown("---")
+                
+                # Creazione del DataFrame
+                data_for_df = []
+                for order in extracted_data:
+                    for item in order['Articoli']:
+                        row = {
+                            'Marketplace': order['Marketplace'],
+                            'Data': order['Data'],
+                            'Nazione': order['Nazione'],
+                            'Quantita': int(item.get('quantita', 0)),
+                            'Codice': item.get('codice', 'N/A'),
+                            'Descrizione': item.get('descrizione', 'N/A'),
+                            'Taglia': item.get('taglia', 'N/A')
+                        }
+                        data_for_df.append(row)
+                
+                df = pd.DataFrame(data_for_df)
+                
+                st.write("Ecco i dati estratti nel DataFrame:")
+                st.dataframe(df)
+    
+                # ---
+                st.subheader("Riepilogo Dati")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                total_orders = len(extracted_data)
+                col1.metric("Ordini Analizzati", total_orders)
+    
+                total_items = df['Quantita'].sum()
+                col2.metric("Articoli Totali Venduti", total_items)
+                
+                unique_marketplaces = df['Marketplace'].nunique()
+                col3.metric("Marketplace Unici", unique_marketplaces)
+    
+                # ---
+                st.subheader("Analisi Visuale")
+                
+                st.markdown("Quantità venduta per Marketplace")
+                market_sales = df.groupby('Marketplace')['Quantita'].sum().reset_index()
+                st.bar_chart(market_sales, x='Marketplace', y='Quantita')
+    
+                st.markdown("Quantità venduta per Nazione")
+                country_sales = df.groupby('Nazione')['Quantita'].sum().reset_index()
+                st.bar_chart(country_sales, x='Nazione', y='Quantita')
+                
             else:
                 st.warning("Nessun ordine trovato nel PDF caricato.")
 
