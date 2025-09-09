@@ -57,6 +57,7 @@ from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 from gspread.utils import rowcol_to_a1
 import pdfplumber
+import PyPDF2
 
 logging.basicConfig(level=logging.INFO)
 
@@ -961,8 +962,7 @@ with st.sidebar:
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
                          ]
         
-        submenu_item_list = [{"main":"Dashboard", "name":"Prestazioni Prodotti", "icon":"graph-up", "role":["admin"]},
-                             {"main":"Dashboard", "name":"Analizzatore PDF", "icon":"file-earmark-pdf", "role":["admin"]},
+        submenu_item_list = [{"main":"Dashboard", "name":"Analizzatore PDF", "icon":"file-earmark-pdf", "role":["admin"]},
                              {"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customer care","admin"]},
@@ -2366,3 +2366,208 @@ elif page == "Admin - Aggiungi utente":
         submit = st.form_submit_button("Crea utente")
         if submit:
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
+
+elif page == "Dashboard - Analizzatore PDF":
+    def extract_orders_from_pdf(pdf_file):
+        """Estrai tutti gli ordini dal PDF"""
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        orders = []
+        
+        for page_num in range(len(pdf_reader.pages)):
+            page = pdf_reader.pages[page_num]
+            text = page.extract_text()
+            
+            order_data = extract_order_data(text, page_num + 1)
+            if order_data:
+                orders.append(order_data)
+        
+        return orders
+    
+    def extract_order_data(text, page_num):
+        """Estrai i dati di un singolo ordine dal testo della pagina"""
+        try:
+            # Trova marketplace
+            marketplace_match = re.search(r'Marketplace:\s*\*?(\w+[\w_]*)', text)
+            marketplace = marketplace_match.group(1).strip() if marketplace_match else "Unknown"
+            
+            # Trova data vendita
+            date_match = re.search(r'Data vendita:\s*(\d{2}/\d{2}/\d{4})', text)
+            sale_date = date_match.group(1) if date_match else None
+            
+            # Trova shipping address e estrai paese
+            shipping_match = re.search(r'Shipping address[\s\S]*?([A-Z]{2})\s*$', text, re.MULTILINE)
+            country = shipping_match.group(1) if shipping_match else "Unknown"
+            
+            # Trova numero ordine marketplace
+            order_match = re.search(r'Marketplace order\s*([A-Za-z0-9\-]+)', text)
+            order_number = order_match.group(1) if order_match else f"Unknown_{page_num}"
+            
+            # Estrai articoli
+            articles = extract_articles(text)
+            
+            return {
+                'page': page_num,
+                'marketplace': marketplace,
+                'order_number': order_number,
+                'sale_date': sale_date,
+                'country': country,
+                'articles': articles,
+                'total_items': sum(article['quantità'] for article in articles)
+            }
+            
+        except Exception as e:
+            st.error(f"Errore nell'elaborazione pagina {page_num}: {str(e)}")
+            return None
+    
+    def extract_articles(text):
+        """Estrai gli articoli dall'ordine"""
+        articles = []
+        
+        # Trova la tabella articoli
+        article_pattern = r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s+([^\n]+?)(?=\n\s*\d|$|\n\s*ISTRUZIONI)'
+        matches = re.findall(article_pattern, text, re.DOTALL)
+        
+        for match in matches:
+            article_code, size, quantity, description = match
+            articles.append({
+                'codice_articolo': article_code.strip(),
+                'taglia': size.strip(),
+                'quantità': int(quantity.strip()),
+                'descrizione': description.strip()
+            })
+        
+        return articles
+    
+    def create_summary_dataframe(orders):
+        """Crea un DataFrame riassuntivo degli ordini"""
+        data = []
+        
+        for order in orders:
+            for article in order['articles']:
+                data.append({
+                    'Pagina': order['page'],
+                    'Marketplace': order['marketplace'],
+                    'N° Ordine': order['order_number'],
+                    'Data Vendita': order['sale_date'],
+                    'Paese': order['country'],
+                    'Codice Articolo': article['codice_articolo'],
+                    'Taglia': article['taglia'],
+                    'Quantità': article['quantità'],
+                    'Descrizione': article['descrizione']
+                })
+        
+        return pd.DataFrame(data)
+    st.set_page_config(page_title="Analisi Ordini Ecommerce", layout="wide")
+    st.title("📊 Analisi Ordini Ecommerce da PDF")
+    
+    uploaded_file = st.file_uploader("Carica il file PDF degli ordini", type="pdf")
+    
+    if uploaded_file is not None:
+        with st.spinner("Elaborazione del PDF in corso..."):
+            orders = extract_orders_from_pdf(uploaded_file)
+        
+        if orders:
+            df = create_summary_dataframe(orders)
+            
+            st.success(f"✅ File elaborato con successo! Trovati {len(orders)} ordini e {len(df)} articoli")
+            
+            # Mostra statistiche generali
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Totale Ordini", len(orders))
+            with col2:
+                st.metric("Totale Articoli", df['Quantità'].sum())
+            with col3:
+                st.metric("Marketplace Unici", df['Marketplace'].nunique())
+            with col4:
+                st.metric("Paesi", df['Paese'].nunique())
+            
+            # Filtri
+            st.subheader("🔍 Filtri")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                selected_marketplaces = st.multiselect(
+                    "Marketplace",
+                    options=sorted(df['Marketplace'].unique()),
+                    default=sorted(df['Marketplace'].unique())
+                )
+            
+            with col2:
+                selected_countries = st.multiselect(
+                    "Paesi",
+                    options=sorted(df['Paese'].unique()),
+                    default=sorted(df['Paese'].unique())
+                )
+            
+            with col3:
+                date_range = st.date_input(
+                    "Intervallo date",
+                    value=(
+                        pd.to_datetime(df['Data Vendita'].min(), format='%d/%m/%Y', errors='coerce'),
+                        pd.to_datetime(df['Data Vendita'].max(), format='%d/%m/%Y', errors='coerce')
+                    )
+                )
+            
+            # Applica filtri
+            filtered_df = df[
+                (df['Marketplace'].isin(selected_marketplaces)) &
+                (df['Paese'].isin(selected_countries))
+            ]
+            
+            if isinstance(date_range, tuple) and len(date_range) == 2:
+                start_date, end_date = date_range
+                filtered_df = filtered_df[
+                    (pd.to_datetime(filtered_df['Data Vendita'], format='%d/%m/%Y', errors='coerce') >= pd.to_datetime(start_date)) &
+                    (pd.to_datetime(filtered_df['Data Vendita'], format='%d/%m/%Y', errors='coerce') <= pd.to_datetime(end_date))
+                ]
+            
+            # Layout principale
+            tab1, tab2, tab3, tab4 = st.tabs(["Dati Completi", "Statistiche", "Marketplace", "Articoli"])
+            
+            with tab1:
+                st.dataframe(filtered_df, use_container_width=True)
+                
+                # Download dati
+                csv = filtered_df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    "📥 Scarica CSV",
+                    csv,
+                    "ordini_analizzati.csv",
+                    "text/csv"
+                )
+            
+            with tab2:
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.subheader("Ordini per Paese")
+                    country_counts = filtered_df.groupby('Paese').size()
+                    st.bar_chart(country_counts)
+                
+                with col2:
+                    st.subheader("Articoli per Marketplace")
+                    marketplace_counts = filtered_df.groupby('Marketplace')['Quantità'].sum()
+                    st.bar_chart(marketplace_counts)
+            
+            with tab3:
+                st.subheader("Dettaglio per Marketplace")
+                for marketplace in selected_marketplaces:
+                    marketplace_data = filtered_df[filtered_df['Marketplace'] == marketplace]
+                    with st.expander(f"📦 {marketplace} ({len(marketplace_data)} articoli)"):
+                        st.dataframe(marketplace_data, use_container_width=True)
+            
+            with tab4:
+                st.subheader("Articoli più venduti")
+                top_articles = filtered_df.groupby(['Codice Articolo', 'Descrizione'])['Quantità'].sum().nlargest(10)
+                st.bar_chart(top_articles)
+                
+                st.subheader("Taglie più richieste")
+                top_sizes = filtered_df.groupby('Taglia')['Quantità'].sum().nlargest(10)
+                st.bar_chart(top_sizes)
+        
+        else:
+            st.warning("Nessun ordine trovato nel PDF")
+    
+    else:
+        st.info("👆 Please carica un file PDF per iniziare l'analisi")
