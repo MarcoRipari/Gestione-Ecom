@@ -2395,11 +2395,14 @@ elif page == "Dashboard - Analizzatore PDF":
             for i, line in enumerate(lines):
                 if 'Marketplace:' in line:
                     # Prendi il testo dopo "Marketplace:"
-                    marketplace = line.split('Marketplace:')[-1].strip()
-                    marketplace = re.sub(r'[\*\#]', '', marketplace).strip()
+                    marketplace_part = line.split('Marketplace:')[-1].strip()
+                    if marketplace_part:
+                        marketplace = re.sub(r'[\*\#]', '', marketplace_part).strip()
                     # Se è vuoto, cerca nella linea successiva
-                    if not marketplace and i + 1 < len(lines):
-                        marketplace = lines[i + 1].strip()
+                    if marketplace == "Unknown" and i + 1 < len(lines):
+                        next_line = lines[i + 1].strip()
+                        if next_line and not any(x in next_line for x in ['Shipping', 'Articolo', 'Quantità']):
+                            marketplace = next_line
                     break
             
             # Estrai data vendita
@@ -2415,9 +2418,9 @@ elif page == "Dashboard - Analizzatore PDF":
             country = "Unknown"
             for i, line in enumerate(lines):
                 if 'Shipping address' in line:
-                    # Cerca nelle prossime 5 linee dopo Shipping address
-                    for j in range(i + 1, min(i + 6, len(lines))):
-                        if any(country_code in lines[j] for country_code in ['DE', 'IT', 'FR', 'ES', 'GB', 'BE', 'AT', 'DK']):
+                    # Cerca nelle prossime 10 linee dopo Shipping address
+                    for j in range(i + 1, min(i + 11, len(lines))):
+                        if any(country_code in lines[j] for country_code in [' DE', ' IT', ' FR', ' ES', ' GB', ' BE', ' AT', ' DK']):
                             country_match = re.search(r'\b([A-Z]{2})\b', lines[j])
                             if country_match:
                                 country = country_match.group(1)
@@ -2434,50 +2437,45 @@ elif page == "Dashboard - Analizzatore PDF":
                         order_number = order_match.group(1).strip()
                         break
             
-            # Estrai articoli - approccio migliorato
+            # Estrai articoli - pattern corretto per la struttura reale
             articles = []
             
-            # Cerca la sezione articoli
-            start_index = -1
-            end_index = -1
-            
+            # Cerca tutte le linee che contengono codici articolo
             for i, line in enumerate(lines):
-                if 'Articolo' in line and ('Taglia' in line or 'Quantità' in line):
-                    start_index = i + 1
-                if start_index != -1 and ('ISTRUZIONI' in line or 'FINE ORDINE' in line or 'Shipping details' in line):
-                    end_index = i
-                    break
-            
-            # Se troviamo la sezione articoli, processala
-            if start_index != -1 and end_index != -1:
-                article_lines = lines[start_index:end_index]
+                line = line.strip()
+                if not line:
+                    continue
                 
-                current_article = None
-                for line in article_lines:
-                    line = line.strip()
-                    if not line:
-                        continue
+                # Pattern per articoli: quantità + codice articolo + taglia + descrizione
+                article_match = re.match(r'(\d+)\s+(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(.+)', line)
+                if article_match:
+                    quantity = article_match.group(1)
+                    codice = article_match.group(2)
+                    taglia = article_match.group(3)
+                    descrizione = article_match.group(4)
                     
-                    # Cerca pattern di articoli (codice articolo + taglia + quantità)
-                    article_match = re.match(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s*(.*)', line)
-                    if article_match:
-                        # Salva l'articolo precedente se esiste
-                        if current_article:
-                            articles.append(current_article)
-                        
-                        current_article = {
-                            'codice_articolo': article_match.group(1),
-                            'taglia': article_match.group(2),
-                            'quantita': int(article_match.group(3)),
-                            'descrizione': article_match.group(4).strip()
-                        }
-                    elif current_article and line:
-                        # Aggiungi alla descrizione dell'articolo corrente
-                        current_article['descrizione'] += ' ' + line
+                    articles.append({
+                        'codice_articolo': codice,
+                        'taglia': taglia,
+                        'quantita': int(quantity),
+                        'descrizione': descrizione.strip()
+                    })
                 
-                # Aggiungi l'ultimo articolo
-                if current_article:
-                    articles.append(current_article)
+                # Pattern alternativo: solo codice articolo + taglia + quantità
+                else:
+                    article_match_alt = re.match(r'(\d{10,15}\.[A-Z0-9]+\.[A-Z0-9]+)\s+(\d+)\s+(\d+)\s*(.*)', line)
+                    if article_match_alt:
+                        codice = article_match_alt.group(1)
+                        taglia = article_match_alt.group(2)
+                        quantity = article_match_alt.group(3)
+                        descrizione = article_match_alt.group(4)
+                        
+                        articles.append({
+                            'codice_articolo': codice,
+                            'taglia': taglia,
+                            'quantita': int(quantity),
+                            'descrizione': descrizione.strip()
+                        })
             
             return {
                 'page': page_num,
@@ -2528,7 +2526,6 @@ elif page == "Dashboard - Analizzatore PDF":
                 
                 # Mostra informazioni di debug
                 st.subheader("Informazioni di debug")
-                st.write(f"Primo ordine estratto: {orders[0]}")
                 
                 df = create_summary_dataframe(orders)
                 
@@ -2603,14 +2600,11 @@ elif page == "Dashboard - Analizzatore PDF":
                             st.bar_chart(marketplace_counts)
                 else:
                     st.warning("Nessun articolo trovato negli ordini")
-                    # Mostra il testo della prima pagina per debug articoli
+                    # Mostra il testo della prima pagina per debug
                     pdf_reader = PyPDF2.PdfReader(uploaded_file)
                     first_page = pdf_reader.pages[0].extract_text()
-                    st.text("Testo prima pagina (sezione articoli):")
-                    lines = first_page.split('\n')
-                    for i, line in enumerate(lines):
-                        if 'Articolo' in line or '001201' in line:
-                            st.text(f"Linea {i}: {line}")
+                    st.text("Testo completo prima pagina:")
+                    st.text(first_page)
             
             else:
                 st.warning("Nessun ordine trovato nel PDF")
