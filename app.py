@@ -56,7 +56,7 @@ import locale
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 from gspread.utils import rowcol_to_a1
-
+import pdfplumber
 
 logging.basicConfig(level=logging.INFO)
 
@@ -953,6 +953,7 @@ with st.sidebar:
         st.write(f"Accesso eseguito come: {user["nome"]}")
 
         menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customer care","admin"]},
+                          {"name":"Dashboard", "icon":"bar-chart", "role":["admin"]},
                           {"name":"Descrizioni", "icon":"list", "role":["customer care","admin"]},
                           {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customer care","admin"]},
@@ -960,7 +961,9 @@ with st.sidebar:
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
                          ]
         
-        submenu_item_list = [{"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
+        submenu_item_list = [{"main":"Dashboard", "name":"Prestazioni Prodotti", "icon":"graph-up", "role":["admin"]},
+                             {"main":"Dashboard", "name":"Analizzatore PDF", "icon":"file-earmark-pdf", "role":["admin"]},
+                             {"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Storico", "icon":"book", "role":["guest","logistica","customer care","admin"]},
@@ -2364,3 +2367,165 @@ elif page == "Admin - Aggiungi utente":
         if submit:
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
     
+def analyze_pdf_structure(pdf_file):
+    """
+    Analizza la struttura del PDF per identificare pattern e campi
+    """
+    st.header("🔍 Analizzatore Struttura PDF")
+    
+    with pdfplumber.open(pdf_file) as pdf:
+        # Mostra anteprima delle prime pagine
+        st.subheader("Anteprima contenuto PDF")
+        
+        for i, page in enumerate(pdf.pages[:3]):  # Prime 3 pagine
+            text = page.extract_text()
+            st.write(f"**Pagina {i+1}:**")
+            st.text_area("Contenuto", text, height=200, key=f"page_{i}")
+            
+            # Trova potenziali pattern
+            st.write("**Pattern identificati:**")
+            lines = text.split('\n')
+            for line in lines:
+                if any(keyword in line.lower() for keyword in ['marketplace', 'ordine', 'cliente', 'articolo', 'nazione']):
+                    st.code(line)
+    
+    return True
+
+def extract_orders_with_patterns(pdf_file, patterns):
+    """
+    Estrae ordini dal PDF usando pattern personalizzabili
+    """
+    orders = []
+    
+    with pdfplumber.open(pdf_file) as pdf:
+        for page_num, page in enumerate(pdf.pages):
+            text = page.extract_text()
+            
+            order_data = {"page": page_num + 1}
+            
+            # Estrazione con pattern configurabili
+            for field, pattern in patterns.items():
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    order_data[field] = match.group(1).strip()
+                else:
+                    order_data[field] = "N/D"
+            
+            # Estrazione articoli (pattern più complesso)
+            article_pattern = r'(?:articolo|item|prodotto)[\s:]*([^\n]+?)\s*(?=€|\$|\d+,\d{2}|$|articolo|item|prodotto)'
+            articles = re.findall(article_pattern, text, re.IGNORECASE)
+            order_data["articles"] = articles
+            
+            orders.append(order_data)
+    
+    return orders
+
+
+elif page == "Dashboard - Analizzatore PDF":
+    st.header("📊 Analizzatore PDF Interattivo")
+    
+    uploaded_pdf = st.file_uploader("Carica il PDF di esempio", type="pdf")
+    
+    if uploaded_pdf:
+        # Analizza la struttura del PDF
+        analyze_pdf_structure(uploaded_pdf)
+        
+        # Configurazione pattern personalizzati
+        st.subheader("⚙️ Configura Pattern di Estrazione")
+        
+        st.info("Configura i pattern regex per estrarre i dati dal tuo PDF. Usa (.*) per catturare il valore.")
+        
+        default_patterns = {
+            "marketplace": r'marketplace[\s:]*([^\n]+)',
+            "nazione": r'nazione[\s:]*([^\n]+)',
+            "numero_ordine": r'numero ordine[\s:]*([^\n]+)',
+            "cliente": r'cliente[\s:]*([^\n]+)',
+            "data_ordine": r'data[\s:]*([^\n]+)'
+        }
+        
+        patterns = {}
+        for field, default_pattern in default_patterns.items():
+            patterns[field] = st.text_input(
+                f"Pattern per {field}", 
+                value=default_pattern,
+                help="Pattern regex per estrarre questo campo"
+            )
+        
+        # Pattern per articoli
+        article_pattern = st.text_input(
+            "Pattern per articoli",
+            value=r'(?:articolo|item|prodotto)[\s:]*([^\n]+?)\s*(?=€|\$|\d+,\d{2}|$)',
+            help="Pattern regex per identificare gli articoli"
+        )
+        patterns["article_pattern"] = article_pattern
+        
+        if st.button("Estrai Dati con questi Pattern"):
+            with st.spinner("Estrazione in corso..."):
+                # Estrai i dati
+                orders = extract_orders_with_patterns(uploaded_pdf, patterns)
+                
+                if orders:
+                    st.success(f"Estratti {len(orders)} ordini!")
+                    
+                    # Converti in DataFrame per visualizzazione
+                    display_data = []
+                    for order in orders:
+                        for article in order.get("articles", []):
+                            display_data.append({
+                                "Marketplace": order.get("marketplace", "N/D"),
+                                "Nazione": order.get("nazione", "N/D"),
+                                "Numero Ordine": order.get("numero_ordine", "N/D"),
+                                "Cliente": order.get("cliente", "N/D"),
+                                "Articolo": article,
+                                "Pagina": order.get("page", "N/D")
+                            })
+                    
+                    if display_data:
+                        df = pd.DataFrame(display_data)
+                        st.dataframe(df)
+                        
+                        # Salva i pattern per uso futuro
+                        if st.button("Salva Pattern"):
+                            st.session_state.pdf_patterns = patterns
+                            st.success("Pattern salvati!")
+                    else:
+                        st.warning("Nessun articolo estratto. Modifica il pattern degli articoli.")
+                else:
+                    st.error("Nessun ordine estratto. Verifica i pattern.")
+                    
+elif page == "Dashboard - Prestazioni Prodotti":
+    st.header("📊 Dashboard Prestazioni Prodotti")
+    
+    tab1, tab2 = st.tabs(["Analizza PDF", "Dashboard"])
+    
+    with tab1:
+        interactive_pdf_analyzer()
+    
+    with tab2:
+        # Qui la dashboard esistente che usa i dati estratti
+        if 'pdf_patterns' in st.session_state and 'orders_data' in st.session_state:
+            st.subheader("Analisi Prestazioni")
+            # ... il resto del codice della dashboard ...
+        else:
+            st.info("Prima analizza un PDF per estrarre i dati degli ordini.")
+
+
+def enhanced_products_dashboard():
+    """
+    Dashboard migliorata con analisi PDF integrata
+    """
+    st.header("📊 Dashboard Prestazioni Prodotti")
+    
+    tab1, tab2 = st.tabs(["Analizza PDF", "Dashboard"])
+    
+    with tab1:
+        interactive_pdf_analyzer()
+    
+    with tab2:
+        # Qui la dashboard esistente che usa i dati estratti
+        if 'pdf_patterns' in st.session_state and 'orders_data' in st.session_state:
+            st.subheader("Analisi Prestazioni")
+            # ... il resto del codice della dashboard ...
+        else:
+            st.info("Prima analizza un PDF per estrarre i dati degli ordini.")
+
