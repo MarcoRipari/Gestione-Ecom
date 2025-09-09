@@ -2368,4 +2368,107 @@ elif page == "Admin - Aggiungi utente":
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
 
 elif page == "Dashboard - Analizzatore PDF":
+    def extract_data_from_page(page_text):
+        data = {}
+        
+        # Marketplace
+        marketplace_match = re.search(r"Marketplace:\s*([a-zA-Z0-9\s.]+|zalando de)", page_text, re.IGNORECASE)
+        if marketplace_match:
+            data['Marketplace'] = marketplace_match.group(1).strip()
+        else:
+            data['Marketplace'] = "N/A"
+    
+        # Data
+        date_match = re.search(r"Data vendita:\s*(\d{2}/\d{2}/\d{4})", page_text)
+        if date_match:
+            data['Data'] = date_match.group(1)
+        else:
+            data['Data'] = "N/A"
+    
+        # Nazione
+        country_match = re.search(r"\n([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
+        if country_match:
+            data['Nazione'] = country_match.group(1).strip()
+        else:
+            data['Nazione'] = "N/A"
+        
+        # Articoli e quantità
+        items = []
+        items_section = re.search(r"Articolo\s+Quantità\s+Descrizione articolo\s+Taglia(.*?)ISTRUZIONI IMBALLO", page_text, re.DOTALL)
+        if not items_section:
+            items_section = re.search(r"Articolo\s+Taglia\s+Quantità\s+Descrizione articolo(.*?)ISTRUZIONI IMBALLO", page_text, re.DOTALL)
+        
+        if items_section:
+            items_text = items_section.group(1).strip()
+            item_lines = items_text.split('\n')
+            for line in item_lines:
+                if line.strip():
+                    # Adjusted regex to handle the specific format
+                    item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+(.*)", line)
+                    if item_match:
+                        item_data = {
+                            'quantita': item_match.group(1).strip(),
+                            'codice': item_match.group(2).strip(),
+                            'descrizione': item_match.group(3).strip()
+                        }
+                        items.append(item_data)
+                    else:
+                        item_match = re.search(r"^\s*([^\s]+)\s+(\d+)\s+(.*)", line)
+                        if item_match:
+                            item_data = {
+                                'codice': item_match.group(1).strip(),
+                                'quantita': item_match.group(2).strip(),
+                                'descrizione': item_match.group(3).strip()
+                            }
+                            items.append(item_data)
+                            
+        data['Articoli'] = items
+        
+        return data
+    
+    # Funzione principale per la sezione 'Analizza PDF'
+    def pdf_analyzer_section():
+        st.title("Dashboard - Analizza PDF")
+        st.write("Carica un PDF con gli ordini (1 ordine per pagina) per estrarre le informazioni.")
+    
+        uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
+        
+        if uploaded_file is not None:
+            st.success("File caricato con successo!")
+            
+            # Inizializza il lettore PDF
+            pdf_reader = PyPDF2.PdfReader(uploaded_file)
+            num_pages = len(pdf_reader.pages)
+            
+            st.write(f"Numero di pagine trovate: {num_pages}")
+            
+            extracted_data = []
+            for page_num in range(num_pages):
+                page_obj = pdf_reader.pages[page_num]
+                page_text = page_obj.extract_text()
+                
+                # Controlla se la pagina è un ordine
+                if "ORDINE ECOMMERCE" in page_text:
+                    st.write(f"Analizzo la pagina {page_num + 1}...")
+                    data = extract_data_from_page(page_text)
+                    extracted_data.append(data)
+                    
+            if extracted_data:
+                st.subheader("Dati Estratti:")
+                for i, order in enumerate(extracted_data):
+                    st.markdown(f"**Ordine {i+1}:**")
+                    st.markdown(f"**Marketplace:** {order.get('Marketplace')}")
+                    st.markdown(f"**Data:** {order.get('Data')}")
+                    st.markdown(f"**Nazione:** {order.get('Nazione')}")
+                    st.markdown("**Articoli:**")
+                    
+                    if order.get('Articoli'):
+                        for item in order['Articoli']:
+                            st.markdown(f"- Quantità: {item.get('quantita')}, Codice: {item.get('codice')}, Descrizione: {item.get('descrizione')}")
+                    else:
+                        st.markdown("- Nessun articolo trovato.")
+                    st.markdown("---")
+            else:
+                st.warning("Nessun ordine trovato nel PDF caricato.")
 
+    pdf_analyzer_section()
