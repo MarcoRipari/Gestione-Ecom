@@ -2366,30 +2366,7 @@ elif page == "Admin - Aggiungi utente":
         submit = st.form_submit_button("Crea utente")
         if submit:
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
-    
-def analyze_pdf_structure(pdf_file):
-    """
-    Analizza la struttura del PDF per identificare pattern e campi
-    """
-    st.header("🔍 Analizzatore Struttura PDF")
-    
-    with pdfplumber.open(pdf_file) as pdf:
-        # Mostra anteprima delle prime pagine
-        st.subheader("Anteprima contenuto PDF")
-        
-        for i, page in enumerate(pdf.pages[:3]):  # Prime 3 pagine
-            text = page.extract_text()
-            st.write(f"**Pagina {i+1}:**")
-            st.text_area("Contenuto", text, height=200, key=f"page_{i}")
-            
-            # Trova potenziali pattern
-            st.write("**Pattern identificati:**")
-            lines = text.split('\n')
-            for line in lines:
-                if any(keyword in line.lower() for keyword in ['marketplace', 'ordine', 'cliente', 'articolo', 'nazione']):
-                    st.code(line)
-    
-    return True
+
 
 elif page == "Dashboard - Analizzatore PDF":
     st.header("📊 Analizzatore PDF Interattivo")
