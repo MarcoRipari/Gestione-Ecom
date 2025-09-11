@@ -1749,7 +1749,8 @@ elif page == "Foto - Aggiungi prelevate":
     
     if text_input:
         # Regex per SKU: 7 numeri, spazio, 2 numeri, spazio, 4 caratteri alfanumerici
-        pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
+        #pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
+        pattern = r"\b[0-9a-zA-Z]{7} [0-9a-zA-Z]{2} [0-9a-zA-Z]{4}\b"
         skus_raw = re.findall(pattern, text_input)
     
         # Rimuovi spazi interni e converti in stringa (senza apostrofo per confronto)
