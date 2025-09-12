@@ -2481,7 +2481,7 @@ elif page == "Admin - Aggiungi utente":
         if submit:
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
 
-elif page == "Ordini - Dashboard"
+elif page == "Ordini - Dashboard":
     st.title("Dashboard")
     sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "ORDINI")
