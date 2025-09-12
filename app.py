@@ -2559,7 +2559,7 @@ elif page == "Ordini - Dashboard":
         else:
             st.warning("Nessun ordine trovato nel PDF caricato.")
 
-elif page == "Ordini - Importa"
+elif page == "Ordini - Importa":
     st.title("Dashboard - Analizza PDF")
     st.write("Carica un PDF con gli ordini (1 ordine per pagina) per estrarre le informazioni.")
 
