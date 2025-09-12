@@ -2399,6 +2399,18 @@ elif page == "Dashboard - Analizzatore PDF":
                 mp = "W6YZ"
             elif "zalando" in marketplace_match.group(1).strip():
                 mp = "Zalando"
+            elif "amazon" in marketplace_match.group(1).strip():
+                mp = "Amazon"
+            elif "la_redoute" in marketplace_match.group(1).strip():
+                mp = "LaRedoute"
+            elif "privalia" in marketplace_match.group(1).strip():
+                mp = "Privalia"
+            elif "venteprivee" in marketplace_match.group(1).strip():
+                mp = "VentePrivee"
+            elif "sarenza" in marketplace_match.group(1).strip():
+                mp = "Sarenza"
+            elif "vertbaudet" in marketplace_match.group(1).strip():
+                mp = "Vertbaudet"
             else:
                 mp = marketplace_match.group(1).strip()
                 
