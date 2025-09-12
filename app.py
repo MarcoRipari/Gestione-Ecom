@@ -2385,19 +2385,19 @@ elif page == "Dashboard - Analizzatore PDF":
         marketplace_match = re.search(r"Taglia(.*)Marketplace:", page_text, re.IGNORECASE)
         mp = None
         if marketplace_match:
-            if "Naturino" in marketplace_match:
+            if "Naturino" in marketplace_match.group(1).strip():
                 mp = "Naturino".group(1).strip()
-            elif "Candice" in marketplace_match:
+            elif "Candice" in marketplace_match.group(1).strip():
                 mp = "Candice Cooper"
-            elif "Flowermountain" in marketplace_match:
+            elif "Flowermountain" in marketplace_match.group(1).strip():
                 mp = "Flower Mountain"
-            elif "Voile" in marketplace_match:
+            elif "Voile" in marketplace_match.group(1).strip():
                 mp = "Voile Blanche"
-            elif "Falcotto" in marketplace_match:
+            elif "Falcotto" in marketplace_match.group(1).strip():
                 mp = "Falcotto"
-            elif "W6YZ" in marketplace_match:
+            elif "W6YZ" in marketplace_match.group(1).strip():
                 mp = "W6YZ"
-            elif "zalando" in marketplace_match:
+            elif "zalando" in marketplace_match.group(1).strip():
                 mp = "Zalando"
             else:
                 mp = marketplace_match.group(1).strip()
@@ -2482,18 +2482,16 @@ elif page == "Dashboard - Analizzatore PDF":
             st.write(f"Numero di pagine trovate: {num_pages}")
             
             extracted_data = []
-            test = None
+
             for page_num in range(num_pages):
                 page_obj = pdf_reader.pages[page_num]
                 page_text = page_obj.extract_text()
                 
                 # Controlla se la pagina è un ordine
                 if "ORDINE ECOMMERCE" in page_text:
-                    test = page_text
                     data = extract_data_from_page(page_text)
                     extracted_data.append(data)
                     
-            st.write(test)
             if extracted_data:
                 st.subheader("Dati Estratti:")
                 
