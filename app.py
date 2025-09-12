@@ -2478,7 +2478,7 @@ elif page == "Admin - Aggiungi utente":
         if submit:
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
 
-elif page == "Homepage - Dashboard":
+elif page == "Home - Dashboard":
     st.title("Dashboard - Analizza PDF")
     st.write("Carica un PDF con gli ordini (1 ordine per pagina) per estrarre le informazioni.")
 
