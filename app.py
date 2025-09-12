@@ -1001,9 +1001,9 @@ def extract_data_from_page(page_text):
                     cod = item_match.group(3).strip() + item_match.group(4).strip() + item_match.group(5).strip()
                     item_data = {
                         'quantita': item_match.group(1).strip(),
-                        'codice': cod,
+                        'codice': item_match.group(2).strip(),
                         'taglia': item_match.group(3).strip(),
-                        'descrizione': item_match.group(6).strip()
+                        'descrizione': item_match.group(4).strip()
                     }
                     items.append(item_data)
                 else:
