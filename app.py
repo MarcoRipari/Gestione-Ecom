@@ -917,6 +917,110 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         return pd.DataFrame()
 
 # ---------------------------
+# Funzioni Dashboard
+# ---------------------------
+# Funzione per estrarre i dati da una pagina PDF
+def extract_data_from_page(page_text):
+    data = {}
+    
+    # Marketplace
+    # Ricerca separata per essere più robusti alle variazioni di layout
+    marketplace_match = re.search(r"Taglia(.*)Marketplace:", page_text, re.IGNORECASE)
+    mp = None
+    if marketplace_match:
+        if "Naturino" in marketplace_match.group(1).strip():
+            mp = "Naturino"
+        elif "Candice" in marketplace_match.group(1).strip():
+            mp = "Candice Cooper"
+        elif "Flowermountain" in marketplace_match.group(1).strip():
+            mp = "Flower Mountain"
+        elif "Voile" in marketplace_match.group(1).strip():
+            mp = "Voile Blanche"
+        elif "Falcotto" in marketplace_match.group(1).strip():
+            mp = "Falcotto"
+        elif "W6YZ" in marketplace_match.group(1).strip():
+            mp = "W6YZ"
+        elif "zalando" in marketplace_match.group(1).strip():
+            mp = "Zalando"
+        elif "amazon" in marketplace_match.group(1).strip():
+            mp = "Amazon"
+        elif "la_redoute" in marketplace_match.group(1).strip():
+            mp = "LaRedoute"
+        elif "privalia" in marketplace_match.group(1).strip():
+            mp = "Privalia"
+        elif "venteprivee" in marketplace_match.group(1).strip():
+            mp = "VentePrivee"
+        elif "sarenza" in marketplace_match.group(1).strip():
+            mp = "Sarenza"
+        elif "vertbaudet" in marketplace_match.group(1).strip():
+            mp = "Vertbaudet"
+        else:
+            mp = marketplace_match.group(1).strip()
+            
+        data['Marketplace'] = mp
+    else:
+        data['Marketplace'] = "N/A"
+
+    # Numero Ordine
+    order_match = re.search(r"Marketplace order\s*([a-zA-Z0-9-]+)", page_text, re.IGNORECASE)
+    if order_match:
+        data['Numero Ordine'] = order_match.group(1).strip()
+    else:
+        data['Numero Ordine'] = "N/A"
+
+    # Data
+    date_match = re.search(r"Data vendita:\s*(\d{2}/\d{2}/\d{4})", page_text)
+    if date_match:
+        data['Data'] = date_match.group(1)
+    else:
+        data['Data'] = "N/A"
+
+    # Nazione
+    country_match = re.search(r"\n([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
+    if country_match:
+        data['Nazione'] = country_match.group(1).strip()
+    else:
+        data['Nazione'] = "N/A"
+    
+    # Articoli, quantità e taglia
+    items = []
+    items_section = re.search(r"Articolo\s+Quantità\s+Descrizione articolo\s+Taglia(.*?)ISTRUZIONI IMBALLO", page_text, re.DOTALL)
+    if not items_section:
+        items_section = re.search(r"Articolo\s+Taglia\s+Quantità\s+Descrizione articolo(.*?)ISTRUZIONI IMBALLO", page_text, re.DOTALL)
+    
+    if items_section:
+        items_text = items_section.group(1).strip()
+        item_lines = items_text.split('\n')
+        for line in item_lines:
+            if line.strip():
+                # Adjusted regex to handle different formats and include size
+                # Case 1: Quantity Code Size Description
+                item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+(\d+)\s+(.*)", line)
+                if item_match:
+                    item_data = {
+                        'quantita': item_match.group(1).strip(),
+                        'codice': item_match.group(2).strip(),
+                        'taglia': item_match.group(3).strip(),
+                        'descrizione': item_match.group(4).strip()
+                    }
+                    items.append(item_data)
+                else:
+                    # Case 2: Code Size Quantity Description
+                    item_match = re.search(r"^\s*([^\s]+)\s+(\d+)\s+(\d+)\s+(.*)", line)
+                    if item_match:
+                        item_data = {
+                            'codice': item_match.group(1).strip(),
+                            'taglia': item_match.group(2).strip(),
+                            'quantita': item_match.group(3).strip(),
+                            'descrizione': item_match.group(4).strip()
+                        }
+                        items.append(item_data)
+                        
+    data['Articoli'] = items
+    
+    return data
+    
+# ---------------------------
 # 📦 Streamlit UI
 # ---------------------------
 st.set_page_config(page_title="Gestione ECOM", layout="wide")
@@ -954,7 +1058,6 @@ with st.sidebar:
         st.write(f"Accesso eseguito come: {user["nome"]}")
 
         menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customer care","admin"]},
-                          {"name":"Dashboard", "icon":"bar-chart", "role":["admin"]},
                           {"name":"Descrizioni", "icon":"list", "role":["customer care","admin"]},
                           {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customer care","admin"]},
@@ -962,7 +1065,7 @@ with st.sidebar:
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
                          ]
         
-        submenu_item_list = [{"main":"Dashboard", "name":"Analizzatore PDF", "icon":"file-earmark-pdf", "role":["admin"]},
+        submenu_item_list = [{"main":"Homepage", "name":"Dashboard", "icon":"bar-chart", "role":["admin"]},
                              {"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customer care","admin"]},
@@ -2375,185 +2478,80 @@ elif page == "Admin - Aggiungi utente":
         if submit:
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
 
-elif page == "Dashboard - Analizzatore PDF":
-    # Funzione per estrarre i dati da una pagina PDF
-    def extract_data_from_page(page_text):
-        data = {}
-        
-        # Marketplace
-        # Ricerca separata per essere più robusti alle variazioni di layout
-        marketplace_match = re.search(r"Taglia(.*)Marketplace:", page_text, re.IGNORECASE)
-        mp = None
-        if marketplace_match:
-            if "Naturino" in marketplace_match.group(1).strip():
-                mp = "Naturino"
-            elif "Candice" in marketplace_match.group(1).strip():
-                mp = "Candice Cooper"
-            elif "Flowermountain" in marketplace_match.group(1).strip():
-                mp = "Flower Mountain"
-            elif "Voile" in marketplace_match.group(1).strip():
-                mp = "Voile Blanche"
-            elif "Falcotto" in marketplace_match.group(1).strip():
-                mp = "Falcotto"
-            elif "W6YZ" in marketplace_match.group(1).strip():
-                mp = "W6YZ"
-            elif "zalando" in marketplace_match.group(1).strip():
-                mp = "Zalando"
-            elif "amazon" in marketplace_match.group(1).strip():
-                mp = "Amazon"
-            elif "la_redoute" in marketplace_match.group(1).strip():
-                mp = "LaRedoute"
-            elif "privalia" in marketplace_match.group(1).strip():
-                mp = "Privalia"
-            elif "venteprivee" in marketplace_match.group(1).strip():
-                mp = "VentePrivee"
-            elif "sarenza" in marketplace_match.group(1).strip():
-                mp = "Sarenza"
-            elif "vertbaudet" in marketplace_match.group(1).strip():
-                mp = "Vertbaudet"
-            else:
-                mp = marketplace_match.group(1).strip()
-                
-            data['Marketplace'] = mp
-        else:
-            data['Marketplace'] = "N/A"
-    
-        # Numero Ordine
-        order_match = re.search(r"Marketplace order\s*([a-zA-Z0-9-]+)", page_text, re.IGNORECASE)
-        if order_match:
-            data['Numero Ordine'] = order_match.group(1).strip()
-        else:
-            data['Numero Ordine'] = "N/A"
-    
-        # Data
-        date_match = re.search(r"Data vendita:\s*(\d{2}/\d{2}/\d{4})", page_text)
-        if date_match:
-            data['Data'] = date_match.group(1)
-        else:
-            data['Data'] = "N/A"
-    
-        # Nazione
-        country_match = re.search(r"\n([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
-        if country_match:
-            data['Nazione'] = country_match.group(1).strip()
-        else:
-            data['Nazione'] = "N/A"
-        
-        # Articoli, quantità e taglia
-        items = []
-        items_section = re.search(r"Articolo\s+Quantità\s+Descrizione articolo\s+Taglia(.*?)ISTRUZIONI IMBALLO", page_text, re.DOTALL)
-        if not items_section:
-            items_section = re.search(r"Articolo\s+Taglia\s+Quantità\s+Descrizione articolo(.*?)ISTRUZIONI IMBALLO", page_text, re.DOTALL)
-        
-        if items_section:
-            items_text = items_section.group(1).strip()
-            item_lines = items_text.split('\n')
-            for line in item_lines:
-                if line.strip():
-                    # Adjusted regex to handle different formats and include size
-                    # Case 1: Quantity Code Size Description
-                    item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+(\d+)\s+(.*)", line)
-                    if item_match:
-                        item_data = {
-                            'quantita': item_match.group(1).strip(),
-                            'codice': item_match.group(2).strip(),
-                            'taglia': item_match.group(3).strip(),
-                            'descrizione': item_match.group(4).strip()
-                        }
-                        items.append(item_data)
-                    else:
-                        # Case 2: Code Size Quantity Description
-                        item_match = re.search(r"^\s*([^\s]+)\s+(\d+)\s+(\d+)\s+(.*)", line)
-                        if item_match:
-                            item_data = {
-                                'codice': item_match.group(1).strip(),
-                                'taglia': item_match.group(2).strip(),
-                                'quantita': item_match.group(3).strip(),
-                                'descrizione': item_match.group(4).strip()
-                            }
-                            items.append(item_data)
-                            
-        data['Articoli'] = items
-        
-        return data
-    
-    # Funzione principale per la sezione 'Analizza PDF'
-    def pdf_analyzer_section():
-        st.title("Dashboard - Analizza PDF")
-        st.write("Carica un PDF con gli ordini (1 ordine per pagina) per estrarre le informazioni.")
-    
-        uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
-        
-        if uploaded_file is not None:
-            st.success("File caricato con successo!")
-            
-            # Inizializza il lettore PDF
-            pdf_reader = PyPDF2.PdfReader(uploaded_file)
-            num_pages = len(pdf_reader.pages)
-            
-            st.write(f"Numero di pagine trovate: {num_pages}")
-            
-            extracted_data = []
+elif page == "Homepage - Dashboard":
+    st.title("Dashboard - Analizza PDF")
+    st.write("Carica un PDF con gli ordini (1 ordine per pagina) per estrarre le informazioni.")
 
-            for page_num in range(num_pages):
-                page_obj = pdf_reader.pages[page_num]
-                page_text = page_obj.extract_text()
-                
-                # Controlla se la pagina è un ordine
-                if "ORDINE ECOMMERCE" in page_text:
-                    data = extract_data_from_page(page_text)
-                    extracted_data.append(data)
-                    
-            if extracted_data:
-                st.subheader("Dati Estratti:")
-                
-                # Creazione del DataFrame
-                data_for_df = []
-                for order in extracted_data:
-                    for item in order['Articoli']:
-                        row = {
-                            'Numero Ordine': order['Numero Ordine'],
-                            'Marketplace': order['Marketplace'],
-                            'Data': order['Data'],
-                            'Nazione': order['Nazione'],
-                            'Quantita': int(item.get('quantita', 0)),
-                            'Codice': item.get('codice', 'N/A'),
-                            'Descrizione': item.get('descrizione', 'N/A'),
-                            'Taglia': item.get('taglia', 'N/A')
-                        }
-                        data_for_df.append(row)
-                
-                df = pd.DataFrame(data_for_df)
-                
-                st.write("Ecco i dati estratti nel DataFrame:")
-                st.dataframe(df)
+    uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
     
-                # ---
-                st.subheader("Riepilogo Dati")
-                
-                col1, col2, col3 = st.columns(3)
-                
-                total_orders = df['Numero Ordine'].nunique()
-                col1.metric("Ordini Analizzati", total_orders)
-    
-                total_items = df['Quantita'].sum()
-                col2.metric("Articoli Totali Venduti", total_items)
-                
-                unique_marketplaces = df['Marketplace'].nunique()
-                col3.metric("Marketplace Unici", unique_marketplaces)
-    
-                # ---
-                st.subheader("Analisi Visuale")
-                
-                st.markdown("Quantità venduta per Marketplace")
-                market_sales = df.groupby('Marketplace')['Quantita'].sum().reset_index()
-                st.bar_chart(market_sales, x='Marketplace', y='Quantita')
-    
-                st.markdown("Quantità venduta per Nazione")
-                country_sales = df.groupby('Nazione')['Quantita'].sum().reset_index()
-                st.bar_chart(country_sales, x='Nazione', y='Quantita')
-                
-            else:
-                st.warning("Nessun ordine trovato nel PDF caricato.")
+    if uploaded_file is not None:
+        st.success("File caricato con successo!")
+        
+        # Inizializza il lettore PDF
+        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+        num_pages = len(pdf_reader.pages)
+        
+        st.write(f"Numero di pagine trovate: {num_pages}")
+        
+        extracted_data = []
 
-    pdf_analyzer_section()
+        for page_num in range(num_pages):
+            page_obj = pdf_reader.pages[page_num]
+            page_text = page_obj.extract_text()
+            
+            # Controlla se la pagina è un ordine
+            if "ORDINE ECOMMERCE" in page_text:
+                data = extract_data_from_page(page_text)
+                extracted_data.append(data)
+                
+        if extracted_data:
+            st.subheader("Dati Estratti:")
+            
+            # Creazione del DataFrame
+            data_for_df = []
+            for order in extracted_data:
+                for item in order['Articoli']:
+                    row = {
+                        'Numero Ordine': order['Numero Ordine'],
+                        'Marketplace': order['Marketplace'],
+                        'Data': order['Data'],
+                        'Nazione': order['Nazione'],
+                        'Quantita': int(item.get('quantita', 0)),
+                        'Codice': item.get('codice', 'N/A'),
+                        'Descrizione': item.get('descrizione', 'N/A'),
+                        'Taglia': item.get('taglia', 'N/A')
+                    }
+                    data_for_df.append(row)
+            
+            df = pd.DataFrame(data_for_df)
+            
+            st.write("Ecco i dati estratti nel DataFrame:")
+            st.dataframe(df)
+
+            # ---
+            st.subheader("Riepilogo Dati")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            total_orders = df['Numero Ordine'].nunique()
+            col1.metric("Ordini Analizzati", total_orders)
+
+            total_items = df['Quantita'].sum()
+            col2.metric("Articoli Totali Venduti", total_items)
+            
+            unique_marketplaces = df['Marketplace'].nunique()
+            col3.metric("Marketplace Unici", unique_marketplaces)
+
+            # ---
+            st.subheader("Analisi Visuale")
+            
+            st.markdown("Quantità venduta per Marketplace")
+            market_sales = df.groupby('Marketplace')['Quantita'].sum().reset_index()
+            st.bar_chart(market_sales, x='Marketplace', y='Quantita')
+
+            st.markdown("Quantità venduta per Nazione")
+            country_sales = df.groupby('Nazione')['Quantita'].sum().reset_index()
+            st.bar_chart(country_sales, x='Nazione', y='Quantita')
+            
+        else:
+            st.warning("Nessun ordine trovato nel PDF caricato.")
