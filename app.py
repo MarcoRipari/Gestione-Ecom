@@ -1000,7 +1000,7 @@ def extract_data_from_page(page_text):
                 if item_match:
                     item_data = {
                         'quantita': item_match.group(1).strip(),
-                        'codice': item_match.group(2).strip(),
+                        'codice': item_match.group(2).strip() + item_match.group(3).strip() + item_match.group(4).strip(),
                         'taglia': item_match.group(5).strip(),
                         'descrizione': item_match.group(6).strip()
                     }
