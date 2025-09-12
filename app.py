@@ -998,7 +998,6 @@ def extract_data_from_page(page_text):
                 #item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+001(\d+).(\d+).(\d+)\s+(.*)", line)
                 item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+(\d+)\s+(.*)", line)
                 if item_match:
-                    cod = item_match.group(3).strip() + item_match.group(4).strip() + item_match.group(5).strip()
                     item_data = {
                         'quantita': item_match.group(1).strip(),
                         'codice': item_match.group(2).strip(),
