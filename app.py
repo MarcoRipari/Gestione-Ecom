@@ -2386,7 +2386,7 @@ elif page == "Dashboard - Analizzatore PDF":
         mp = None
         if marketplace_match:
             if "Naturino" in marketplace_match.group(1).strip():
-                mp = "Naturino".group(1).strip()
+                mp = "Naturino"
             elif "Candice" in marketplace_match.group(1).strip():
                 mp = "Candice Cooper"
             elif "Flowermountain" in marketplace_match.group(1).strip():
