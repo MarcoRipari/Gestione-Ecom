@@ -1065,7 +1065,7 @@ with st.sidebar:
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
                          ]
         
-        submenu_item_list = [{"main":"Homepage", "name":"Dashboard", "icon":"bar-chart", "role":["admin"]},
+        submenu_item_list = [{"main":"Home", "name":"Dashboard", "icon":"bar-chart", "role":["admin"]},
                              {"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customer care","admin"]},
