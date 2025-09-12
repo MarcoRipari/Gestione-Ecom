@@ -2383,8 +2383,26 @@ elif page == "Dashboard - Analizzatore PDF":
         # Marketplace
         # Ricerca separata per essere più robusti alle variazioni di layout
         marketplace_match = re.search(r"Taglia(.*)Marketplace:", page_text, re.IGNORECASE)
+        mp = None
         if marketplace_match:
-            data['Marketplace'] = marketplace_match.group(1).strip()
+            if "Naturino" in marketplace_match:
+                mp = "Naturino".group(1).strip()
+            elif "Candice" in marketplace_match:
+                mp = "Candice Cooper"
+            elif "Flowermountain" in marketplace_match:
+                mp = "Flower Mountain"
+            elif "Voile" in marketplace_match:
+                mp = "Voile Blanche"
+            elif "Falcotto" in marketplace_match:
+                mp = "Falcotto"
+            elif "W6YZ" in marketplace_match:
+                mp = "W6YZ"
+            elif "zalando" in marketplace_match:
+                mp = "Zalando"
+            else:
+                mp = marketplace_match.group(1).strip()
+                
+            data['Marketplace'] = mp
         else:
             data['Marketplace'] = "N/A"
     
