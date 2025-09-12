@@ -2470,10 +2470,11 @@ elif page == "Dashboard - Analizzatore PDF":
                 
                 # Controlla se la pagina è un ordine
                 if "ORDINE ECOMMERCE" in page_text:
-                    st.write(f"Analizzo la pagina {page_num + 1}...")
+                    
                     data = extract_data_from_page(page_text)
                     extracted_data.append(data)
-                    
+
+            st.write(extracted_data[1])
             if extracted_data:
                 st.subheader("Dati Estratti:")
                 
