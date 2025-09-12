@@ -996,7 +996,7 @@ def extract_data_from_page(page_text):
                 # Adjusted regex to handle different formats and include size
                 # Case 1: Quantity Code Size Description
                 #item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+(\d+)\s+(.*)", line)
-                item_match = re.search(r"^\s*(\d+)\s+001(.*)\.(.*)\.(.*) (\d+)\s+(.*)", line)
+                item_match = re.search(r"^\s*(\d+)\s+001(.*)\.(.*)\.(.*){4}\s+(\d+)\s+(.*)", line)
                 if item_match:
                     item_data = {
                         'quantita': item_match.group(1).strip(),
@@ -1008,7 +1008,7 @@ def extract_data_from_page(page_text):
                 else:
                     # Case 2: Code Size Quantity Description
                     #item_match = re.search(r"^\s*([^\s]+)\s+(\d+)\s+(\d+)\s+(.*)", line)
-                    item_match = re.search(r"^\s*001(.*)\.(.*)\.(.*) (\d+)\s+(\d+)\s+(.*)", line)
+                    item_match = re.search(r"^\s*001(.*)\.(.*)\.(.*){4}\s+(\d+)\s+(\d+)\s+(.*)", line)
                     if item_match:
                         item_data = {
                             'codice': item_match.group(1).strip() + item_match.group(2).strip() + item_match.group(3).strip(),
