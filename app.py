@@ -995,13 +995,14 @@ def extract_data_from_page(page_text):
             if line.strip():
                 # Adjusted regex to handle different formats and include size
                 # Case 1: Quantity Code Size Description
-                item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+(\d+)\s+(.*)", line)
+                item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+001(\d+).(\d+).(\d+)\s+(.*)", line)
                 if item_match:
+                    cod = item_match.group(3).strip() + item_match.group(4).strip() + item_match.group(5).strip()
                     item_data = {
                         'quantita': item_match.group(1).strip(),
-                        'codice': item_match.group(2).strip(),
+                        'codice': cod,
                         'taglia': item_match.group(3).strip(),
-                        'descrizione': item_match.group(4).strip()
+                        'descrizione': item_match.group(6).strip()
                     }
                     items.append(item_data)
                 else:
@@ -1058,6 +1059,7 @@ with st.sidebar:
         st.write(f"Accesso eseguito come: {user["nome"]}")
 
         menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customer care","admin"]},
+                          {"name":"Ordini", "icon":"truck", "role":["logistica","customer care","admin"]},
                           {"name":"Descrizioni", "icon":"list", "role":["customer care","admin"]},
                           {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customer care","admin"]},
@@ -1065,7 +1067,8 @@ with st.sidebar:
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
                          ]
         
-        submenu_item_list = [{"main":"Home", "name":"Dashboard", "icon":"bar-chart", "role":["admin"]},
+        submenu_item_list = [{"main":"Ordini", "name":"Dashboard", "icon":"bar-chart", "role":["admin"]},
+                             {"main":"Ordini", "name":"Importa", "icon":"plus", "role":["admin"]},
                              {"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customer care","admin"]},
@@ -1511,7 +1514,7 @@ elif page == "Descrizioni":
 elif page == "Foto - Gestione":
     st.header("📸 Gestione Foto")
     tab_names = ["ECOM", "ZFS", "AMAZON"]
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
     
     # 🔽 Caricamento dati con chiave cache dinamica
@@ -1633,7 +1636,7 @@ elif page == "Foto - Gestione":
         st.dataframe(df_vista, use_container_width=True)
 
 elif page == "Foto - Riscatta SKU":
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
 
     cache_token = str(st.session_state.get("refresh_foto_token", "static"))
@@ -1740,7 +1743,7 @@ elif page == "Foto - Riscatta SKU":
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
                 
 elif page == "Foto - Aggiungi SKUs":
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     new_sku = st.session_state.get("aggiunta_confermata", set())
 
     cache_token = str(st.session_state.get("refresh_foto_token", "static"))
@@ -1845,7 +1848,7 @@ elif page == "Foto - Aggiungi prelevate":
     st.header("Aggiungi prelevate")
     st.markdown("Aggiungi la lista delle paia prelevate")
     
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "PRELEVATE")
     
     text_input = st.text_area("Lista paia prelevate", height=400, width=800)
@@ -1994,7 +1997,7 @@ elif page == "Giacenze - Importa":
 
     df_input = st.session_state.df_input
 
-    default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    default_sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
     sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
     sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
@@ -2094,7 +2097,7 @@ elif page == "Giacenze - Per corridoio":
     stagione_default = 1 if mese in [1, 2, 11, 12] else 2
 
     # Recupero worksheet
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     worksheet = get_sheet(sheet_id, "GIACENZE")
 
     # Leggo dati dal foglio
@@ -2251,7 +2254,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     stagione_default = 1 if mese in [1,2,11,12] else 2
 
     # --- Recupero worksheet ---
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     worksheet = get_sheet(sheet_id, "GIACENZE")
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])
@@ -2392,7 +2395,7 @@ elif page == "Giacenze - Old import":
     st.header("Importa giacenze")
     st.markdown("Importa le giacenze da file CSV.")
     
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "GIACENZE")
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
     
@@ -2478,7 +2481,85 @@ elif page == "Admin - Aggiungi utente":
         if submit:
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
 
-elif page == "Home - Dashboard":
+elif page == "Ordini - Dashboard"
+    st.title("Dashboard")
+    sheet_id = st.secrets["APP_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "ORDINI")
+    uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
+    
+    if uploaded_file is not None:
+        st.success("File caricato con successo!")
+        
+        # Inizializza il lettore PDF
+        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+        num_pages = len(pdf_reader.pages)
+        
+        st.write(f"Numero di pagine trovate: {num_pages}")
+        
+        extracted_data = []
+
+        for page_num in range(num_pages):
+            page_obj = pdf_reader.pages[page_num]
+            page_text = page_obj.extract_text()
+            
+            # Controlla se la pagina è un ordine
+            if "ORDINE ECOMMERCE" in page_text:
+                data = extract_data_from_page(page_text)
+                extracted_data.append(data)
+                
+        if extracted_data:
+            st.subheader("Dati Estratti:")
+            
+            # Creazione del DataFrame
+            data_for_df = []
+            for order in extracted_data:
+                for item in order['Articoli']:
+                    row = {
+                        'Numero Ordine': order['Numero Ordine'],
+                        'Marketplace': order['Marketplace'],
+                        'Data': order['Data'],
+                        'Nazione': order['Nazione'],
+                        'Quantita': int(item.get('quantita', 0)),
+                        'Codice': item.get('codice', 'N/A'),
+                        'Descrizione': item.get('descrizione', 'N/A'),
+                        'Taglia': item.get('taglia', 'N/A')
+                    }
+                    data_for_df.append(row)
+            
+            df = pd.DataFrame(data_for_df)
+            
+            st.write("Ecco i dati estratti nel DataFrame:")
+            st.dataframe(df)
+
+            # ---
+            st.subheader("Riepilogo Dati")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            total_orders = df['Numero Ordine'].nunique()
+            col1.metric("Ordini Analizzati", total_orders)
+
+            total_items = df['Quantita'].sum()
+            col2.metric("Articoli Totali Venduti", total_items)
+            
+            unique_marketplaces = df['Marketplace'].nunique()
+            col3.metric("Marketplace Unici", unique_marketplaces)
+
+            # ---
+            st.subheader("Analisi Visuale")
+            
+            st.markdown("Quantità venduta per Marketplace")
+            market_sales = df.groupby('Marketplace')['Quantita'].sum().reset_index()
+            st.bar_chart(market_sales, x='Marketplace', y='Quantita')
+
+            st.markdown("Quantità venduta per Nazione")
+            country_sales = df.groupby('Nazione')['Quantita'].sum().reset_index()
+            st.bar_chart(country_sales, x='Nazione', y='Quantita')
+            
+        else:
+            st.warning("Nessun ordine trovato nel PDF caricato.")
+
+elif page == "Ordini - Importa"
     st.title("Dashboard - Analizza PDF")
     st.write("Carica un PDF con gli ordini (1 ordine per pagina) per estrarre le informazioni.")
 
