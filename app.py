@@ -1007,13 +1007,14 @@ def extract_data_from_page(page_text):
                     items.append(item_data)
                 else:
                     # Case 2: Code Size Quantity Description
-                    item_match = re.search(r"^\s*([^\s]+)\s+(\d+)\s+(\d+)\s+(.*)", line)
+                    #item_match = re.search(r"^\s*([^\s]+)\s+(\d+)\s+(\d+)\s+(.*)", line)
+                    item_match = re.search(r"^\s*001(.*)\.(.*)\.(.*)\s+(\d+)\s+(\d+)\s+(.*)", line)
                     if item_match:
                         item_data = {
-                            'codice': item_match.group(1).strip(),
-                            'taglia': item_match.group(2).strip(),
-                            'quantita': item_match.group(3).strip(),
-                            'descrizione': item_match.group(4).strip()
+                            'codice': item_match.group(1).strip() + item_match.group(2).strip() + item_match.group(3).strip(),
+                            'taglia': item_match.group(4).strip(),
+                            'quantita': item_match.group(5).strip(),
+                            'descrizione': item_match.group(6).strip()
                         }
                         items.append(item_data)
                         
