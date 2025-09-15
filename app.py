@@ -2004,7 +2004,7 @@ elif page == "Giacenze - Importa":
     sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
     sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     if df_input is not None:
         view_df = st.checkbox("Visualizza il dataframe?", value=False)
@@ -2078,6 +2078,12 @@ elif page == "Giacenze - Importa":
                     st.success("✅ Giacenze e anagrafica importate con successo!")
     
                 if nome_file == "Manuale" and file_bytes_for_upload:
+                    with st.spinner("Carico il file su DropBox..."):
+                        upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+
+        with col4:
+            if nome_file == "Manuale" and file_bytes_for_upload:
+                if st.button("Carica su DropBox"):
                     with st.spinner("Carico il file su DropBox..."):
                         upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
                     
