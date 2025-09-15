@@ -1581,7 +1581,7 @@ elif page == "Foto - Gestione":
     # 📊 Riepilogo
     total = len(df)
     consegnate = df["CONSEGNATA"].sum()
-    da_scattare = df["SCATTARE"].sum()
+    da_scattare = df["SCATTARE"].sum() - consegnate
     scattate = total - da_scattare
     matias = df[df["FOTOGRAFO"] == "MATIAS"].shape[0]
     matteo = df[df["FOTOGRAFO"] == "MATTEO"].shape[0]
