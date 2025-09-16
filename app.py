@@ -987,6 +987,7 @@ def extract_data_from_page(page_text):
     address_match = re.search(r"Shipping address\s+Billing address\s+(.*?)(?=Spedizioniere)", page_text, re.DOTALL)
     
     st.write(address_match.group(1).strip())
+    st.write(get_country_from_address("Silvia Nick Westumer Strasse 110 SinzigSilvia Nick Westumer Strasse 110 53489 Sinzig DE DEPACKET DE"))
         
     address = None
     if address_match:
