@@ -2550,6 +2550,7 @@ elif page == "Ordini - Importa":
                     data_for_df.append(row)
 
             df = pd.DataFrame(data_for_df)
+            ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita", "Descrizione"]
             data = df.values.tolist()
             sheet.append_rows(data, value_input_option="RAW")
             
