@@ -2524,16 +2524,22 @@ elif page == "Ordini - Importa":
         st.write(f"Numero di pagine trovate: {num_pages}")
         
         extracted_data = []
-
+        test = None
+        
         for page_num in range(num_pages):
             page_obj = pdf_reader.pages[page_num]
             page_text = page_obj.extract_text()
+            
+            test = page_text
             
             # Controlla se la pagina è un ordine
             if "ORDINE ECOMMERCE" in page_text:
                 data = extract_data_from_page(page_text)
                 extracted_data.append(data)
-                
+
+        st.write(test)
+        st.write(page_text)
+        
         if extracted_data:
             st.subheader("Dati Estratti:")
             
@@ -2557,7 +2563,8 @@ elif page == "Ordini - Importa":
             ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita"]
             
             data = df[ordine_colonne].values.tolist()
-            sheet.append_rows(data, value_input_option="RAW")
+            if st.button("Carica su gsheet"):
+                sheet.append_rows(data, value_input_option="RAW")
             
             st.write("Ecco i dati estratti nel DataFrame:")
             st.dataframe(df)
