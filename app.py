@@ -985,6 +985,9 @@ def extract_data_from_page(page_text):
     #country_match = re.search(r"\n[0-9]{3}.*([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
 
     address_match = re.search(r"Shipping address\s+Billing address\s+(.*?)(?=Spedizioniere)", page_text, re.DOTALL)
+    
+    st.write(address_match.group(1).strip())
+        
     address = None
     if address_match:
         full_address_block = address_match.group(1)
