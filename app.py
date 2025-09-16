@@ -982,13 +982,10 @@ def extract_data_from_page(page_text):
     # Nazione
     #country_match = re.search(r"\n[0-9]{3}.*([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
     
-    country_match = re.search(r".*_([a-zA-Z]{2})", marketplace_match.group(1).strip())
-
-    if not country_match:
-        country_match = re.search(r".*\-([a-zA-Z]{2})\-.*", marketplace_match.group(1).strip())
+    country_match = re.search(r".*address\s(.*)Spedizioniere.*", page_text)
 
     st.write(page_text)
-    st.write(marketplace_match.group(1).strip())
+    st.write(country_match.group(1).strip())
     
     if country_match:
         data['Nazione'] = country_match.group(1).strip()
@@ -1034,6 +1031,36 @@ def extract_data_from_page(page_text):
     data['Articoli'] = items
     
     return data
+
+def get_country_from_address(address):
+    """
+    Tenta di estrarre il nome del paese da una stringa di indirizzo utilizzando il geocoding.
+
+    Args:
+        address (str): L'indirizzo da analizzare.
+
+    Returns:
+        str: Il nome del paese o "N/A" se non è stato trovato.
+    """
+    try:
+        # Crea un geocoder con un timeout per evitare che il programma si blocchi
+        geolocator = Nominatim(user_agent="my-app", timeout=5)
+        
+        # Tenta di geocodificare l'indirizzo
+        location = geolocator.geocode(address)
+        
+        if location and location.address:
+            # L'indirizzo geocodificato restituisce una stringa strutturata.
+            # Esempio: 'Via Roma 1, 00100 Roma RM, Italia'
+            # Usiamo una regex per trovare il nome del paese alla fine della stringa.
+            country_match = re.search(r"([^,]+)\s*$", location.address)
+            if country_match:
+                return country_match.group(1)
+        
+    except (GeocoderTimedOut, GeocoderUnavailable) as e:
+        print(f"Errore di geocoding: {e}")
+        
+    return "N/A"
     
 # ---------------------------
 # 📦 Streamlit UI
