@@ -991,7 +991,7 @@ def extract_data_from_page(page_text):
         # This is a very basic way to get a single address string.
         address = ' '.join(address_lines[:4])
     
-    country = get_country_from_address(address_text)
+    country = get_country_from_address(address)
     
     country_match = re.search(r"Billing address\s(.*)Spedizioniere", page_text)
 
