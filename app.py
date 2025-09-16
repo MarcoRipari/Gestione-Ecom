@@ -938,6 +938,8 @@ def extract_data_from_page(page_text):
             mp = "Voile Blanche"
         elif "Falcotto" in marketplace_match.group(1).strip():
             mp = "Falcotto"
+        elif "falcotto" in marketplace_match.group(1).strip():
+            mp = "Falcotto"
         elif "W6YZ" in marketplace_match.group(1).strip():
             mp = "W6YZ"
         elif "zalando" in marketplace_match.group(1).strip():
