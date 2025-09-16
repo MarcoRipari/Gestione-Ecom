@@ -956,6 +956,8 @@ def extract_data_from_page(page_text):
             mp = "Sarenza"
         elif "vertbaudet" in marketplace_match.group(1).strip():
             mp = "Vertbaudet"
+        elif "miinto" in marketplace_match.group(1).strip():
+            mp = "Miinto"
         else:
             mp = marketplace_match.group(1).strip()
             
