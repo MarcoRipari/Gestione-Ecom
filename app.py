@@ -2551,7 +2551,8 @@ elif page == "Ordini - Importa":
 
             df = pd.DataFrame(data_for_df)
             ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita", "Descrizione"]
-            data = df.values.tolist()
+            
+            data = df[ordine_colonne].values.tolist()
             sheet.append_rows(data, value_input_option="RAW")
             
             st.write("Ecco i dati estratti nel DataFrame:")
