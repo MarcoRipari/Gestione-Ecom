@@ -2492,79 +2492,13 @@ elif page == "Ordini - Dashboard":
     st.title("Dashboard")
     sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "ORDINI")
-    uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
+
+    data = sheet.get_all_values()
+
+    df = pd.DataFrame(data)
+
+    st.write(df)
     
-    if uploaded_file is not None:
-        st.success("File caricato con successo!")
-        
-        # Inizializza il lettore PDF
-        pdf_reader = PyPDF2.PdfReader(uploaded_file)
-        num_pages = len(pdf_reader.pages)
-        
-        st.write(f"Numero di pagine trovate: {num_pages}")
-        
-        extracted_data = []
-
-        for page_num in range(num_pages):
-            page_obj = pdf_reader.pages[page_num]
-            page_text = page_obj.extract_text()
-            
-            # Controlla se la pagina è un ordine
-            if "ORDINE ECOMMERCE" in page_text:
-                data = extract_data_from_page(page_text)
-                extracted_data.append(data)
-                
-        if extracted_data:
-            st.subheader("Dati Estratti:")
-            
-            # Creazione del DataFrame
-            data_for_df = []
-            for order in extracted_data:
-                for item in order['Articoli']:
-                    row = {
-                        'Numero Ordine': order['Numero Ordine'],
-                        'Marketplace': order['Marketplace'],
-                        'Data': order['Data'],
-                        'Nazione': order['Nazione'],
-                        'Quantita': int(item.get('quantita', 0)),
-                        'Codice': item.get('codice', 'N/A'),
-                        'Descrizione': item.get('descrizione', 'N/A'),
-                        'Taglia': item.get('taglia', 'N/A')
-                    }
-                    data_for_df.append(row)
-            
-            df = pd.DataFrame(data_for_df)
-            
-            st.write("Ecco i dati estratti nel DataFrame:")
-            st.dataframe(df)
-
-            # ---
-            st.subheader("Riepilogo Dati")
-            
-            col1, col2, col3 = st.columns(3)
-            
-            total_orders = df['Numero Ordine'].nunique()
-            col1.metric("Ordini Analizzati", total_orders)
-
-            total_items = df['Quantita'].sum()
-            col2.metric("Articoli Totali Venduti", total_items)
-            
-            unique_marketplaces = df['Marketplace'].nunique()
-            col3.metric("Marketplace Unici", unique_marketplaces)
-
-            # ---
-            st.subheader("Analisi Visuale")
-            
-            st.markdown("Quantità venduta per Marketplace")
-            market_sales = df.groupby('Marketplace')['Quantita'].sum().reset_index()
-            st.bar_chart(market_sales, x='Marketplace', y='Quantita')
-
-            st.markdown("Quantità venduta per Nazione")
-            country_sales = df.groupby('Nazione')['Quantita'].sum().reset_index()
-            st.bar_chart(country_sales, x='Nazione', y='Quantita')
-            
-        else:
-            st.warning("Nessun ordine trovato nel PDF caricato.")
 
 elif page == "Ordini - Importa":
     st.title("Dashboard - Analizza PDF")
