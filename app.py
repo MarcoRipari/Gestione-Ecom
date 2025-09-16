@@ -985,6 +985,8 @@ def extract_data_from_page(page_text):
     #country_match = re.search(r"\n[0-9]{3}.*([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
 
     country_match = re.search(r"([A-Z]{2}).*?Spedizioniere", page_text)
+
+    st.write(page_text)
     
     if country_match:
         data['Nazione'] = country_match.group(1).strip()
