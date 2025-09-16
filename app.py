@@ -2494,9 +2494,9 @@ elif page == "Ordini - Dashboard":
     sheet = get_sheet(sheet_id, "ORDINI")
 
     data = sheet.get_all_values()
+    headers = data[0]
 
-    headers = data[1]
-    df = pd.DataFrame(data[1:], headers=headers)
+    df = pd.DataFrame(data, columns=headers)
 
     st.write(df)
     
