@@ -986,8 +986,9 @@ def extract_data_from_page(page_text):
     if not nazione:
         nazione = re.search(r"^([A-Z]{2})http.*$", page_text, re.MULTILINE)
 
-    st.write(nazione)
-    data['Nazione'] = nazione
+    st.write(nazione.group(1).strip())
+    
+    data['Nazione'] = nazione.group(1).strip()
     
     #if country_match:
     #    data['Nazione'] = country_match.group(1).strip()
