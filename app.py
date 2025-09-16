@@ -980,7 +980,8 @@ def extract_data_from_page(page_text):
         data['Data'] = "N/A"
 
     # Nazione
-    country_match = re.search(r"\n([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
+    #country_match = re.search(r"\n[0-9]{3}.*([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
+    country_match = re.search(r"[0-9]{5}.* ([A-Z]{2}).*Spedizioniere:", page_text.strip(), re.MULTILINE)
     if country_match:
         data['Nazione'] = country_match.group(1).strip()
     else:
@@ -2524,21 +2525,15 @@ elif page == "Ordini - Importa":
         st.write(f"Numero di pagine trovate: {num_pages}")
         
         extracted_data = []
-        test = None
         
         for page_num in range(num_pages):
             page_obj = pdf_reader.pages[page_num]
             page_text = page_obj.extract_text()
-            
-            test = page_text
-            
+                       
             # Controlla se la pagina è un ordine
             if "ORDINE ECOMMERCE" in page_text:
                 data = extract_data_from_page(page_text)
                 extracted_data.append(data)
-
-        st.write(test)
-        st.write(page_text)
         
         if extracted_data:
             st.subheader("Dati Estratti:")
