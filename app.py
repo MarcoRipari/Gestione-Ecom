@@ -981,11 +981,19 @@ def extract_data_from_page(page_text):
 
     # Nazione
     #country_match = re.search(r"\n[0-9]{3}.*([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
+
+    address_match = re.search(r"Shipping address\s+Billing address\s+(.*?)(?=Spedizioniere)", page_text, re.DOTALL)
+    address = None
+    if address_match:
+        full_address_block = address_match.group(1)
+        address_lines = [line.strip() for line in full_address_block.split('\n') if line.strip()]
+        
+        # This is a very basic way to get a single address string.
+        address = ' '.join(address_lines[:4])
     
     country_match = re.search(r"Billing address\s(.*)Spedizioniere", page_text)
 
     st.write(page_text)
-    st.write(country_match.group(1).strip())
     
     if country_match:
         data['Nazione'] = country_match.group(1).strip()
