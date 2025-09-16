@@ -984,7 +984,7 @@ def extract_data_from_page(page_text):
     country_match = re.search(r"^([A-Z]{2}).*Spedizioniere:$", page_text, re.MULTILINE)
 
     if not country_match:
-        country_match = re.search(r"^([A-Z]{2})https.*", page_text, re.MULTILINE)
+        country_match = re.search(r"^([A-Z]{2}) http.*", page_text, re.MULTILINE)
 
     st.write(page_text)
     st.write(country_match.group(1).strip())
