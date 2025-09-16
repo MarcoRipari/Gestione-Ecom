@@ -981,15 +981,18 @@ def extract_data_from_page(page_text):
 
     # Nazione
     #country_match = re.search(r"\n[0-9]{3}.*([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
-    country_match = re.search(r"^([A-Z]{2}).*Spedizioniere:$", page_text, re.MULTILINE)
+    nazione = re.search(r"^([A-Z]{2}).*Spedizioniere:$", page_text, re.MULTILINE)
 
-    st.write(page_text)
-    st.write(country_match.group(1).strip())
+    if not nazione:
+        nazione = re.search(r"^([A-Z]{2})http.*$", page_text, re.MULTILINE)
+
+    st.write(nazione)
+    data['Nazione'] = nazione
     
-    if country_match:
-        data['Nazione'] = country_match.group(1).strip()
-    else:
-        data['Nazione'] = "N/A"
+    #if country_match:
+    #    data['Nazione'] = country_match.group(1).strip()
+    #else:
+    #    data['Nazione'] = "N/A"
     
     # Articoli, quantità e taglia
     items = []
