@@ -42,6 +42,7 @@ pyjwt
 streamlit-authenticator
 pdfplumber
 PyPDF2
+geopy
 
 # UI / UX
 streamlit-option-menu
