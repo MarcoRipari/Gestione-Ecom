@@ -991,9 +991,13 @@ def extract_data_from_page(page_text):
         # This is a very basic way to get a single address string.
         address = ' '.join(address_lines[:4])
     
+    country = get_country_from_address(address_text)
+    
     country_match = re.search(r"Billing address\s(.*)Spedizioniere", page_text)
 
-    st.write(page_text)
+    st.write(address)
+    st.write(country)
+    
     
     if country_match:
         data['Nazione'] = country_match.group(1).strip()
