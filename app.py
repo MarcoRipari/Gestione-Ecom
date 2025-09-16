@@ -984,9 +984,12 @@ def extract_data_from_page(page_text):
     
     country_match = re.search(r".*_([a-zA-Z]{2})", marketplace_match.group(1).strip())
 
-    st.write(page_text)
-    st.write(country_match.group(1).strip())
+    if not country_match:
+        country_match = re.search(r".*-([a-zA-Z]{2})-.*", marketplace_match.group(1).strip())
 
+    st.write(page_text)
+    st.write(country_match.group(1).strip().upper())
+    
     if country_match:
         data['Nazione'] = country_match.group(1).strip()
     else:
