@@ -985,7 +985,7 @@ def extract_data_from_page(page_text):
     country_match = re.search(r"Billing address\s(.*)Spedizioniere", page_text)
 
     st.write(page_text)
-    st.write(country_match.group(1).strip()
+    st.write(country_match.group(1).strip())
     
     if country_match:
         data['Nazione'] = country_match.group(1).strip()
