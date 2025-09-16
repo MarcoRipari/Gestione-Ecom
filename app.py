@@ -2505,6 +2505,9 @@ elif page == "Ordini - Importa":
     st.title("Dashboard - Analizza PDF")
     st.write("Carica un PDF con gli ordini (1 ordine per pagina) per estrarre le informazioni.")
 
+    sheet_id = st.secrets["APP_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "ORDINI")
+
     uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
     
     if uploaded_file is not None:
@@ -2545,8 +2548,10 @@ elif page == "Ordini - Importa":
                         'Taglia': item.get('taglia', 'N/A')
                     }
                     data_for_df.append(row)
-            
+
             df = pd.DataFrame(data_for_df)
+            data = df.values.tolist()
+            sheet.append_rows(data, value_input_option="RAW")
             
             st.write("Ecco i dati estratti nel DataFrame:")
             st.dataframe(df)
