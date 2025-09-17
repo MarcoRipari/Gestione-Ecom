@@ -57,7 +57,7 @@ from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 from gspread.utils import rowcol_to_a1
 import pdfplumber
-import PyPDF2
+import PyPDF2 as PdfReader
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 
