@@ -2651,7 +2651,7 @@ elif page == "Ordini - Importa":
                                 })
     
                 df = pd.DataFrame(all_orders_data)
-                st.write(df)
+                st.write(len(all_orders_data))
                 ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita"]
                 
                 
