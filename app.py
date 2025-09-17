@@ -2587,25 +2587,25 @@ elif page == "Ordini - Dashboard":
     
     col1, col2, col3 = st.columns(3)
     
-    total_orders = df['Numero Ordine'].nunique()
+    total_orders = filtered_df['Numero Ordine'].nunique()
     col1.metric("Ordini Analizzati", total_orders)
 
-    df['Quantita'] = pd.to_numeric(df['Quantita'], errors="coerce")
-    total_items = df['Quantita'].sum()
+    filtered_df['Quantita'] = pd.to_numeric(filtered_df['Quantita'], errors="coerce")
+    total_items = filtered_df['Quantita'].sum()
     col2.metric("Articoli Totali Venduti", total_items)
     
-    unique_marketplaces = df['Marketplace'].nunique()
+    unique_marketplaces = filtered_df['Marketplace'].nunique()
     col3.metric("Marketplace Unici", unique_marketplaces)
 
     # ---
     st.subheader("Analisi Visuale")
     
     st.markdown("Quantità venduta per Marketplace")
-    market_sales = df.groupby('Marketplace')['Quantita'].sum().reset_index()
+    market_sales = filtered_df.groupby('Marketplace')['Quantita'].sum().reset_index()
     st.bar_chart(market_sales, x='Marketplace', y='Quantita')
 
     st.markdown("Quantità venduta per Nazione")
-    country_sales = df.groupby('Nazione')['Quantita'].sum().reset_index()
+    country_sales = filtered_df.groupby('Nazione')['Quantita'].sum().reset_index()
     st.bar_chart(country_sales, x='Nazione', y='Quantita')
     
 
