@@ -2627,7 +2627,7 @@ elif page == "Ordini - Importa":
                 extracted_data.append(data)
         
         if extracted_data:
-            st.subheader("Dati Estratti:")
+            st.subheader("Dati Estratti")
             
             # Creazione del DataFrame
             data_for_df = []
@@ -2648,8 +2648,6 @@ elif page == "Ordini - Importa":
             df = pd.DataFrame(data_for_df)
             ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita"]
             
-            # ---
-            st.subheader("Riepilogo Dati")
             
             col1, col2, col3 = st.columns(3)
             
