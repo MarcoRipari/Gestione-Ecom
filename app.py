@@ -2613,8 +2613,6 @@ elif page == "Ordini - Importa":
         pdf_reader = PyPDF2.PdfReader(uploaded_file)
         num_pages = len(pdf_reader.pages)
         
-        st.write(f"Numero di pagine trovate: {num_pages}")
-        
         extracted_data = []
         
         for page_num in range(num_pages):
