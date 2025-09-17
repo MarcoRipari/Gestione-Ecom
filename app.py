@@ -968,7 +968,9 @@ def extract_data_from_page(page_text):
         data['Marketplace'] = "N/A"
 
     # Numero Ordine
-    order_match = re.search(r"Marketplace order\s*([a-zA-Z0-9-]+)", page_text, re.IGNORECASE)
+    #order_match = re.search(r"Marketplace order\s*([a-zA-Z0-9-]+)", page_text, re.IGNORECASE)
+    order_match = re.search(r"Marketplace order\s*(.*)\sUbicazioneData vendita", page_text, re.IGNORECASE)
+    
     if order_match:
         data['Numero Ordine'] = order_match.group(1).strip()
     else:
