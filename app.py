@@ -2580,7 +2580,7 @@ elif page == "Ordini - Dashboard":
     if selected_country != 'All':
         filtered_df = filtered_df[filtered_df['Nazione'] == selected_country]
 
-    view_df = st.checkbox("Visualizza DataFrame?"):
+    view_df = st.checkbox("Visualizza dataframe?", value=False)
     if view_df:
         st.dataframe(filtered_df)
 
