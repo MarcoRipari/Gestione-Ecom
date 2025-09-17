@@ -2647,8 +2647,8 @@ elif page == "Ordini - Importa":
                                     #'Codice': item['Codice'],
                                     #'Taglia': item['Taglia'],
                                     #'Quantita': item['Quantita'],
-                                    'Codice': order_data['Articoli'],
-                                    'Descrizione': item['Descrizione']
+                                    #'Descrizione': item['Descrizione'],
+                                    'Codice': order_data['Articoli']
                                 })
     
                 df = pd.DataFrame(all_orders_data)
