@@ -2599,6 +2599,9 @@ elif page == "Ordini - Dashboard":
         col1, col2 = st.columns(2)
         start_date = col1.date_input("Data di inizio", value=first_day_of_month)
         end_date = col2.date_input("Data di fine", value=today)
+
+    st.write(start_date)
+    st.write(end_date)
     
     if start_date and end_date:
         start_date_ts = pd.Timestamp(start_date)
