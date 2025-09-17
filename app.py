@@ -2652,5 +2652,31 @@ elif page == "Ordini - Importa":
             if st.button("Carica su gsheet"):
                 sheet.append_rows(data, value_input_option="RAW")
 
+            # ---
+            st.subheader("Riepilogo Dati")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            total_orders = df['Numero Ordine'].nunique()
+            col1.metric("Ordini Analizzati", total_orders)
+        
+            df['Quantita'] = pd.to_numeric(df['Quantita'], errors="coerce")
+            total_items = df['Quantita'].sum()
+            col2.metric("Articoli Totali Venduti", total_items)
+            
+            unique_marketplaces = df['Marketplace'].nunique()
+            col3.metric("Marketplace Unici", unique_marketplaces)
+        
+            # ---
+            st.subheader("Analisi Visuale")
+            
+            st.markdown("Quantità venduta per Marketplace")
+            market_sales = df.groupby('Marketplace')['Quantita'].sum().reset_index()
+            st.bar_chart(market_sales, x='Marketplace', y='Quantita')
+        
+            st.markdown("Quantità venduta per Nazione")
+            country_sales = df.groupby('Nazione')['Quantita'].sum().reset_index()
+            st.bar_chart(country_sales, x='Nazione', y='Quantita')
+
         else:
             st.warning("Nessun ordine trovato nel PDF caricato.")
