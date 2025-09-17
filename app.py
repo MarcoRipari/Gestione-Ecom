@@ -989,16 +989,18 @@ def extract_data_from_page(page_text):
     nazione = None
     marketplace = marketplace_match.group(1).strip()
     order = order_match.group(1).strip()
-    if order.startswith("101") or order.startswith("CC16") or "DE" in order or "de" in order:
+    if order.startswith("101") or order.startswith("CC16") or order.startswith("DE_") or "DE" in order or "de" in order:
         nazione = "DE"
-    elif order.startswith("103") or order.startswith("CC15") or "FR" in order or "fr" in order:
+    elif order.startswith("103") or order.startswith("CC15") or order.startswith("FR_") or "FR" in order or "fr" in order:
         nazione = "FR"
-    elif order.startswith("104") or order.startswith("CC101") or "IT" in order or "it" in order:
+    elif order.startswith("104") or order.startswith("CC101") or order.startswith("IT_") or "IT" in order or "it" in order:
         nazione = "IT"
     elif order.startswith("CC11"):
         nazione = "WE"
-    elif "ES" in order:
+    elif order.startswith("ES_") or "ES" in order:
         nazione = "ES"
+    elif order.startswith("BE_"):
+        nazione = "BE"
     elif "WE" in order:
         nazione = "WE"
     elif "GB" in order:
@@ -2622,7 +2624,10 @@ elif page == "Ordini - Importa":
     sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "ORDINI")
 
-    uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
+    uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf", multiple_files=True)
+
+    st.write(uploaded_file)
+    return
     
     if uploaded_file is not None:
         st.success("File caricato con successo!")
