@@ -986,18 +986,12 @@ def extract_data_from_page(page_text):
 
     nazione = None
     order = order_match.group(1).strip()
-    if order.startswith("1010"):
+    if order.startswith("1010") or "DE" in order or "de" in order:
         nazione = "DE"
-    elif order.startswith("1030"):
+    elif order.startswith("1030") or "FR" in order or "fr" in order:
         nazione = "FR"
-    elif order.startswith("1040"):
+    elif order.startswith("1040") or "IT" in order or "it" in order:
         nazione = "IT"
-    elif "IT" in order:
-        nazione = "IT"
-    elif "DE" in order:
-        nazione = "DE"
-    elif "FR" in order:
-        nazione = "FR"
     elif "WE" in order:
         nazione = "WE"
     else:
