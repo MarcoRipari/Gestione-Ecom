@@ -2669,7 +2669,3 @@ elif page == "Ordini - Importa":
                 data = df[ordine_colonne].values.tolist()
                 if st.button("Carica su gsheet"):
                     sheet.append_rows(data, value_input_option="RAW")
-
-        
-            else:
-                st.warning("Nessun ordine trovato nel PDF caricato.")
