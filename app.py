@@ -57,7 +57,7 @@ from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 from gspread.utils import rowcol_to_a1
 import pdfplumber
-import PyPDF2 as PdfReader
+import PyPDF2
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 
@@ -2632,7 +2632,7 @@ elif page == "Ordini - Importa":
             all_orders_data = []
 
             for uploaded_file in uploaded_files:
-                reader = PdfReader(uploaded_file)
+                reader = PyPDF2.PdfReader(uploaded_file)
                 for i, page in enumerate(reader.pages):
                     page_text = page.extract_text()
                     if page_text:
