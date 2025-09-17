@@ -2570,17 +2570,48 @@ elif page == "Ordini - Dashboard":
 
     df = pd.DataFrame(data[1:], columns=headers)
 
+    df['Quantita'] = pd.to_numeric(df['Quantita'], errors='coerce')
+    df['Data'] = pd.to_datetime(df['Data'], format="%d/%m/%Y", errors='coerce')
+
     all_marketplaces = ['Tutti i marketplace'] + list(df['Marketplace'].unique())
     selected_marketplace = st.selectbox('Seleziona Marketplace', all_marketplaces)
 
     all_countries = ['Tutte le nazioni'] + list(df['Nazione'].unique())
     selected_country = st.selectbox('Seleziona Nazione', all_countries)
 
+    # --- Inizio Filtri Data ---
+    today = datetime.date.today()
+    first_day_of_month = today.replace(day=1)
+
+    date_filter_options = ['Mese corrente', 'Anno', 'Intervallo di date']
+    selected_date_filter = st.radio("Filtra per data", date_filter_options)
+    
+    start_date = None
+    end_date = None
+
+    if selected_date_filter == 'Mese corrente':
+        start_date = first_day_of_month
+        end_date = today
+    elif selected_date_filter == 'Anno':
+        start_date = datetime.date(today.year, 1, 1)
+        end_date = today
+    elif selected_date_filter == 'Intervallo di date':
+        col1, col2 = st.columns(2)
+        start_date = col1.date_input("Data di inizio", value=first_day_of_month)
+        end_date = col2.date_input("Data di fine", value=today)
+    
+    if start_date and end_date:
+        start_date_ts = pd.Timestamp(start_date)
+        end_date_ts = pd.Timestamp(end_date)
+    # --- Fine Filtri Data ---
+
     filtered_df = df.copy()
     if selected_marketplace != 'Tutti i marketplace':
         filtered_df = filtered_df[filtered_df['Marketplace'] == selected_marketplace]
     if selected_country != 'Tutte le nazioni':
         filtered_df = filtered_df[filtered_df['Nazione'] == selected_country]
+    if start_date_ts and end_date_ts:
+        filtered_df = filtered_df[(filtered_df['Data'] >= start_date_ts) & (filtered_df['Data'] <= end_date_ts)]
 
     view_df = st.checkbox("Visualizza dataframe?", value=False)
     if view_df:
@@ -2594,7 +2625,6 @@ elif page == "Ordini - Dashboard":
     total_orders = filtered_df['Numero Ordine'].nunique()
     col1.metric("Ordini Analizzati", total_orders)
 
-    filtered_df['Quantita'] = pd.to_numeric(filtered_df['Quantita'], errors="coerce")
     total_items = filtered_df['Quantita'].sum()
     col2.metric("Articoli Totali Venduti", total_items)
     
