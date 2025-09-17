@@ -985,6 +985,7 @@ def extract_data_from_page(page_text):
     #country_match = re.search(r"\n[0-9]{3}.*([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
 
     nazione = None
+    marketplace = marketplace_match.group(1).strip()
     order = order_match.group(1).strip()
     if order.startswith("1010") or "DE" in order or "de" in order:
         nazione = "DE"
@@ -995,7 +996,14 @@ def extract_data_from_page(page_text):
     elif "WE" in order:
         nazione = "WE"
     else:
-        nazione = "N/A"
+        if "DE" in marketplace or "de" in marketplace:
+            nazione = "DE"
+        elif "FR" in marketplace or "fr" in marketplace:
+            nazione = "FR"
+        elif "IT" in marketplace or "it" in marketplace:
+            nazione = "IT"
+        else:
+            nazione = "N/A"
     
     st.write(page_text)
     st.write(order)
