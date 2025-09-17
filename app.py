@@ -2652,6 +2652,7 @@ elif page == "Ordini - Importa":
                                 })
     
                 df = pd.DataFrame(all_orders_data)
+                st.write(df)
                 ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita"]
                 
                 
