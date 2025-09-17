@@ -2569,7 +2569,6 @@ elif page == "Ordini - Dashboard":
     headers = data[0]
 
     df = pd.DataFrame(data[1:], columns=headers)
-    st.write(df)
 
     all_marketplaces = ['Tutti i marketplace'] + list(df['Marketplace'].unique())
     selected_marketplace = st.selectbox('Seleziona Marketplace', all_marketplaces)
@@ -2578,9 +2577,9 @@ elif page == "Ordini - Dashboard":
     selected_country = st.selectbox('Seleziona Nazione', all_countries)
 
     filtered_df = df.copy()
-    if selected_marketplace != 'All':
+    if selected_marketplace != 'Tutti i marketplace':
         filtered_df = filtered_df[filtered_df['Marketplace'] == selected_marketplace]
-    if selected_country != 'All':
+    if selected_country != 'Tutte le nazioni':
         filtered_df = filtered_df[filtered_df['Nazione'] == selected_country]
 
     view_df = st.checkbox("Visualizza dataframe?", value=False)
