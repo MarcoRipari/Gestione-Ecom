@@ -984,16 +984,35 @@ def extract_data_from_page(page_text):
     # Nazione
     #country_match = re.search(r"\n[0-9]{3}.*([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
 
+    nazione = None
     order = order_match.group(1).strip()
-    
-    country_match = re.search(r"(?:Billing address|Shipping address).*?([A-Z]{2})[^A-Z]*?Spedizioniere", page_text)
-
-    st.write(order)
-    
-    if country_match:
-        data['Nazione'] = country_match.group(1).strip()
+    if order.startswith("1010"):
+        nazione = "DE"
+    elif order.startswith("1030"):
+        nazione = "FR"
+    elif order.startswith("1040"):
+        nazione = "IT"
+    elif "IT" in order:
+        nazione = "IT"
+    elif "DE" in order:
+        nazione = "DE"
+    elif "FR" in order:
+        nazione = "FR"
+    elif "WE" in order:
+        nazione = "WE"
     else:
-        data['Nazione'] = "N/A"
+        nazione = "N/A"
+    
+    st.write(page_text)
+    st.write(nazione)
+    
+    
+    data['Nazione'] = nazione
+    
+    #if country_match:
+    #    data['Nazione'] = country_match.group(1).strip()
+    #else:
+    #    data['Nazione'] = "N/A"
     
     # Articoli, quantità e taglia
     items = []
