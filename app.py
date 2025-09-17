@@ -2627,7 +2627,6 @@ elif page == "Ordini - Importa":
     uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf", multiple_files=True)
 
     st.write(uploaded_file)
-    return
     
     if uploaded_file is not None:
         st.success("File caricato con successo!")
