@@ -995,6 +995,12 @@ def extract_data_from_page(page_text):
         nazione = "IT"
     elif "WE" in order:
         nazione = "WE"
+    elif "GB" in order:
+        nazione = "GB"
+    elif "ES" in order:
+        nazione = "ES"
+    elif "US" in order:
+        nazione = "US"
     else:
         if "DE" in marketplace or "de" in marketplace:
             nazione = "DE"
@@ -1002,6 +1008,8 @@ def extract_data_from_page(page_text):
             nazione = "FR"
         elif "IT" in marketplace or "it" in marketplace:
             nazione = "IT"
+        elif "ES" in marketplace or "es" in marketplace:
+            nazione = "ES"
         else:
             nazione = "N/A"
     
