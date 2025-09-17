@@ -2650,23 +2650,23 @@ elif page == "Ordini - Importa":
                                     'Descrizione': item['descrizione']
                                 })
     
-                df = pd.DataFrame(all_orders_data)
-                st.write(len(all_orders_data))
-                ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita"]
-                
-                
-                col1, col2, col3 = st.columns(3)
-                
-                total_orders = df['Numero Ordine'].nunique()
-                col1.metric("Ordini Analizzati", total_orders)
-            
-                df['Quantita'] = pd.to_numeric(df['Quantita'], errors="coerce")
-                total_items = df['Quantita'].sum()
-                col2.metric("Articoli Totali Venduti", total_items)
-                
-                unique_marketplaces = df['Marketplace'].nunique()
-                col3.metric("Marketplace Unici", unique_marketplaces)
+        df = pd.DataFrame(all_orders_data)
+        st.write(len(all_orders_data))
+        ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita"]
+        
+        
+        col1, col2, col3 = st.columns(3)
+        
+        total_orders = df['Numero Ordine'].nunique()
+        col1.metric("Ordini Analizzati", total_orders)
     
-                data = df[ordine_colonne].values.tolist()
-                if st.button("Carica su gsheet"):
-                    sheet.append_rows(data, value_input_option="RAW")
+        df['Quantita'] = pd.to_numeric(df['Quantita'], errors="coerce")
+        total_items = df['Quantita'].sum()
+        col2.metric("Articoli Totali Venduti", total_items)
+        
+        unique_marketplaces = df['Marketplace'].nunique()
+        col3.metric("Marketplace Unici", unique_marketplaces)
+
+        data = df[ordine_colonne].values.tolist()
+        if st.button("Carica su gsheet"):
+            sheet.append_rows(data, value_input_option="RAW")
