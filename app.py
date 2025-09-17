@@ -2569,6 +2569,7 @@ elif page == "Ordini - Dashboard":
     headers = data[0]
 
     df = pd.DataFrame(data[1:], columns=headers)
+    st.write(df)
 
     all_marketplaces = ['Tutti i marketplace'] + list(df['Marketplace'].unique())
     selected_marketplace = st.selectbox('Seleziona Marketplace', all_marketplaces)
