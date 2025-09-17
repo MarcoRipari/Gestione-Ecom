@@ -2579,49 +2579,11 @@ elif page == "Ordini - Dashboard":
     all_countries = ['Tutte le nazioni'] + list(df['Nazione'].unique())
     selected_country = st.selectbox('Seleziona Nazione', all_countries)
 
-    # --- Inizio Filtri Data ---
-    today = datetime.now(ZoneInfo("Europe/Rome")).date()
-    first_day_of_month = today.replace(day=1)
-
-    date_filter_options = ['Mese corrente', 'Anno', 'Intervallo di date']
-    selected_date_filter = st.radio("Filtra per data", date_filter_options)
-    date_range = st.date_input(
-                "Filtra per data",
-                value=(first_day_of_month, today),
-                max_value=today
-            )
-
-    if len(date_range) == 2:
-        start_date, end_date = date_range
-        start_date_ts = pd.Timestamp(start_date)
-        end_date_ts = pd.Timestamp(end_date)
-        
-    start_date = None
-    end_date = None
-
-    if selected_date_filter == 'Mese corrente':
-        start_date = first_day_of_month
-        end_date = today
-    elif selected_date_filter == 'Anno':
-        start_date = datetime.date(today.year, 1, 1)
-        end_date = today
-    elif selected_date_filter == 'Intervallo di date':
-        col1, col2 = st.columns(2)
-        start_date = col1.date_input("Data di inizio", value=first_day_of_month)
-        end_date = col2.date_input("Data di fine", value=today)
-
-    st.write(start_date)
-    st.write(end_date)
-
-    # --- Fine Filtri Data ---
-
     filtered_df = df.copy()
     if selected_marketplace != 'Tutti i marketplace':
         filtered_df = filtered_df[filtered_df['Marketplace'] == selected_marketplace]
     if selected_country != 'Tutte le nazioni':
         filtered_df = filtered_df[filtered_df['Nazione'] == selected_country]
-    if start_date_ts and end_date_ts:
-        filtered_df = filtered_df[(filtered_df['Data'] >= start_date_ts) & (filtered_df['Data'] <= end_date_ts)]
 
     view_df = st.checkbox("Visualizza dataframe?", value=False)
     if view_df:
