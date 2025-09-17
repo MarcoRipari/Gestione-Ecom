@@ -2639,17 +2639,15 @@ elif page == "Ordini - Importa":
                         order_data = extract_data_from_page(page_text)
                         if order_data['Articoli']:
                             for item in order_data['Articoli']:
-                                st.write(item)
-                                st.write(item['Codice'])
                                 all_orders_data.append({
                                     'Numero Ordine': order_data['Numero Ordine'],
                                     'Marketplace': order_data['Marketplace'],
                                     'Data': order_data['Data'],
                                     'Nazione': order_data['Nazione'],
-                                    'Codice': item['Codice'],
-                                    'Taglia': item['Taglia'],
-                                    'Quantita': item['Quantita'],
-                                    'Descrizione': item['Descrizione']
+                                    'Codice': item['codice'],
+                                    'Taglia': item['taglia'],
+                                    'Quantita': item['quantita'],
+                                    'Descrizione': item['descrizione']
                                 })
     
                 df = pd.DataFrame(all_orders_data)
