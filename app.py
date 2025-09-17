@@ -2568,10 +2568,10 @@ elif page == "Ordini - Dashboard":
 
     df = pd.DataFrame(data[1:], columns=headers)
 
-    all_marketplaces = ['All'] + list(df['Marketplace'].unique())
+    all_marketplaces = ['Tutti i marketplace'] + list(df['Marketplace'].unique())
     selected_marketplace = st.selectbox('Seleziona Marketplace', all_marketplaces)
 
-    all_countries = ['All'] + list(df['Nazione'].unique())
+    all_countries = ['Tutte le nazioni'] + list(df['Nazione'].unique())
     selected_country = st.selectbox('Seleziona Nazione', all_countries)
 
     filtered_df = df.copy()
