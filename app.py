@@ -2580,7 +2580,7 @@ elif page == "Ordini - Dashboard":
     selected_country = st.selectbox('Seleziona Nazione', all_countries)
 
     # --- Inizio Filtri Data ---
-    today = datetime.today()
+    today = datetime.now(ZoneInfo("Europe/Rome")).date()
     first_day_of_month = today.replace(day=1)
 
     date_filter_options = ['Mese corrente', 'Anno', 'Intervallo di date']
