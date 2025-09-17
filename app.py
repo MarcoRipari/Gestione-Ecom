@@ -2576,7 +2576,7 @@ elif page == "Ordini - Dashboard":
     total_orders = df['Numero Ordine'].nunique()
     col1.metric("Ordini Analizzati", total_orders)
 
-    df['Quantita'] = pd.to_numeric(df['Quantita'], errors="coerces")
+    df['Quantita'] = pd.to_numeric(df['Quantita'], errors="coerce")
     total_items = df['Quantita'].sum()
     col2.metric("Articoli Totali Venduti", total_items)
     
