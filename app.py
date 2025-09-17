@@ -974,6 +974,10 @@ def extract_data_from_page(page_text):
     else:
         data['Numero Ordine'] = "N/A"
 
+    if mp = "Miinto":
+        st.write(page_text)
+        st.write(order_match.group(1).strip())
+
     # Data
     date_match = re.search(r"Data vendita:\s*(\d{2}/\d{2}/\d{4})", page_text)
     if date_match:
