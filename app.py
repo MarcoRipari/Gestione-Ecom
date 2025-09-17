@@ -2644,11 +2644,10 @@ elif page == "Ordini - Importa":
                                     'Marketplace': order_data['Marketplace'],
                                     'Data': order_data['Data'],
                                     'Nazione': order_data['Nazione'],
-                                    #'Codice': item['Codice'],
-                                    #'Taglia': item['Taglia'],
-                                    #'Quantita': item['Quantita'],
-                                    #'Descrizione': item['Descrizione'],
-                                    'Codice': order_data['Articoli']
+                                    'Codice': item['Codice'],
+                                    'Taglia': item['Taglia'],
+                                    'Quantita': item['Quantita'],
+                                    'Descrizione': item['Descrizione']
                                 })
     
                 df = pd.DataFrame(all_orders_data)
