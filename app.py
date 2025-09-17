@@ -2585,7 +2585,17 @@ elif page == "Ordini - Dashboard":
 
     date_filter_options = ['Mese corrente', 'Anno', 'Intervallo di date']
     selected_date_filter = st.radio("Filtra per data", date_filter_options)
-    
+    date_range = st.date_input(
+                "Filtra per data",
+                value=(first_day_of_month, today),
+                max_value=today
+            )
+
+    if len(date_range) == 2:
+        start_date, end_date = date_range
+        start_date_ts = pd.Timestamp(start_date)
+        end_date_ts = pd.Timestamp(end_date)
+        
     start_date = None
     end_date = None
 
@@ -2602,10 +2612,7 @@ elif page == "Ordini - Dashboard":
 
     st.write(start_date)
     st.write(end_date)
-    
-    if start_date and end_date:
-        start_date_ts = pd.Timestamp(start_date)
-        end_date_ts = pd.Timestamp(end_date)
+
     # --- Fine Filtri Data ---
 
     filtered_df = df.copy()
