@@ -998,6 +998,7 @@ def extract_data_from_page(page_text):
         nazione = "N/A"
     
     st.write(page_text)
+    st.write(order)
     st.write(nazione)
     
     
