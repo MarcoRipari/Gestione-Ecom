@@ -989,24 +989,26 @@ def extract_data_from_page(page_text):
     nazione = None
     marketplace = marketplace_match.group(1).strip()
     order = order_match.group(1).strip()
-    if order.startswith("101") or "DE" in order or "de" in order:
+    if order.startswith("101") or order.startswith("CC16") or "DE" in order or "de" in order:
         nazione = "DE"
-    elif order.startswith("103") or "FR" in order or "fr" in order:
+    elif order.startswith("103") or order.startswith("CC15") or "FR" in order or "fr" in order:
         nazione = "FR"
-    elif order.startswith("104") or "IT" in order or "it" in order:
+    elif order.startswith("104") or order.startswith("CC101") or "IT" in order or "it" in order:
         nazione = "IT"
+    elif order.startswith("CC11"):
+        nazione = "WE"
+    elif "ES" in order:
+        nazione = "ES"
     elif "WE" in order:
         nazione = "WE"
     elif "GB" in order:
         nazione = "GB"
-    elif "ES" in order:
-        nazione = "ES"
     elif "US" in order:
         nazione = "US"
     else:
         if "DE" in marketplace or "de" in marketplace:
             nazione = "DE"
-        elif "FR" in marketplace or "fr" in marketplace:
+        elif "FR" in marketplace or "fr" in marketplace or "sarenza" in marketplace:
             nazione = "FR"
         elif "IT" in marketplace or "it" in marketplace:
             nazione = "IT"
