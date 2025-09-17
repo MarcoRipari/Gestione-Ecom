@@ -1001,6 +1001,10 @@ def extract_data_from_page(page_text):
         nazione = "ES"
     elif order.startswith("BE_"):
         nazione = "BE"
+    elif order.startswith("NL_"):
+        nazione = "NL"
+    elif order.startswith("SW_"):
+        nazione = "SE"
     elif "WE" in order:
         nazione = "WE"
     elif "GB" in order:
