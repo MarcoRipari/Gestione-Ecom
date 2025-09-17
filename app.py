@@ -2624,66 +2624,51 @@ elif page == "Ordini - Importa":
     sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "ORDINI")
 
-    uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf", accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Scegli un file PDF", type="pdf", accept_multiple_files=True)
 
-    st.write(uploaded_file)
+    all_orders_data = []
+    if uploaded_files:
+        with st.spinner("Analizzando i PDF..."):
+            all_orders_data = []
+
+            for uploaded_file in uploaded_files:
+                reader = PdfReader(uploaded_file)
+                for i, page in enumerate(reader.pages):
+                    page_text = page.extract_text()
+                    if page_text:
+                        order_data = extract_data_from_page(page_text)
+                        if order_data['Articoli']:
+                            for item in order_data['Articoli']:
+                                all_orders_data.append({
+                                    'Numero Ordine': order_data['Numero Ordine'],
+                                    'Marketplace': order_data['Marketplace'],
+                                    'Data': order_data['Data'],
+                                    'Nazione': order_data['Nazione'],
+                                    'Codice': item['Codice'],
+                                    'Taglia': item['Taglia'],
+                                    'Quantita': item['Quantita'],
+                                    'Descrizione': item['Descrizione']
+                                })
     
-    if uploaded_file is not None:
-        st.success("File caricato con successo!")
-        
-        # Inizializza il lettore PDF
-        pdf_reader = PyPDF2.PdfReader(uploaded_file)
-        num_pages = len(pdf_reader.pages)
-        
-        extracted_data = []
-        
-        for page_num in range(num_pages):
-            page_obj = pdf_reader.pages[page_num]
-            page_text = page_obj.extract_text()
-                       
-            # Controlla se la pagina è un ordine
-            if "ORDINE ECOMMERCE" in page_text:
-                data = extract_data_from_page(page_text)
-                extracted_data.append(data)
-        
-        if extracted_data:
-            st.subheader("Dati Estratti")
+                df = pd.DataFrame(all_orders_data)
+                ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita"]
+                
+                
+                col1, col2, col3 = st.columns(3)
+                
+                total_orders = df['Numero Ordine'].nunique()
+                col1.metric("Ordini Analizzati", total_orders)
             
-            # Creazione del DataFrame
-            data_for_df = []
-            for order in extracted_data:
-                for item in order['Articoli']:
-                    row = {
-                        'Numero Ordine': order['Numero Ordine'],
-                        'Marketplace': order['Marketplace'],
-                        'Data': order['Data'],
-                        'Nazione': order['Nazione'],
-                        'Quantita': int(item.get('quantita', 0)),
-                        'Codice': item.get('codice', 'N/A'),
-                        'Descrizione': item.get('descrizione', 'N/A'),
-                        'Taglia': item.get('taglia', 'N/A')
-                    }
-                    data_for_df.append(row)
-
-            df = pd.DataFrame(data_for_df)
-            ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita"]
-            
-            
-            col1, col2, col3 = st.columns(3)
-            
-            total_orders = df['Numero Ordine'].nunique()
-            col1.metric("Ordini Analizzati", total_orders)
-        
-            df['Quantita'] = pd.to_numeric(df['Quantita'], errors="coerce")
-            total_items = df['Quantita'].sum()
-            col2.metric("Articoli Totali Venduti", total_items)
-            
-            unique_marketplaces = df['Marketplace'].nunique()
-            col3.metric("Marketplace Unici", unique_marketplaces)
-
-            data = df[ordine_colonne].values.tolist()
-            if st.button("Carica su gsheet"):
-                sheet.append_rows(data, value_input_option="RAW")
+                df['Quantita'] = pd.to_numeric(df['Quantita'], errors="coerce")
+                total_items = df['Quantita'].sum()
+                col2.metric("Articoli Totali Venduti", total_items)
+                
+                unique_marketplaces = df['Marketplace'].nunique()
+                col3.metric("Marketplace Unici", unique_marketplaces)
+    
+                data = df[ordine_colonne].values.tolist()
+                if st.button("Carica su gsheet"):
+                    sheet.append_rows(data, value_input_option="RAW")
 
 
         else:
