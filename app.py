@@ -2580,7 +2580,9 @@ elif page == "Ordini - Dashboard":
     if selected_country != 'All':
         filtered_df = filtered_df[filtered_df['Nazione'] == selected_country]
 
-    st.dataframe(filtered_df)
+    view_df = st.checkbox("Visualizza DataFrame?"):
+    if view_df:
+        st.dataframe(filtered_df)
 
     # ---
     st.subheader("Riepilogo Dati")
