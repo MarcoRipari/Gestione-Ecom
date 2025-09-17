@@ -2648,10 +2648,6 @@ elif page == "Ordini - Importa":
             df = pd.DataFrame(data_for_df)
             ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita"]
             
-            data = df[ordine_colonne].values.tolist()
-            if st.button("Carica su gsheet"):
-                sheet.append_rows(data, value_input_option="RAW")
-
             # ---
             st.subheader("Riepilogo Dati")
             
@@ -2666,17 +2662,11 @@ elif page == "Ordini - Importa":
             
             unique_marketplaces = df['Marketplace'].nunique()
             col3.metric("Marketplace Unici", unique_marketplaces)
-        
-            # ---
-            st.subheader("Analisi Visuale")
-            
-            st.markdown("Quantità venduta per Marketplace")
-            market_sales = df.groupby('Marketplace')['Quantita'].sum().reset_index()
-            st.bar_chart(market_sales, x='Marketplace', y='Quantita')
-        
-            st.markdown("Quantità venduta per Nazione")
-            country_sales = df.groupby('Nazione')['Quantita'].sum().reset_index()
-            st.bar_chart(country_sales, x='Nazione', y='Quantita')
+
+            data = df[ordine_colonne].values.tolist()
+            if st.button("Carica su gsheet"):
+                sheet.append_rows(data, value_input_option="RAW")
+
 
         else:
             st.warning("Nessun ordine trovato nel PDF caricato.")
