@@ -2670,6 +2670,6 @@ elif page == "Ordini - Importa":
                 if st.button("Carica su gsheet"):
                     sheet.append_rows(data, value_input_option="RAW")
 
-
-        else:
-            st.warning("Nessun ordine trovato nel PDF caricato.")
+        
+            else:
+                st.warning("Nessun ordine trovato nel PDF caricato.")
