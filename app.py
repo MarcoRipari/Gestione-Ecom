@@ -2568,7 +2568,19 @@ elif page == "Ordini - Dashboard":
 
     df = pd.DataFrame(data[1:], columns=headers)
 
-    st.dataframe(df)
+    all_marketplaces = ['All'] + list(df['Marketplace'].unique())
+    selected_marketplace = st.selectbox('Seleziona Marketplace', all_marketplaces)
+
+    all_countries = ['All'] + list(df['Nazione'].unique())
+    selected_country = st.selectbox('Seleziona Nazione', all_countries)
+
+    filtered_df = df.copy()
+    if selected_marketplace != 'All':
+        filtered_df = filtered_df[filtered_df['Marketplace'] == selected_marketplace]
+    if selected_country != 'All':
+        filtered_df = filtered_df[filtered_df['Nazione'] == selected_country]
+
+    st.dataframe(filtered_df)
 
     # ---
     st.subheader("Riepilogo Dati")
