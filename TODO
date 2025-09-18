@@ -1,5 +1,4 @@
-# FOTO
-- Avvio controllo (Github Actions) da streamlit tramite pulsante
-- Funzione genera lista disponibile solo per admin o con psw
+- UPLOAD NUOVI ORDINI DA FILES (MULTIPLI) CON IDENTIFICAZIONE ECOM / AMAZON / ZFS
 
-- Export Giacenze
+- DASHBOARD CON ANALISI DATI PER ANNO / MESE / RANGE DI DATE E COMPARAZIONE CON ANNO PRECEDENTE
+
