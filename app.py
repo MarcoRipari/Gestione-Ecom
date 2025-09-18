@@ -2017,11 +2017,6 @@ elif page == "Giacenze - Importa":
     st.session_state.selected_option = selected
     nome_file = st.session_state.selected_option
 
-    if nome_file == "Manuale":
-        import_giac = st.checkbox("Import su GSheet?")
-    else:
-        import_giac = True
-
     # --- Reset se cambio file/target ---
     if "downloaded_file_name" not in st.session_state or st.session_state.downloaded_file_name != nome_file:
         st.session_state.df_input = None
@@ -2119,23 +2114,22 @@ elif page == "Giacenze - Importa":
         # --- Destinazione GSheet ---       
         with col2:
             if st.button("Importa Giacenze"):
-                if import_giac:
-                    with st.spinner("Aggiorno giacenze su GSheet..."):
-                        sheet_upload_giacenze.clear()
-                        sheet_upload_giacenze.update("A1", data_to_write)
-                        last_row = len(df_input) + 1
-        
-                        ranges_to_format = [
-                            (f"{col_letter}2:{col_letter}{last_row}",
-                                CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
-                            for col_letter, pattern in numeric_cols_info.items()
-                        ]
-                        format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
-                        st.success("✅ Giacenze importate con successo!")
+                with st.spinner("Aggiorno giacenze su GSheet..."):
+                    sheet_upload_giacenze.clear()
+                    sheet_upload_giacenze.update("A1", data_to_write)
+                    last_row = len(df_input) + 1
     
-                if nome_file == "Manuale" and file_bytes_for_upload:
-                    with st.spinner("Carico il file su DropBox..."):
-                        upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+                    ranges_to_format = [
+                        (f"{col_letter}2:{col_letter}{last_row}",
+                            CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
+                        for col_letter, pattern in numeric_cols_info.items()
+                    ]
+                    format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
+                    st.success("✅ Giacenze importate con successo!")
+
+            if nome_file == "Manuale" and file_bytes_for_upload:
+                with st.spinner("Carico il file su DropBox..."):
+                    upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
                         
         with col3:
             if st.button("Importa Giacenze & Anagrafica"):
