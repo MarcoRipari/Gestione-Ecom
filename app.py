@@ -2688,5 +2688,5 @@ elif page == "Catalogo - Aggiungi ordini stagione":
         for file in uploaded_files:
             csv = read_csv_auto_encoding(file, "\t")
             data = pd.DataFrame(csv)
-            st.write(data)
+            st.write(data[1:])
             
