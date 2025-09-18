@@ -2686,7 +2686,7 @@ elif page == "Catalogo - Aggiungi ordini stagione":
     amazon = []
     if uploaded_files:
         for file in uploaded_files:
-            csv = read_csv_auto_encoding(csv_import, "\t")
+            csv = read_csv_auto_encoding(file, "\t")
             data = pd.DataFrame(csv)
             st.write(data)
             
