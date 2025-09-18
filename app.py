@@ -1138,6 +1138,7 @@ with st.sidebar:
         st.write(f"Accesso eseguito come: {user["nome"]}")
 
         menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customer care","admin"]},
+                          {"name":"Catalogo", "icon":"list", "role":["logistica","customer care","admin"]},
                           {"name":"Ordini", "icon":"truck", "role":["logistica","customer care","admin"]},
                           {"name":"Descrizioni", "icon":"list", "role":["customer care","admin"]},
                           {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
@@ -1146,7 +1147,9 @@ with st.sidebar:
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
                          ]
         
-        submenu_item_list = [{"main":"Ordini", "name":"Dashboard", "icon":"bar-chart", "role":["admin"]},
+        submenu_item_list = [{"main":"Catalogo", "name":"Trova articolo", "icon":"search", "role":["logistica","customer care","admin"]},
+                             {"main":"Catalogo", "name":"Aggiungi ordini stagione", "icon":"plus", "role":["logistica","customer care","admin"]},
+                             {"main":"Ordini", "name":"Dashboard", "icon":"bar-chart", "role":["admin"]},
                              {"main":"Ordini", "name":"Importa", "icon":"plus", "role":["admin"]},
                              {"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customer care","admin"]},
@@ -2668,3 +2671,22 @@ elif page == "Ordini - Importa":
         data = df[ordine_colonne].values.tolist()
         if st.button("Carica su gsheet"):
             sheet.append_rows(data, value_input_option="RAW")
+
+elif page == "Catalogo - Trova articolo":
+    st.write("trova articolo")
+
+elif page == "Catalogo - Aggiungi ordine stagione":
+    st.title("Aggiungi ordini di stagione")
+    st.write("Carica un CSV con gli ordini")
+
+    uploaded_files = st.file_uploader("Aggiungi i files CSV", type=["csv"], accept_multiple_files=True)
+
+    ecom = []
+    zfs = []
+    amazon = []
+    if uploaded_files:
+        for file in uploaded_files:
+            csv = read_csv_auto_encoding(csv_import, "\t")
+            data = pd.DataFrame(csv)
+            st.write(data)
+            
