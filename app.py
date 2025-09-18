@@ -2675,7 +2675,7 @@ elif page == "Ordini - Importa":
 elif page == "Catalogo - Trova articolo":
     st.write("trova articolo")
 
-elif page == "Catalogo - Aggiungi ordine stagione":
+elif page == "Catalogo - Aggiungi ordini stagione":
     st.title("Aggiungi ordini di stagione")
     st.write("Carica un CSV con gli ordini")
 
