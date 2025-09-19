@@ -2858,11 +2858,11 @@ elif page == "Catalogo - Aggiungi ordini stagione":
             data = pd.DataFrame(csv)
             data = data[1:]
             st.write(data)
-            if data[0]["COD.CLIENTI"] == "0019243.016":
+            if data["COD.CLIENTI"][0] == "0019243.016":
                 ecom.append(data)
-            elif  data[0]["COD.CLIENTI"] == "0039632":
+            elif  data["COD.CLIENTI"][0] == "0039632":
                 zfs.append(data)
-            elif  data[0]["COD.CLIENTI"] == "0034630":
+            elif  data["COD.CLIENTI"][0] == "0034630":
                 amazon.append(data)
 
     st.write(ecom)
