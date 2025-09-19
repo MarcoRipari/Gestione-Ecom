@@ -1648,7 +1648,7 @@ elif page == "Foto - Gestione":
     matteo_027 = df_matteo_027.shape[0]
     matteo_028 = df_matteo_028.shape[0]
     
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("📦 Genera lista SKU"):
             try:
@@ -1656,14 +1656,14 @@ elif page == "Foto - Gestione":
                 st.toast("✅ Lista SKU aggiornata!")
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
-    with col3:
+    with col2:
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("📝 Totale SKU", total)
         c2.metric("✅ Già scattate", scattate)
         c3.metric("🚚 Dal fotografo", consegnate)
         c4.metric("📸 Da scattare", da_scattare)
     
-    with col5:
+    with col3:
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
     
