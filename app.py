@@ -1761,12 +1761,14 @@ elif page == "Foto - Gestione":
     matteo = df_matteo.shape[0]
     matteo_027 = df_matteo_027.shape[0]
     matteo_028 = df_matteo_028.shape[0]
-        
-    c1, c2, c3, c4, c5, c6, c7, c8, c9, c10 = st.columns(10)
+
+    c1, c2, c3, c4 = st.columns(4)
     c1.metric("📝 Totale SKU", total)
     c2.metric("✅ Già scattate", scattate)
     c3.metric("🚚 Dal fotografo", consegnate)
     c4.metric("📸 Da scattare", da_scattare)
+
+    c5, c6, c7, c8, c9, c10 = st.columns(6)
     c5.metric("Disponibili Matias", matias)
     c6.metric("Disponibili Matias 027", matias_027)
     c7.metric("Disponibili Matias 028", matias_028)
