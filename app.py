@@ -1768,7 +1768,7 @@ elif page == "Foto - Gestione":
     c3.metric("🚚 Dal fotografo", consegnate)
     c4.metric("📸 Da scattare", da_scattare)
 
-    col_dati1, col_dati2, col_dati3 st.columns(3)
+    col_dati1, col_dati2, col_dati3 = st.columns(3)
     with col_dati1:
         m1, m2, m3 = st.columns(3)
         m1.metric("Disponibili Matias", matias)
