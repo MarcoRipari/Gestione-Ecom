@@ -1752,11 +1752,13 @@ elif page == "Foto - Gestione":
     consegnate = df["CONSEGNATA"].sum()
     da_scattare = df["SCATTARE"].sum() - consegnate
     scattate = total - da_scattare
-    matias = df[df["FOTOGRAFO"] == "MATIAS"].shape[0]
+    #matias = df[df["FOTOGRAFO"] == "MATIAS"].shape[0]
+    matias = df_matias.shape[0]
     matias_027 = df_matias_027.shape[0]
     matias_028 = df_matias_028.shape[0]
     
-    matteo = df[df["FOTOGRAFO"] == "MATTEO"].shape[0]
+    #matteo = df[df["FOTOGRAFO"] == "MATTEO"].shape[0]
+    matteo = df_matteo.shape[0]
     matteo_027 = df_matteo_027.shape[0]
     matteo_028 = df_matteo_028.shape[0]
         
