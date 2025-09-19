@@ -2077,6 +2077,7 @@ elif page == "Giacenze - Importa":
     default_sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
     sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
+    sheet_upload_pim = get_sheet(sheet_id, "PIM")
     sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
     sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
     
@@ -2118,8 +2119,20 @@ elif page == "Giacenze - Importa":
         with col2:
             if st.button("Importa Giacenze"):
                 with st.spinner("Aggiorno giacenze su GSheet..."):
-                    sheet_upload_giacenze.clear()
-                    sheet_upload_giacenze.update("A1", data_to_write)
+                    if nome_file == "UBIC":
+                        sheet_upload_giacenze.clear()
+                        sheet_upload_giacenze.update("A1", data_to_write)
+                    elif nome_file == "PIM":
+                        sheet_upload_pim.clear()
+                        sheet_upload_pim.update("A1", data_to_write)
+                    elif nome_file == "Manuale":
+                        if manual_nome_file == "UBIC":
+                            sheet_upload_giacenze.clear()
+                            sheet_upload_giacenze.update("A1", data_to_write)
+                        elif manual_nome_file == "PIM":
+                            sheet_upload_pim.clear()
+                            sheet_upload_pim.update("A1", data_to_write)
+                            
                     last_row = len(df_input) + 1
     
                     ranges_to_format = [
@@ -2137,8 +2150,20 @@ elif page == "Giacenze - Importa":
         with col3:
             if st.button("Importa Giacenze & Anagrafica"):
                 with st.spinner("Aggiorno giacenze e anagrafica su GSheet..."):
-                    sheet_upload_giacenze.clear()
-                    sheet_upload_giacenze.update("A1", data_to_write)
+                    if nome_file == "UBIC":
+                        sheet_upload_giacenze.clear()
+                        sheet_upload_giacenze.update("A1", data_to_write)
+                    elif nome_file == "PIM":
+                        sheet_upload_pim.clear()
+                        sheet_upload_pim.update("A1", data_to_write)
+                    elif nome_file == "Manuale":
+                        if manual_nome_file == "UBIC":
+                            sheet_upload_giacenze.clear()
+                            sheet_upload_giacenze.update("A1", data_to_write)
+                        elif manual_nome_file == "PIM":
+                            sheet_upload_pim.clear()
+                            sheet_upload_pim.update("A1", data_to_write)
+                            
                     last_row = len(df_input) + 1
     
                     ranges_to_format = [
