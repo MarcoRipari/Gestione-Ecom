@@ -1782,7 +1782,7 @@ elif page == "Foto - Gestione":
     with col_dati3:
         t4, t5, t6 = st.columns(3)
         with t5:
-            st.header("MATTEO")
+            st.header("MATIAS")
             
         m4, m5, m6 = st.columns(3)
         m4.metric("ECOM", matteo)
