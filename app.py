@@ -1772,9 +1772,9 @@ elif page == "Foto - Gestione":
     c9.metric("Disponibili Matias", matias)
     c10.metric("Disponibili Matias 027", matias_027)
     c11.metric("Disponibili Matias 028", matias_028)
-    c12.metric("Disponibili Matteo", matteo)
-    c13.metric("Disponibili Matteo 027", matteo_027)
-    c14.metric("Disponibili Matteo 028", matteo_028)
+    c14.metric("Disponibili Matteo", matteo)
+    c15.metric("Disponibili Matteo 027", matteo_027)
+    c16.metric("Disponibili Matteo 028", matteo_028)
     
    
     # 🔽 Filtro visualizzazione
