@@ -1648,7 +1648,7 @@ elif page == "Foto - Gestione":
     matteo_027 = df_matteo_027.shape[0]
     matteo_028 = df_matteo_028.shape[0]
     
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         if st.button("📦 Genera lista SKU"):
             try:
@@ -1662,7 +1662,8 @@ elif page == "Foto - Gestione":
         c2.metric("✅ Già scattate", scattate)
         c3.metric("🚚 Dal fotografo", consegnate)
         c4.metric("📸 Da scattare", da_scattare)
-    with col6:
+    
+    with col5:
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
     
