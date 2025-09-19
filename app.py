@@ -1650,14 +1650,16 @@ elif page == "Foto - Gestione":
                     data=genera_pdf(df_matias),
                     file_name="lista_disp_matias.pdf",
                     mime="application/pdf",
-                    disabled=True
+                    disabled=True,
+                    width="content"
                 )
             else:
                 st.download_button(
                     label="📥 Lista Matias",
                     data=genera_pdf(df_matias),
                     file_name="lista_disp_matias.pdf",
-                    mime="application/pdf"
+                    mime="application/pdf",
+                    width="content"
                 )
         with col2:
             if df_disp_027.empty:
@@ -1666,14 +1668,16 @@ elif page == "Foto - Gestione":
                     data=genera_pdf(df_matias_027),
                     file_name="lista_disp_matias_027.pdf",
                     mime="application/pdf",
-                    disabled=True
+                    disabled=True,
+                    width="content"
                 )
             else:
                 st.download_button(
                     label="📥 Lista Matias",
                     data=genera_pdf(df_matias_027),
                     file_name="lista_disp_matias_027.pdf",
-                    mime="application/pdf"
+                    mime="application/pdf",
+                    width="content"
                 )
         with col3:
             if df_disp_028.empty:
@@ -1682,14 +1686,16 @@ elif page == "Foto - Gestione":
                     data=genera_pdf(df_matias_028),
                     file_name="lista_disp_matias_028.pdf",
                     mime="application/pdf",
-                    disabled=True
+                    disabled=True,
+                    width="content"
                 )
             else:
                 st.download_button(
                     label="📥 Lista Matias",
                     data=genera_pdf(df_matias_028),
                     file_name="lista_disp_matias_028.pdf",
-                    mime="application/pdf"
+                    mime="application/pdf",
+                    width="content"
                 )
                 
     with col4:
@@ -1701,14 +1707,16 @@ elif page == "Foto - Gestione":
                     data=genera_pdf(df_matteo),
                     file_name="lista_disp_matteo.pdf",
                     mime="application/pdf",
-                    disabled=True
+                    disabled=True,
+                    width="content"
                 )
             else:
                 st.download_button(
                     label="📥 Lista Matteo",
                     data=genera_pdf(df_matteo),
                     file_name="lista_disp_matteo.pdf",
-                    mime="application/pdf"
+                    mime="application/pdf",
+                    width="content"
                 )
         with col2:
             if df_disp_027.empty:
@@ -1717,14 +1725,16 @@ elif page == "Foto - Gestione":
                     data=genera_pdf(df_matteo_027),
                     file_name="lista_disp_matteo_027.pdf",
                     mime="application/pdf",
-                    disabled=True
+                    disabled=True,
+                    width="content"
                 )
             else:
                 st.download_button(
                     label="📥 Lista Matteo",
                     data=genera_pdf(df_matteo_027),
                     file_name="lista_disp_matteo_027.pdf",
-                    mime="application/pdf"
+                    mime="application/pdf",
+                    width="content"
                 )
         with col3:
             if df_disp_028.empty:
@@ -1733,14 +1743,16 @@ elif page == "Foto - Gestione":
                     data=genera_pdf(df_matteo_028),
                     file_name="lista_disp_matteo_028.pdf",
                     mime="application/pdf",
-                    disabled=True
+                    disabled=True,
+                    width="content"
                 )
             else:
                 st.download_button(
                     label="📥 Lista Matteo",
                     data=genera_pdf(df_matteo_028),
                     file_name="lista_disp_matteo_028.pdf",
-                    mime="application/pdf"
+                    mime="application/pdf",
+                    width="content"
                 )
 
     with col6:
