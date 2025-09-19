@@ -1791,7 +1791,7 @@ elif page == "Foto - Gestione":
             st.metric("ECOM", matias)
             if df_disp.empty:
                 st.download_button(
-                    label="📥 Lista Matias",
+                    label="📥",
                     data=genera_pdf(df_matias),
                     file_name="lista_disp_matias.pdf",
                     mime="application/pdf",
@@ -1801,16 +1801,55 @@ elif page == "Foto - Gestione":
                 )
             else:
                 st.download_button(
-                    label="📥 Lista Matias",
+                    label="📥",
                     data=genera_pdf(df_matias),
                     file_name="lista_disp_matias.pdf",
                     mime="application/pdf",
                     width="content",
                     key="2"
                 )
-        #m1.metric("ECOM", matias)
-        m2.metric("027", matias_027)
-        m3.metric("028", matias_028)
+        with m2:
+            st.metric("027", matias_027)
+            if df_disp_027.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matias_027),
+                    file_name="lista_disp_matias_027.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="3"
+                )
+            else:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matias_027),
+                    file_name="lista_disp_matias_027.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="4"
+                )
+        with m3:
+            st.metric("028", matias_028)
+            if df_disp_028.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matias_028),
+                    file_name="lista_disp_matias_028.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="5"
+                )
+            else:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matias_028),
+                    file_name="lista_disp_matias_028.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="6"
+                )
 
     with col_dati3:
         t4, t5, t6 = st.columns(3)
@@ -1818,9 +1857,71 @@ elif page == "Foto - Gestione":
             st.subheader("MATTEO")
             
         m4, m5, m6 = st.columns(3)
-        m4.metric("ECOM", matteo)
-        m5.metric("027", matteo_027)
-        m6.metric("028", matteo_028)
+        with m4:
+            m4.metric("ECOM", matteo)
+            if df_disp.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo),
+                    file_name="lista_disp_matteo.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="7"
+                )
+            else:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo),
+                    file_name="lista_disp_matteo.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="8"
+                )
+
+        with m5:
+            m5.metric("027", matteo_027)
+            if df_disp_027.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo_027),
+                    file_name="lista_disp_matteo_027.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="9"
+                )
+            else:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo_027),
+                    file_name="lista_disp_matteo_027.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="10"
+                )
+            
+        with m6:
+            m6.metric("028", matteo_028)
+            if df_disp_028.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo_028),
+                    file_name="lista_disp_matteo_028.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="11"
+                )
+            else:
+                st.download_button(
+                    label="📥,
+                    data=genera_pdf(df_matteo_028),
+                    file_name="lista_disp_matteo_028.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="12"
+                )
     
    
     # 🔽 Filtro visualizzazione
