@@ -1773,6 +1773,7 @@ elif page == "Foto - Gestione":
         t1, t2, t3 = st.columns(3)
         with t2:
             st.header("MATIAS")
+            
         m1, m2, m3 = st.columns(3)
         m1.metric("Disponibili Matias", matias)
         m2.metric("Disponibili Matias 027", matias_027)
@@ -1782,6 +1783,7 @@ elif page == "Foto - Gestione":
         t4, t5, t6 = st.columns(3)
         with t5:
             st.header("MATTEO")
+            
         m4, m5, m6 = st.columns(3)
         m4.metric("Disponibili Matteo", matteo)
         m5.metric("Disponibili Matteo 027", matteo_027)
