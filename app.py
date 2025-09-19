@@ -1657,11 +1657,11 @@ elif page == "Foto - Gestione":
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
     with col3:
-        c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(8)
-        c3.metric("📝 Totale SKU", total)
-        c4.metric("✅ Già scattate", scattate)
-        c5.metric("🚚 Dal fotografo", consegnate)
-        c6.metric("📸 Da scattare", da_scattare)
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("📝 Totale SKU", total)
+        c2.metric("✅ Già scattate", scattate)
+        c3.metric("🚚 Dal fotografo", consegnate)
+        c4.metric("📸 Da scattare", da_scattare)
     with col6:
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
