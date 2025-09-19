@@ -1613,8 +1613,8 @@ elif page == "Foto - Gestione":
     
     #df_disp = df_disp[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y","FOTOGRAFO"]]
     df_disp = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
-    df_disp_027 = df_disp.sort_values(by=["UBI"])
-    df_disp_028 = df_disp.sort_values(by=["UBI"])
+    df_disp_027 = df_disp_027.sort_values(by=["UBI"])
+    df_disp_028 = df_disp_028.sort_values(by=["UBI"])
 
     df_matias = df_disp[df_disp["FOTOGRAFO"] == "MATIAS"]
     df_matias_027 = df_disp_027[df_disp_027["FOTOGRAFO"] == "MATIAS"]
