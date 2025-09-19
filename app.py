@@ -1633,19 +1633,6 @@ elif page == "Foto - Gestione":
     df_matteo_027 = df_matteo_027[["COD","VAR","COL","TG CAMP","DESCRIZIONE","UBI"]]
     df_matteo_028 = df_matteo_028[["COD","VAR","COL","TG CAMP","DESCRIZIONE","UBI"]]
 
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
-    with col1:
-        if st.button("📦 Genera lista SKU"):
-            try:
-                genera_lista_sku(sheet_id, tab_names)
-                st.toast("✅ Lista SKU aggiornata!")
-            except Exception as e:
-                st.error(f"Errore: {str(e)}")
-
-    with col6:
-        if st.button("🔄 Refresh"):
-            st.session_state["refresh_foto_token"] = str(time.time())
-    
     # 📊 Riepilogo
     total = len(df)
     consegnate = df["CONSEGNATA"].sum()
@@ -1660,12 +1647,25 @@ elif page == "Foto - Gestione":
     matteo = df_matteo.shape[0]
     matteo_027 = df_matteo_027.shape[0]
     matteo_028 = df_matteo_028.shape[0]
-
-    c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(8)
-    c3.metric("📝 Totale SKU", total)
-    c4.metric("✅ Già scattate", scattate)
-    c5.metric("🚚 Dal fotografo", consegnate)
-    c6.metric("📸 Da scattare", da_scattare)
+    
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    with col1:
+        if st.button("📦 Genera lista SKU"):
+            try:
+                genera_lista_sku(sheet_id, tab_names)
+                st.toast("✅ Lista SKU aggiornata!")
+            except Exception as e:
+                st.error(f"Errore: {str(e)}")
+    with col3:
+        c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(8)
+        c3.metric("📝 Totale SKU", total)
+        c4.metric("✅ Già scattate", scattate)
+        c5.metric("🚚 Dal fotografo", consegnate)
+        c6.metric("📸 Da scattare", da_scattare)
+    with col6:
+        if st.button("🔄 Refresh"):
+            st.session_state["refresh_foto_token"] = str(time.time())
+    
 
     col_dati1, col_dati2, col_dati3 = st.columns(3)
     with col_dati1:
