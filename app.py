@@ -1790,9 +1790,22 @@ elif page == "Foto - Gestione":
         with m1:
             st.metric("ECOM", matias)
             if df_disp.empty:
-                st.button("📥")
+                st.download_button(
+                    label="📥 Lista Matias",
+                    data=genera_pdf(df_matias),
+                    file_name="lista_disp_matias.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content"
+                )
             else:
-                st.button("📥")
+                st.download_button(
+                    label="📥 Lista Matias",
+                    data=genera_pdf(df_matias),
+                    file_name="lista_disp_matias.pdf",
+                    mime="application/pdf",
+                    width="content"
+                )
         #m1.metric("ECOM", matias)
         m2.metric("027", matias_027)
         m3.metric("028", matias_028)
