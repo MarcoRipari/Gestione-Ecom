@@ -1608,6 +1608,8 @@ elif page == "Foto - Gestione":
     df_disp = df[df["DISP"] == True]
     df_disp_027 = df[df["DISP 027"] == True]
     df_disp_028 = df[df["DISP 028"] == True]
+
+    st.write(df_disp_027)
     
     #df_disp = df_disp[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y","FOTOGRAFO"]]
     df_disp = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
