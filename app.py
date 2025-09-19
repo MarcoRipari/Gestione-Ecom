@@ -1915,7 +1915,7 @@ elif page == "Foto - Gestione":
                 )
             else:
                 st.download_button(
-                    label="📥,
+                    label="📥",
                     data=genera_pdf(df_matteo_028),
                     file_name="lista_disp_matteo_028.pdf",
                     mime="application/pdf",
