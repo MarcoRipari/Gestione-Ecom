@@ -2073,6 +2073,9 @@ elif page == "Giacenze - Importa":
             st.session_state.df_input = read_csv_auto_encoding(csv_import, "\t")
 
     df_input = st.session_state.df_input
+
+    default_sheet_id = st.secrets["APP_GSHEET_ID"]
+    sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -2111,8 +2114,6 @@ elif page == "Giacenze - Importa":
         # --- Destinazione GSheet ---       
         with col2:
             if st.button("Importa Giacenze"):
-                default_sheet_id = st.secrets["APP_GSHEET_ID"]
-                sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
                 sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
                 sheet_upload_pim = get_sheet(sheet_id, "PIM")
                 
@@ -2147,8 +2148,6 @@ elif page == "Giacenze - Importa":
                         
         with col3:
             if st.button("Importa Giacenze & Anagrafica"):
-                default_sheet_id = st.secrets["APP_GSHEET_ID"]
-                sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
                 sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
                 sheet_upload_pim = get_sheet(sheet_id, "PIM")
                 sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
@@ -2194,8 +2193,6 @@ elif page == "Giacenze - Importa":
                     
     with col1:
         if st.button("Importa Anagrafica"):
-            default_sheet_id = st.secrets["APP_GSHEET_ID"]
-            sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
             sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
             sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
             
