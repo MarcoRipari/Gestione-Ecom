@@ -2856,7 +2856,7 @@ elif page == "Catalogo - Aggiungi ordini stagione":
         for file in uploaded_files:
             csv = read_csv_auto_encoding(file, separatore=",")
             data = pd.DataFrame(csv)
-            
+            data = data[1:]
             st.write(data)
             #if data["COD.CLIENTI"] == "0019243.016":
             #    ecom.append(data)
