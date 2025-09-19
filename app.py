@@ -1785,9 +1785,11 @@ elif page == "Foto - Gestione":
         t1, t2, t3 = st.columns(3)
         with t2:
             st.subheader("MATIAS")
-            
+
+        t1, t2, t3 = st.tabs["ECOM","027","028"]
+
         m1, m2, m3 = st.columns(3)
-        with m1:
+        with t1:
             st.metric("ECOM", matias)
             if df_disp.empty:
                 st.download_button(
@@ -1808,7 +1810,7 @@ elif page == "Foto - Gestione":
                     width="content",
                     key="2"
                 )
-        with m2:
+        with t2:
             st.metric("027", matias_027)
             if df_disp_027.empty:
                 st.download_button(
@@ -1829,7 +1831,7 @@ elif page == "Foto - Gestione":
                     width="content",
                     key="4"
                 )
-        with m3:
+        with t3:
             st.metric("028", matias_028)
             if df_disp_028.empty:
                 st.download_button(
