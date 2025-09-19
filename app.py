@@ -1768,13 +1768,21 @@ elif page == "Foto - Gestione":
     c3.metric("🚚 Dal fotografo", consegnate)
     c4.metric("📸 Da scattare", da_scattare)
 
-    c9, c10, c11, c12, c13, c14, c15, c16 = st.columns(8)
-    c9.metric("Disponibili Matias", matias)
-    c10.metric("Disponibili Matias 027", matias_027)
-    c11.metric("Disponibili Matias 028", matias_028)
-    c14.metric("Disponibili Matteo", matteo)
-    c15.metric("Disponibili Matteo 027", matteo_027)
-    c16.metric("Disponibili Matteo 028", matteo_028)
+    col_dati1, col_dati2, col_dati3 st.columns(3)
+    with col_dati1:
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Disponibili Matias", matias)
+        m2.metric("Disponibili Matias 027", matias_027)
+        m3.metric("Disponibili Matias 028", matias_028)
+
+    with col_dati3:
+        t4, t5, t6 = st.columns(3)
+        with t5:
+            st.write("Matteo")
+        m4, m5, m6 = st.columns(3)
+        m4.metric("Disponibili Matteo", matteo)
+        m5.metric("Disponibili Matteo 027", matteo_027)
+        m6.metric("Disponibili Matteo 028", matteo_028)
     
    
     # 🔽 Filtro visualizzazione
