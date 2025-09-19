@@ -1753,15 +1753,24 @@ elif page == "Foto - Gestione":
     da_scattare = df["SCATTARE"].sum() - consegnate
     scattate = total - da_scattare
     matias = df[df["FOTOGRAFO"] == "MATIAS"].shape[0]
+    matias_027 = df_matias_027.shape[0]
+    matias_028 = df_matias_028.shape[0]
+    
     matteo = df[df["FOTOGRAFO"] == "MATTEO"].shape[0]
+    matteo_027 = df_matteo_027.shape[0]
+    matteo_028 = df_matteo_028.shape[0]
         
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1, c2, c3, c4, c5, c6, c7, c8, c9, c10 = st.columns(10)
     c1.metric("📝 Totale SKU", total)
     c2.metric("✅ Già scattate", scattate)
     c3.metric("🚚 Dal fotografo", consegnate)
     c4.metric("📸 Da scattare", da_scattare)
     c5.metric("Disponibili Matias", matias)
-    c6.metric("Disponibili Matteo", matteo)
+    c6.metric("Disponibili Matias 027", matias_027)
+    c7.metric("Disponibili Matias 028", matias_028)
+    c8.metric("Disponibili Matteo", matteo)
+    c9.metric("Disponibili Matteo 027", matteo_027)
+    c10.metric("Disponibili Matteo 028", matteo_028)
     
    
     # 🔽 Filtro visualizzazione
