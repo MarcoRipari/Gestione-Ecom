@@ -1796,7 +1796,8 @@ elif page == "Foto - Gestione":
                     file_name="lista_disp_matias.pdf",
                     mime="application/pdf",
                     disabled=True,
-                    width="content"
+                    width="content",
+                    key="1"
                 )
             else:
                 st.download_button(
@@ -1804,7 +1805,8 @@ elif page == "Foto - Gestione":
                     data=genera_pdf(df_matias),
                     file_name="lista_disp_matias.pdf",
                     mime="application/pdf",
-                    width="content"
+                    width="content",
+                    key="2"
                 )
         #m1.metric("ECOM", matias)
         m2.metric("027", matias_027)
