@@ -1775,9 +1775,9 @@ elif page == "Foto - Gestione":
             st.header("MATIAS")
             
         m1, m2, m3 = st.columns(3)
-        m1.metric("Disponibili Matias", matias)
-        m2.metric("Disponibili Matias 027", matias_027)
-        m3.metric("Disponibili Matias 028", matias_028)
+        m1.metric("ECOM", matias)
+        m2.metric("027", matias_027)
+        m3.metric("028", matias_028)
 
     with col_dati3:
         t4, t5, t6 = st.columns(3)
@@ -1785,9 +1785,9 @@ elif page == "Foto - Gestione":
             st.header("MATTEO")
             
         m4, m5, m6 = st.columns(3)
-        m4.metric("Disponibili Matteo", matteo)
-        m5.metric("Disponibili Matteo 027", matteo_027)
-        m6.metric("Disponibili Matteo 028", matteo_028)
+        m4.metric("ECOM", matteo)
+        m5.metric("027", matteo_027)
+        m6.metric("028", matteo_028)
     
    
     # 🔽 Filtro visualizzazione
