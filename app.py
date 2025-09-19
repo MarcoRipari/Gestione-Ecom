@@ -895,7 +895,7 @@ def aggiungi_sku(sheet_id: str, sku: str):
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
     try:
         sheet = get_sheet(sheet_id, "LISTA")
-        values = sheet.get("A3:X5000")
+        values = sheet.get("A3:Y5000")
         if not values:
             return pd.DataFrame()
         
@@ -1606,14 +1606,30 @@ elif page == "Foto - Gestione":
 
     # 1️⃣ Genero le liste per i fotografi
     df_disp = df[df["DISP"] == True]
+    df_disp_027 = df[df["DISP 027" == True]
+    df_disp_028 = df[df["DISP 028" == True]
+    
     #df_disp = df_disp[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y","FOTOGRAFO"]]
     df_disp = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
+    df_disp_027 = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
+    df_disp_028 = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
 
     df_matias = df_disp[df_disp["FOTOGRAFO"] == "MATIAS"]
+    df_matias_027 = df_disp_027[df_disp_027["FOTOGRAFO"] == "MATIAS"]
+    df_matias_028 = df_disp_028[df_disp_028["FOTOGRAFO"] == "MATIAS"]
+    
     df_matteo = df_disp[df_disp["FOTOGRAFO"] == "MATTEO"]
+    df_matteo_027 = df_disp_027[df_disp_027["FOTOGRAFO"] == "MATTEO"]
+    df_matteo_028 = df_disp_028[df_disp_028["FOTOGRAFO"] == "MATTEO"]
+    
 
     df_matias = df_matias[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+    df_matias_027 = df_matias_027[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+    df_matias_028 = df_matias_028[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+    
     df_matteo = df_matteo[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+    df_matteo_027 = df_matteo_027[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+    df_matteo_028 = df_matteo_028[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
 
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
@@ -1624,37 +1640,107 @@ elif page == "Foto - Gestione":
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
     with col3:
-        if df_disp.empty:
-            st.download_button(
-                label="📥 Lista Matias",
-                data=genera_pdf(df_matias),
-                file_name="lista_disp_matias.pdf",
-                mime="application/pdf",
-                disabled=True
-            )
-        else:
-            st.download_button(
-                label="📥 Lista Matias",
-                data=genera_pdf(df_matias),
-                file_name="lista_disp_matias.pdf",
-                mime="application/pdf"
-            )
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if df_disp.empty:
+                st.download_button(
+                    label="📥 Lista Matias",
+                    data=genera_pdf(df_matias),
+                    file_name="lista_disp_matias.pdf",
+                    mime="application/pdf",
+                    disabled=True
+                )
+            else:
+                st.download_button(
+                    label="📥 Lista Matias",
+                    data=genera_pdf(df_matias),
+                    file_name="lista_disp_matias.pdf",
+                    mime="application/pdf"
+                )
+        with col2:
+            if df_disp_027.empty:
+                st.download_button(
+                    label="📥 Lista Matias",
+                    data=genera_pdf(df_matias_027),
+                    file_name="lista_disp_matias_027.pdf",
+                    mime="application/pdf",
+                    disabled=True
+                )
+            else:
+                st.download_button(
+                    label="📥 Lista Matias",
+                    data=genera_pdf(df_matias_027),
+                    file_name="lista_disp_matias_027.pdf",
+                    mime="application/pdf"
+                )
+        with col3:
+            if df_disp_028.empty:
+                st.download_button(
+                    label="📥 Lista Matias",
+                    data=genera_pdf(df_matias_028),
+                    file_name="lista_disp_matias_028.pdf",
+                    mime="application/pdf",
+                    disabled=True
+                )
+            else:
+                st.download_button(
+                    label="📥 Lista Matias",
+                    data=genera_pdf(df_matias_028),
+                    file_name="lista_disp_matias_028.pdf",
+                    mime="application/pdf"
+                )
+                
     with col4:
-        if df_disp.empty:
-            st.download_button(
-                label="📥 Lista Matteo",
-                data=genera_pdf(df_matteo),
-                file_name="lista_disp_matteo.pdf",
-                mime="application/pdf",
-                disabled=True
-            )
-        else:
-            st.download_button(
-                label="📥 Lista Matteo",
-                data=genera_pdf(df_matteo),
-                file_name="lista_disp_matteo.pdf",
-                mime="application/pdf"
-            )
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if df_disp.empty:
+                st.download_button(
+                    label="📥 Lista Matteo",
+                    data=genera_pdf(df_matteo),
+                    file_name="lista_disp_matteo.pdf",
+                    mime="application/pdf",
+                    disabled=True
+                )
+            else:
+                st.download_button(
+                    label="📥 Lista Matteo",
+                    data=genera_pdf(df_matteo),
+                    file_name="lista_disp_matteo.pdf",
+                    mime="application/pdf"
+                )
+        with col2:
+            if df_disp_027.empty:
+                st.download_button(
+                    label="📥 Lista Matteo",
+                    data=genera_pdf(df_matteo_027),
+                    file_name="lista_disp_matteo_027.pdf",
+                    mime="application/pdf",
+                    disabled=True
+                )
+            else:
+                st.download_button(
+                    label="📥 Lista Matteo",
+                    data=genera_pdf(df_matteo_027),
+                    file_name="lista_disp_matteo_027.pdf",
+                    mime="application/pdf"
+                )
+        with col3:
+            if df_disp_028.empty:
+                st.download_button(
+                    label="📥 Lista Matteo",
+                    data=genera_pdf(df_matteo_028),
+                    file_name="lista_disp_matteo_028.pdf",
+                    mime="application/pdf",
+                    disabled=True
+                )
+            else:
+                st.download_button(
+                    label="📥 Lista Matteo",
+                    data=genera_pdf(df_matteo_028),
+                    file_name="lista_disp_matteo_028.pdf",
+                    mime="application/pdf"
+                )
+
     with col6:
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
