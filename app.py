@@ -1786,10 +1786,9 @@ elif page == "Foto - Gestione":
         with t2:
             st.subheader("MATIAS")
 
-        t1, t2, t3 = st.tabs(["ECOM","027","028"])
-
         m1, m2, m3 = st.columns(3)
         with m2:
+            t1, t2, t3 = st.tabs(["ECOM","027","028"])
             with t1:
                 st.subheader(matias)
                 st.write("paia")
