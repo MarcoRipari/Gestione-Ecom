@@ -912,6 +912,8 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         df["CONSEGNATA"] = normalize_bool(df["CONSEGNATA"])
         df["RISCATTARE"] = normalize_bool(df["RISCATTARE"])
         df["DISP"] = normalize_bool(df["DISP"])
+        df["DISP 027"] = normalize_bool(df["DISP 027"])
+        df["DISP 028"] = normalize_bool(df["DISP 028"])
 
         return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP", "DISP 027", "DISP 028", "COD", "VAR", "COL", "TG PIC", "FOTOGRAFO", "COR", "LAT", "X", "Y", "UBI"]]
     except Exception as e:
@@ -1608,8 +1610,6 @@ elif page == "Foto - Gestione":
     df_disp = df[df["DISP"] == True]
     df_disp_027 = df[df["DISP 027"] == True]
     df_disp_028 = df[df["DISP 028"] == True]
-
-    st.write(df_disp_027)
     
     #df_disp = df_disp[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y","FOTOGRAFO"]]
     df_disp = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
