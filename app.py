@@ -1611,8 +1611,8 @@ elif page == "Foto - Gestione":
     
     #df_disp = df_disp[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y","FOTOGRAFO"]]
     df_disp = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
-    df_disp_027 = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
-    df_disp_028 = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
+    df_disp_027 = df_disp.sort_values(by=["UBI"])
+    df_disp_028 = df_disp.sort_values(by=["UBI"])
 
     df_matias = df_disp[df_disp["FOTOGRAFO"] == "MATIAS"]
     df_matias_027 = df_disp_027[df_disp_027["FOTOGRAFO"] == "MATIAS"]
@@ -1624,12 +1624,12 @@ elif page == "Foto - Gestione":
     
 
     df_matias = df_matias[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
-    df_matias_027 = df_matias_027[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
-    df_matias_028 = df_matias_028[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+    df_matias_027 = df_matias_027[["COD","VAR","COL","TG PIC","DESCRIZIONE","UBI"]]
+    df_matias_028 = df_matias_028[["COD","VAR","COL","TG PIC","DESCRIZIONE","UBI"]]
     
     df_matteo = df_matteo[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
-    df_matteo_027 = df_matteo_027[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
-    df_matteo_028 = df_matteo_028[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+    df_matteo_027 = df_matteo_027[["COD","VAR","COL","TG PIC","DESCRIZIONE","UBI"]]
+    df_matteo_028 = df_matteo_028[["COD","VAR","COL","TG PIC","DESCRIZIONE","UBI"]]
 
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
