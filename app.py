@@ -1763,13 +1763,16 @@ elif page == "Foto - Gestione":
     matteo_028 = df_matteo_028.shape[0]
 
     c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(8)
-    c1.metric("📝 Totale SKU", total)
-    c2.metric("✅ Già scattate", scattate)
-    c3.metric("🚚 Dal fotografo", consegnate)
-    c4.metric("📸 Da scattare", da_scattare)
+    c3.metric("📝 Totale SKU", total)
+    c4.metric("✅ Già scattate", scattate)
+    c5.metric("🚚 Dal fotografo", consegnate)
+    c6.metric("📸 Da scattare", da_scattare)
 
     col_dati1, col_dati2, col_dati3 = st.columns(3)
     with col_dati1:
+        t1, t2, t3 = st.columns(3)
+        with t2:
+            st.header("MATIAS")
         m1, m2, m3 = st.columns(3)
         m1.metric("Disponibili Matias", matias)
         m2.metric("Disponibili Matias 027", matias_027)
@@ -1778,7 +1781,7 @@ elif page == "Foto - Gestione":
     with col_dati3:
         t4, t5, t6 = st.columns(3)
         with t5:
-            st.write("Matteo")
+            st.header("MATTEO")
         m4, m5, m6 = st.columns(3)
         m4.metric("Disponibili Matteo", matteo)
         m5.metric("Disponibili Matteo 027", matteo_027)
