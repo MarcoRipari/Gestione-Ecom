@@ -1789,69 +1789,74 @@ elif page == "Foto - Gestione":
         t1, t2, t3 = st.tabs(["ECOM","027","028"])
 
         m1, m2, m3 = st.columns(3)
-        with t1:
-            st.metric("ECOM", matias)
-            if df_disp.empty:
-                st.download_button(
-                    label="📥",
-                    data=genera_pdf(df_matias),
-                    file_name="lista_disp_matias.pdf",
-                    mime="application/pdf",
-                    disabled=True,
-                    width="content",
-                    key="1"
-                )
-            else:
-                st.download_button(
-                    label="📥",
-                    data=genera_pdf(df_matias),
-                    file_name="lista_disp_matias.pdf",
-                    mime="application/pdf",
-                    width="content",
-                    key="2"
-                )
-        with t2:
-            st.metric("027", matias_027)
-            if df_disp_027.empty:
-                st.download_button(
-                    label="📥",
-                    data=genera_pdf(df_matias_027),
-                    file_name="lista_disp_matias_027.pdf",
-                    mime="application/pdf",
-                    disabled=True,
-                    width="content",
-                    key="3"
-                )
-            else:
-                st.download_button(
-                    label="📥",
-                    data=genera_pdf(df_matias_027),
-                    file_name="lista_disp_matias_027.pdf",
-                    mime="application/pdf",
-                    width="content",
-                    key="4"
-                )
-        with t3:
-            st.metric("028", matias_028)
-            if df_disp_028.empty:
-                st.download_button(
-                    label="📥",
-                    data=genera_pdf(df_matias_028),
-                    file_name="lista_disp_matias_028.pdf",
-                    mime="application/pdf",
-                    disabled=True,
-                    width="content",
-                    key="5"
-                )
-            else:
-                st.download_button(
-                    label="📥",
-                    data=genera_pdf(df_matias_028),
-                    file_name="lista_disp_matias_028.pdf",
-                    mime="application/pdf",
-                    width="content",
-                    key="6"
-                )
+        with m2:
+            with t1:
+                st.subheader(matias)
+                st.write("paia")
+                #st.metric("ECOM", matias)
+                if df_disp.empty:
+                    st.download_button(
+                        label="📥",
+                        data=genera_pdf(df_matias),
+                        file_name="lista_disp_matias.pdf",
+                        mime="application/pdf",
+                        disabled=True,
+                        width="content",
+                        key="1"
+                    )
+                else:
+                    st.download_button(
+                        label="📥",
+                        data=genera_pdf(df_matias),
+                        file_name="lista_disp_matias.pdf",
+                        mime="application/pdf",
+                        width="content",
+                        key="2"
+                    )
+            with t2:
+                st.subheader(matias_027)
+                st.write("paia")
+                if df_disp_027.empty:
+                    st.download_button(
+                        label="📥",
+                        data=genera_pdf(df_matias_027),
+                        file_name="lista_disp_matias_027.pdf",
+                        mime="application/pdf",
+                        disabled=True,
+                        width="content",
+                        key="3"
+                    )
+                else:
+                    st.download_button(
+                        label="📥",
+                        data=genera_pdf(df_matias_027),
+                        file_name="lista_disp_matias_027.pdf",
+                        mime="application/pdf",
+                        width="content",
+                        key="4"
+                    )
+            with t3:
+                st.subheader(matias_028)
+                st.write("paia")
+                if df_disp_028.empty:
+                    st.download_button(
+                        label="📥",
+                        data=genera_pdf(df_matias_028),
+                        file_name="lista_disp_matias_028.pdf",
+                        mime="application/pdf",
+                        disabled=True,
+                        width="content",
+                        key="5"
+                    )
+                else:
+                    st.download_button(
+                        label="📥",
+                        data=genera_pdf(df_matias_028),
+                        file_name="lista_disp_matias_028.pdf",
+                        mime="application/pdf",
+                        width="content",
+                        key="6"
+                    )
 
     with col_dati3:
         t4, t5, t6 = st.columns(3)
