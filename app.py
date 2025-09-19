@@ -2856,3 +2856,15 @@ elif page == "Catalogo - Aggiungi ordini stagione":
         for file in uploaded_files:
             csv = read_csv_auto_encoding(file, "\t")
             data = pd.DataFrame(csv)            
+            data = data[2:]
+            if data[3]["COD.CLIENTI"] == "0019243.016":
+                ecom.append(data)
+            elif  data[3]["COD.CLIENTI"] == "0039632":
+                zfs.append(data)
+            elif  data[3]["COD.CLIENTI"] == "0034630":
+                amazon.append(data)
+
+    st.write(ecom)
+    st.write(zfs)
+    st.write(amazon)
+
