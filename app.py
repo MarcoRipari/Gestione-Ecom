@@ -900,7 +900,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
             return pd.DataFrame()
         
         # ✅ Definizione corretta: 24 intestazioni per colonne A–V
-        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "COD", "VAR", "COL", "TG CAMP", "TG PIC", "SCATTARE", "CONTROLLO", "DISP", "DISP 027", "DISP 028", "RISCATTARE", "CONSEGNATA", "FOTOGRAFO", "COR", "LAT", "X", "Y", "REPO", "END"]
+        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "COD", "VAR", "COL", "TG CAMP", "TG PIC", "SCATTARE", "CONTROLLO", "DISP", "DISP 027", "DISP 028", "RISCATTARE", "CONSEGNATA", "FOTOGRAFO", "COR", "LAT", "X", "Y", "UBI", "REPO", "END"]
         df = pd.DataFrame(values, columns=headers)
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
@@ -913,7 +913,7 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         df["RISCATTARE"] = normalize_bool(df["RISCATTARE"])
         df["DISP"] = normalize_bool(df["DISP"])
 
-        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP", "DISP 027", "DISP 028", "COD", "VAR", "COL", "TG PIC", "FOTOGRAFO", "COR", "LAT", "X", "Y"]]
+        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP", "DISP 027", "DISP 028", "COD", "VAR", "COL", "TG PIC", "FOTOGRAFO", "COR", "LAT", "X", "Y", "UBI"]]
     except Exception as e:
         st.error(f"Errore durante il caricamento: {str(e)}")
         return pd.DataFrame()
