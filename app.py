@@ -1817,6 +1817,7 @@ elif page == "Foto - Gestione":
         st.markdown("<h1 style='text-align: center; margin-top:-25px'>MATIAS</h1>", unsafe_allow_html=True)
         a1,a2,a3 = st.columns(3)
         with a1:
+            st.markdown("<p style='text-align: right'>", unsafe_allow_html=True)
             if df_disp.empty:
                 st.download_button(
                     label="📥",
@@ -1836,14 +1837,15 @@ elif page == "Foto - Gestione":
                     width="content",
                     key="102"
                 )
+                st.markdown("</p>", unsafe_allow_html=True)
         with a2:
             st.markdown("<p style='text-align: center'>ECOM</p>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center'>027</p>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center'>028</p>", unsafe_allow_html=True)
         with a3:
-            st.markdown(r"<p style='text-align: center'>{matias} Paia</p>", unsafe_allow_html=True)
-            st.markdown(r"<p style='text-align: center'>{matias_027} Paia</p>", unsafe_allow_html=True)
-            st.markdown(r"<p style='text-align: center'>{matias_028} Paia</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center'>{matias} Paia</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center'>{matias_027} Paia</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center'>{matias_028} Paia</p>", unsafe_allow_html=True)
     with a2:
         st.markdown("<h1 style='text-align: center; margin-top:-25px'>MATTEO</h1>", unsafe_allow_html=True)
         a1,a2,a3 = st.columns(3)
