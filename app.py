@@ -1662,7 +1662,7 @@ elif page == "Foto - Gestione":
             
     with col2:
         with st.container(border=True):
-            c1, c2, c3, c4, c5 = st.columns([0.5,1,1,1,1])
+            c1, c2, c3, c4, c5 = st.columns([0.35,1,1,1,1])
             c2.metric('📝 Totale SKU', total)
             c3.metric("✅ Già scattate", scattate)
             c4.metric("🚚 Dal fotografo", consegnate)
