@@ -2874,7 +2874,7 @@ elif page == "Test":
     col1, col2, col3 = st.columns(3)
     with col1:
         st.write("MATIAS")
-        a1,a2,a3 = st.columns(3)
+        a1,a2,a3,a4,a5 = st.columns(5)
         with a1:
             st.write("X")
         with a2:
@@ -2884,7 +2884,7 @@ elif page == "Test":
 
     with col2:
         st.write("MATTEO")
-        a1,a2,a3 = st.columns(3)
+        a1,a2,a3,a4,a5 = st.columns(5)
         with a1:
             st.write("X")
         with a2:
