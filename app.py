@@ -2871,7 +2871,7 @@ elif page == "Catalogo - Aggiungi ordini stagione":
     st.write(amazon)
 
 elif page == "Test":
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3, border=True)
     with col1:
         st.write("MATIAS")
         a1,a2,a3,a4,a5 = st.columns(5)
