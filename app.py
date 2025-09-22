@@ -1146,6 +1146,7 @@ with st.sidebar:
                           {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customer care","admin"]},
                           {"name":"Admin", "icon":"gear", "role":["admin"]},
+                          {"name":"Test", "icon":"gear", "role":["admin"]},
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
                          ]
         
@@ -2869,3 +2870,24 @@ elif page == "Catalogo - Aggiungi ordini stagione":
     st.write(zfs)
     st.write(amazon)
 
+elif page == "Test":
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.write("MATIAS")
+        a1,a2,a3 = st.columns(3)
+        with a1:
+            st.write("X")
+        with a2:
+            st.write("ECOM")
+        with a3:
+            st.write("27 Paia")
+
+    with col2:
+        st.write("MATTEO")
+        a1,a2,a3 = st.columns(3)
+        with a1:
+            st.write("X")
+        with a2:
+            st.write("ECOM")
+        with a3:
+            st.write("19 Paia")
