@@ -2874,7 +2874,7 @@ elif page == "Test":
     col1, col2, col3 = st.columns(3, border=True)
     with col1:
         st.markdown("<h1 style='text-align: center; margin-top:-25px'>MATIAS</h1>", unsafe_allow_html=True)
-        a1,a2,a3,a4,a5 = st.columns(5)
+        a1,a2,a3 = st.columns(5)
         with a1:
             st.markdown("<span style='text-align: center'>X</span>", unsafe_allow_html=True)
         with a2:
