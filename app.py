@@ -2278,6 +2278,7 @@ elif page == "Giacenze - Importa":
                     ]
                     format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
                     st.success("✅ Giacenze importate con successo!")
+                    st.write(manual_nome_file)
 
                 if nome_file == "Manuale" and file_bytes_for_upload:
                     with st.spinner("Carico il file su DropBox..."):
