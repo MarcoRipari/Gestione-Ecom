@@ -1697,7 +1697,7 @@ elif page == "Foto - Gestione":
                     key="2"
                 )
         with m2:
-            st.metric("ECOM", matias_027)
+            st.metric("027", matias_027)
             if df_disp_027.empty:
                 st.download_button(
                     label="📥",
@@ -1718,7 +1718,7 @@ elif page == "Foto - Gestione":
                     key="4"
                 )
         with m3:
-            st.metric("ECOM", matias_028)
+            st.metric("028", matias_028)
             if df_disp_028.empty:
                 st.download_button(
                     label="📥",
