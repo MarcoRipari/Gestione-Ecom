@@ -1838,12 +1838,12 @@ elif page == "Foto - Gestione":
                     key="102"
                 )
                 st.markdown("</p>", unsafe_allow_html=True)
+                st.markdown("<p style='text-align: center'>ECOM</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='text-align: center'>{matias} Paia</p>", unsafe_allow_html=True)
         with a2:
-            st.markdown("<p style='text-align: center'>ECOM</p>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center'>027</p>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center'>028</p>", unsafe_allow_html=True)
         with a3:
-            st.markdown(f"<p style='text-align: center'>{matias} Paia</p>", unsafe_allow_html=True)
             st.markdown(f"<p style='text-align: center'>{matias_027} Paia</p>", unsafe_allow_html=True)
             st.markdown(f"<p style='text-align: center'>{matias_028} Paia</p>", unsafe_allow_html=True)
     with a2:
