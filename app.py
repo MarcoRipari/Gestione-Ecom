@@ -2262,10 +2262,10 @@ elif page == "Giacenze - Importa":
                         sheet_upload_pim.clear()
                         sheet_upload_pim.update("A1", data_to_write)
                     elif nome_file == "Manuale":
-                        if manual_nome_file == "UBIC":
+                        if manual_nome_file == "UBIC.csv":
                             sheet_upload_giacenze.clear()
                             sheet_upload_giacenze.update("A1", data_to_write)
-                        elif manual_nome_file == "PIM":
+                        elif manual_nome_file == "PIM.csv":
                             sheet_upload_pim.clear()
                             sheet_upload_pim.update("A1", data_to_write)
                             
@@ -2299,10 +2299,10 @@ elif page == "Giacenze - Importa":
                         sheet_upload_pim.clear()
                         sheet_upload_pim.update("A1", data_to_write)
                     elif nome_file == "Manuale":
-                        if manual_nome_file == "UBIC":
+                        if manual_nome_file == "UBIC.csv":
                             sheet_upload_giacenze.clear()
                             sheet_upload_giacenze.update("A1", data_to_write)
-                        elif manual_nome_file == "PIM":
+                        elif manual_nome_file == "PIM.csv":
                             sheet_upload_pim.clear()
                             sheet_upload_pim.update("A1", data_to_write)
                             
