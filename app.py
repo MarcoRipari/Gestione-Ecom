@@ -1661,11 +1661,12 @@ elif page == "Foto - Gestione":
             st.session_state["refresh_foto_token"] = str(time.time())
             
     with col2:
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("📝 Totale SKU", total)
-        c2.metric("✅ Già scattate", scattate)
-        c3.metric("🚚 Dal fotografo", consegnate)
-        c4.metric("📸 Da scattare", da_scattare)
+        with st.container(border=True):
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("📝 Totale SKU", total)
+            c2.metric("✅ Già scattate", scattate)
+            c3.metric("🚚 Dal fotografo", consegnate)
+            c4.metric("📸 Da scattare", da_scattare)
         
     
 
