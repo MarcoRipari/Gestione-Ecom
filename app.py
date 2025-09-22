@@ -2884,7 +2884,7 @@ elif page == "Test":
 
     with col2:
         st.write("MATTEO")
-        a1,a2,a3,a4,a5 = st.columns([3, 1])
+        a1,a2,a3 = st.columns([0.5, 1, 1])
         a1.write("X")
         a2.write("ECOM")
         a3.write("19 Paia")
