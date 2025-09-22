@@ -2876,11 +2876,11 @@ elif page == "Test":
         st.markdown("<h1 style='text-align: center; margin-top:-25px'>MATIAS</h1>", unsafe_allow_html=True)
         a1,a2,a3 = st.columns(3)
         with a1:
-            st.markdown("<span style='text-align: center'>X</span>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center'>X</p>", unsafe_allow_html=True)
         with a2:
-            st.markdown("<span style='text-align: center'>ECOM</span>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center'>ECOM</p>", unsafe_allow_html=True)
         with a3:
-            st.markdown("<span style='text-align: center'>27 Paia</span>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center'>27 Paia</p>", unsafe_allow_html=True)
 
     with col2:
         st.write("MATTEO")
