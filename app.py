@@ -2873,14 +2873,14 @@ elif page == "Catalogo - Aggiungi ordini stagione":
 elif page == "Test":
     col1, col2, col3 = st.columns(3, border=True)
     with col1:
-        st.markdown("<h1 style='text-align: center; margin-top:-30px'>MATIAS</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; margin-top:-25px'>MATIAS</h1>", unsafe_allow_html=True)
         a1,a2,a3,a4,a5 = st.columns(5)
         with a1:
-            st.write("X")
+            st.markdown("<span style='text-align: center'>X</span>", unsafe_allow_html=True)
         with a2:
-            st.write("ECOM")
+            st.markdown("<span style='text-align: center'>ECOM</span>", unsafe_allow_html=True)
         with a3:
-            st.write("27 Paia")
+            st.markdown("<span style='text-align: center'>27 Paia</span>", unsafe_allow_html=True)
 
     with col2:
         st.write("MATTEO")
