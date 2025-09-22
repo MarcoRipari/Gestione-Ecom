@@ -1664,8 +1664,7 @@ elif page == "Foto - Gestione":
         with st.container(border=True):
             c1, c2, c3, c4 = st.columns(4)
             with c1:
-                a = st.metric("📝 Totale SKU", total)
-                st.markdown(f"<p style='text-align: center'>{a}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='text-align: center'>{st.metric('📝 Totale SKU', total)}</p>", unsafe_allow_html=True)
                 
             c2.metric("✅ Già scattate", scattate)
             c3.metric("🚚 Dal fotografo", consegnate)
