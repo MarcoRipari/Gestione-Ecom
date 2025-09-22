@@ -1662,7 +1662,7 @@ elif page == "Foto - Gestione":
             
     with col2:
         with st.container(border=True):
-            st.markdown("<p style='text-align: center'>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; padding:0px; margin:0px'>", unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("📝 Totale SKU", total)
             c2.metric("✅ Già scattate", scattate)
