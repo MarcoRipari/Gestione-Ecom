@@ -2278,9 +2278,9 @@ elif page == "Giacenze - Importa":
                     format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
                     st.success("✅ Giacenze importate con successo!")
 
-            if nome_file == "Manuale" and file_bytes_for_upload:
-                with st.spinner("Carico il file su DropBox..."):
-                    upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+                if nome_file == "Manuale" and file_bytes_for_upload:
+                    with st.spinner("Carico il file su DropBox..."):
+                        upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
                         
         with col3:
             if st.button("Importa Giacenze & Anagrafica"):
