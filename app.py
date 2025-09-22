@@ -1811,50 +1811,6 @@ elif page == "Foto - Gestione":
                     width="content",
                     key="12"
                 )
-
-    a1, a2 = st.columns(2, border=True)
-    with a1:
-        st.markdown("<h1 style='text-align: center; margin-top:-25px'>MATIAS</h1>", unsafe_allow_html=True)
-        a1,a2,a3 = st.columns(3)
-        with a1:
-            st.markdown("<p style='text-align: right'>", unsafe_allow_html=True)
-            if df_disp.empty:
-                st.download_button(
-                    label="📥",
-                    data=genera_pdf(df_matias),
-                    file_name="lista_disp_matias.pdf",
-                    mime="application/pdf",
-                    disabled=True,
-                    width="content",
-                    key="101"
-                )
-            else:
-                st.download_button(
-                    label="📥",
-                    data=genera_pdf(df_matias),
-                    file_name="lista_disp_matias.pdf",
-                    mime="application/pdf",
-                    width="content",
-                    key="102"
-                )
-                st.markdown("</p>", unsafe_allow_html=True)
-                st.markdown("<p style='text-align: center'>ECOM</p>", unsafe_allow_html=True)
-                st.markdown(f"<p style='text-align: center'>{matias} Paia</p>", unsafe_allow_html=True)
-        with a2:
-            st.markdown("<p style='text-align: center'>027</p>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center'>028</p>", unsafe_allow_html=True)
-        with a3:
-            st.markdown(f"<p style='text-align: center'>{matias_027} Paia</p>", unsafe_allow_html=True)
-            st.markdown(f"<p style='text-align: center'>{matias_028} Paia</p>", unsafe_allow_html=True)
-    with a2:
-        st.markdown("<h1 style='text-align: center; margin-top:-25px'>MATTEO</h1>", unsafe_allow_html=True)
-        a1,a2,a3 = st.columns(3)
-        with a1:
-            st.markdown("<p style='text-align: center'>X</p>", unsafe_allow_html=True)
-        with a2:
-            st.markdown("<p style='text-align: center'>ECOM</p>", unsafe_allow_html=True)
-        with a3:
-            st.markdown("<p style='text-align: center'>27 Paia</p>", unsafe_allow_html=True)
     
    
     # 🔽 Filtro visualizzazione
