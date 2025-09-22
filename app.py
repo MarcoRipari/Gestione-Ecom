@@ -2871,7 +2871,8 @@ elif page == "Catalogo - Aggiungi ordini stagione":
     st.write(amazon)
 
 elif page == "Test":
-    col1, col2, col3 = st.columns(3, border=[True,True,False])
+    col1, col2 = st.columns(2, border=True)
+    col3 = st.columns(1, border=True)
     with col1:
         st.markdown("<h1 style='text-align: center; margin-top:-25px'>MATIAS</h1>", unsafe_allow_html=True)
         a1,a2,a3 = st.columns(3)
