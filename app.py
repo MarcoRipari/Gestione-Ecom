@@ -893,7 +893,7 @@ def aggiungi_sku(sheet_id: str, sku: str):
            st.session_state.user["username"],
            "=concatena('1';'2')"
           ]
-    sheet_lista.append_row(row)
+    sheet_lista.append_row(row, raw=False)
     #sheet_lista.append_row([sku, st.session_state.user["username"]])
 
 @st.cache_data(ttl=300)
