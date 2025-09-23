@@ -889,9 +889,10 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 
 def aggiungi_sku(sheet_id: str, sku: str):
     sheet_lista = get_sheet(sheet_id, "LISTA")
+    lastRow = sheet_lista.row_count
     row = [sku,
            st.session_state.user["username"],
-           "=concatena('1';'2')"
+           f'=SE.ERRORE(CERCA.VERT($A{lastRow};ANAGRAFICA!A:C;2;0)&"/"&CERCA.VERT($A{lastRow};ANAGRAFICA!A:C;3;0);)'
           ]
     sheet_lista.append_row(row, value_input_option="USER_ENTERED")
     #sheet_lista.append_row([sku, st.session_state.user["username"]])
