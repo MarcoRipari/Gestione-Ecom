@@ -241,7 +241,7 @@ async def main():
     print(f"✅ Verificate: {len(results)}")
 
     output_col_k = []  # Colonna SCATTARE
-    output_col_n = []  # Colonna RISCATTARE
+    output_col_p = []  # Colonna RISCATTARE
     
     for i, row in enumerate(rows):
         sku = row[sku_idx].strip() if len(row) > sku_idx else ""
@@ -250,9 +250,9 @@ async def main():
     
         # Imposta RISCATTARE = FALSE solo se l'immagine è stata salvata effettivamente
         if salvata and len(row) > riscattare_idx and row[riscattare_idx].strip().lower() == "true":
-            output_col_n.append(["FALSE"])
+            output_col_p.append(["FALSE"])
         else:
-            output_col_n.append([""])
+            output_col_p.append([""])
     
     # Aggiorna le due colonne nel foglio
     sheet.batch_update([
@@ -261,8 +261,8 @@ async def main():
             "values": output_col_k
         },
         {
-            "range": f"N3:N{len(output_col_n)+2}",
-            "values": output_col_n
+            "range": f"P3:P{len(output_col_p)+2}",
+            "values": output_col_p
         }
     ])
     
