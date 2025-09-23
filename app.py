@@ -900,7 +900,7 @@ def aggiungi_sku(sheet_id: str, sku: str):
            f"=SE.ERRORE(STRINGA.ESTRAI($A{lastRow+1};10;4);)",
            f"=SE.ERRORE(CERCA.VERT($A{lastRow+1};ANAGRAFICA!$A:$J;10;0);)",
            f"=IFNA(SE(E(O($K{lastRow+1}=\"True\";$P{lastRow+1}=\"True\");$Q{lastRow+1}=\"False\");SE(MIN(ARRAYFORMULA(SE(GIACENZE!$I:$I=$A{lastRow+1};GIACENZE!$D:$D;\"\")))=0;\"\";SE(MIN(ARRAYFORMULA(SE(GIACENZE!$I:$I=$A{lastRow+1};GIACENZE!$D:$D;\"\")))<$I{lastRow+1};SE(SE.ERRORE(CERCA.VERT(CONCATENA($A{lastRow+1};$I{lastRow+1});GIACENZE!$H:$Q;10;0);0)>0;$I{lastRow+1};MIN(ARRAYFORMULA(SE(GIACENZE!$I:$I=$A{lastRow+1};GIACENZE!$D:$D;\"\"))));MIN(ARRAYFORMULA(SE(GIACENZE!$I:$I=$A{lastRow+1};GIACENZE!$D:$D;\"\")))));\"\");$I{lastRow+1})",
-           False,
+           "'False",
            "",
            f"=SE(E(O($K{lastRow+1}=\"True\";$P{lastRow+1}=\"True\");MIN(ARRAYFORMULA(SE(GIACENZE!$I:$I=$A{lastRow+1};GIACENZE!$D:$D;\"\")))>0);SE($Q{lastRow+1}=\"False\";\"True\";\"False\");SE(O($K{lastRow+1}=\"True\";$P{lastRow+1}=\"True\");SE(SINISTRA($A{lastRow+1};1)=\"6\";SE(SE.ERRORE(CERCA.VERT($A{lastRow+1};GIACENZE!$I:$Q;9;0);-1)>0;\"True\";\"False\");\"False\");\"False\"))",
            f"=SE(E(O($K{lastRow+1}=\"True\";$P{lastRow+1}=\"True\");$Q{lastRow+1}=\"False\";$M{lastRow+1}=\"False\";MIN(ARRAYFORMULA(SE(PIM!$I:$I=$A{lastRow+1};PIM!$D:$D;\"\")))>0);SE(SE.ERRORE(CERCA.VERT(CONCATENA($A{lastRow+1};$I{lastRow+1});PIM!$H:$V;15;0);0)>0;\"True\";\"False\");\"False\")",
