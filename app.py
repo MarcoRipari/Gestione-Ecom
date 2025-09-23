@@ -1107,6 +1107,17 @@ def get_country_from_address(address):
 # ---------------------------
 st.set_page_config(page_title="Gestione ECOM", layout="wide")
 
+st.markdown(
+    """
+    <style>
+        section[data-testid="stSidebar"] {
+            width: 500px !important; # Set the width to your desired value
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # 📁 Caricamento dati
 # Sidebar: menu
 with st.sidebar:
