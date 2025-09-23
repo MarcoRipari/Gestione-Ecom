@@ -907,7 +907,7 @@ def aggiungi_sku(sheet_id: str, sku: str):
            f"=SE(E(O($K{lastRow+1}=\"True\";$P{lastRow+1}=\"True\");$Q{lastRow+1}=\"False\";$M{lastRow+1}=\"False\";MIN(ARRAYFORMULA(SE(PIM!$I:$I=$A{lastRow+1};PIM!$D:$D;\"\")))>0);SE(SE.ERRORE(CERCA.VERT(CONCATENA($A{lastRow+1};$I{lastRow+1});PIM!$H:$Y;18;0);0)>0;\"True\";\"False\");\"False\")",
            "",
            f"=SE(VAL.ERRORE(CONFRONTA($A{lastRow+1};PRELEVATE!$A:$A;0));\"False\";\"True\")",
-           f"=SE(O($M{lastRow+1}=\"True\";$N{lastRow+1}=\"True\";$O{lastRow+1}=\"True\");SE(VAL.NON.DISP(CONFRONTA($D{lastRow+1};SPLIT(SETTINGS("brandMatias");\",\");0));SE(VAL.NON.DISP(CONFRONTA($D{lastRow+1};SPLIT(SETTINGS(\"brandMatteo\");\",\");0));\"\";\"MATTEO\");\"MATIAS\");\"\")",
+           f"=SE(O($M{lastRow+1}=\"True\";$N{lastRow+1}=\"True\";$O{lastRow+1}=\"True\");SE(VAL.NON.DISP(CONFRONTA($D{lastRow+1};SPLIT(SETTINGS(\"brandMatias\");\",\");0));SE(VAL.NON.DISP(CONFRONTA($D{lastRow+1};SPLIT(SETTINGS(\"brandMatteo\");\",\");0));\"\";\"MATTEO\");\"MATIAS\");\"\")",
            f"=SE($M{lastRow+1}=\"True\";SE(SINISTRA($A{lastRow+1};1)=\"6\";CERCA.VERT($A{lastRow+1};GIACENZE!$I:$O;4;0);TESTO(CERCA.VERT(CONCATENA($A{lastRow+1};$J{lastRow+1});GIACENZE!$H:$O;5;0);"000"));\"\")",
            f"=SE($M{lastRow+1}=\"True\";SE(SINISTRA($A{lastRow+1};1)=\"6\";CERCA.VERT($A{lastRow+1};GIACENZE!$I:$O;5;0);TESTO(CERCA.VERT(CONCATENA($A{lastRow+1};$J{lastRow+1});GIACENZE!$H:$O;6;0);"000"));\"\")",
            f"=SE($M{lastRow+1}=\"True\";SE(SINISTRA($A{lastRow+1};1)=\"6\";CERCA.VERT($A{lastRow+1};GIACENZE!$I:$O;6;0);TESTO(CERCA.VERT(CONCATENA($A{lastRow+1};$J{lastRow+1});GIACENZE!$H:$O;7;0);"0"));\"\")",
