@@ -2946,14 +2946,27 @@ elif page == "Ferie - Report":
     sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "FERIE")
     ferie_data = sheet.get_all_values()
-    ferie_df = pd.DataFrame(ferie_data[1:], columns=ferie_data[0]) if len(ferie_data) > 1 else pd.DataFrame(columns=["NOME", "DATA INIZIO", "DATA FINE", "MOTIVO"])
+    ferie_df = pd.DataFrame(
+        ferie_data[1:], columns=ferie_data[0]
+    ) if len(ferie_data) > 1 else pd.DataFrame(columns=["NOME", "DATA INIZIO", "DATA FINE", "MOTIVO"])
     
     # 2. Selettore settimana (scegli il lunedì)
     today = datetime.now().date()
     monday = today - timedelta(days=today.weekday())
     selected_monday = st.date_input("Scegli il lunedì della settimana", value=monday)
     days_of_week = [selected_monday + timedelta(days=i) for i in range(7)]
-    days_labels = [day.strftime("%a %d/%m") for day in days_of_week]
+    
+    # Mappa abbreviata giorni in italiano
+    giorni_settimana_it = {
+        "Mon": "Lun",
+        "Tue": "Mar",
+        "Wed": "Mer",
+        "Thu": "Gio",
+        "Fri": "Ven",
+        "Sat": "Sab",
+        "Sun": "Dom"
+    }
+    days_labels = [giorni_settimana_it[day.strftime("%a")] + day.strftime(" %d/%m") for day in days_of_week]
     
     # 3. Prepara lista utenti
     users_list = supabase.table("profiles").select("*").execute().data
@@ -2976,13 +2989,13 @@ elif page == "Ferie - Report":
 
         for giorno in days_of_week:
             in_ferie = False
-            motivazione = ""
+            motivo = ""
             for _, r in ferie_utente.iterrows():
                 if r["DATA INIZIO"] and r["DATA FINE"] and r["DATA INIZIO"] <= giorno <= r["DATA FINE"]:
                     in_ferie = True
-                    motivazione = r.get("MOTIVO", "")
+                    motivo = r.get("MOTIVO", "")
             if in_ferie:
-                row.append("🌴" + (f" ({motivazione})" if motivazione else ""))
+                row.append("🌴" + (f" ({motivo})" if motivo else ""))
             else:
                 row.append("")
         ferie_matrix.append(row)
