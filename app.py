@@ -2914,4 +2914,6 @@ elif page == "Test":
     sheet = get_sheet(sheet_id, "FERIE")
 
     ferie_esistenti = sheet.get_all_values()
-    
+    utenti = supabase.table("profiles").select("*").single().execute()
+
+    st.write(utenti)
