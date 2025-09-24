@@ -2913,5 +2913,8 @@ elif page == "Test":
     sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "FERIE")
 
-    dati_ferie = sheet.get_all_values()
+    ferie_esistenti = sheet.get_all_values()
+
+    ferie_esistenti = pd.DataFrame(ferie_esistenti)
+    st.write(ferie_esistenti)
     
