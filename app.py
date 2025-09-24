@@ -2946,7 +2946,7 @@ elif page == "Ferie - Report":
     sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "FERIE")
     ferie_data = sheet.get_all_values()
-    ferie_df = pd.DataFrame(ferie_data[1:], columns=ferie_data[0]) if len(ferie_data) > 1 else pd.DataFrame(columns=["Utente", "Data inizio", "Data fine", "Motivazione"])
+    ferie_df = pd.DataFrame(ferie_data[1:], columns=ferie_data[0]) if len(ferie_data) > 1 else pd.DataFrame(columns=["NOME", "DATA INIZIO", "DATA FINE", "MOTIVO"])
     
     # 2. Selettore settimana (scegli il lunedì)
     today = datetime.now().date()
@@ -2963,24 +2963,24 @@ elif page == "Ferie - Report":
     ferie_matrix = []
     for utente in utenti:
         row = []
-        ferie_utente = ferie_df[ferie_df["Utente"] == utente]
+        ferie_utente = ferie_df[ferie_df["NOME"] == utente]
         # Rendi le date oggetti datetime.date
         ferie_utente = ferie_utente.copy()
         for idx, r in ferie_utente.iterrows():
             try:
-                ferie_utente.at[idx, "Data inizio"] = datetime.strptime(r["Data inizio"], "%d/%m/%Y").date()
-                ferie_utente.at[idx, "Data fine"] = datetime.strptime(r["Data fine"], "%d/%m/%Y").date()
+                ferie_utente.at[idx, "DATA INIZIO"] = datetime.strptime(r["DATA INIZIO"], "%d/%m/%Y").date()
+                ferie_utente.at[idx, "DATA FINE"] = datetime.strptime(r["DATA FINE"], "%d/%m/%Y").date()
             except Exception:
-                ferie_utente.at[idx, "Data inizio"] = None
-                ferie_utente.at[idx, "Data fine"] = None
+                ferie_utente.at[idx, "DATA INIZIO"] = None
+                ferie_utente.at[idx, "DATA FINE"] = None
 
         for giorno in days_of_week:
             in_ferie = False
             motivazione = ""
             for _, r in ferie_utente.iterrows():
-                if r["Data inizio"] and r["Data fine"] and r["Data inizio"] <= giorno <= r["Data fine"]:
+                if r["DATA INIZIO"] and r["DATA FINE"] and r["DATA INIZIO"] <= giorno <= r["DATA FINE"]:
                     in_ferie = True
-                    motivazione = r.get("Motivazione", "")
+                    motivazione = r.get("MOTIVO", "")
             if in_ferie:
                 row.append("🌴" + (f" ({motivazione})" if motivazione else ""))
             else:
