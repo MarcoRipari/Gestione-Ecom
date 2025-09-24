@@ -2940,7 +2940,7 @@ elif page == "Ferie - Aggiungi ferie":
 
 elif page == "Ferie - Report":
     st.header("📅 Report ferie settimanale")
-    
+
     # 1. Leggi dati ferie da GSheet
     sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "FERIE")
@@ -2948,20 +2948,11 @@ elif page == "Ferie - Report":
     ferie_df = pd.DataFrame(
         ferie_data[1:], columns=ferie_data[0]
     ) if len(ferie_data) > 1 else pd.DataFrame(columns=["NOME", "DATA INIZIO", "DATA FINE", "MOTIVO"])
-    
-    # 2. Calcola lista settimane disponibili (10 precedenti e 10 successive)
+
+    # 2. Selettore giorno iniziale
     today = datetime.now().date()
-    base_monday = today - timedelta(days=today.weekday())
-    num_weeks = 10
-    week_list = [base_monday + timedelta(weeks=w) for w in range(-num_weeks, num_weeks+1)]
-    week_labels = [
-        f"{(monday).strftime('%d/%m/%Y')} - {(monday+timedelta(days=6)).strftime('%d/%m/%Y')}"
-        for monday in week_list
-    ]
-    week_idx_default = week_list.index(base_monday)
-    selected_label = st.selectbox("Seleziona la settimana da visualizzare", options=week_labels, index=week_idx_default)
-    selected_monday = week_list[week_labels.index(selected_label)]
-    days_of_week = [selected_monday + timedelta(days=i) for i in range(7)]
+    start_date = st.date_input("Seleziona il giorno di inizio settimana", value=today)
+    days_of_week = [start_date + timedelta(days=i) for i in range(7)]
 
     # Mappa abbreviata giorni in italiano
     giorni_settimana_it = {
@@ -2974,11 +2965,11 @@ elif page == "Ferie - Report":
         "Sun": "Dom"
     }
     days_labels = [giorni_settimana_it[day.strftime("%a")] + day.strftime(" %d/%m") for day in days_of_week]
-    
+
     # 3. Prepara lista utenti
     users_list = supabase.table("profiles").select("*").execute().data
     utenti = sorted([f"{u['nome']} {u['cognome']}" for u in users_list])
-    
+
     # 4. Costruisci matrice ferie (utente x giorno)
     ferie_matrix = []
     for utente in utenti:
@@ -3005,7 +2996,7 @@ elif page == "Ferie - Report":
             else:
                 row.append("")
         ferie_matrix.append(row)
-    
+
     # 5. Visualizza tabella
     ferie_report_df = pd.DataFrame(ferie_matrix, columns=days_labels, index=utenti)
     st.dataframe(ferie_report_df, use_container_width=True)
