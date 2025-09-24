@@ -2915,5 +2915,5 @@ elif page == "Test":
 
     dati_ferie = sheet.get_all_values()
 
-    df = pd.DataFrame(dati_ferie)
+    df = pd.DataFrame(dati_ferie[1:], headers=dati_ferie[0])
     st.write(df)
