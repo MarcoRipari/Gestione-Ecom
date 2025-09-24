@@ -2923,3 +2923,7 @@ elif page == "Test":
     data_inizio = st.date_input("Data inizio", oggi)
     data_fine = st.date_input("Data fine", oggi)
     motivazione = st.text_input("Motivazione")
+
+    if st.button("Aggiungi ferie"):
+        data = [utente_selezionato, data_inizio, data_fine, motivazione]
+        sheet.append_row(data value_input_option="USER_ENTERED")
