@@ -2925,6 +2925,6 @@ elif page == "Test":
     motivazione = st.text_input("Motivazione")
 
     if st.button("Aggiungi ferie"):
-        data = [utente_selezionato, data_inizio, data_fine, motivazione]
+        data = [utente_selezionato, data_inizio.strftime('%m/%d/%Y'), data_fine.strftime('%m/%d/%Y'), motivazione]
         st.write(data)
-        sheet.append_row(["1","2","3","4"], value_input_option="USER_ENTERED")
+        sheet.append_row(data, value_input_option="USER_ENTERED")
