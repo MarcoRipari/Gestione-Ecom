@@ -2936,7 +2936,6 @@ elif page == "Ferie - Aggiungi ferie":
 
     if st.button("Aggiungi ferie"):
         data = [utente_selezionato, data_inizio.strftime('%d/%m/%Y'), data_fine.strftime('%d/%m/%Y'), motivazione]
-        st.write(data)
         sheet.append_row(data, value_input_option="USER_ENTERED")
 
 elif page == "Ferie - Report":
@@ -2950,12 +2949,20 @@ elif page == "Ferie - Report":
         ferie_data[1:], columns=ferie_data[0]
     ) if len(ferie_data) > 1 else pd.DataFrame(columns=["NOME", "DATA INIZIO", "DATA FINE", "MOTIVO"])
     
-    # 2. Selettore settimana (scegli il lunedì)
+    # 2. Calcola lista settimane disponibili (10 precedenti e 10 successive)
     today = datetime.now().date()
-    monday = today - timedelta(days=today.weekday())
-    selected_monday = st.date_input("Scegli il lunedì della settimana", value=monday)
+    base_monday = today - timedelta(days=today.weekday())
+    num_weeks = 10
+    week_list = [base_monday + timedelta(weeks=w) for w in range(-num_weeks, num_weeks+1)]
+    week_labels = [
+        f"{(monday).strftime('%d/%m/%Y')} - {(monday+timedelta(days=6)).strftime('%d/%m/%Y')}"
+        for monday in week_list
+    ]
+    week_idx_default = week_list.index(base_monday)
+    selected_label = st.selectbox("Seleziona la settimana da visualizzare", options=week_labels, index=week_idx_default)
+    selected_monday = week_list[week_labels.index(selected_label)]
     days_of_week = [selected_monday + timedelta(days=i) for i in range(7)]
-    
+
     # Mappa abbreviata giorni in italiano
     giorni_settimana_it = {
         "Mon": "Lun",
@@ -2977,7 +2984,6 @@ elif page == "Ferie - Report":
     for utente in utenti:
         row = []
         ferie_utente = ferie_df[ferie_df["NOME"] == utente]
-        # Rendi le date oggetti datetime.date
         ferie_utente = ferie_utente.copy()
         for idx, r in ferie_utente.iterrows():
             try:
