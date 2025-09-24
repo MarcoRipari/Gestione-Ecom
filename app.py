@@ -2914,6 +2914,4 @@ elif page == "Test":
     sheet = get_sheet(sheet_id, "FERIE")
 
     dati_ferie = sheet.get_all_values()
-    headers = dati_ferie[0]
-    df = pd.DataFrame(dati_ferie[1:], headers=headers)
-    st.write(df)
+    
