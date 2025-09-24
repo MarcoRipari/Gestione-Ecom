@@ -3006,7 +3006,7 @@ elif page == "Ferie - Report":
     def evidenzia_ferie(val):
         if isinstance(val, str) and val.startswith("🌴"):
             return 'background-color: #E6F7DD'  # verde chiaro
-        elif: isinstance(val, str) and val.startswith("🇨🇭"):
+        elif isinstance(val, str) and val.startswith("🇨🇭"):
             return 'background-color: #FFA1A1'  # rosso chiaro
         return ''
 
