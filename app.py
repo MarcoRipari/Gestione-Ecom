@@ -3000,15 +3000,34 @@ elif page == "Ferie - Report":
                 row.append("")
         ferie_matrix.append(row)
 
-    # 5. Visualizza tabella con celle evidenziate se in ferie
+    # 5. Visualizza tabella con celle evidenziate e centrata
     ferie_report_df = pd.DataFrame(ferie_matrix, columns=days_labels, index=utenti)
 
     def evidenzia_ferie(val):
         if isinstance(val, str) and val.startswith("🌴"):
-            return 'background-color: #E6F7DD'  # verde chiaro
+            return 'background-color: #E6F7DD; text-align: center;'
         elif isinstance(val, str) and val.startswith("🇨🇭"):
-            return 'background-color: #FFA1A1'  # rosso chiaro
-        return ''
+            return 'background-color: #FFA1A1; text-align: center;'
+        return 'text-align: center;'
 
-    ferie_report_df_styled = ferie_report_df.style.applymap(evidenzia_ferie)
+    ferie_report_df_styled = (
+        ferie_report_df
+        .style
+        .applymap(evidenzia_ferie)
+        .set_table_styles([
+            {"selector": "th", "props": [("font-weight", "normal"), ("text-align", "center")]},
+            {"selector": "td", "props": [("text-align", "center")]}
+        ])
+        .set_properties(**{"text-align": "center"})
+    )
+
+    st.markdown("""
+        <style>
+            .streamlit-expander, .block-container, table {
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.markdown(ferie_report_df_styled.to_html(escape=False), unsafe_allow_html=True)
