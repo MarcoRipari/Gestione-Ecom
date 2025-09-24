@@ -56,7 +56,10 @@ import locale
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 from gspread.utils import rowcol_to_a1
-
+import pdfplumber
+import PyPDF2
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 
 logging.basicConfig(level=logging.INFO)
 
@@ -107,60 +110,6 @@ def get_sheet(sheet_id, tab):
 
     # Se non trovato, lo crea
     return spreadsheet.add_worksheet(title=tab, rows="10000", cols="50")
-
-def get_dropbox_access_token():
-    refresh_token = st.secrets["DROPBOX_REFRESH_TOKEN"]
-    client_id = st.secrets["DROPBOX_CLIENT_ID"]
-    client_secret = st.secrets["DROPBOX_CLIENT_SECRET"]
-
-    auth_header = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
-
-    response = requests.post(
-        "https://api.dropbox.com/oauth2/token",
-        headers={
-            "Authorization": f"Basic {auth_header}",
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
-        data={
-            "grant_type": "refresh_token",
-            "refresh_token": refresh_token
-        },
-    )
-    response.raise_for_status()
-    return response.json()["access_token"]
-
-def get_dropbox_client():
-    access_token = get_dropbox_access_token()
-    return dropbox.Dropbox(access_token)
-
-def upload_csv_to_dropbox(dbx, folder_path: str, file_name: str, file_bytes: bytes):
-    dbx_path = f"{folder_path}/{file_name}"
-    try:
-        dbx.files_create_folder_v2(folder_path)
-    except dropbox.exceptions.ApiError:
-        pass  # cartella già esiste
-    try:
-        dbx.files_upload(file_bytes, dbx_path, mode=WriteMode("overwrite"))
-        
-        st.success(f"✅ CSV caricato su Dropbox: {dbx_path}")
-    except Exception as e:
-        st.error(f"❌ Errore caricando CSV su Dropbox: {e}")
-
-def download_csv_from_dropbox(dbx, folder_path: str, file_name: str) -> io.BytesIO:
-    file_path = f"{folder_path}/{file_name}"
-
-    try:
-        metadata, res = dbx.files_download(file_path)
-        return io.BytesIO(res.content), metadata
-    except dropbox.exceptions.ApiError as e:
-        # Se l'errore è 'path/not_found' -> file mancante
-        if (hasattr(e.error, "is_path") and e.error.is_path() 
-                and e.error.get_path().is_not_found()):
-            return None, None
-        else:
-            # altri errori (permessi, connessione, ecc.)
-            st.error(f"Errore scaricando da Dropbox: {e}")
-            return None, None
 
 # ---------------------------
 # Auth system
@@ -496,15 +445,6 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 {sim_text}
 """
     return prompt
-
-def generate_descriptions(prompt):
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=3000
-    )
-    return response.choices[0].message.content
     
 # ---------------------------
 # 📊 Audit Trail & Google Sheets
@@ -513,19 +453,6 @@ def append_log(sheet_id, log_data):
     sheet = get_sheet(sheet_id, "logs")
     sheet.append_row(list(log_data.values()), value_input_option="RAW")
 
-def overwrite_sheet(sheet_id, tab, df):
-    sheet = get_sheet(sheet_id, tab)
-    sheet.clear()
-
-    # ✅ Sostituisci NaN con stringa vuota e converti tutto in stringa (safe per JSON)
-    df = df.fillna("").astype(str)
-
-    # ✅ Prepara i dati: intestazione + righe
-    data = [df.columns.tolist()] + df.values.tolist()
-
-    # ✅ Scrittura nel foglio Google Sheets
-    sheet.update(data)
-
 def append_to_sheet(sheet_id, tab, df):
     sheet = get_sheet(sheet_id, tab)
     df = df.fillna("").astype(str)
@@ -533,85 +460,63 @@ def append_to_sheet(sheet_id, tab, df):
     sheet.append_rows(values, value_input_option="RAW")  # ✅ chiamata unica
 
 # ---------------------------
-# SetUp Google Drive
+# DropBox
 # ---------------------------
-def get_latest_file_from_gdrive(folder_id, nome_file):
-    drive_service = build("drive", "v3", credentials=credentials)
-    query = f"'{folder_id}' in parents and trashed=false and name='{nome_file}.csv'"
-    response = drive_service.files().list(
-        q=query,
-        orderBy="modifiedTime desc",
-        pageSize=1,
-        fields="files(id, name, modifiedTime)"
-    ).execute()
-    files = response.get("files", [])
-    return files[0] if files else None
 
+def get_dropbox_access_token():
+    refresh_token = st.secrets["DROPBOX_REFRESH_TOKEN"]
+    client_id = st.secrets["DROPBOX_CLIENT_ID"]
+    client_secret = st.secrets["DROPBOX_CLIENT_SECRET"]
 
-def download_file_from_gdrive(file_id):
+    auth_header = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+
+    response = requests.post(
+        "https://api.dropbox.com/oauth2/token",
+        headers={
+            "Authorization": f"Basic {auth_header}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token
+        },
+    )
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+def get_dropbox_client():
+    access_token = get_dropbox_access_token()
+    return dropbox.Dropbox(access_token)
+
+def upload_csv_to_dropbox(dbx, folder_path: str, file_name: str, file_bytes: bytes):
+    dbx_path = f"{folder_path}/{file_name}"
     try:
-        drive_service = build("drive", "v3", credentials=credentials)
-        fh = io.BytesIO()
-        request = drive_service.files().get_media(fileId=file_id)
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        while not done:
-            status, done = downloader.next_chunk()
-        fh.seek(0)
-        return fh.read()
+        dbx.files_create_folder_v2(folder_path)
+    except dropbox.exceptions.ApiError:
+        pass  # cartella già esiste
+    try:
+        dbx.files_upload(file_bytes, dbx_path, mode=WriteMode("overwrite"))
+        
+        st.success(f"✅ CSV caricato su Dropbox: {dbx_path}")
     except Exception as e:
-        st.error(f"Errore nel download del file da Drive: {e}")
-        return None
+        st.error(f"❌ Errore caricando CSV su Dropbox: {e}")
 
-
-def upload_file_to_gdrive(folder_id, file_name, file_bytes, mime_type="text/csv"):
-    """
-    Carica un file CSV su Google Drive, sovrascrivendo se esiste già.
-    Compatibile con Shared Drives.
-    """
-    drive_service = build("drive", "v3", credentials=credentials)
-
-    if not file_bytes or len(file_bytes) == 0:
-        st.error(f"⚠️ Il file {file_name} è vuoto, upload annullato.")
-        return None
-
-    query = f"'{folder_id}' in parents and name='{file_name}' and trashed=false"
-    response = drive_service.files().list(
-        q=query,
-        fields="files(id, name)",
-        supportsAllDrives=True,
-        includeItemsFromAllDrives=True
-    ).execute()
-    files = response.get("files", [])
-
-    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=False)
+def download_csv_from_dropbox(dbx, folder_path: str, file_name: str) -> io.BytesIO:
+    file_path = f"{folder_path}/{file_name}"
 
     try:
-        if files:
-            # Aggiorna file esistente
-            file_id = files[0]["id"]
-            updated_file = drive_service.files().update(
-                fileId=file_id,
-                media_body=media,
-                supportsAllDrives=True
-            ).execute()
-            st.info(f"♻️ File aggiornato su Drive: {updated_file.get('name')}")
-            return updated_file
+        metadata, res = dbx.files_download(file_path)
+        return io.BytesIO(res.content), metadata
+    except dropbox.exceptions.ApiError as e:
+        # Se l'errore è 'path/not_found' -> file mancante
+        if (hasattr(e.error, "is_path") and e.error.is_path() 
+                and e.error.get_path().is_not_found()):
+            return None, None
         else:
-            # Crea nuovo file
-            file_metadata = {"name": file_name, "parents": [folder_id]}
-            new_file = drive_service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields="id, name",
-                supportsAllDrives=True
-            ).execute()
-            st.success(f"✅ File creato su Drive: {new_file.get('name')}")
-            return new_file
-    except Exception as e:
-        st.error(f"❌ Errore nell'upload su Drive: {e}")
-        return None
-
+            # altri errori (permessi, connessione, ecc.)
+            st.error(f"Errore scaricando da Dropbox: {e}")
+            return None, None
+            
 def format_dropbox_date(dt):
     if dt is None:
         return "Data non disponibile"
@@ -767,13 +672,6 @@ def genera_pdf(df_disp, **param):
     doc.build(elements)
     buffer.seek(0)
     return buffer
-
-def update_row(sheet, row_idx, row):
-    row_clean = ["" if pd.isna(x) else str(x) for x in row]
-    start = rowcol_to_a1(row_idx, 1)  # es. A2
-    end = rowcol_to_a1(row_idx, len(row_clean))  # ultima colonna giusta
-    cell_range = f"{start}:{end}"
-    sheet.update(cell_range, [row_clean])
 
 def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     st.text("1️⃣ Leggo CSV...")
@@ -991,18 +889,46 @@ def genera_lista_sku(sheet_id: str, tab_names: list[str]):
 
 def aggiungi_sku(sheet_id: str, sku: str):
     sheet_lista = get_sheet(sheet_id, "LISTA")
-    sheet_lista.append_row([sku, st.session_state.user["username"]])
+    lastRow = sheet_lista.row_count
+    row = [sku,
+           st.session_state.user["username"],
+           f"=SE.ERRORE(CERCA.VERT($A{lastRow+1};ANAGRAFICA!A:C;2;0)&\"/\"&CERCA.VERT($A{lastRow+1};ANAGRAFICA!A:C;3;0);)",
+           f"=SE.ERRORE(CERCA.VERT($A{lastRow+1};ANAGRAFICA!A:E;5;0);)",
+           f"=SE($C$1=\"X\";CERCA.VERT($A{lastRow+1};Foglio22!$A:$L;12;0);SE.ERRORE(CERCA.VERT($A{lastRow+1};ANAGRAFICA!A:I;9;0);))",
+           f"=SE.ERRORE(STRINGA.ESTRAI($A{lastRow+1};1;7);)",
+           f"=SE.ERRORE(STRINGA.ESTRAI($A{lastRow+1};8;2);)",
+           f"=SE.ERRORE(STRINGA.ESTRAI($A{lastRow+1};10;4);)",
+           f"=SE.ERRORE(CERCA.VERT($A{lastRow+1};ANAGRAFICA!$A:$J;10;0);)",
+           f"=IFNA(SE(E(O($K{lastRow+1}=\"True\";$P{lastRow+1}=\"True\");$Q{lastRow+1}=\"False\");SE(MIN(ARRAYFORMULA(SE(GIACENZE!$I:$I=$A{lastRow+1};GIACENZE!$D:$D;\"\")))=0;\"\";SE(MIN(ARRAYFORMULA(SE(GIACENZE!$I:$I=$A{lastRow+1};GIACENZE!$D:$D;\"\")))<$I{lastRow+1};SE(SE.ERRORE(CERCA.VERT(CONCATENA($A{lastRow+1};$I{lastRow+1});GIACENZE!$H:$Q;10;0);0)>0;$I{lastRow+1};MIN(ARRAYFORMULA(SE(GIACENZE!$I:$I=$A{lastRow+1};GIACENZE!$D:$D;\"\"))));MIN(ARRAYFORMULA(SE(GIACENZE!$I:$I=$A{lastRow+1};GIACENZE!$D:$D;\"\")))));\"\");$I{lastRow+1})",
+           "'False",
+           "",
+           f"=SE(E(O($K{lastRow+1}=\"True\";$P{lastRow+1}=\"True\");MIN(ARRAYFORMULA(SE(GIACENZE!$I:$I=$A{lastRow+1};GIACENZE!$D:$D;\"\")))>0);SE($Q{lastRow+1}=\"False\";\"True\";\"False\");SE(O($K{lastRow+1}=\"True\";$P{lastRow+1}=\"True\");SE(SINISTRA($A{lastRow+1};1)=\"6\";SE(SE.ERRORE(CERCA.VERT($A{lastRow+1};GIACENZE!$I:$Q;9;0);-1)>0;\"True\";\"False\");\"False\");\"False\"))",
+           f"=SE(E(O($K{lastRow+1}=\"True\";$P{lastRow+1}=\"True\");$Q{lastRow+1}=\"False\";$M{lastRow+1}=\"False\";MIN(ARRAYFORMULA(SE(PIM!$I:$I=$A{lastRow+1};PIM!$D:$D;\"\")))>0);SE(SE.ERRORE(CERCA.VERT(CONCATENA($A{lastRow+1};$I{lastRow+1});PIM!$H:$V;15;0);0)>0;\"True\";\"False\");\"False\")",
+           f"=SE(E(O($K{lastRow+1}=\"True\";$P{lastRow+1}=\"True\");$Q{lastRow+1}=\"False\";$M{lastRow+1}=\"False\";MIN(ARRAYFORMULA(SE(PIM!$I:$I=$A{lastRow+1};PIM!$D:$D;\"\")))>0);SE(SE.ERRORE(CERCA.VERT(CONCATENA($A{lastRow+1};$I{lastRow+1});PIM!$H:$Y;18;0);0)>0;\"True\";\"False\");\"False\")",
+           "",
+           f"=SE(VAL.ERRORE(CONFRONTA($A{lastRow+1};PRELEVATE!$A:$A;0));\"False\";\"True\")",
+           f"=SE(O($M{lastRow+1}=\"True\";$N{lastRow+1}=\"True\";$O{lastRow+1}=\"True\");SE(VAL.NON.DISP(CONFRONTA($D{lastRow+1};SPLIT(SETTINGS(\"brandMatias\");\",\");0));SE(VAL.NON.DISP(CONFRONTA($D{lastRow+1};SPLIT(SETTINGS(\"brandMatteo\");\",\");0));\"\";\"MATTEO\");\"MATIAS\");\"\")",
+           f"=SE($M{lastRow+1}=\"True\";SE(SINISTRA($A{lastRow+1};1)=\"6\";CERCA.VERT($A{lastRow+1};GIACENZE!$I:$O;4;0);TESTO(CERCA.VERT(CONCATENA($A{lastRow+1};$J{lastRow+1});GIACENZE!$H:$O;5;0);\"000\"));\"\")",
+           f"=SE($M{lastRow+1}=\"True\";SE(SINISTRA($A{lastRow+1};1)=\"6\";CERCA.VERT($A{lastRow+1};GIACENZE!$I:$O;5;0);TESTO(CERCA.VERT(CONCATENA($A{lastRow+1};$J{lastRow+1});GIACENZE!$H:$O;6;0);\"000\"));\"\")",
+           f"=SE($M{lastRow+1}=\"True\";SE(SINISTRA($A{lastRow+1};1)=\"6\";CERCA.VERT($A{lastRow+1};GIACENZE!$I:$O;6;0);TESTO(CERCA.VERT(CONCATENA($A{lastRow+1};$J{lastRow+1});GIACENZE!$H:$O;7;0);\"0\"));\"\")",
+           f"=SE($M{lastRow+1}=\"True\";SE(SINISTRA($A{lastRow+1};1)=\"6\";CERCA.VERT($A{lastRow+1};GIACENZE!$I:$O;7;0);TESTO(CERCA.VERT(CONCATENA($A{lastRow+1};$J{lastRow+1});GIACENZE!$H:$O;8;0);\"0\"));\"\")",
+           f"=SE($N{lastRow+1}=\"True\";ArrayFormula(TEXTJOIN(\" - \";1;unique(SE('UBICAZIONI 027'!$A:$A=$A{lastRow+1};'UBICAZIONI 027'!$F:$J;\"\"));\"\"));SE($O{lastRow+1}=\"True\";ArrayFormula(TEXTJOIN(\" - \";1;unique(SE('UBICAZIONI 028'!$A:$A=$A{lastRow+1};'UBICAZIONI 028'!$F:$J;\"\"));\"\"));\"\"))",
+           f"=REPO($A{lastRow+1})",
+           "."
+          ]
+    sheet_lista.append_row(row, value_input_option="USER_ENTERED")
+    #sheet_lista.append_row([sku, st.session_state.user["username"]])
 
 @st.cache_data(ttl=300)
 def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
     try:
         sheet = get_sheet(sheet_id, "LISTA")
-        values = sheet.get("A3:V5000")
+        values = sheet.get("A3:Y5000")
         if not values:
             return pd.DataFrame()
         
-        # ✅ Definizione corretta: 22 intestazioni per colonne A–V
-        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "COD", "VAR", "COL", "TG CAMP", "TG PIC", "SCATTARE", "CONTROLLO", "DISP", "RISCATTARE", "CONSEGNATA", "FOTOGRAFO", "COR", "LAT", "X", "Y", "REPO", "END"]
+        # ✅ Definizione corretta: 24 intestazioni per colonne A–V
+        headers = ["SKU", "CANALE", "STAGIONE", "COLLEZIONE", "DESCRIZIONE", "COD", "VAR", "COL", "TG CAMP", "TG PIC", "SCATTARE", "CONTROLLO", "DISP", "DISP 027", "DISP 028", "RISCATTARE", "CONSEGNATA", "FOTOGRAFO", "COR", "LAT", "X", "Y", "UBI", "REPO", "END"]
         df = pd.DataFrame(values, columns=headers)
         df = df[df["SKU"].notna() & (df["SKU"].str.strip() != "")]
 
@@ -1014,16 +940,211 @@ def carica_lista_foto(sheet_id: str, cache_key: str = "") -> pd.DataFrame:
         df["CONSEGNATA"] = normalize_bool(df["CONSEGNATA"])
         df["RISCATTARE"] = normalize_bool(df["RISCATTARE"])
         df["DISP"] = normalize_bool(df["DISP"])
+        df["DISP 027"] = normalize_bool(df["DISP 027"])
+        df["DISP 028"] = normalize_bool(df["DISP 028"])
 
-        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP", "COD", "VAR", "COL", "TG PIC", "FOTOGRAFO", "COR", "LAT", "X", "Y"]]
+        return df[["SKU", "STAGIONE", "CANALE", "COLLEZIONE", "DESCRIZIONE", "SCATTARE", "RISCATTARE", "CONSEGNATA", "DISP", "DISP 027", "DISP 028", "COD", "VAR", "COL", "TG PIC", "TG CAMP", "FOTOGRAFO", "COR", "LAT", "X", "Y", "UBI"]]
     except Exception as e:
         st.error(f"Errore durante il caricamento: {str(e)}")
         return pd.DataFrame()
 
 # ---------------------------
+# Funzioni Dashboard
+# ---------------------------
+# Funzione per estrarre i dati da una pagina PDF
+def extract_data_from_page(page_text):
+    data = {}
+    
+    # Marketplace
+    # Ricerca separata per essere più robusti alle variazioni di layout
+    marketplace_match = re.search(r"Taglia(.*)Marketplace:", page_text, re.IGNORECASE)
+    mp = None
+    if marketplace_match:
+        if "Naturino" in marketplace_match.group(1).strip():
+            mp = "Naturino"
+        elif "Candice" in marketplace_match.group(1).strip():
+            mp = "Candice Cooper"
+        elif "Flowermountain" in marketplace_match.group(1).strip():
+            mp = "Flower Mountain"
+        elif "Voile" in marketplace_match.group(1).strip():
+            mp = "Voile Blanche"
+        elif "Falcotto" in marketplace_match.group(1).strip():
+            mp = "Falcotto"
+        elif "falcotto" in marketplace_match.group(1).strip():
+            mp = "Falcotto"
+        elif "W6YZ" in marketplace_match.group(1).strip():
+            mp = "W6YZ"
+        elif "zalando" in marketplace_match.group(1).strip():
+            mp = "Zalando"
+        elif "amazon" in marketplace_match.group(1).strip():
+            mp = "Amazon"
+        elif "la_redoute" in marketplace_match.group(1).strip():
+            mp = "LaRedoute"
+        elif "privalia" in marketplace_match.group(1).strip():
+            mp = "Privalia"
+        elif "venteprivee" in marketplace_match.group(1).strip():
+            mp = "VentePrivee"
+        elif "sarenza" in marketplace_match.group(1).strip():
+            mp = "Sarenza"
+        elif "vertbaudet" in marketplace_match.group(1).strip():
+            mp = "Vertbaudet"
+        elif "miinto" in marketplace_match.group(1).strip():
+            mp = "Miinto"
+        else:
+            mp = marketplace_match.group(1).strip()
+            
+        data['Marketplace'] = mp
+    else:
+        data['Marketplace'] = "N/A"
+
+    # Numero Ordine
+    #order_match = re.search(r"Marketplace order\s*([a-zA-Z0-9-]+)", page_text, re.IGNORECASE)
+    order_match = re.search(r"Marketplace order\s*(.*)\sUbicazioneData vendita", page_text, re.IGNORECASE)
+    
+    if order_match:
+        data['Numero Ordine'] = order_match.group(1).strip()
+    else:
+        data['Numero Ordine'] = "N/A"
+
+    # Data
+    date_match = re.search(r"Data vendita:\s*(\d{2}/\d{2}/\d{4})", page_text)
+    if date_match:
+        data['Data'] = date_match.group(1)
+    else:
+        data['Data'] = "N/A"
+
+    # Nazione
+    #country_match = re.search(r"\n[0-9]{3}.*([A-Z]{2})\s*$", page_text.strip(), re.MULTILINE)
+
+    nazione = None
+    marketplace = marketplace_match.group(1).strip()
+    order = order_match.group(1).strip()
+    if order.startswith("101") or order.startswith("CC16") or order.startswith("DE_") or "DE" in order or "de" in order:
+        nazione = "DE"
+    elif order.startswith("103") or order.startswith("CC15") or order.startswith("FR_") or "FR" in order or "fr" in order:
+        nazione = "FR"
+    elif order.startswith("104") or order.startswith("CC101") or order.startswith("IT_") or "IT" in order or "it" in order:
+        nazione = "IT"
+    elif order.startswith("CC11"):
+        nazione = "WE"
+    elif order.startswith("ES_") or "ES" in order:
+        nazione = "ES"
+    elif order.startswith("BE_"):
+        nazione = "BE"
+    elif order.startswith("NL_"):
+        nazione = "NL"
+    elif order.startswith("SW_"):
+        nazione = "SE"
+    elif "WE" in order:
+        nazione = "WE"
+    elif "GB" in order:
+        nazione = "GB"
+    elif "US" in order:
+        nazione = "US"
+    else:
+        if "DE" in marketplace or "de" in marketplace:
+            nazione = "DE"
+        elif "FR" in marketplace or "fr" in marketplace or "sarenza" in marketplace:
+            nazione = "FR"
+        elif "IT" in marketplace or "it" in marketplace:
+            nazione = "IT"
+        elif "ES" in marketplace or "es" in marketplace:
+            nazione = "ES"
+        else:
+            nazione = "N/A"
+    
+    data['Nazione'] = nazione
+    
+    #if country_match:
+    #    data['Nazione'] = country_match.group(1).strip()
+    #else:
+    #    data['Nazione'] = "N/A"
+    
+    # Articoli, quantità e taglia
+    items = []
+    items_section = re.search(r"Articolo\s+Quantità\s+Descrizione articolo\s+Taglia(.*?)ISTRUZIONI IMBALLO", page_text, re.DOTALL)
+    if not items_section:
+        items_section = re.search(r"Articolo\s+Taglia\s+Quantità\s+Descrizione articolo(.*?)ISTRUZIONI IMBALLO", page_text, re.DOTALL)
+    
+    if items_section:
+        items_text = items_section.group(1).strip()
+        item_lines = items_text.split('\n')
+        for line in item_lines:
+            if line.strip():
+                # Adjusted regex to handle different formats and include size
+                # Case 1: Quantity Code Size Description
+                #item_match = re.search(r"^\s*(\d+)\s+([^\s]+)\s+(\d+)\s+(.*)", line)
+                item_match = re.search(r"^\s*(\d+)\s+001([a-zA-Z0-9]{7})\.([a-zA-Z0-9]{2})\.([a-zA-Z0-9]{4})\s+(\d+)\s+(.*)", line)
+                if item_match:
+                    item_data = {
+                        'quantita': item_match.group(1).strip(),
+                        'codice': item_match.group(2).strip() + item_match.group(3).strip() + item_match.group(4).strip(),
+                        'taglia': item_match.group(5).strip(),
+                        'descrizione': item_match.group(6).strip()
+                    }
+                    items.append(item_data)
+                else:
+                    # Case 2: Code Size Quantity Description
+                    #item_match = re.search(r"^\s*([^\s]+)\s+(\d+)\s+(\d+)\s+(.*)", line)
+                    item_match = re.search(r"^\s*001(.*)\.(.*)\.(.*){4}\s+(\d+)\s+(\d+)\s+(.*)", line)
+                    if item_match:
+                        item_data = {
+                            'codice': item_match.group(1).strip() + item_match.group(2).strip() + item_match.group(3).strip(),
+                            'taglia': item_match.group(4).strip(),
+                            'quantita': item_match.group(5).strip(),
+                            'descrizione': item_match.group(6).strip()
+                        }
+                        items.append(item_data)
+                        
+    data['Articoli'] = items
+    
+    return data
+
+def get_country_from_address(address):
+    """
+    Tenta di estrarre il nome del paese da una stringa di indirizzo utilizzando il geocoding.
+
+    Args:
+        address (str): L'indirizzo da analizzare.
+
+    Returns:
+        str: Il nome del paese o "N/A" se non è stato trovato.
+    """
+    try:
+        # Crea un geocoder con un timeout per evitare che il programma si blocchi
+        geolocator = Nominatim(user_agent="my-app", timeout=5)
+        
+        # Tenta di geocodificare l'indirizzo
+        location = geolocator.geocode(address)
+        
+        if location and location.address:
+            # L'indirizzo geocodificato restituisce una stringa strutturata.
+            # Esempio: 'Via Roma 1, 00100 Roma RM, Italia'
+            # Usiamo una regex per trovare il nome del paese alla fine della stringa.
+            country_match = re.search(r"([^,]+)\s*$", location.address)
+            if country_match:
+                return country_match.group(1)
+        
+    except (GeocoderTimedOut, GeocoderUnavailable) as e:
+        print(f"Errore di geocoding: {e}")
+        
+    return "N/A"
+    
+# ---------------------------
 # 📦 Streamlit UI
 # ---------------------------
 st.set_page_config(page_title="Gestione ECOM", layout="wide")
+
+st.markdown(
+    """
+    <style>
+        section[data-testid="stSidebar"] {
+            width: 300px !important; # Set the width to your desired value
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # 📁 Caricamento dati
 # Sidebar: menu
@@ -1058,14 +1179,22 @@ with st.sidebar:
         st.write(f"Accesso eseguito come: {user["nome"]}")
 
         menu_item_list = [{"name":"Home", "icon":"house", "role":["guest","logistica","customer care","admin"]},
+                          {"name":"Catalogo", "icon":"list", "role":["logistica","customer care","admin"]},
+                          {"name":"Ordini", "icon":"truck", "role":["logistica","customer care","admin"]},
                           {"name":"Descrizioni", "icon":"list", "role":["customer care","admin"]},
                           {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customer care","admin"]},
+                          {"name":"Ferie", "icon":"palm", "role":["admin"]},
                           {"name":"Admin", "icon":"gear", "role":["admin"]},
+                          {"name":"Test", "icon":"gear", "role":["admin"]},
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
                          ]
         
-        submenu_item_list = [{"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
+        submenu_item_list = [{"main":"Catalogo", "name":"Trova articolo", "icon":"search", "role":["logistica","customer care","admin"]},
+                             {"main":"Catalogo", "name":"Aggiungi ordini stagione", "icon":"plus", "role":["logistica","customer care","admin"]},
+                             {"main":"Ordini", "name":"Dashboard", "icon":"bar-chart", "role":["admin"]},
+                             {"main":"Ordini", "name":"Importa", "icon":"plus", "role":["admin"]},
+                             {"main":"Foto", "name":"Gestione", "icon":"gear", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Riscatta SKU", "icon":"repeat", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Aggiungi SKUs", "icon":"plus", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Foto", "name":"Storico", "icon":"book", "role":["guest","logistica","customer care","admin"]},
@@ -1075,6 +1204,8 @@ with st.sidebar:
                              {"main":"Giacenze", "name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
                              {"main":"Giacenze", "name":"Aggiorna anagrafica", "icon":"refresh", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Giacenze", "name":"Old import", "icon":"download", "role":["admin"]},
+                             {"main":"Ferie", "name":"Report", "icon":"list", "role":["admin"]},
+                             {"main":"Ferie", "name":"Aggiungi ferie", "icon":"plus", "role":["admin"]},
                              {"main":"Admin", "name":"Aggiungi utente", "icon":"plus", "role":["admin"]}
                             ]
         
@@ -1510,7 +1641,7 @@ elif page == "Descrizioni":
 elif page == "Foto - Gestione":
     st.header("📸 Gestione Foto")
     tab_names = ["ECOM", "ZFS", "AMAZON"]
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
     
     # 🔽 Caricamento dati con chiave cache dinamica
@@ -1520,16 +1651,47 @@ elif page == "Foto - Gestione":
 
     # 1️⃣ Genero le liste per i fotografi
     df_disp = df[df["DISP"] == True]
+    df_disp_027 = df[df["DISP 027"] == True]
+    df_disp_028 = df[df["DISP 028"] == True]
+    
     #df_disp = df_disp[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y","FOTOGRAFO"]]
     df_disp = df_disp.sort_values(by=["COR", "X", "Y", "LAT"])
+    df_disp_027 = df_disp_027.sort_values(by=["UBI"])
+    df_disp_028 = df_disp_028.sort_values(by=["UBI"])
 
     df_matias = df_disp[df_disp["FOTOGRAFO"] == "MATIAS"]
+    df_matias_027 = df_disp_027[df_disp_027["FOTOGRAFO"] == "MATIAS"]
+    df_matias_028 = df_disp_028[df_disp_028["FOTOGRAFO"] == "MATIAS"]
+    
     df_matteo = df_disp[df_disp["FOTOGRAFO"] == "MATTEO"]
+    df_matteo_027 = df_disp_027[df_disp_027["FOTOGRAFO"] == "MATTEO"]
+    df_matteo_028 = df_disp_028[df_disp_028["FOTOGRAFO"] == "MATTEO"]
+    
 
     df_matias = df_matias[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+    df_matias_027 = df_matias_027[["COD","VAR","COL","TG CAMP","DESCRIZIONE","UBI"]]
+    df_matias_028 = df_matias_028[["COD","VAR","COL","TG CAMP","DESCRIZIONE","UBI"]]
+    
     df_matteo = df_matteo[["COD","VAR","COL","TG PIC","DESCRIZIONE","COR","LAT","X","Y"]]
+    df_matteo_027 = df_matteo_027[["COD","VAR","COL","TG CAMP","DESCRIZIONE","UBI"]]
+    df_matteo_028 = df_matteo_028[["COD","VAR","COL","TG CAMP","DESCRIZIONE","UBI"]]
 
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    # 📊 Riepilogo
+    total = len(df)
+    consegnate = df["CONSEGNATA"].sum()
+    da_scattare = df["SCATTARE"].sum() - consegnate
+    scattate = total - da_scattare
+    #matias = df[df["FOTOGRAFO"] == "MATIAS"].shape[0]
+    matias = df_matias.shape[0]
+    matias_027 = df_matias_027.shape[0]
+    matias_028 = df_matias_028.shape[0]
+    
+    #matteo = df[df["FOTOGRAFO"] == "MATTEO"].shape[0]
+    matteo = df_matteo.shape[0]
+    matteo_027 = df_matteo_027.shape[0]
+    matteo_028 = df_matteo_028.shape[0]
+    
+    col1, col2 = st.columns(2)
     with col1:
         if st.button("📦 Genera lista SKU"):
             try:
@@ -1537,57 +1699,160 @@ elif page == "Foto - Gestione":
                 st.toast("✅ Lista SKU aggiornata!")
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
-    with col3:
-        if df_disp.empty:
-            st.download_button(
-                label="📥 Lista Matias",
-                data=genera_pdf(df_matias),
-                file_name="lista_disp_matias.pdf",
-                mime="application/pdf",
-                disabled=True
-            )
-        else:
-            st.download_button(
-                label="📥 Lista Matias",
-                data=genera_pdf(df_matias),
-                file_name="lista_disp_matias.pdf",
-                mime="application/pdf"
-            )
-    with col4:
-        if df_disp.empty:
-            st.download_button(
-                label="📥 Lista Matteo",
-                data=genera_pdf(df_matteo),
-                file_name="lista_disp_matteo.pdf",
-                mime="application/pdf",
-                disabled=True
-            )
-        else:
-            st.download_button(
-                label="📥 Lista Matteo",
-                data=genera_pdf(df_matteo),
-                file_name="lista_disp_matteo.pdf",
-                mime="application/pdf"
-            )
-    with col6:
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
+            
+    with col2:
+        c1, c2, c3, c4, c5 = st.columns([0.35,1,1,1,1])
+        c2.metric('📝 Totale SKU', total)
+        c3.metric("✅ Già scattate", scattate)
+        c4.metric("🚚 Dal fotografo", consegnate)
+        c5.metric("📸 Da scattare", da_scattare)
+        st.divider()
     
-    # 📊 Riepilogo
-    total = len(df)
-    consegnate = df["CONSEGNATA"].sum()
-    da_scattare = df["SCATTARE"].sum()
-    scattate = total - da_scattare
-    matias = df[df["FOTOGRAFO"] == "MATIAS"].shape[0]
-    matteo = df[df["FOTOGRAFO"] == "MATTEO"].shape[0]
-        
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("📝 Totale SKU", total)
-    c2.metric("✅ Già scattate", scattate)
-    c3.metric("🚚 Dal fotografo", consegnate)
-    c4.metric("📸 Da scattare", da_scattare)
-    c5.metric("Disponibili Matias", matias)
-    c6.metric("Disponibili Matteo", matteo)
+
+    col_dati1, col_dati2, col_dati3 = st.columns(3)
+    with col_dati1:
+        t1, t2, t3 = st.columns(3)
+        with t2:
+            st.subheader("MATIAS")
+
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("ECOM", matias)
+            if df_disp.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matias),
+                    file_name="lista_disp_matias.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="1"
+                )
+            else:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matias),
+                    file_name="lista_disp_matias.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="2"
+                )
+        with m2:
+            st.metric("027", matias_027)
+            if df_disp_027.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matias_027),
+                    file_name="lista_disp_matias_027.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="3"
+                )
+            else:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matias_027),
+                    file_name="lista_disp_matias_027.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="4"
+                )
+        with m3:
+            st.metric("028", matias_028)
+            if df_disp_028.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matias_028),
+                    file_name="lista_disp_matias_028.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="5"
+                )
+            else:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matias_028),
+                    file_name="lista_disp_matias_028.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="6"
+                )
+
+    with col_dati3:
+        t4, t5, t6 = st.columns(3)
+        with t5:
+            st.subheader("MATTEO")
+            
+        m4, m5, m6 = st.columns(3)
+        with m4:
+            m4.metric("ECOM", matteo)
+            if df_disp.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo),
+                    file_name="lista_disp_matteo.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="7"
+                )
+            else:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo),
+                    file_name="lista_disp_matteo.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="8"
+                )
+
+        with m5:
+            m5.metric("027", matteo_027)
+            if df_disp_027.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo_027),
+                    file_name="lista_disp_matteo_027.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="9"
+                )
+            else:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo_027),
+                    file_name="lista_disp_matteo_027.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="10"
+                )
+            
+        with m6:
+            m6.metric("028", matteo_028)
+            if df_disp_028.empty:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo_028),
+                    file_name="lista_disp_matteo_028.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    width="content",
+                    key="11"
+                )
+            else:
+                st.download_button(
+                    label="📥",
+                    data=genera_pdf(df_matteo_028),
+                    file_name="lista_disp_matteo_028.pdf",
+                    mime="application/pdf",
+                    width="content",
+                    key="12"
+                )
     
    
     # 🔽 Filtro visualizzazione
@@ -1632,7 +1897,7 @@ elif page == "Foto - Gestione":
         st.dataframe(df_vista, use_container_width=True)
 
 elif page == "Foto - Riscatta SKU":
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
 
     cache_token = str(st.session_state.get("refresh_foto_token", "static"))
@@ -1739,7 +2004,7 @@ elif page == "Foto - Riscatta SKU":
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
                 
 elif page == "Foto - Aggiungi SKUs":
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     new_sku = st.session_state.get("aggiunta_confermata", set())
 
     cache_token = str(st.session_state.get("refresh_foto_token", "static"))
@@ -1844,14 +2109,15 @@ elif page == "Foto - Aggiungi prelevate":
     st.header("Aggiungi prelevate")
     st.markdown("Aggiungi la lista delle paia prelevate")
     
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "PRELEVATE")
     
     text_input = st.text_area("Lista paia prelevate", height=400, width=800)
     
     if text_input:
         # Regex per SKU: 7 numeri, spazio, 2 numeri, spazio, 4 caratteri alfanumerici
-        pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
+        #pattern = r"\b\d{7} \d{2} [A-Z0-9]{4}\b"
+        pattern = r"\b[0-9a-zA-Z]{7} [0-9a-zA-Z]{2} [0-9a-zA-Z]{4}\b"
         skus_raw = re.findall(pattern, text_input)
     
         # Rimuovi spazi interni e converti in stringa (senza apostrofo per confronto)
@@ -1881,6 +2147,7 @@ elif page == "Foto - Aggiungi prelevate":
 elif page == "Giacenze - Importa":
     st.header("Importa giacenze")
 
+    
     options = ["Manuale", "UBIC", "PIM"]
     
     selected = option_menu(
@@ -1928,7 +2195,7 @@ elif page == "Giacenze - Importa":
             },
         }
     )
-    
+
     st.session_state.selected_option = selected
     nome_file = st.session_state.selected_option
 
@@ -1958,7 +2225,7 @@ elif page == "Giacenze - Importa":
                 
             csv_import = uploaded_file
             file_bytes_for_upload = st.session_state.uploaded_file_bytes
-            manual_nome_file = uploaded_file.name
+            manual_nome_file = uploaded_file.name.upper()
 
     # --- UBIC / PIM ---
     else:
@@ -1986,13 +2253,10 @@ elif page == "Giacenze - Importa":
 
     df_input = st.session_state.df_input
 
-    default_sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    default_sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
-    sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
-    sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
-    sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     if df_input is not None:
         view_df = st.checkbox("Visualizza il dataframe?", value=False)
@@ -2029,9 +2293,24 @@ elif page == "Giacenze - Importa":
         # --- Destinazione GSheet ---       
         with col2:
             if st.button("Importa Giacenze"):
+                sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
+                sheet_upload_pim = get_sheet(sheet_id, "PIM")
+                
                 with st.spinner("Aggiorno giacenze su GSheet..."):
-                    sheet_upload_giacenze.clear()
-                    sheet_upload_giacenze.update("A1", data_to_write)
+                    if nome_file == "UBIC":
+                        sheet_upload_giacenze.clear()
+                        sheet_upload_giacenze.update("A1", data_to_write)
+                    elif nome_file == "PIM":
+                        sheet_upload_pim.clear()
+                        sheet_upload_pim.update("A1", data_to_write)
+                    elif nome_file == "Manuale":
+                        if manual_nome_file == "UBIC.CSV":
+                            sheet_upload_giacenze.clear()
+                            sheet_upload_giacenze.update("A1", data_to_write)
+                        elif manual_nome_file == "PIM.CSV":
+                            sheet_upload_pim.clear()
+                            sheet_upload_pim.update("A1", data_to_write)
+                            
                     last_row = len(df_input) + 1
     
                     ranges_to_format = [
@@ -2041,16 +2320,33 @@ elif page == "Giacenze - Importa":
                     ]
                     format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
                     st.success("✅ Giacenze importate con successo!")
-    
+
                 if nome_file == "Manuale" and file_bytes_for_upload:
                     with st.spinner("Carico il file su DropBox..."):
                         upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
                         
         with col3:
             if st.button("Importa Giacenze & Anagrafica"):
+                sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
+                sheet_upload_pim = get_sheet(sheet_id, "PIM")
+                sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
+                sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
+                
                 with st.spinner("Aggiorno giacenze e anagrafica su GSheet..."):
-                    sheet_upload_giacenze.clear()
-                    sheet_upload_giacenze.update("A1", data_to_write)
+                    if nome_file == "UBIC":
+                        sheet_upload_giacenze.clear()
+                        sheet_upload_giacenze.update("A1", data_to_write)
+                    elif nome_file == "PIM":
+                        sheet_upload_pim.clear()
+                        sheet_upload_pim.update("A1", data_to_write)
+                    elif nome_file == "Manuale":
+                        if manual_nome_file == "UBIC.CSV":
+                            sheet_upload_giacenze.clear()
+                            sheet_upload_giacenze.update("A1", data_to_write)
+                        elif manual_nome_file == "PIM.CSV":
+                            sheet_upload_pim.clear()
+                            sheet_upload_pim.update("A1", data_to_write)
+                            
                     last_row = len(df_input) + 1
     
                     ranges_to_format = [
@@ -2067,9 +2363,18 @@ elif page == "Giacenze - Importa":
                 if nome_file == "Manuale" and file_bytes_for_upload:
                     with st.spinner("Carico il file su DropBox..."):
                         upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
+
+        with col4:
+            if nome_file == "Manuale" and file_bytes_for_upload:
+                if st.button("Carica su DropBox"):
+                    with st.spinner("Carico il file su DropBox..."):
+                        upload_csv_to_dropbox(dbx, folder_path, f"{manual_nome_file}", file_bytes_for_upload)
                     
     with col1:
         if st.button("Importa Anagrafica"):
+            sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
+            sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
+            
             with st.spinner("Aggiorno anagrafica su GSheet..."):
                 sheet_upload_anagrafica.clear()
                 sheet_upload_anagrafica.update("A1", sheet_anagrafica.get_all_values())
@@ -2085,7 +2390,7 @@ elif page == "Giacenze - Per corridoio":
     stagione_default = 1 if mese in [1, 2, 11, 12] else 2
 
     # Recupero worksheet
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     worksheet = get_sheet(sheet_id, "GIACENZE")
 
     # Leggo dati dal foglio
@@ -2242,7 +2547,7 @@ elif page == "Giacenze - Per corridoio/marchio":
     stagione_default = 1 if mese in [1,2,11,12] else 2
 
     # --- Recupero worksheet ---
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     worksheet = get_sheet(sheet_id, "GIACENZE")
     data = worksheet.get_all_values()
     df = pd.DataFrame(data[1:], columns=data[0])
@@ -2383,7 +2688,7 @@ elif page == "Giacenze - Old import":
     st.header("Importa giacenze")
     st.markdown("Importa le giacenze da file CSV.")
     
-    sheet_id = st.secrets["FOTO_GSHEET_ID"]
+    sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(sheet_id, "GIACENZE")
     csv_import = st.file_uploader("Carica un file CSV", type="csv")
     
@@ -2468,3 +2773,261 @@ elif page == "Admin - Aggiungi utente":
         submit = st.form_submit_button("Crea utente")
         if submit:
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
+
+elif page == "Ordini - Dashboard":
+    st.title("Dashboard")
+    sheet_id = st.secrets["APP_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "ORDINI")
+
+    data = sheet.get_all_values()
+    headers = data[0]
+
+    df = pd.DataFrame(data[1:], columns=headers)
+
+    df['Quantita'] = pd.to_numeric(df['Quantita'], errors='coerce')
+    df['Data'] = pd.to_datetime(df['Data'], format="%d/%m/%Y", errors='coerce')
+
+    all_marketplaces = ['Tutti i marketplace'] + list(df['Marketplace'].unique())
+    selected_marketplace = st.selectbox('Seleziona Marketplace', all_marketplaces)
+
+    all_countries = ['Tutte le nazioni'] + list(df['Nazione'].unique())
+    selected_country = st.selectbox('Seleziona Nazione', all_countries)
+
+    filtered_df = df.copy()
+    if selected_marketplace != 'Tutti i marketplace':
+        filtered_df = filtered_df[filtered_df['Marketplace'] == selected_marketplace]
+    if selected_country != 'Tutte le nazioni':
+        filtered_df = filtered_df[filtered_df['Nazione'] == selected_country]
+
+    view_df = st.checkbox("Visualizza dataframe?", value=False)
+    if view_df:
+        st.dataframe(filtered_df)
+
+    # ---
+    st.subheader("Riepilogo Dati")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    total_orders = filtered_df['Numero Ordine'].nunique()
+    col1.metric("Ordini Analizzati", total_orders)
+
+    total_items = filtered_df['Quantita'].sum()
+    col2.metric("Articoli Totali Venduti", total_items)
+    
+    unique_marketplaces = filtered_df['Marketplace'].nunique()
+    col3.metric("Marketplace Unici", unique_marketplaces)
+
+    # ---
+    st.subheader("Analisi Visuale")
+    
+    st.markdown("Quantità venduta per Marketplace")
+    market_sales = filtered_df.groupby('Marketplace')['Quantita'].sum().reset_index()
+    st.bar_chart(market_sales, x='Marketplace', y='Quantita')
+
+    st.markdown("Quantità venduta per Nazione")
+    country_sales = filtered_df.groupby('Nazione')['Quantita'].sum().reset_index()
+    st.bar_chart(country_sales, x='Nazione', y='Quantita')
+    
+
+elif page == "Ordini - Importa":
+    st.title("Dashboard - Analizza PDF")
+    st.write("Carica un PDF con gli ordini (1 ordine per pagina) per estrarre le informazioni.")
+
+    sheet_id = st.secrets["APP_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "ORDINI")
+
+    uploaded_files = st.file_uploader("Scegli un file PDF", type="pdf", accept_multiple_files=True)
+
+    all_orders_data = []
+    if uploaded_files:
+        with st.spinner("Analizzando i PDF..."):
+            all_orders_data = []
+
+            for uploaded_file in uploaded_files:
+                reader = PyPDF2.PdfReader(uploaded_file)
+                for i, page in enumerate(reader.pages):
+                    page_text = page.extract_text()
+                    if page_text:
+                        order_data = extract_data_from_page(page_text)
+                        if order_data['Articoli']:
+                            for item in order_data['Articoli']:
+                                all_orders_data.append({
+                                    'Numero Ordine': order_data['Numero Ordine'],
+                                    'Marketplace': order_data['Marketplace'],
+                                    'Data': order_data['Data'],
+                                    'Nazione': order_data['Nazione'],
+                                    'Codice': item['codice'],
+                                    'Taglia': item['taglia'],
+                                    'Quantita': item['quantita'],
+                                    'Descrizione': item['descrizione']
+                                })
+    
+        df = pd.DataFrame(all_orders_data)
+        st.write(len(all_orders_data))
+        ordine_colonne = ["Data", "Marketplace", "Nazione", "Numero Ordine", "Codice", "Taglia", "Quantita"]
+        
+        
+        col1, col2, col3 = st.columns(3)
+        
+        total_orders = df['Numero Ordine'].nunique()
+        col1.metric("Ordini Analizzati", total_orders)
+    
+        df['Quantita'] = pd.to_numeric(df['Quantita'], errors="coerce")
+        total_items = df['Quantita'].sum()
+        col2.metric("Articoli Totali Venduti", total_items)
+        
+        unique_marketplaces = df['Marketplace'].nunique()
+        col3.metric("Marketplace Unici", unique_marketplaces)
+
+        data = df[ordine_colonne].values.tolist()
+        if st.button("Carica su gsheet"):
+            sheet.append_rows(data, value_input_option="RAW")
+
+elif page == "Catalogo - Trova articolo":
+    st.write("trova articolo")
+
+elif page == "Catalogo - Aggiungi ordini stagione":
+    st.title("Aggiungi ordini di stagione")
+    st.write("Carica un CSV con gli ordini")
+
+    uploaded_files = st.file_uploader("Aggiungi i files CSV", type=["csv"], accept_multiple_files=True)
+
+    ecom = []
+    zfs = []
+    amazon = []
+    if uploaded_files:
+        for file in uploaded_files:
+            csv = read_csv_auto_encoding(file, separatore=",")
+            data = pd.DataFrame(csv)
+            data = data[1:]
+
+            if data["COD.CLIENTI"] == "0019243.016":
+                ecom.append(data)
+            elif  data["COD.CLIENTI"] == "0039632":
+                zfs.append(data)
+            elif  data["COD.CLIENTI"] == "0034630":
+                amazon.append(data)
+
+    st.write(ecom)
+    st.write(zfs)
+    st.write(amazon)
+
+elif page == "Ferie - Aggiungi ferie":
+    st.header("Aggiungi ferie")
+    
+    sheet_id = st.secrets["APP_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "FERIE")
+
+    ferie_esistenti = sheet.get_all_values()
+    users_list = supabase.table("profiles").select("*").execute().data
+    utenti = [f"{u['nome']} {u['cognome']}" for u in users_list]
+    id_mappa = {f"{u['nome']} {u['cognome']}": u["user_id"] for u in users_list}
+
+    
+    oggi = datetime.now().date()
+    utente_selezionato = st.selectbox("Seleziona utente", utenti)
+    data_inizio = st.date_input("Data inizio", oggi)
+    data_fine = st.date_input(
+        "Data fine", 
+        value=max(data_inizio, oggi), 
+        min_value=data_inizio
+    )
+    motivazione = st.text_input("Motivazione")
+
+    if st.button("Aggiungi ferie"):
+        data = [utente_selezionato, data_inizio.strftime('%d/%m/%Y'), data_fine.strftime('%d/%m/%Y'), motivazione]
+        sheet.append_row(data, value_input_option="USER_ENTERED")
+
+elif page == "Ferie - Report":
+    st.header("📅 Report ferie settimanale")
+
+    # 1. Leggi dati ferie da GSheet
+    sheet_id = st.secrets["APP_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "FERIE")
+    ferie_data = sheet.get_all_values()
+    ferie_df = pd.DataFrame(
+        ferie_data[1:], columns=ferie_data[0]
+    ) if len(ferie_data) > 1 else pd.DataFrame(columns=["NOME", "DATA INIZIO", "DATA FINE", "MOTIVO"])
+
+    # 2. Selettore giorno iniziale
+    today = datetime.now().date()
+    start_date = st.date_input("Seleziona il giorno di inizio settimana", value=today)
+    days_of_week = [start_date + timedelta(days=i) for i in range(7)]
+
+    # Mappa abbreviata giorni in italiano
+    giorni_settimana_it = {
+        "Mon": "Lun",
+        "Tue": "Mar",
+        "Wed": "Mer",
+        "Thu": "Gio",
+        "Fri": "Ven",
+        "Sat": "Sab",
+        "Sun": "Dom"
+    }
+    days_labels = [giorni_settimana_it[day.strftime("%a")] + day.strftime(" %d/%m") for day in days_of_week]
+
+    # 3. Prepara lista utenti
+    users_list = supabase.table("profiles").select("*").execute().data
+    utenti = sorted([f"{u['nome']} {u['cognome']}" for u in users_list])
+
+    # 4. Costruisci matrice ferie (utente x giorno)
+    ferie_matrix = []
+    for utente in utenti:
+        row = []
+        ferie_utente = ferie_df[ferie_df["NOME"] == utente]
+        ferie_utente = ferie_utente.copy()
+        for idx, r in ferie_utente.iterrows():
+            try:
+                ferie_utente.at[idx, "DATA INIZIO"] = datetime.strptime(r["DATA INIZIO"], "%d/%m/%Y").date()
+                ferie_utente.at[idx, "DATA FINE"] = datetime.strptime(r["DATA FINE"], "%d/%m/%Y").date()
+            except Exception:
+                ferie_utente.at[idx, "DATA INIZIO"] = None
+                ferie_utente.at[idx, "DATA FINE"] = None
+
+        for giorno in days_of_week:
+            in_ferie = False
+            motivo = ""
+            for _, r in ferie_utente.iterrows():
+                if r["DATA INIZIO"] and r["DATA FINE"] and r["DATA INIZIO"] <= giorno <= r["DATA FINE"]:
+                    in_ferie = True
+                    motivo = r.get("MOTIVO", "")
+            if in_ferie:
+                if motivo == "Malattia":
+                    row.append("🇨🇭" + (f" {motivo}" if motivo else ""))
+                else:
+                    row.append("🌴" + (f" {motivo}" if motivo else ""))
+            else:
+                row.append("")
+        ferie_matrix.append(row)
+
+    # 5. Visualizza tabella con celle evidenziate e centrata
+    ferie_report_df = pd.DataFrame(ferie_matrix, columns=days_labels, index=utenti)
+
+    def evidenzia_ferie(val):
+        if isinstance(val, str) and val.startswith("🌴"):
+            return 'background-color: #E6F7DD; text-align: center;'
+        elif isinstance(val, str) and val.startswith("🇨🇭"):
+            return 'background-color: #FFA1A1; text-align: center;'
+        return 'text-align: center;'
+
+    ferie_report_df_styled = (
+        ferie_report_df
+        .style
+        .applymap(evidenzia_ferie)
+        .set_table_styles([
+            {"selector": "th", "props": [("font-weight", "normal"), ("text-align", "center")]},
+            {"selector": "td", "props": [("text-align", "center")]}
+        ])
+        .set_properties(**{"text-align": "center"})
+    )
+
+    st.markdown("""
+        <style>
+            .streamlit-expander, .block-container, table {
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(ferie_report_df_styled.to_html(escape=False), unsafe_allow_html=True)
