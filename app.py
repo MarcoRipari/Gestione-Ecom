@@ -2997,6 +2997,13 @@ elif page == "Ferie - Report":
                 row.append("")
         ferie_matrix.append(row)
 
-    # 5. Visualizza tabella
+    # 5. Visualizza tabella con celle evidenziate se in ferie
     ferie_report_df = pd.DataFrame(ferie_matrix, columns=days_labels, index=utenti)
-    st.dataframe(ferie_report_df, use_container_width=True)
+
+    def evidenzia_ferie(val):
+        if isinstance(val, str) and val.startswith("🌴"):
+            return 'background-color: #E6F7DD'  # verde chiaro
+        return ''
+
+    ferie_report_df_styled = ferie_report_df.style.applymap(evidenzia_ferie)
+    st.markdown(ferie_report_df_styled.to_html(escape=False), unsafe_allow_html=True)
