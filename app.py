@@ -2918,7 +2918,8 @@ elif page == "Test":
     utenti = [f"{u['nome']} {u['cognome']}" for u in users_list]
     id_mappa = {f"{u['nome']} {u['cognome']}": u["user_id"] for u in users_list}
 
+    oggi = datetime.now().date()
     utente_selezionato = st.selectbox("Seleziona utente", utenti)
-    data_inizio = st.date_input("Data inizio", date.today())
-    data_fine = st.date_input("Data fine", date.today())
+    data_inizio = st.date_input("Data inizio", oggi)
+    data_fine = st.date_input("Data fine", oggi)
     motivazione = st.text_input("Motivazione")
