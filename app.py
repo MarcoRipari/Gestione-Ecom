@@ -1184,6 +1184,7 @@ with st.sidebar:
                           {"name":"Descrizioni", "icon":"list", "role":["customer care","admin"]},
                           {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customer care","admin"]},
+                          {"name":"Ferie", "icon":"palm", "role":["admin"]},
                           {"name":"Admin", "icon":"gear", "role":["admin"]},
                           {"name":"Test", "icon":"gear", "role":["admin"]},
                           {"name":"Logout", "icon":"key", "role":["guest","logistica","customer care","admin"]}
@@ -1203,6 +1204,8 @@ with st.sidebar:
                              {"main":"Giacenze", "name":"Per corridoio/marchio", "icon":"2-circle", "role":["guest","logistica","admin"]},
                              {"main":"Giacenze", "name":"Aggiorna anagrafica", "icon":"refresh", "role":["guest","logistica","customer care","admin"]},
                              {"main":"Giacenze", "name":"Old import", "icon":"download", "role":["admin"]},
+                             {"main":"Ferie", "name":"Report", "icon":"list", "role":["admin"]},
+                             {"main":"Ferie", "name":"Aggiungi ferie", "icon":"plus", "role":["admin"]},
                              {"main":"Admin", "name":"Aggiungi utente", "icon":"plus", "role":["admin"]}
                             ]
         
@@ -2909,7 +2912,7 @@ elif page == "Catalogo - Aggiungi ordini stagione":
     st.write(zfs)
     st.write(amazon)
 
-elif page == "Test":
+elif page == "Ferie - Aggiungi ferie":
     st.header("Aggiungi ferie")
     
     sheet_id = st.secrets["APP_GSHEET_ID"]
@@ -2935,3 +2938,55 @@ elif page == "Test":
         data = [utente_selezionato, data_inizio.strftime('%d/%m/%Y'), data_fine.strftime('%d/%m/%Y'), motivazione]
         st.write(data)
         sheet.append_row(data, value_input_option="USER_ENTERED")
+
+elif page == "Ferie - Report":
+    st.header("📅 Report ferie settimanale")
+    
+    # 1. Leggi dati ferie da GSheet
+    sheet_id = st.secrets["APP_GSHEET_ID"]
+    sheet = get_sheet(sheet_id, "FERIE")
+    ferie_data = sheet.get_all_values()
+    ferie_df = pd.DataFrame(ferie_data[1:], columns=ferie_data[0]) if len(ferie_data) > 1 else pd.DataFrame(columns=["Utente", "Data inizio", "Data fine", "Motivazione"])
+    
+    # 2. Selettore settimana (scegli il lunedì)
+    today = datetime.now().date()
+    monday = today - timedelta(days=today.weekday())
+    selected_monday = st.date_input("Scegli il lunedì della settimana", value=monday)
+    days_of_week = [selected_monday + timedelta(days=i) for i in range(7)]
+    days_labels = [day.strftime("%a %d/%m") for day in days_of_week]
+    
+    # 3. Prepara lista utenti
+    users_list = supabase.table("profiles").select("*").execute().data
+    utenti = sorted([f"{u['nome']} {u['cognome']}" for u in users_list])
+    
+    # 4. Costruisci matrice ferie (utente x giorno)
+    ferie_matrix = []
+    for utente in utenti:
+        row = []
+        ferie_utente = ferie_df[ferie_df["Utente"] == utente]
+        # Rendi le date oggetti datetime.date
+        ferie_utente = ferie_utente.copy()
+        for idx, r in ferie_utente.iterrows():
+            try:
+                ferie_utente.at[idx, "Data inizio"] = datetime.strptime(r["Data inizio"], "%d/%m/%Y").date()
+                ferie_utente.at[idx, "Data fine"] = datetime.strptime(r["Data fine"], "%d/%m/%Y").date()
+            except Exception:
+                ferie_utente.at[idx, "Data inizio"] = None
+                ferie_utente.at[idx, "Data fine"] = None
+
+        for giorno in days_of_week:
+            in_ferie = False
+            motivazione = ""
+            for _, r in ferie_utente.iterrows():
+                if r["Data inizio"] and r["Data fine"] and r["Data inizio"] <= giorno <= r["Data fine"]:
+                    in_ferie = True
+                    motivazione = r.get("Motivazione", "")
+            if in_ferie:
+                row.append("🌴" + (f" ({motivazione})" if motivazione else ""))
+            else:
+                row.append("")
+        ferie_matrix.append(row)
+    
+    # 5. Visualizza tabella
+    ferie_report_df = pd.DataFrame(ferie_matrix, columns=days_labels, index=utenti)
+    st.dataframe(ferie_report_df, use_container_width=True)
