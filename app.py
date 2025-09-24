@@ -3003,9 +3003,12 @@ elif page == "Ferie - Report":
     # 5. Visualizza tabella con celle evidenziate se in ferie
     ferie_report_df = pd.DataFrame(ferie_matrix, columns=days_labels, index=utenti)
 
-    def evidenzia_ferie(val):
+    def evidenzia_ferie(val, motivo):
         if isinstance(val, str) and val.startswith("🌴"):
-            return 'background-color: #E6F7DD'  # verde chiaro
+            if motivo == "Malattia":
+                return 'background-color: #FFA1A1'  # rosso chiaro
+            else:
+                return 'background-color: #E6F7DD'  # verde chiaro
         return ''
 
     ferie_report_df_styled = ferie_report_df.style.applymap(evidenzia_ferie)
