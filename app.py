@@ -2926,4 +2926,5 @@ elif page == "Test":
 
     if st.button("Aggiungi ferie"):
         data = [utente_selezionato, data_inizio, data_fine, motivazione]
-        sheet.append_row("ciao", value_input_option="USER_ENTERED")
+        st.write(data)
+        sheet.append_row(data, value_input_option="USER_ENTERED")
