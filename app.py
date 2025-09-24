@@ -2993,9 +2993,9 @@ elif page == "Ferie - Report":
                     motivo = r.get("MOTIVO", "")
             if in_ferie:
                 if motivo == "Malattia":
-                    row.append("🇨🇭" + (f" ({motivo})" if motivo else ""))
+                    row.append("🇨🇭" + (f" {motivo}" if motivo else ""))
                 else:
-                    row.append("🌴" + (f" ({motivo})" if motivo else ""))
+                    row.append("🌴" + (f" {motivo}" if motivo else ""))
             else:
                 row.append("")
         ferie_matrix.append(row)
