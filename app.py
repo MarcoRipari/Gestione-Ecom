@@ -2916,7 +2916,7 @@ elif page == "Test":
     ferie_esistenti = sheet.get_all_values()
     if len(ferie_esistenti) > 0:
         headers = ferie_esistenti[0]
-        ferie_esistenti = pd.DataFrame(ferie_esistenti[1:], headers=headers)
+        ferie_esistenti = pd.DataFrame(ferie_esistenti, headers=headers)
     else:
         ferie_esistenti = pd.DataFrame(ferie_esistenti)
         
