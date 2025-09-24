@@ -2914,6 +2914,11 @@ elif page == "Test":
     sheet = get_sheet(sheet_id, "FERIE")
 
     ferie_esistenti = sheet.get_all_values()
-    utenti = [f"{u['nome']} {u['cognome']}" for u in supabase.table("profiles").select("*").execute().data]
-    
-    st.write(utenti)
+    users_list = supabase.table("profiles").select("*").execute().data
+    utenti = [f"{u['nome']} {u['cognome']}" for u in users_list]
+    id_mappa = {f"{u['nome']} {u['cognome']}": u["id"] for u in users_list}
+
+    utente_selezionato = st.selectbox("Seleziona utente", utenti)
+    data_inizio = st.date_input("Data inizio", date.today())
+    data_fine = st.date_input("Data fine", date.today())
+    motivazione = st.text_input("Motivazione")
