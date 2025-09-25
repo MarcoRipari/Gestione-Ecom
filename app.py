@@ -2763,17 +2763,23 @@ elif page == "Admin - Aggiungi utente":
     st.markdown("Crea un nuovo utente nella tabella Supabase.")
 
     with st.form("register_form"):
-        nome = st.text_input("Nome")
-        cognome = st.text_input("Cognome")
-        username = st.text_input("Username")
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
-        role = st.selectbox("Ruolo",["Guest","Logistica","Customer Care","Admin"])
+        nome = st.text_input("Nome", key="nome")
+        cognome = st.text_input("Cognome", key="cognome")
+        username = st.text_input("Username", key="username")
+        email = st.text_input("Email", key="email")
+        password = st.text_input("Password", type="password", key="password")
+        role = st.selectbox("Ruolo",["Guest","Logistica","Customer Care","Admin"], key="role")
         #username = nome + " " + cognome
         
         submit = st.form_submit_button("Crea utente")
         if submit:
             register_user(email, password, nome=nome, cognome=cognome, username=username, role=role.lower())
+            st.session_state.nome = ""
+            st.session_state.cognome = ""
+            st.session_state.username = ""
+            st.session_state.email = ""
+            st.session_state.password = ""
+            st.session_state.role = "Guest"
 
 elif page == "Ordini - Dashboard":
     st.title("Dashboard")
