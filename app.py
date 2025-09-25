@@ -2765,10 +2765,11 @@ elif page == "Admin - Aggiungi utente":
     with st.form("register_form"):
         nome = st.text_input("Nome")
         cognome = st.text_input("Cognome")
+        username = st.text_input("Username")
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
         role = st.selectbox("Ruolo",["Guest","Logistica","Customer Care","Admin"])
-        username = nome + " " + cognome
+        #username = nome + " " + cognome
         
         submit = st.form_submit_button("Crea utente")
         if submit:
