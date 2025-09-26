@@ -1288,8 +1288,8 @@ with st.sidebar:
 # 🏠 HOME
 # ---------------------------
 if page == "Home":
-    st.header("Homepage")
-    #pages.homepage.view()
+    #st.header("Homepage")
+    viste.homepage.view()
 
 # ---------------------------
 # 🏠 LOGIN
