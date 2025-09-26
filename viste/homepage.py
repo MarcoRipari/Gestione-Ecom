@@ -3,7 +3,7 @@ import streamlit as st
 
 def view():
     """Disegna la homepage"""
-    st.title("🏠 Benvenuto nella HomePage")
+    st.title("🏠 Benvenuto nella HomePage2")
     col1, col2, col3 = st.columns(3)
 
     with col1:
