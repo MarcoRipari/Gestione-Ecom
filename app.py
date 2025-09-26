@@ -60,7 +60,7 @@ import pdfplumber
 import PyPDF2
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
-import pages
+import viste
 
 logging.basicConfig(level=logging.INFO)
 
