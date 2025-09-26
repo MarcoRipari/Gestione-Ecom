@@ -1,6 +1,6 @@
 import streamlit as st
 
-def view():
+def view2():
     """Disegna la homepage"""
     st.title("🏠 Benvenuto nella HomePage")
     col1, col2, col3 = st.columns(3)
