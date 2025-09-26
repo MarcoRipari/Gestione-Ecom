@@ -1,3 +1,5 @@
+import streamlit as st
+
 def view():
     """Disegna la homepage"""
     st.title("🏠 Benvenuto nella HomePage")
