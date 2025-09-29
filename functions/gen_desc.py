@@ -11,6 +11,7 @@ LANG_NAMES = {
 }
 LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 
+selected_tones = []
 
 # ---------------------------
 # 📦 Embedding & FAISS Setup
