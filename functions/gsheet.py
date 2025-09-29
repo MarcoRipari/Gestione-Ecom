@@ -1,3 +1,4 @@
+import streamlit as st
 from google.oauth2 import service_account
 import gspread
 from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
@@ -8,7 +9,6 @@ from gspread.utils import rowcol_to_a1
 # ---------------------------
 # 📊 Google Sheets
 # ---------------------------
-
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["GCP_SERVICE_ACCOUNT"],
     scopes=[
