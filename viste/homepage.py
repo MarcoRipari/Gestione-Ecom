@@ -2,6 +2,10 @@
 import streamlit as st
 
 def view():
+    ferie = get_sheet(ferie_sheet_id, "FERIE").get_all_values()
+    for row in ferie:
+        st.write(row)
+    
     """Disegna la homepage"""
     st.title("🏠 Benvenuto nella HomePage2")
     col1, col2, col3 = st.columns(3)
