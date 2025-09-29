@@ -71,13 +71,6 @@ foto_sheet_id = st.secrets['FOTO_GSHEET_ID']
 anagrafica_sheet_id = st.secrets['ANAGRAFICA_GSHEET_ID']
 ferie_sheet_id = st.secrets['FERIE_GSHEET_ID']
 
-supabase_url = st.secrets["SUPABASE_URL"]
-supabase_key = st.secrets["SUPABASE_KEY"]
-service_role_key = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
-supabase: Client = create_client(supabase_url, supabase_key)
-supabase_admin = create_client(supabase_url, service_role_key)
-
-
 # ---------------------------
 # 🔐 Setup API keys and credentials
 # ---------------------------
