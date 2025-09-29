@@ -51,7 +51,6 @@ from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 import viste
 from functions.gsheet import *
 from functions.supabase import *
-from functions.login import *
 from functions.auth_system import *
 
 logging.basicConfig(level=logging.INFO)
