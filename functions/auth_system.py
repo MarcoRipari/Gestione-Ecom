@@ -1,5 +1,5 @@
 import streamlit as st
-from . import supabase
+from . import supabase as sp
 
 def login(username: str, password: str) -> bool:
     try:
