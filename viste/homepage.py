@@ -5,7 +5,7 @@ def view():
     ferie = functions.gsheet.get_sheet(st.secrets["FERIE_GSHEET_ID"], "FERIE").get_all_values()
     in_ferie = []
     for row in ferie[1:]:
-        st.write(row)
+        in_ferie.append(row[0])
     
     """Disegna la homepage"""
     st.title("🏠 Benvenuto nella HomePage2")
@@ -23,6 +23,7 @@ def view():
 
     with col3:
         st.subheader("🌴 Ferie oggi")
-        ferie_oggi = ["Mario Rossi", "Anna Bianchi"]
+        #ferie_oggi = ["Mario Rossi", "Anna Bianchi"]
+        ferie_oggi = in_ferie.unique()
         for nome in ferie_oggi:
             st.write(f"• {nome}")
