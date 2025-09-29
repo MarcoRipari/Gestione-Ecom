@@ -50,9 +50,7 @@ import PyPDF2
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 import viste
-import functions
-
-functions.gsheet
+import functions.gsheet
 
 logging.basicConfig(level=logging.INFO)
 
