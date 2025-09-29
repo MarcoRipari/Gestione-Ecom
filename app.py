@@ -1327,7 +1327,7 @@ if page == "🔑 Login":
 # ---------------------------
 elif page == "Descrizioni":
     st.header("📥 Caricamento CSV dei prodotti")
-    sheet_id = st.secrets["DESC_GSHEET_ID"]
+    
     uploaded = st.file_uploader("Carica un file CSV", type="csv")
     
     if uploaded:
@@ -1466,7 +1466,7 @@ elif page == "Descrizioni":
                 try:
                     with st.spinner("📚 Carico storico e indice FAISS..."):
                         tab_storico = f"STORICO_{marchio}"
-                        data_sheet = get_sheet(sheet_id, tab_storico)
+                        data_sheet = get_sheet(desc_sheet_id, tab_storico)
                         df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
             
                         if "faiss_index" not in st.session_state:
@@ -1483,7 +1483,7 @@ elif page == "Descrizioni":
             
                     for lang in selected_langs:
                         try:
-                            tab_df = pd.DataFrame(get_sheet(sheet_id, lang).get_all_records())
+                            tab_df = pd.DataFrame(get_sheet(desc_sheet_id, lang).get_all_records())
                             tab_df = tab_df[["SKU", "Description", "Description2"]].dropna(subset=["SKU"])
                             tab_df["SKU"] = tab_df["SKU"].astype(str)
                             existing_data[lang] = tab_df.set_index("SKU")
@@ -1580,9 +1580,9 @@ elif page == "Descrizioni":
                             df_out = pd.DataFrame(all_outputs[lang])
                             df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
                             if not df_new.empty:
-                                append_to_sheet(sheet_id, lang, df_new)
+                                append_to_sheet(desc_sheet_id, lang, df_new)
                         for log in logs:
-                            append_log(sheet_id, log)
+                            append_log(desc_sheet_id, log)
             
                     # 📦 ZIP finale
                     with st.spinner("📦 Generazione ZIP..."):
@@ -1616,7 +1616,7 @@ elif page == "Descrizioni":
                     try:
                         if sheet_id:
                             tab_storico = f"STORICO_{marchio}"
-                            data_sheet = get_sheet(sheet_id, tab_storico)
+                            data_sheet = get_sheet(desc_sheet_id, tab_storico)
                             df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
                             if "faiss_index" not in st.session_state:
                                 index, index_df = build_faiss_index(df_storico, st.session_state.col_weights)
@@ -1647,7 +1647,7 @@ elif page == "Descrizioni":
 elif page == "Foto - Gestione":
     st.header("📸 Gestione Foto")
     tab_names = ["ECOM", "ZFS", "AMAZON"]
-    sheet_id = st.secrets["APP_GSHEET_ID"]
+
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
     
     # 🔽 Caricamento dati con chiave cache dinamica
@@ -1903,7 +1903,6 @@ elif page == "Foto - Gestione":
         st.dataframe(df_vista, use_container_width=True)
 
 elif page == "Foto - Riscatta SKU":
-    sheet_id = st.secrets["APP_GSHEET_ID"]
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
 
     cache_token = str(st.session_state.get("refresh_foto_token", "static"))
@@ -2010,7 +2009,6 @@ elif page == "Foto - Riscatta SKU":
                 st.error(f"❌ Errore aggiornamento: {str(e)}")
                 
 elif page == "Foto - Aggiungi SKUs":
-    sheet_id = st.secrets["APP_GSHEET_ID"]
     new_sku = st.session_state.get("aggiunta_confermata", set())
 
     cache_token = str(st.session_state.get("refresh_foto_token", "static"))
@@ -2115,7 +2113,6 @@ elif page == "Foto - Aggiungi prelevate":
     st.header("Aggiungi prelevate")
     st.markdown("Aggiungi la lista delle paia prelevate")
     
-    sheet_id = st.secrets["APP_GSHEET_ID"]
     sheet = get_sheet(foto_sheet_id, "PRELEVATE")
     
     text_input = st.text_area("Lista paia prelevate", height=400, width=800)
@@ -2259,8 +2256,8 @@ elif page == "Giacenze - Importa":
 
     df_input = st.session_state.df_input
 
-    default_sheet_id = st.secrets["APP_GSHEET_ID"]
-    sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
+    default_sheet_id = foto_sheet_id
+    selected_sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -2299,8 +2296,8 @@ elif page == "Giacenze - Importa":
         # --- Destinazione GSheet ---       
         with col2:
             if st.button("Importa Giacenze"):
-                sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
-                sheet_upload_pim = get_sheet(sheet_id, "PIM")
+                sheet_upload_giacenze = get_sheet(selected_sheet_id, "GIACENZE")
+                sheet_upload_pim = get_sheet(selected_sheet_id, "PIM")
                 
                 with st.spinner("Aggiorno giacenze su GSheet..."):
                     if nome_file == "UBIC":
@@ -2333,10 +2330,10 @@ elif page == "Giacenze - Importa":
                         
         with col3:
             if st.button("Importa Giacenze & Anagrafica"):
-                sheet_upload_giacenze = get_sheet(sheet_id, "GIACENZE")
-                sheet_upload_pim = get_sheet(sheet_id, "PIM")
-                sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
-                sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
+                sheet_upload_giacenze = get_sheet(selected_sheet_id, "GIACENZE")
+                sheet_upload_pim = get_sheet(selected_sheet_id, "PIM")
+                sheet_upload_anagrafica = get_sheet(selected_sheet_id, "ANAGRAFICA")
+                sheet_anagrafica = get_sheet(anagrafica_sheet_id, "ANAGRAFICA")
                 
                 with st.spinner("Aggiorno giacenze e anagrafica su GSheet..."):
                     if nome_file == "UBIC":
@@ -2378,8 +2375,8 @@ elif page == "Giacenze - Importa":
                     
     with col1:
         if st.button("Importa Anagrafica"):
-            sheet_upload_anagrafica = get_sheet(sheet_id, "ANAGRAFICA")
-            sheet_anagrafica = get_sheet(st.secrets["ANAGRAFICA_GSHEET_ID"], "ANAGRAFICA")
+            sheet_upload_anagrafica = get_sheet(selected_sheet_id, "ANAGRAFICA")
+            sheet_anagrafica = get_sheet(anagrafica_sheet_id, "ANAGRAFICA")
             
             with st.spinner("Aggiorno anagrafica su GSheet..."):
                 sheet_upload_anagrafica.clear()
@@ -2676,8 +2673,7 @@ elif page == "Giacenze - Per corridoio/marchio":
 elif page == "Giacenze - Aggiorna anagrafica":
     st.header("Aggiorna anagrafica da CSV")
 
-    sheet_id = st.secrets["ANAGRAFICA_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "DATA")
+    sheet = get_sheet(anagrafica_sheet_id, "DATA")
     
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
     
@@ -2783,8 +2779,7 @@ elif page == "Admin - Aggiungi utente":
 
 elif page == "Ordini - Dashboard":
     st.title("Dashboard")
-    sheet_id = st.secrets["APP_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "ORDINI")
+    sheet = get_sheet(ordini_sheet_id, "ORDINI")
 
     data = sheet.get_all_values()
     headers = data[0]
@@ -2840,8 +2835,7 @@ elif page == "Ordini - Importa":
     st.title("Dashboard - Analizza PDF")
     st.write("Carica un PDF con gli ordini (1 ordine per pagina) per estrarre le informazioni.")
 
-    sheet_id = st.secrets["APP_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "ORDINI")
+    sheet = get_sheet(ordini_sheet_id, "ORDINI")
 
     uploaded_files = st.file_uploader("Scegli un file PDF", type="pdf", accept_multiple_files=True)
 
@@ -2922,8 +2916,7 @@ elif page == "Catalogo - Aggiungi ordini stagione":
 elif page == "Ferie - Aggiungi ferie":
     st.header("Aggiungi ferie")
     
-    sheet_id = st.secrets["APP_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "FERIE")
+    sheet = get_sheet(ferie_sheet_id, "FERIE")
 
     ferie_esistenti = sheet.get_all_values()
     users_list = supabase.table("profiles").select("*").execute().data
@@ -2949,8 +2942,7 @@ elif page == "Ferie - Report":
     st.header("📅 Report ferie settimanale")
 
     # 1. Leggi dati ferie da GSheet
-    sheet_id = st.secrets["APP_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "FERIE")
+    sheet = get_sheet(ferie_sheet_id, "FERIE")
     ferie_data = sheet.get_all_values()
     ferie_df = pd.DataFrame(
         ferie_data[1:], columns=ferie_data[0]
