@@ -44,13 +44,13 @@ from dateutil import parser
 from dateutil.tz import tzlocal
 import locale
 from zoneinfo import ZoneInfo
-from supabase import create_client, Client
 import pdfplumber
 import PyPDF2
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 import viste
 from functions.gsheet import *
+from functions.supabase import *
 
 logging.basicConfig(level=logging.INFO)
 
@@ -89,12 +89,6 @@ def check_openai_key():
 # ---------------------------
 # Auth system
 # ---------------------------
-supabase_url = st.secrets["SUPABASE_URL"]
-supabase_key = st.secrets["SUPABASE_KEY"]
-service_role_key = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
-supabase: Client = create_client(supabase_url, supabase_key)
-supabase_admin = create_client(supabase_url, service_role_key)
-
 def login(username: str, password: str) -> bool:
     try:
         # 1. Recupera il profilo dallo username
