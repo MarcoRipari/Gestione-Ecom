@@ -2,7 +2,7 @@
 import streamlit as st
 
 def view():
-    ferie = get_sheet(ferie_sheet_id, "FERIE").get_all_values()
+    ferie = functions.gsheet.get_sheet(ferie_sheet_id, "FERIE").get_all_values()
     for row in ferie:
         st.write(row)
     
