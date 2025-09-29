@@ -34,16 +34,11 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
-from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
-import gspread.utils
-import re
+import ree
 from st_aggrid import AgGrid, GridOptionsBuilder
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from reportlab.lib.pagesizes import landscape
 import html
-from pydrive2.auth import GoogleAuth
-from pydrive2.drive import GoogleDrive
-from googleapiclient.discovery import build
 import io
 from dateutil import parser
 from dateutil.tz import tzlocal
