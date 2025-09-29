@@ -218,3 +218,36 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 {sim_text}
 """
     return prompt
+
+def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, desc_lunga_length, desc_breve_length, k_simili, use_image, faiss_index, DEBUG=False):
+    if df_input.empty:
+        return None, None, "❌ Il CSV è vuoto"
+
+    row = df_input.iloc[0]
+
+    simili = pd.DataFrame([])
+    if k_simili > 0 and faiss_index:
+        index, index_df = faiss_index
+        simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
+
+    caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
+
+    prompt = build_unified_prompt(
+        row=row,
+        col_display_names=col_display_names,
+        selected_langs=selected_langs,
+        image_caption=caption,
+        simili=simili
+    )
+
+    # Token estimation (~4 chars per token)
+    num_chars = len(prompt)
+    token_est = num_chars // 4
+    cost_est = round(token_est / 1000 * 0.001, 6)
+
+    if DEBUG:
+        st.code(prompt)
+        st.markdown(f"📊 **Prompt Length**: {num_chars} caratteri ≈ {token_est} token")
+        st.markdown(f"💸 **Costo stimato per riga**: ${cost_est:.6f}")
+
+    return token_est, cost_est, prompt
