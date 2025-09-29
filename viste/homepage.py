@@ -1,6 +1,6 @@
 import streamlit as st
 import functions
-import datetime
+from datetime import datetime
 
 def view():
     ferie = functions.gsheet.get_sheet(st.secrets["FERIE_GSHEET_ID"], "FERIE").get_all_values()
