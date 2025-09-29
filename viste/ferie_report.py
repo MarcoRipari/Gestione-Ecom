@@ -1,6 +1,8 @@
 import streamlit as st
 import functions
 
+ferie_sheet_id = st.secrets["FERIE_GSHEET_ID"]
+
 st.header("📅 Report ferie settimanale")
 
 # 1. Leggi dati ferie da GSheet
