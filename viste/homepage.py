@@ -5,7 +5,7 @@ import datetime
 def view():
     ferie = functions.gsheet.get_sheet(st.secrets["FERIE_GSHEET_ID"], "FERIE").get_all_values()
     in_ferie = []
-    oggi = datetime.now().strftime('%Y-%m-%d')
+    oggi = datetime.today().strftime('%Y-%m-%d')
     st.write(oggi)
     for row in ferie[1:]:
         in_ferie.append(row[0])
