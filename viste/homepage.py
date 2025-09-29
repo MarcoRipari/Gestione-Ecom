@@ -5,10 +5,11 @@ from datetime import datetime
 def view():
     ferie = functions.gsheet.get_sheet(st.secrets["FERIE_GSHEET_ID"], "FERIE").get_all_values()
     in_ferie = []
-    oggi = datetime.today().strftime('%Y-%m-%d')
+    oggi = datetime.today().strftime('%d/%m/$Y')
     st.write(oggi)
     for row in ferie[1:]:
-        in_ferie.append(row[0])
+        if oggi >= row[1] and oggi <= row[2]:
+            in_ferie.append(row[0])
     
     """Disegna la homepage"""
     st.title("🏠 Benvenuto nella HomePage2")
