@@ -3,7 +3,7 @@ import functions
 import pandas as pd
 ferie_sheet_id = st.secrets["FERIE_GSHEET_ID"]
 
-def view()
+def view():
     st.header("📅 Report ferie settimanale")
     
     # 1. Leggi dati ferie da GSheet
