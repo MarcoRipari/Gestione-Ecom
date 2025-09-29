@@ -34,7 +34,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
-import ree
+import re
 from st_aggrid import AgGrid, GridOptionsBuilder
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from reportlab.lib.pagesizes import landscape
