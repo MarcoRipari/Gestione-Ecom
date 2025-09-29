@@ -9,8 +9,6 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 import os
 from typing import List, Dict, Any
-from google.oauth2 import service_account
-import gspread
 from io import BytesIO
 import zipfile
 import chardet
@@ -47,15 +45,11 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from googleapiclient.discovery import build
 import io
-from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
-from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
-from googleapiclient.http import MediaInMemoryUpload
 from dateutil import parser
 from dateutil.tz import tzlocal
 import locale
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
-from gspread.utils import rowcol_to_a1
 import pdfplumber
 import PyPDF2
 from geopy.geocoders import Nominatim
