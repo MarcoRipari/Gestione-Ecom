@@ -72,6 +72,7 @@ desc_sheet_id = st.secrets['DESC_GSHEET_ID']
 foto_sheet_id = st.secrets['FOTO_GSHEET_ID']
 anagrafica_sheet_id = st.secrets['ANAGRAFICA_GSHEET_ID']
 ferie_sheet_id = st.secrets['FERIE_GSHEET_ID']
+ordini_sheet_id = st.secrets['ORDINI_GSHEET_ID']
 
 # ---------------------------
 # 🔐 Setup API keys and credentials
