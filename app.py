@@ -50,7 +50,7 @@ import PyPDF2
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 import viste
-import functions
+import functions.gsheet
 
 functions.gsheet
 
