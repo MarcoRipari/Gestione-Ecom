@@ -1,4 +1,5 @@
 import streamlit as st
+import functions
 
 st.header("📅 Report ferie settimanale")
 
