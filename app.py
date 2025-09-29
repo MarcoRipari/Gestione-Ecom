@@ -53,7 +53,6 @@ import viste
 from functions.gsheet import *
 from functions.supabase_creds import *
 from functions.auth_system import *
-from functions.gen_desc import *
 
 logging.basicConfig(level=logging.INFO)
 
