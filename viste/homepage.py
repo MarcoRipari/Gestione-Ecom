@@ -25,7 +25,7 @@ def view():
         st.metric("Foto mancanti", 87)
 
     with col3:
-        st.subheader("🌴 Ferie oggi")
+        st.subheader("🌴 Oggi in ferie")
         #ferie_oggi = ["Mario Rossi", "Anna Bianchi"]
         ferie_oggi = in_ferie
         for nome in ferie_oggi:
