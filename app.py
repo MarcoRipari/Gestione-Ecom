@@ -50,7 +50,7 @@ import PyPDF2
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 import viste
-from functions.gsheet import get_sheet
+from functions.gsheet import *
 
 logging.basicConfig(level=logging.INFO)
 
@@ -2870,7 +2870,7 @@ elif page == "Catalogo - Aggiungi ordini stagione":
 elif page == "Ferie - Aggiungi ferie":
     st.header("Aggiungi ferie")
     
-    sheet = get_sheet(ferie_sheet_id, "FERIE")
+    sheet = functions.gsheet.get_sheet(ferie_sheet_id, "FERIE")
 
     ferie_esistenti = sheet.get_all_values()
     users_list = supabase.table("profiles").select("*").execute().data
