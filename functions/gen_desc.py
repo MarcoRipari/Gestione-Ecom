@@ -3,6 +3,15 @@ from sentence_transformers import SentenceTransformer
 from typing import List, Dict, Any
 import pandas as pd
 
+LANG_NAMES = {
+    "IT": "italiano",
+    "EN": "inglese",
+    "FR": "francese",
+    "DE": "tedesco"
+}
+LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
+
+
 # ---------------------------
 # 📦 Embedding & FAISS Setup
 # ---------------------------
