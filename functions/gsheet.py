@@ -5,6 +5,11 @@ from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.http import MediaInMemoryUpload
 from gspread.utils import rowcol_to_a1
+from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
+import gspread.utils
+from googleapiclient.discovery import build
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 
 # ---------------------------
 # 📊 Google Sheets
