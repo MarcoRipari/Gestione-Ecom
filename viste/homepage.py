@@ -3,6 +3,7 @@ import functions
 
 def view():
     ferie = functions.gsheet.get_sheet(st.secrets["FERIE_GSHEET_ID"], "FERIE").get_all_values()
+    in_ferie = []
     for row in ferie[1:]:
         st.write(row)
     
