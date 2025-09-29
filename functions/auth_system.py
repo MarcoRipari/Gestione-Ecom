@@ -1,4 +1,5 @@
 import streamlit as st
+import supabase_creds
 
 def login(username: str, password: str) -> bool:
     try:
