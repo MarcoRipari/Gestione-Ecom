@@ -1,5 +1,5 @@
 import streamlit as st
-from . import supabase_creds
+from supabase import create_client, Client
 
 def login(username: str, password: str) -> bool:
     try:
