@@ -1,7 +1,7 @@
 import streamlit as st
 import functions
 import pandas as pd
-import datetime
+from datetime import datetime
 
 ferie_sheet_id = st.secrets["FERIE_GSHEET_ID"]
 
