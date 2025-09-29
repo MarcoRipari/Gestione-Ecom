@@ -1,9 +1,8 @@
-# pages/homepage.py
 import streamlit as st
 import functions
 
 def view():
-    ferie = functions.gsheet.get_sheet(ferie_sheet_id, "FERIE").get_all_values()
+    ferie = functions.gsheet.get_sheet(st.secrets["FERIE_GSHEET_ID"], "FERIE").get_all_values()
     for row in ferie:
         st.write(row)
     
