@@ -73,6 +73,13 @@ LANG_NAMES = {
 LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 
 # ---------------------------
+# GLOBAL VARS
+# ---------------------------
+desc_sheet_id = st.secrets['DESC_GSHEET_ID']
+foto_sheet_id = st.secrets['FOTO_GSHEET_ID']
+anagrafica_sheet_id = st.secrets['ANAGRAFICA_GSHEET_ID']
+ferie_sheet_id = st.secrets['FERIE_GSHEET_ID']
+# ---------------------------
 # 🔐 Setup API keys and credentials
 # ---------------------------
 openai.api_key = st.secrets["OPENAI_API_KEY"]
@@ -1645,7 +1652,7 @@ elif page == "Foto - Gestione":
     
     # 🔽 Caricamento dati con chiave cache dinamica
     cache_token = str(st.session_state.get("refresh_foto_token", "static"))
-    df = carica_lista_foto(sheet_id, cache_key=cache_token)
+    df = carica_lista_foto(foto_sheet_id, cache_key=cache_token)
     st.session_state["df_lista_foto"] = df
 
     # 1️⃣ Genero le liste per i fotografi
@@ -1694,7 +1701,7 @@ elif page == "Foto - Gestione":
     with col1:
         if st.button("📦 Genera lista SKU"):
             try:
-                genera_lista_sku(sheet_id, tab_names)
+                genera_lista_sku(foto_sheet_id, tab_names)
                 st.toast("✅ Lista SKU aggiornata!")
             except Exception as e:
                 st.error(f"Errore: {str(e)}")
@@ -1900,7 +1907,7 @@ elif page == "Foto - Riscatta SKU":
     selected_ristampe = st.session_state.get("ristampe_selezionate", set())
 
     cache_token = str(st.session_state.get("refresh_foto_token", "static"))
-    df = carica_lista_foto(sheet_id, cache_key=cache_token)
+    df = carica_lista_foto(foto_sheet_id, cache_key=cache_token)
 
     # Foto da riscattare
     st.subheader("🔁 Ristampa foto specifica")
@@ -1964,7 +1971,7 @@ elif page == "Foto - Riscatta SKU":
         # Unico pulsante di conferma (chiave esplicita per evitare collisioni)
         if st.button("✅ Conferma selezione per ristampa", key="conferma_ristampa"):
             try:
-                sheet = get_sheet(sheet_id, "LISTA")
+                sheet = get_sheet(foto_sheet_id, "LISTA")
                 all_rows = sheet.get_all_values()
                 data_rows = all_rows[2:]
         
@@ -1987,7 +1994,7 @@ elif page == "Foto - Riscatta SKU":
                 sheet.update(values=nuovi_valori, range_name=range_update)
         
                 # 🔄 Ricarico il DataFrame dal Google Sheet (stesso metodo usato sopra)
-                df = carica_lista_foto(sheet_id, cache_key=str(time.time()))
+                df = carica_lista_foto(foto_sheet_id, cache_key=str(time.time()))
                 st.session_state["df_lista_foto"] = df
         
                 # 🔄 Aggiorno la lista in session_state dai nuovi valori
@@ -2007,7 +2014,7 @@ elif page == "Foto - Aggiungi SKUs":
     new_sku = st.session_state.get("aggiunta_confermata", set())
 
     cache_token = str(st.session_state.get("refresh_foto_token", "static"))
-    df = carica_lista_foto(sheet_id, cache_key=cache_token)
+    df = carica_lista_foto(foto_sheet_id, cache_key=cache_token)
     
     # Aggiungi nuova SKU
     st.subheader("➕ Aggiungi nuova SKU")
@@ -2025,7 +2032,7 @@ elif page == "Foto - Aggiungi SKUs":
         new_sku = add_sku_input.upper()
         if add_sku_input:
             if new_sku not in df["SKU"].values.tolist():
-                aggiungi_sku(sheet_id, new_sku)
+                aggiungi_sku(foto_sheet_id, new_sku)
                 st.session_state["aggiunta_confermata"] = add_sku_input.strip().upper()
                 st.rerun()
             else:
@@ -2109,7 +2116,7 @@ elif page == "Foto - Aggiungi prelevate":
     st.markdown("Aggiungi la lista delle paia prelevate")
     
     sheet_id = st.secrets["APP_GSHEET_ID"]
-    sheet = get_sheet(sheet_id, "PRELEVATE")
+    sheet = get_sheet(foto_sheet_id, "PRELEVATE")
     
     text_input = st.text_area("Lista paia prelevate", height=400, width=800)
     
