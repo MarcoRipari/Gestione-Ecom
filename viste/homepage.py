@@ -4,8 +4,7 @@ import functions
 def view():
     ferie = functions.gsheet.get_sheet(st.secrets["FERIE_GSHEET_ID"], "FERIE").get_all_values()
     for row in ferie[1:]:
-        if id > 0:
-            st.write(row)
+        st.write(row)
     
     """Disegna la homepage"""
     st.title("🏠 Benvenuto nella HomePage2")
