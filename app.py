@@ -2174,9 +2174,6 @@ elif page == "Giacenze - Importa":
     default_sheet_id = foto_sheet_id
     selected_sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
 
-    test = gsheet_client.open_by_key("1T7aDbfNnAQl97KNtVEUqOCBYfTcUZI4s")
-    st.write(spreadsheet.sheet1.title)
-
     col1, col2, col3, col4 = st.columns(4)
     
     if df_input is not None:
