@@ -2054,8 +2054,8 @@ elif page == "Foto - Aggiungi prelevate":
     
             if skus_to_append_clean:
                 # Aggiungi apostrofo solo al momento dell'append per forzare formato testo
-                rows_to_append = [[f"'{sku}"] for sku in skus_to_append_clean]
-    
+                rows_to_append = [[f"'{sku}", "1", "2"] for sku in skus_to_append_clean]
+                
                 # Append a partire dall'ultima riga disponibile
                 sheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
                 st.success(f"✅ {len(skus_to_append_clean)} nuove SKU aggiunte al foglio PRELEVATE!")
