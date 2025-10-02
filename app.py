@@ -2029,8 +2029,8 @@ elif page == "Foto - Aggiungi prelevate":
     st.markdown("Aggiungi la lista delle paia prelevate")
     
     sheet = get_sheet(foto_sheet_id, "PRELEVATE")
-    sheet_len = len(sheet)
-    oggi = datetime.today().date()
+    sheet_len = len(pd.Dataframe(sheet))
+    oggi = datetime.today().date().strftime('%d/%m/%Y')
     text_input = st.text_area("Lista paia prelevate", height=400, width=800)
     
     if text_input:
