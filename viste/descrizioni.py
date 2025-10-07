@@ -1,4 +1,4 @@
 import streamlit as st
 
-def genera_descrizioni():
+def catalogo_genera_descrizioni():
   st.write("genera descrizioni")
