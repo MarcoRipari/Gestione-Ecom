@@ -1574,7 +1574,7 @@ elif page == "Foto - Gestione":
     df_disp = df[df["DISP"] == True]
     df_disp_027 = df[df["DISP 027"] == True]
     df_disp_028 = df[df["DISP 028"] == True]
-    df_disp["COR"] = df_disp["COR"].astype(int)
+    
     df_disp["X"] = df_disp["X"].astype(int)
     df_disp["Y"] = df_disp["Y"].astype(int)
     
