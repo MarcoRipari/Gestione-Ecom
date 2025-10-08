@@ -1440,7 +1440,10 @@ elif page == "Descrizioni":
                                 output_row = row.to_dict()
                                 output_row["Description"] = "D1"
                                 output_row["Description2"] = "D2"
-                                st.write(row.to_dict())
+                                semisku = row["SKU"]
+                                semisku = semisku[3:13].replace(".","")
+                                output_row["semisku"] = semisku
+                                st.write(output_row["semisku"])
                                 all_outputs[lang].append(output_row)
                             else:
                                 lang_data = result.get("result", {}).get(lang.lower(), {})
