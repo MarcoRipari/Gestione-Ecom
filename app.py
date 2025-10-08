@@ -1454,6 +1454,7 @@ elif page == "Descrizioni":
                         result = results.get(i, {})
                         if "error" in result:
                             logs.append({
+                                "user": st.session_state.user["username"],
                                 "sku": row.get("SKU", ""),
                                 "status": f"Errore: {result['error']}",
                                 "prompt": all_prompts[i],
@@ -1473,6 +1474,7 @@ elif page == "Descrizioni":
                             all_outputs[lang].append(output_row)
             
                         log_entry = {
+                            "user": st.session_state.user["username"],
                             "sku": row.get("SKU", ""),
                             "status": "OK",
                             "prompt": all_prompts[i],
