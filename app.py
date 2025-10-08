@@ -1403,19 +1403,12 @@ elif page == "Descrizioni":
             
                     # Costruzione dei prompt
                     all_prompts = []
-                    sku_generate = []
                     with st.spinner("✍️ Costruisco i prompt..."):
                         for _, row in df_input_to_generate.iterrows():
-                            semisku = row["SKU"]
-                            semisku = semisku[3:13].replace(".","")
-                            if semisku in sku_generate:
-                                all_prompts.append(semisku)
-                            else:
-                                sku_generate.append(semisku)
-                                simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
-                                caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
-                                prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
-                                all_prompts.append(prompt)
+                            simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
+                            caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
+                            prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
+                            all_prompts.append(prompt)
             
                     with st.spinner("🚀 Generazione asincrona in corso..."):
                         results = asyncio.run(generate_all_prompts(all_prompts))
@@ -1439,24 +1432,12 @@ elif page == "Descrizioni":
                         sku_generate_lista = []
                         for lang in selected_langs:
                             output_row = row.to_dict()
-                            semisku = output_row["SKU"]
-                            semisku = semisku[3:13].replace(".","")
-                            if semisku in sku_generate_lista:
-                                output_row["Description"] = "D1"
-                                output_row["Description2"] = "D2"
-
-                                output_row["semisku"] = semisku
-                                all_outputs[lang].append(output_row)
-                                st.write(sku_generate_lista)
-                            else:
-                                lang_data = result.get("result", {}).get(lang.lower(), {})
-                                descr_lunga = lang_data.get("desc_lunga", "").strip()
-                                descr_breve = lang_data.get("desc_breve", "").strip()
-                
-                                output_row["Description"] = descr_lunga
-                                output_row["Description2"] = descr_breve
-                                all_outputs[lang].append(output_row)
-                                sku_generate_lista.append(f"{lang} - {output_row}")
+                            lang_data = result.get("result", {}).get(lang.lower(), {})
+                            descr_lunga = lang_data.get("desc_lunga", "").strip()
+                            descr_breve = lang_data.get("desc_breve", "").strip()
+                            output_row["Description"] = descr_lunga
+                            output_row["Description2"] = descr_breve
+                            all_outputs[lang].append(output_row)
             
                         log_entry = {
                             "utente": st.session_state.user["username"],
