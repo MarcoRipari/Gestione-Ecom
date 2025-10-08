@@ -246,13 +246,16 @@ def load_blip_model():
 def get_blip_caption(image_url: str) -> str:
     try:
         processor, model = load_blip_model()
-        raw_image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
-        prompt = "Raccogli informazioni descrittive della scarpa nella foto"
         #nuovo
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model.to(device)
+        #fine
+        
+        raw_image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
+        prompt = "Raccogli informazioni descrittive della scarpa nella foto"
+
         #inputs = processor(raw_image, return_tensors="pt")
-        inputs = processor(images=image_url, text=prompt, return_tensors="pt").to(device)
+        inputs = processor(images=raw_image, text=prompt, return_tensors="pt").to(device)
         #output = model.generate(**inputs, max_new_tokens=30)
         outputs = model.generate(
             **inputs,
