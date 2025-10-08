@@ -1446,7 +1446,6 @@ elif page == "Descrizioni":
                                 output_row["Description2"] = "D2"
 
                                 output_row["semisku"] = semisku
-                                st.write(all_outputs[lang]["SKU"])
                                 all_outputs[lang].append(output_row)
                                 st.write(sku_generate_lista)
                             else:
