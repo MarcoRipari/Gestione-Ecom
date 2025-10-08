@@ -1435,25 +1435,29 @@ elif page == "Descrizioni":
                                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                             })
                             continue
+
+                        sku_generate_lista = []
                         for lang in selected_langs:
-                            if len(result) < 20:
-                                output_row = row.to_dict()
+                            output_row = row.to_dict()
+                            semisku = output_row["SKU"]
+                            semisku = semisku[3:13].replace(".","")
+                            if semisku in sku_generate:
                                 output_row["Description"] = "D1"
                                 output_row["Description2"] = "D2"
-                                semisku = row["SKU"]
-                                semisku = semisku[3:13].replace(".","")
+
                                 output_row["semisku"] = semisku
                                 st.write(all_outputs[lang]["SKU"])
                                 all_outputs[lang].append(output_row)
+                                st.write(sku_generate_lista)
                             else:
                                 lang_data = result.get("result", {}).get(lang.lower(), {})
                                 descr_lunga = lang_data.get("desc_lunga", "").strip()
                                 descr_breve = lang_data.get("desc_breve", "").strip()
                 
-                                output_row = row.to_dict()
                                 output_row["Description"] = descr_lunga
                                 output_row["Description2"] = descr_breve
                                 all_outputs[lang].append(output_row)
+                                sku_generate_lista.append(f"{lang} - {output_row}")
             
                         log_entry = {
                             "utente": st.session_state.user["username"],
