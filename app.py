@@ -233,7 +233,7 @@ def benchmark_faiss(df, col_weights, query_sample_size=10):
 # 🎨 Visual Embedding
 # ---------------------------
 @st.cache_resource
-def load_blip_model_old():
+def load_blip_model():
     #processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
     #model = BlipForConditionalGeneration.from_pretrained(
     #    "Salesforce/blip-image-captioning-base",
