@@ -1417,7 +1417,7 @@ elif page == "Descrizioni":
                             if df_lang is None or sku not in df_lang.index:
                                 all_present = False
                                 break
-                            desc = df_lang.drop_duplicates(subset='sku').loc[sku]
+                            desc = df_lang.drop_duplicates(subset='SKU').loc[sku]
                             if not desc["Description"] or not desc["Description2"]:
                                 all_present = False
                                 break
