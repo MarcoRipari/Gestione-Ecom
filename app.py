@@ -1417,8 +1417,7 @@ elif page == "Descrizioni":
                             if df_lang is None or sku not in df_lang.index:
                                 all_present = False
                                 break
-                            desc = df_lang.loc[sku]
-                            st.write(desc)
+                            desc = df_lang.drop_duplicates(subset='sku').loc[sku]
                             if not desc["Description"] or not desc["Description2"]:
                                 all_present = False
                                 break
@@ -1496,7 +1495,6 @@ elif page == "Descrizioni":
                             df_out = pd.DataFrame(all_outputs[lang])
                             df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
                             if not df_new.empty:
-                                st.write(df_new)
                                 append_to_sheet(desc_sheet_id, lang, df_new)
                         for log in logs:
                             append_log(desc_sheet_id, log)
