@@ -1441,7 +1441,7 @@ elif page == "Descrizioni":
                             output_row = row.to_dict()
                             semisku = output_row["SKU"]
                             semisku = semisku[3:13].replace(".","")
-                            if semisku in sku_generate:
+                            if semisku in sku_generate_lista:
                                 output_row["Description"] = "D1"
                                 output_row["Description2"] = "D2"
 
