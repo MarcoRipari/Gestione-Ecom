@@ -320,8 +320,14 @@ def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, 
     if k_simili > 0 and faiss_index:
         index, index_df = faiss_index
         simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
-
-    caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
+    if use_image:
+        sku = row["SKU"]
+        sku = sku[3:13].replace(".", "").upper()
+        url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
+        caption = get_blip_caption(url)
+    else:
+        caption = None
+    #caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
 
     prompt = build_unified_prompt(
         row=row,
@@ -1410,7 +1416,10 @@ elif page == "Descrizioni":
                                 sku = row.get("SKU", "")
                                 sku = sku[3:13].replace(".", "").upper()
                                 url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
-                            caption = get_blip_caption(url) else None
+                                caption = get_blip_caption(url)
+                            else:
+                                caption = None
+                            
                             prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
                             all_prompts.append(prompt)
             
