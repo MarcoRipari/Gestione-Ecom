@@ -1410,7 +1410,6 @@ elif page == "Descrizioni":
                             semisku = semisku[3:13].replace(".","")
                             if semisku in sku_generate:
                                 all_prompts.append(semisku)
-                                st.write("già esistente", semisku)
                             else:
                                 sku_generate.append(semisku)
                                 simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
@@ -1438,7 +1437,11 @@ elif page == "Descrizioni":
                             continue
                         for lang in selected_langs:
                             if len(result) < 20:
-                                st.write(all_outputs[lang])
+                                output_row = row.to_dict()
+                                output_row["Description"] = "D1"
+                                output_row["Description2"] = "D2"
+                                st.write(row.to_dict())
+                                all_outputs[lang].append(output_row)
                             else:
                                 lang_data = result.get("result", {}).get(lang.lower(), {})
                                 descr_lunga = lang_data.get("desc_lunga", "").strip()
