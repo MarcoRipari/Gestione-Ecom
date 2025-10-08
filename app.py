@@ -1421,7 +1421,8 @@ elif page == "Descrizioni":
                             if not desc["Description"] or not desc["Description2"]:
                                 all_present = False
                                 break
-            
+                        st.write(df_lang)
+                        st.write(all_present)
                         if all_present:
                             for lang in selected_langs:
                                 desc = existing_data[lang].loc[sku]
