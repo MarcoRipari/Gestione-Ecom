@@ -1404,6 +1404,7 @@ elif page == "Descrizioni":
                             existing_data[lang] = tab_df.set_index("SKU")
                         except:
                             existing_data[lang] = pd.DataFrame(columns=["Description", "Description2"])
+            
                     for i, row in df_input.iterrows():
                         sku = str(row.get("SKU", "")).strip()
                         if not sku:
@@ -1420,7 +1421,7 @@ elif page == "Descrizioni":
                             if not desc["Description"] or not desc["Description2"]:
                                 all_present = False
                                 break
-
+            
                         if all_present:
                             for lang in selected_langs:
                                 desc = existing_data[lang].loc[sku]
@@ -1430,7 +1431,7 @@ elif page == "Descrizioni":
                                 already_generated[lang].append(output_row)
                         else:
                             rows_to_generate.append(i)
-
+            
                     df_input_to_generate = df_input.iloc[rows_to_generate]
             
                     # Costruzione dei prompt
@@ -1453,7 +1454,6 @@ elif page == "Descrizioni":
                         result = results.get(i, {})
                         if "error" in result:
                             logs.append({
-                                "user": st.session_state.user["username"],
                                 "sku": row.get("SKU", ""),
                                 "status": f"Errore: {result['error']}",
                                 "prompt": all_prompts[i],
@@ -1473,7 +1473,6 @@ elif page == "Descrizioni":
                             all_outputs[lang].append(output_row)
             
                         log_entry = {
-                            "user": st.session_state.user["username"],
                             "sku": row.get("SKU", ""),
                             "status": "OK",
                             "prompt": all_prompts[i],
@@ -1495,7 +1494,6 @@ elif page == "Descrizioni":
                         for lang in selected_langs:
                             df_out = pd.DataFrame(all_outputs[lang])
                             df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
-                            st.write(df_new)
                             if not df_new.empty:
                                 append_to_sheet(desc_sheet_id, lang, df_new)
                         for log in logs:
