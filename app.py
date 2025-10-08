@@ -233,7 +233,7 @@ def benchmark_faiss(df, col_weights, query_sample_size=10):
 # 🎨 Visual Embedding
 # ---------------------------
 @st.cache_resource
-def load_blip_model():
+def load_blip_model_old():
     processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
     model = BlipForConditionalGeneration.from_pretrained(
         "Salesforce/blip-image-captioning-base",
@@ -245,11 +245,24 @@ def get_blip_caption(image_url: str) -> str:
     try:
         processor, model = load_blip_model()
         raw_image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
-
+        prompt = "Raccogli informazioni descrittive della scarpa nella foto"
         inputs = processor(raw_image, return_tensors="pt")
-        output = model.generate(**inputs, max_new_tokens=30)
-        caption = processor.decode(output[0], skip_special_tokens=True)
-        return caption.strip()
+        #output = model.generate(**inputs, max_new_tokens=30)
+        outputs = model.generate(
+            **inputs,
+            do_sample=False,
+            num_beams=5,
+            max_length=256,
+            min_length=1,
+            top_p=0.9,
+            repetition_penalty=1.5,
+            length_penalty=1.0,
+            temperature=1,
+            max_new_tokens=30
+        )
+        #caption = processor.decode(output[0], skip_special_tokens=True)
+        generated_text = processor.batch_decode(outputs, skip_special_tokens=True)[0].strip()
+        return generated_text
     except Exception as e:
         # st.warning(f"⚠️ Errore nel captioning: {str(e)}")
         return ""
