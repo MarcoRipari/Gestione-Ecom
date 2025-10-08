@@ -1404,7 +1404,6 @@ elif page == "Descrizioni":
                             existing_data[lang] = tab_df.set_index("SKU")
                         except:
                             existing_data[lang] = pd.DataFrame(columns=["Description", "Description2"])
-                    st.write(existing_data)
                     for i, row in df_input.iterrows():
                         sku = str(row.get("SKU", "")).strip()
                         if not sku:
@@ -1417,6 +1416,7 @@ elif page == "Descrizioni":
                             if df_lang is None or sku not in df_lang.index:
                                 all_present = False
                                 break
+                            st.write(df_lang)
                             desc = df_lang.loc[sku]
                             if not desc["Description"] or not desc["Description2"]:
                                 all_present = False
