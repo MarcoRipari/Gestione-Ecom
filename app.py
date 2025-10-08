@@ -1495,6 +1495,7 @@ elif page == "Descrizioni":
                             df_out = pd.DataFrame(all_outputs[lang])
                             df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
                             if not df_new.empty:
+                                st.write(df_new)
                                 append_to_sheet(desc_sheet_id, lang, df_new)
                         for log in logs:
                             append_log(desc_sheet_id, log)
