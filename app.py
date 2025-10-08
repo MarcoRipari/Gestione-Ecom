@@ -1443,7 +1443,7 @@ elif page == "Descrizioni":
                                 semisku = row["SKU"]
                                 semisku = semisku[3:13].replace(".","")
                                 output_row["semisku"] = semisku
-                                st.write(output_row["semisku"])
+                                st.write(all_outputs[lang]["SKU"])
                                 all_outputs[lang].append(output_row)
                             else:
                                 lang_data = result.get("result", {}).get(lang.lower(), {})
