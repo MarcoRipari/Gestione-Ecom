@@ -1494,7 +1494,7 @@ elif page == "Descrizioni":
                         for lang in selected_langs:
                             df_out = pd.DataFrame(all_outputs[lang])
                             st.write(df_out)
-                            if not df_out["SKU"]:
+                            if "SKU" not in df_out.columns:
                                 try:
                                     df_out["SKU"] = df_out["Codice"] + df_out["Var"] + df_out["Colore"]
                                 except Exception as e:
