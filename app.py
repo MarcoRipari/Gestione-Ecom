@@ -1416,9 +1416,7 @@ elif page == "Descrizioni":
                             if df_lang is None or sku not in df_lang.index:
                                 all_present = False
                                 break
-                            st.write(df_lang)
-                            desc = df_lang.loc[sku]
-                            st.write(desc)
+                            desc = df_lang.loc[sku].iloc[0]
                             if not desc["Description"] or not desc["Description2"]:
                                 all_present = False
                                 break
