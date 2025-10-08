@@ -1396,7 +1396,7 @@ elif page == "Descrizioni":
                                     "sku": row.get("SKU", ""),
                                     "status": "OK",
                                     "prompt": "Descrizione già generata in precedenza",
-                                    "output": json.dumps(result["result"], ensure_ascii=False),
+                                    "output": "",
                                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                                     "prompt_tokens": 0,
                                     "completion_tokens": 0,
