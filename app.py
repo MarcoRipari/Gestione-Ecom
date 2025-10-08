@@ -240,7 +240,7 @@ def load_blip_model():
     #    use_auth_token=st.secrets["HF_TOKEN"]
     #)
     model = InstructBlipForConditionalGeneration.from_pretrained("Salesforce/instructblip-flan-t5-xxl")
-    processor = InstructBlipProcessor.from_pretrained("Salesforce/instructblip-flan-t5-xxl")
+    processor = InstructBlipProcessor.from_pretrained("Salesforce/instructblip-flan-t5-xxl", use_auth_token=st.secrets["HF_TOKEN"])
     return processor, model
     
 def get_blip_caption(image_url: str) -> str:
