@@ -1491,9 +1491,9 @@ elif page == "Descrizioni":
             
                     # 🔄 Salvataggio solo dei nuovi risultati
                     with st.spinner("📤 Salvataggio nuovi dati..."):
-                        cod_vars = ["Cod","COD","Codice","CODICE"]
                         for lang in selected_langs:
                             df_out = pd.DataFrame(all_outputs[lang])
+                            st.write(df_out)
                             if not df_out["SKU"]:
                                 try:
                                     df_out["SKU"] = df_out["Codice"] + df_out["Var"] + df_out["Colore"]
