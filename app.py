@@ -234,11 +234,13 @@ def benchmark_faiss(df, col_weights, query_sample_size=10):
 # ---------------------------
 @st.cache_resource
 def load_blip_model_old():
-    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-    model = BlipForConditionalGeneration.from_pretrained(
-        "Salesforce/blip-image-captioning-base",
-        use_auth_token=st.secrets["HF_TOKEN"]
-    )
+    #processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+    #model = BlipForConditionalGeneration.from_pretrained(
+    #    "Salesforce/blip-image-captioning-base",
+    #    use_auth_token=st.secrets["HF_TOKEN"]
+    #)
+    model = InstructBlipForConditionalGeneration.from_pretrained("Salesforce/instructblip-flan-t5-xxl")
+    processor = InstructBlipProcessor.from_pretrained("Salesforce/instructblip-flan-t5-xxl")
     return processor, model
     
 def get_blip_caption(image_url: str) -> str:
@@ -246,7 +248,11 @@ def get_blip_caption(image_url: str) -> str:
         processor, model = load_blip_model()
         raw_image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
         prompt = "Raccogli informazioni descrittive della scarpa nella foto"
-        inputs = processor(raw_image, return_tensors="pt")
+        #nuovo
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model.to(device)
+        #inputs = processor(raw_image, return_tensors="pt")
+        inputs = processor(images=image_url, text=prompt, return_tensors="pt").to(device)
         #output = model.generate(**inputs, max_new_tokens=30)
         outputs = model.generate(
             **inputs,
