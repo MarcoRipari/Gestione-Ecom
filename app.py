@@ -981,43 +981,6 @@ def get_country_from_address(address):
         
     return "N/A"
 
-
-# ---------------------------
-# 📊 Google Sheets
-# ---------------------------
-credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["GCP_SERVICE_ACCOUNT"],
-    scopes=[
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
-)
-gsheet_client = gspread.authorize(credentials)
-drive_service = build('drive', 'v3', credentials=credentials)
-
-def get_sheet(sheet_id, tab):
-    spreadsheet = gsheet_client.open_by_key(sheet_id)
-    worksheets = spreadsheet.worksheets()
-    
-    # Confronto case-insensitive per maggiore robustezza
-    for ws in worksheets:
-        if ws.title.strip().lower() == tab.strip().lower():
-            return ws
-
-    # Se non trovato, lo crea
-    return spreadsheet.add_worksheet(title=tab, rows="10000", cols="50")
-
-def append_to_sheet(sheet_id, tab, df):
-    sheet = get_sheet(sheet_id, tab)
-    df = df.fillna("").astype(str)
-    values = df.values.tolist()
-    sheet.append_rows(values, value_input_option="RAW")  # ✅ chiamata unica
-
-def append_log(sheet_id, log_data):
-    sheet = get_sheet(sheet_id, "logs")
-    sheet.append_row(list(log_data.values()), value_input_option="RAW")
-
-
     
 # ---------------------------
 # 📦 Streamlit UI
@@ -1494,7 +1457,7 @@ elif page == "Descrizioni":
                         for lang in selected_langs:
                             df_out = pd.DataFrame(all_outputs[lang])
                             df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
-                            st.write(len(df_new))
+                            st.write(len(df_new), lang, df_new)
                             if not df_new.empty:
                                 append_to_sheet(desc_sheet_id, lang, df_new)
                         for log in logs:
