@@ -1418,7 +1418,6 @@ elif page == "Descrizioni":
                                 break
                             desc = df_lang.loc[sku]
                             if not desc["Description"] or not desc["Description2"]:
-                                st.write(desc["Description"])
                                 all_present = False
                                 break
 
