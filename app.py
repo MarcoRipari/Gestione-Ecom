@@ -1406,6 +1406,10 @@ elif page == "Descrizioni":
                     with st.spinner("✍️ Costruisco i prompt..."):
                         for _, row in df_input_to_generate.iterrows():
                             simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
+                            if use_image:
+                                sku = row.get("SKU", "")
+                                sku = sku[3:13].replace(".", "").lower()
+                                st.write(sku)
                             caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
                             prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
                             all_prompts.append(prompt)
