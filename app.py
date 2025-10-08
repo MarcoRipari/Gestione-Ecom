@@ -327,6 +327,8 @@ def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, 
         caption = get_blip_caption(url)
     else:
         caption = None
+
+    st.write(url)
     #caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
 
     prompt = build_unified_prompt(
