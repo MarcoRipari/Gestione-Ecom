@@ -1405,32 +1405,32 @@ elif page == "Descrizioni":
                         except:
                             existing_data[lang] = pd.DataFrame(columns=["Description", "Description2"])
                     for i, row in df_input.iterrows():
-#                        sku = str(row.get("SKU", "")).strip()
-#                        if not sku:
-#                            rows_to_generate.append(i)
-#                            continue
-#            
-#                        all_present = True
-#                        for lang in selected_langs:
-#                            df_lang = existing_data.get(lang)
-#                            if df_lang is None or sku not in df_lang.index:
-#                                all_present = False
-#                                break
-#                            desc = df_lang.loc[sku]
-#                            if not desc["Description"] or not desc["Description2"]:
-#                                all_present = False
-#                                break
-#
-#                        if all_present:
-#                            for lang in selected_langs:
-#                                desc = existing_data[lang].loc[sku]
-#                                output_row = row.to_dict()
-#                                output_row["Description"] = desc["Description"]
-#                                output_row["Description2"] = desc["Description2"]
-#                                already_generated[lang].append(output_row)
-#                        else:
-#                            rows_to_generate.append(i)
-                        rows_to_generate.append(i)
+                        sku = str(row.get("SKU", "")).strip()
+                        if not sku:
+                            rows_to_generate.append(i)
+                            continue
+            
+                        all_present = True
+                        for lang in selected_langs:
+                            df_lang = existing_data.get(lang)
+                            if df_lang is None or sku not in df_lang.index:
+                                all_present = False
+                                break
+                            desc = df_lang.loc[sku]
+                            if not desc["Description"] or not desc["Description2"]:
+                                all_present = False
+                                break
+
+                        if all_present:
+                            for lang in selected_langs:
+                                desc = existing_data[lang].loc[sku]
+                                output_row = row.to_dict()
+                                output_row["Description"] = desc["Description"]
+                                output_row["Description2"] = desc["Description2"]
+                                already_generated[lang].append(output_row)
+                        else:
+                            rows_to_generate.append(i)
+
                     df_input_to_generate = df_input.iloc[rows_to_generate]
             
                     # Costruzione dei prompt
@@ -1495,6 +1495,7 @@ elif page == "Descrizioni":
                         for lang in selected_langs:
                             df_out = pd.DataFrame(all_outputs[lang])
                             df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
+                            st.write(df_new)
                             if not df_new.empty:
                                 append_to_sheet(desc_sheet_id, lang, df_new)
                         for log in logs:
