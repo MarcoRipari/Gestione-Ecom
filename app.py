@@ -687,7 +687,7 @@ client = AsyncOpenAI(api_key=openai.api_key)
 async def async_generate_description(prompt: str, idx: int):
     try:
         if len(prompt) < 50:
-            return idx, {"result": prompt, "usage": 0}
+            return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
         else:
             response = await client.chat.completions.create(
                 model="gpt-3.5-turbo",
