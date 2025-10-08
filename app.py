@@ -1431,7 +1431,13 @@ elif page == "Descrizioni":
                                 already_generated[lang].append(output_row)
                         else:
                             rows_to_generate.append(i)
-            
+
+                    if "SKU" not in df_input.columns:
+                        try:
+                            df_input["SKU"] = df_input["Codice"] + df_input["Var"] + df_input["Colore"]
+                        except Exception as e:
+                            df_input["SKU"] = ""
+                            
                     df_input_to_generate = df_input.iloc[rows_to_generate]
             
                     # Costruzione dei prompt
@@ -1493,14 +1499,7 @@ elif page == "Descrizioni":
                     with st.spinner("📤 Salvataggio nuovi dati..."):
                         for lang in selected_langs:
                             df_out = pd.DataFrame(all_outputs[lang])
-                            st.write(df_out)
-                            if "SKU" not in df_out.columns:
-                                try:
-                                    df_out["SKU"] = df_out["Codice"] + df_out["Var"] + df_out["Colore"]
-                                except Exception as e:
-                                    df_out["SKU"] = ""
-                                    
-                                        
+                                       
                             df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
                             if not df_new.empty:
                                 append_to_sheet(desc_sheet_id, lang, df_new)
