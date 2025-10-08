@@ -1404,7 +1404,7 @@ elif page == "Descrizioni":
                             existing_data[lang] = tab_df.set_index("SKU")
                         except:
                             existing_data[lang] = pd.DataFrame(columns=["Description", "Description2"])
-                    st.write(existing_data["it"])
+                    st.write(existing_data)
                     for i, row in df_input.iterrows():
                         sku = str(row.get("SKU", "")).strip()
                         if not sku:
