@@ -1439,8 +1439,8 @@ elif page == "Descrizioni":
                     sku_generate = []
                     with st.spinner("✍️ Costruisco i prompt..."):
                         for _, row in df_input_to_generate.iterrows():
-                            semisku = re.findall(r'\d+', row["SKU"])
-                            semisku = ''.join(semisku).lstrip('0')
+                            semisku = row["SKU"][3:12]
+                            semisku = semisku + row["SKU"].split('.')[1]
                             st.write(semisku)
                             simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
                             caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
