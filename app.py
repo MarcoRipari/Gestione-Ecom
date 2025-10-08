@@ -1339,8 +1339,7 @@ elif page == "Descrizioni":
                 st.session_state["generate"] = True
             
             if st.session_state.get("generate"):
-    
-                    
+                logs = []
                 try:
                     with st.spinner("📚 Carico storico e indice FAISS..."):
                         tab_storico = f"STORICO_{marchio}"
@@ -1392,6 +1391,19 @@ elif page == "Descrizioni":
                                 output_row["Description"] = desc["Description"]
                                 output_row["Description2"] = desc["Description2"]
                                 already_generated[lang].append(output_row)
+                                log_entry = {
+                                    "utente": st.session_state.user["username"],
+                                    "sku": row.get("SKU", ""),
+                                    "status": "OK",
+                                    "prompt": "Descrizione già generata in precedenza",
+                                    "output": json.dumps(result["result"], ensure_ascii=False),
+                                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                    "prompt_tokens": 0,
+                                    "completion_tokens": 0,
+                                    "total_tokens": 0,
+                                    "estimated_cost_usd": 0
+                                }
+                                logs.append(log_entry)
                         else:
                             rows_to_generate.append(i)
             
@@ -1411,7 +1423,6 @@ elif page == "Descrizioni":
             
                     # Parsing risultati
                     all_outputs = already_generated.copy()
-                    logs = []
             
                     for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
                         result = results.get(i, {})
