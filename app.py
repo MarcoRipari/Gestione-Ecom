@@ -686,16 +686,19 @@ client = AsyncOpenAI(api_key=openai.api_key)
 
 async def async_generate_description(prompt: str, idx: int):
     try:
-        response = await client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=3000
-        )
-        content = response.choices[0].message.content
-        usage = response.usage  # <-- aggiunto
-        data = json.loads(content)
-        return idx, {"result": data, "usage": usage.model_dump()}
+        if len(prompt) < 50:
+            return idx, {"result": prompt, "usage": 0}
+        else:
+            response = await client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=3000
+            )
+            content = response.choices[0].message.content
+            usage = response.usage  # <-- aggiunto
+            data = json.loads(content)
+            return idx, {"result": data, "usage": usage.model_dump()}
     except Exception as e:
         return idx, {"error": str(e)}
 
@@ -1433,16 +1436,18 @@ elif page == "Descrizioni":
                                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                             })
                             continue
-            
                         for lang in selected_langs:
-                            lang_data = result.get("result", {}).get(lang.lower(), {})
-                            descr_lunga = lang_data.get("desc_lunga", "").strip()
-                            descr_breve = lang_data.get("desc_breve", "").strip()
-            
-                            output_row = row.to_dict()
-                            output_row["Description"] = descr_lunga
-                            output_row["Description2"] = descr_breve
-                            all_outputs[lang].append(output_row)
+                            if len(result) < 20:
+                                st.write(all_outputs[lang])
+                            else:
+                                lang_data = result.get("result", {}).get(lang.lower(), {})
+                                descr_lunga = lang_data.get("desc_lunga", "").strip()
+                                descr_breve = lang_data.get("desc_breve", "").strip()
+                
+                                output_row = row.to_dict()
+                                output_row["Description"] = descr_lunga
+                                output_row["Description2"] = descr_breve
+                                all_outputs[lang].append(output_row)
             
                         log_entry = {
                             "utente": st.session_state.user["username"],
