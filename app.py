@@ -1409,8 +1409,8 @@ elif page == "Descrizioni":
                             if use_image:
                                 sku = row.get("SKU", "")
                                 sku = sku[3:13].replace(".", "").lower()
-                                st.write(sku)
-                            caption = get_blip_caption(row.get("Image 1", "")) if use_image and row.get("Image 1", "") else None
+                                url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
+                            caption = get_blip_caption(url) else None
                             prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
                             all_prompts.append(prompt)
             
