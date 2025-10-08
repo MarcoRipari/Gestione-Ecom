@@ -1430,7 +1430,7 @@ elif page == "Descrizioni":
 #                                already_generated[lang].append(output_row)
 #                        else:
 #                            rows_to_generate.append(i)
-                    rows_to_generate.append(i)
+                        rows_to_generate.append(i)
                     df_input_to_generate = df_input.iloc[rows_to_generate]
             
                     # Costruzione dei prompt
