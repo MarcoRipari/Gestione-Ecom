@@ -1400,7 +1400,6 @@ elif page == "Descrizioni":
             
                     # Costruzione dei prompt
                     all_prompts = []
-                    sku_generate = []
                     with st.spinner("✍️ Costruisco i prompt..."):
                         for _, row in df_input_to_generate.iterrows():
                             simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
