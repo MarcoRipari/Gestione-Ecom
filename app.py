@@ -19,7 +19,7 @@ import pandas as pd
 import torch
 import logging
 import traceback
-from transformers import BlipProcessor, BlipForConditionalGeneration
+from transformers import BlipProcessor, BlipForConditionalGeneration, InstructBlipProcessor, InstructBlipForConditionalGeneration
 from PIL import Image
 import requests
 import asyncio
