@@ -263,15 +263,14 @@ model = VisionEncoderDecoderModel.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 image_processor = AutoImageProcessor.from_pretrained(model_name)
 
+# Scegli device (CPU o GPU)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # Se il modello ha il metodo to_empty, usalo prima di spostare il modello su device
 if hasattr(model, "to_empty"):
     model = model.to_empty(device=device)
 
 model.to(device)
-
-
-# Scegli device (CPU o GPU)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_blip_caption_new(image_url: str) -> str:
     try:
