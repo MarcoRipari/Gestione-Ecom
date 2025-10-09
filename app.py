@@ -257,31 +257,38 @@ def get_blip_caption(image_url: str) -> str:
         # st.warning(f"⚠️ Errore nel captioning: {str(e)}")
         return ""
 
-# Carica il modello e i componenti
+# Carica modello, tokenizer e processor
 model_name = "cnmoro/tiny-image-captioning"
 model = VisionEncoderDecoderModel.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 image_processor = AutoImageProcessor.from_pretrained(model_name)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Se il modello ha il metodo to_empty, usalo prima di spostare il modello su device
+if hasattr(model, "to_empty"):
+    model = model.to_empty()
+
 model.to(device)
+
+
+# Scegli device (CPU o GPU)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_blip_caption_new(image_url: str) -> str:
     try:
         image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
-        inputs = image_processor(image, return_tensors="pt").pixel_values.to(device)
-
-        # Parametri di generazione
-        output_ids = model.generate(
-            inputs,
-            max_new_tokens=30,
-            num_beams=3,
-            early_stopping=True
-        )
-        caption = tokenizer.decode(output_ids[0], skip_special_tokens=True)
     except Exception as e:
-        caption = f"Errore: {e}"
-        
+        return f"Errore caricamento immagine: {e}"
+
+    inputs = image_processor(image, return_tensors="pt").pixel_values.to(device)
+
+    output_ids = model.generate(
+        inputs,
+        max_new_tokens=30,  # usa solo max_new_tokens
+        num_beams=3,
+        early_stopping=True
+    )
+
+    caption = tokenizer.decode(output_ids[0], skip_special_tokens=True)
     return caption
     
 # ---------------------------
