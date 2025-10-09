@@ -267,7 +267,7 @@ def get_blip_caption_new(image_url: str) -> str:
         raw_image = Image.open(requests.get(imgage_url, stream=True).raw).convert('RGB')
         inputs = processor(raw_image, return_tensors="pt")
         out = model.generate(**inputs)
-        caption = processor.decode(out[0], skip_special_tokens=True))
+        caption = processor.decode(out[0], skip_special_tokens=True)
     except Exception as e:
         caption = f"Errore: {e}"
         
