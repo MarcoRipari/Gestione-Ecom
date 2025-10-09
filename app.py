@@ -19,7 +19,7 @@ import pandas as pd
 import torch
 import logging
 import traceback
-from transformers import BlipProcessor, BlipForConditionalGeneration, InstructBlipProcessor, InstructBlipForConditionalGeneration
+from transformers import BlipProcessor, BlipForConditionalGeneration, InstructBlipProcessor, InstructBlipForConditionalGeneration, VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer
 from PIL import Image
 import requests
 import asyncio
@@ -259,30 +259,18 @@ def get_blip_caption(image_url: str) -> str:
 
 
 def get_blip_caption_new(image_url: str) -> str:
-    model = InstructBlipForConditionalGeneration.from_pretrained("Salesforce/instructblip-flan-t5-xxl", token=st.secrets["HF_TOKEN"])
-    processor = InstructBlipProcessor.from_pretrained("Salesforce/instructblip-flan-t5-xxl")
+    model = VisionEncoderDecoderModel.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
+    feature_extractor = ViTImageProcessor.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
+    tokenizer = AutoTokenizer.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
     
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
-    
-    url = "https://raw.githubusercontent.com/salesforce/LAVIS/main/docs/_static/Confusing-Pictures.jpg"
-    image = Image.open(requests.get(url, stream=True).raw).convert("RGB")
-    prompt = "Descrivi attentamente ciò che vedi nell'immagine, non indicare mai i colori e non usare la parola velcro"
-    inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
-    
-    outputs = model.generate(
-            **inputs,
-            do_sample=False,
-            num_beams=5,
-            max_length=256,
-            min_length=1,
-            top_p=0.9,
-            repetition_penalty=1.5,
-            length_penalty=1.0,
-            temperature=1,
-    )
-    generated_text = processor.batch_decode(outputs, skip_special_tokens=True)[0].strip()
-    return generated_text
+    image = Image.open(image_path).convert("RGB")
+    pixel_values = feature_extractor(images=image, return_tensors="pt").pixel_values.to(device)
+
+    output_ids = model.generate(pixel_values, max_length=64, num_beams=4)
+    descrizione = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+    return descrizione
     
 # ---------------------------
 # 🧠 Prompting e Generazione
