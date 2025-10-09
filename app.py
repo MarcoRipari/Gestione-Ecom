@@ -257,20 +257,26 @@ def get_blip_caption(image_url: str) -> str:
         # st.warning(f"⚠️ Errore nel captioning: {str(e)}")
         return ""
 
+model = VisionEncoderDecoderModel.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
+feature_extractor = ViTImageProcessor.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
+tokenizer = AutoTokenizer.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
 
 def get_blip_caption_new(image_url: str) -> str:
-    model = VisionEncoderDecoderModel.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
-    feature_extractor = ViTImageProcessor.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
-    tokenizer = AutoTokenizer.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    image = Image.open(requests.get(image_url, stream=True)).convert("RGB")
+    try:
+        image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
+    except Exception as e:
+        return f"Errore caricamento immagine: {e}"
+
     pixel_values = feature_extractor(images=image, return_tensors="pt").pixel_values.to(device)
 
-    output_ids = model.generate(pixel_values, max_length=64, num_beams=4)
-    descrizione = tokenizer.decode(output_ids[0], skip_special_tokens=True)
-    return descrizione
+    try:
+        output_ids = model.generate(pixel_values, max_length=64, num_beams=4)
+        descrizione = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        return descrizione
+    except Exception as e:
+        return f"Errore generazione descrizione: {e}"
     
 # ---------------------------
 # 🧠 Prompting e Generazione
