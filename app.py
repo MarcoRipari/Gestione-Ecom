@@ -265,7 +265,7 @@ def get_blip_caption_new(image_url: str) -> str:
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
-    image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
+    image = Image.open(requests.get(image_url, stream=True)).convert("RGB")
     pixel_values = feature_extractor(images=image, return_tensors="pt").pixel_values.to(device)
 
     output_ids = model.generate(pixel_values, max_length=64, num_beams=4)
