@@ -267,7 +267,7 @@ def get_blip_caption_new(image_url: str) -> str:
     
     url = "https://raw.githubusercontent.com/salesforce/LAVIS/main/docs/_static/Confusing-Pictures.jpg"
     image = Image.open(requests.get(url, stream=True).raw).convert("RGB")
-    prompt = "What is unusual about this image?"
+    prompt = "Descrivi attentamente ciò che vedi nell'immagine, non indicare mai i colori e non usare la parola velcro"
     inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
     
     outputs = model.generate(
