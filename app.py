@@ -269,11 +269,9 @@ max_length = 16
 num_beams = 3
 gen_kwargs = {"max_length": max_length, "num_beams": num_beams}
 def get_blip_caption_new(image_url: str) -> str:
-    images = []
-    for image_path in image_paths:
-        i_image = Image.open(image_path)
-        if i_image.mode != "RGB":
-            i_image = i_image.convert(mode="RGB")
+    i_image = Image.open(requests.get(image_url, stream=True).raw)
+    if i_image.mode != "RGB":
+        i_image = i_image.convert(mode="RGB")
 
         images.append(i_image)
 
