@@ -344,7 +344,7 @@ def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, 
     if use_image:
         try:
             sku = row["SKU"]
-            sku = sku[3:18].replace(".", "").upper()
+            sku = sku[3:].replace(".", "").upper()
             url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
             #caption = get_blip_caption(url)
             caption = get_blip_caption_new(url)
@@ -1441,7 +1441,7 @@ elif page == "Descrizioni":
                             if use_image:
                                 try:
                                     sku = row.get("SKU", "")
-                                    sku = sku[3:13].replace(".", "").upper()
+                                    sku = sku[3:].replace(".", "").upper()
                                     url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
                                     st.toast(url)
                                     #caption = get_blip_caption(url)
@@ -1562,7 +1562,7 @@ elif page == "Descrizioni":
                             #caption = get_blip_caption(image_url) if image_url else None
                             try:
                                 sku = row.get("SKU", "")
-                                sku = sku[3:13].replace(".", "").upper()
+                                sku = sku[3:].replace(".", "").upper()
                                 url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
                                 #caption = get_blip_caption(url)
                                 caption = get_blip_caption_new(url)
