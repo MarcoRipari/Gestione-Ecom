@@ -271,22 +271,6 @@ def get_blip_caption_new(image_url: str) -> str:
         caption = f"Errore: {e}"
         
     return caption
-
-# Carica modello captioning
-model_name = "nlpconnect/vit-gpt2-image-captioning"
-model = VisionEncoderDecoderModel.from_pretrained(model_name)
-processor = ViTImageProcessor.from_pretrained(model_name)
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
-
-def get_caption(image_url):
-    image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
-    pixel_values = processor(images=image, return_tensors="pt").pixel_values.to(device)
-    output_ids = model.generate(pixel_values, max_new_tokens=64)
-    caption = tokenizer.decode(output_ids[0], skip_special_tokens=True)
-    return caption
     
 # ---------------------------
 # 🧠 Prompting e Generazione
@@ -1226,7 +1210,8 @@ if page == "Home":
     url = "https://repository.falc.biz/samples/0450002010N04-5.JPG"
 
     #st.write(get_blip_caption_new(url))
-    st.write(get_caption(url))
+    st.write(get_blip_caption(url))
+    st.write(get_blip_caption_new(url))
 
 # ---------------------------
 # 🏠 LOGIN
