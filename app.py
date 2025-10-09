@@ -282,6 +282,9 @@ def get_blip_caption_new(image_url: str, prompt: str = "Describe in detail what 
             temperature=1,
         )
         generated_text = processor.batch_decode(outputs, skip_special_tokens=True)[0].strip()
+    except Exception as e:
+        generated_text = f"Errore: {e}"
+        
     return generated_text
     
 # ---------------------------
