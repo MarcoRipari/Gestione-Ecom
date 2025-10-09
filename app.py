@@ -264,6 +264,7 @@ def get_blip_caption(image_url: str) -> str:
 
 def get_blip_caption_new(image_url: str) -> str:
     try:
+        processor, model = load_blip_model()
         raw_image = Image.open(requests.get(image_url, stream=True).raw).convert('RGB')
         inputs = processor(raw_image, return_tensors="pt")
         out = model.generate(**inputs)
