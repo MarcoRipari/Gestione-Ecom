@@ -20,6 +20,7 @@ import torch
 import logging
 import traceback
 from transformers import BlipProcessor, BlipForConditionalGeneration, InstructBlipProcessor, InstructBlipForConditionalGeneration, VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer, AutoFeatureExtractor, AutoImageProcessor, pipeline
+from promptcap import PromptCap
 from PIL import Image
 import requests
 import asyncio
@@ -274,17 +275,17 @@ def get_blip_caption_new(image_url: str) -> str:
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# ✅ Modello con supporto a prompt
-processor = InstructBlipProcessor.from_pretrained("Salesforce/instructblip-flan-t5-xl")
-model = InstructBlipForConditionalGeneration.from_pretrained("Salesforce/instructblip-flan-t5-xl")
-model.to(device)
+# Carica il modello PromptCap
+model = PromptCap("tifa-benchmark/promptcap-coco-vqa")
+if torch.cuda.is_available():
+    model.cuda()
 
-def get_instructblip_caption(image_url: str, prompt: str) -> str:
+def get_promptcap_caption(image_url: str, prompt: str) -> str:
     try:
+        # Apri l’immagine da URL
         image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
-        inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
-        output = model.generate(**inputs, max_new_tokens=64)
-        caption = processor.tokenizer.decode(output[0], skip_special_tokens=True)
+        # Usa il metodo .caption con prompt
+        caption = model.caption(prompt, image)
     except Exception as e:
         caption = f"Errore: {e}"
     return caption
@@ -1227,7 +1228,7 @@ if page == "Home":
     url = "https://repository.falc.biz/samples/0450002010N04-5.JPG"
 
     #st.write(get_blip_caption_new(url))
-    st.write(get_instructblip_caption(url, "Descrivi solo la scarpa, non indicare il colore e non usare la parola velcro"))
+    st.write(get_promptcap_caption(url, "Descrivi solo la scarpa, non indicare il colore e non usare la parola velcro"))
 
 # ---------------------------
 # 🏠 LOGIN
