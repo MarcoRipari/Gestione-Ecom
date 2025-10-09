@@ -340,11 +340,14 @@ def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, 
         simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights)
         
     if use_image:
-        sku = row["SKU"]
-        sku = sku[3:18].replace(".", "").upper()
-        url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
-        caption = get_blip_caption(url)
-        st.toast(url)
+        try:
+            sku = row["SKU"]
+            sku = sku[3:18].replace(".", "").upper()
+            url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
+            #caption = get_blip_caption(url)
+            caption = get_blip_caption_new(url)
+        except Exception as e:
+            caption = None
     else:
         caption = None
         
@@ -1206,12 +1209,6 @@ with st.sidebar:
 # ---------------------------
 if page == "Home":
     viste.homepage.view()
-    url = "https://repository.falc.biz/samples/2012889010C02-5.JPG"
-    url = "https://repository.falc.biz/samples/0450002010N04-5.JPG"
-
-    #st.write(get_blip_caption_new(url))
-    st.write(get_blip_caption(url))
-    st.write(get_blip_caption_new(url))
 
 # ---------------------------
 # 🏠 LOGIN
@@ -1439,10 +1436,14 @@ elif page == "Descrizioni":
                         for _, row in df_input_to_generate.iterrows():
                             simili = retrieve_similar(row, index_df, index, k=k_simili, col_weights=st.session_state.col_weights) if k_simili > 0 else pd.DataFrame([])
                             if use_image:
-                                sku = row.get("SKU", "")
-                                sku = sku[3:13].replace(".", "").upper()
-                                url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
-                                caption = get_blip_caption(url)
+                                try:
+                                    sku = row.get("SKU", "")
+                                    sku = sku[3:13].replace(".", "").upper()
+                                    url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
+                                    #caption = get_blip_caption(url)
+                                    caption = get_blip_caption_new(url)
+                                except Exception as e:
+                                    caption = None
                             else:
                                 caption = None
                             
