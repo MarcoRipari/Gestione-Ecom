@@ -280,7 +280,7 @@ def get_blip_caption_new(image_url: str) -> str:
         output_ids = model.generate(pixel_values, **gen_kwargs)
     
         preds = tokenizer.batch_decode(output_ids[0], skip_special_tokens=True)
-        preds = pred.strip()
+        preds = preds.strip()
     except Exception as e:
         preds = f"Errore: {e}"
         
