@@ -257,35 +257,32 @@ def get_blip_caption(image_url: str) -> str:
         # st.warning(f"⚠️ Errore nel captioning: {str(e)}")
         return ""
 
-# 📦 Carica modello e processor
-model = InstructBlipForConditionalGeneration.from_pretrained("Salesforce/instructblip-flan-t5-xl")
-processor = InstructBlipProcessor.from_pretrained("Salesforce/instructblip-flan-t5-xl")
+# Carica il modello e i componenti
+model_name = "cnmoro/tiny-image-captioning"
+model = VisionEncoderDecoderModel.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+image_processor = AutoImageProcessor.from_pretrained(model_name)
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-def get_blip_caption_new(image_url: str, prompt: str = "Describe in detail what is in this image") -> str:
+def get_blip_caption_new(image_url: str) -> str:
     try:
-        url = "https://raw.githubusercontent.com/salesforce/LAVIS/main/docs/_static/Confusing-Pictures.jpg"
-        image = Image.open(requests.get(url, stream=True).raw).convert("RGB")
-        prompt = "What is unusual about this image?"
-        inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
-        outputs = model.generate(
-            **inputs,
-            do_sample=False,
-            num_beams=5,
-            max_length=256,
-            min_length=1,
-            top_p=0.9,
-            repetition_penalty=1.5,
-            length_penalty=1.0,
-            temperature=1,
-        )
-        generated_text = processor.batch_decode(outputs, skip_special_tokens=True)[0].strip()
+        image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
     except Exception as e:
-        generated_text = f"Errore: {e}"
-        
-    return generated_text
+        return f"Errore caricamento immagine: {e}"
+
+    inputs = image_processor(image, return_tensors="pt").pixel_values.to(device)
+
+    # Parametri di generazione
+    output_ids = model.generate(
+        inputs,
+        max_length=50,
+        num_beams=3,
+        early_stopping=True
+    )
+    caption = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+    return caption
     
 # ---------------------------
 # 🧠 Prompting e Generazione
