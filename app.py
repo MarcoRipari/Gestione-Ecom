@@ -259,7 +259,7 @@ def get_blip_caption(image_url: str) -> str:
 
 
 def get_blip_caption_new(image_url: str) -> str:
-    model = InstructBlipForConditionalGeneration.from_pretrained("Salesforce/instructblip-flan-t5-xxl", use_auth_token=st.secrets["HF_TOKEN"])
+    model = InstructBlipForConditionalGeneration.from_pretrained("Salesforce/instructblip-flan-t5-xxl", token=st.secrets["HF_TOKEN"])
     processor = InstructBlipProcessor.from_pretrained("Salesforce/instructblip-flan-t5-xxl")
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
