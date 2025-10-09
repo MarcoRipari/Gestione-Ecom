@@ -234,11 +234,14 @@ def benchmark_faiss(df, col_weights, query_sample_size=10):
 # ---------------------------
 @st.cache_resource
 def load_blip_model():
-    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-    model = BlipForConditionalGeneration.from_pretrained(
-        "Salesforce/blip-image-captioning-base",
-        use_auth_token=st.secrets["HF_TOKEN"]
-    )
+    #processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+    #model = BlipForConditionalGeneration.from_pretrained(
+    #    "Salesforce/blip-image-captioning-base",
+    #    use_auth_token=st.secrets["HF_TOKEN"]
+    #)
+    # Carica modello, tokenizer e processor
+    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
+    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
     return processor, model
     
 def get_blip_caption(image_url: str) -> str:
@@ -257,9 +260,7 @@ def get_blip_caption(image_url: str) -> str:
         # st.warning(f"⚠️ Errore nel captioning: {str(e)}")
         return ""
 
-# Carica modello, tokenizer e processor
-processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
-model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
+
 
 def get_blip_caption_new(image_url: str) -> str:
     try:
