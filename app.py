@@ -269,19 +269,19 @@ model.to(device)
 def get_blip_caption_new(image_url: str) -> str:
     try:
         image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
+        inputs = image_processor(image, return_tensors="pt").pixel_values.to(device)
+
+        # Parametri di generazione
+        output_ids = model.generate(
+            inputs,
+            max_length=50,
+            num_beams=3,
+            early_stopping=True
+        )
+        caption = tokenizer.decode(output_ids[0], skip_special_tokens=True)
     except Exception as e:
-        return f"Errore caricamento immagine: {e}"
-
-    inputs = image_processor(image, return_tensors="pt").pixel_values.to(device)
-
-    # Parametri di generazione
-    output_ids = model.generate(
-        inputs,
-        max_length=50,
-        num_beams=3,
-        early_stopping=True
-    )
-    caption = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        caption = f"Errore: {e}"
+        
     return caption
     
 # ---------------------------
