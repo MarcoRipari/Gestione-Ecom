@@ -271,6 +271,23 @@ def get_blip_caption_new(image_url: str) -> str:
         caption = f"Errore: {e}"
         
     return caption
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# ✅ Modello con supporto a prompt
+processor = InstructBlipProcessor.from_pretrained("Salesforce/instructblip-flan-t5-xl")
+model = InstructBlipForConditionalGeneration.from_pretrained("Salesforce/instructblip-flan-t5-xl")
+model.to(device)
+
+def get_instructblip_caption(image_url: str, prompt: str) -> str:
+    try:
+        image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
+        inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
+        output = model.generate(**inputs, max_new_tokens=64)
+        caption = processor.tokenizer.decode(output[0], skip_special_tokens=True)
+    except Exception as e:
+        caption = f"Errore: {e}"
+    return caption
     
 # ---------------------------
 # 🧠 Prompting e Generazione
@@ -1209,7 +1226,8 @@ if page == "Home":
     url = "https://repository.falc.biz/samples/2012889010C02-5.JPG"
     url = "https://repository.falc.biz/samples/0450002010N04-5.JPG"
 
-    st.write(get_blip_caption_new(url))
+    #st.write(get_blip_caption_new(url))
+    st.write(get_instructblip_caption(url, "Descrivi solo la scarpa, non indicare il colore e non usare la parola velcro")
 
 # ---------------------------
 # 🏠 LOGIN
