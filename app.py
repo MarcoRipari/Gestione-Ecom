@@ -257,20 +257,35 @@ def get_blip_caption(image_url: str) -> str:
         # st.warning(f"⚠️ Errore nel captioning: {str(e)}")
         return ""
 
-model_name = "cnmoro/nano-image-captioning"
-model = VisionEncoderDecoderModel.from_pretrained(model_name)
-feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+# 📦 Carica modello e processor
+model_name = "Salesforce/instructblip-flan-t5-base"
+processor = InstructBlipProcessor.from_pretrained(model_name)
+model = InstructBlipForConditionalGeneration.from_pretrained(model_name)
 
+# Usa CUDA se disponibile
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-def get_blip_caption_new(image_url: str) -> str:
-    image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
-    inputs = feature_extractor(images=image, return_tensors="pt").pixel_values.to(device)
-    out_ids = model.generate(inputs, max_length=50, num_beams=3)  # magari max_length più basso se vuoi velocità
-    caption = tokenizer.decode(out_ids[0], skip_special_tokens=True)
-    return caption
+def get_blip_caption_new(image_url: str, prompt: str = "Describe in detail what is in this image") -> str:
+    try:
+        image = Image.open(requests.get(image_url, stream=True).raw).convert("RGB")
+    except Exception as e:
+        return f"❌ Errore nel caricamento immagine: {e}"
+
+    # Pre-elabora immagine e prompt
+    inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
+
+    # Generazione
+    output = model.generate(
+        **inputs,
+        max_new_tokens=100,
+        num_beams=3,
+        early_stopping=True
+    )
+
+    # Decodifica output
+    description = processor.tokenizer.decode(output[0], skip_special_tokens=True)
+    return description
     
 # ---------------------------
 # 🧠 Prompting e Generazione
