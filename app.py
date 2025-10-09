@@ -19,7 +19,7 @@ import pandas as pd
 import torch
 import logging
 import traceback
-from transformers import BlipProcessor, BlipForConditionalGeneration, InstructBlipProcessor, InstructBlipForConditionalGeneration, VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer, AutoFeatureExtractor, AutoImageProcessor
+from transformers import BlipProcessor, BlipForConditionalGeneration, InstructBlipProcessor, InstructBlipForConditionalGeneration, VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer, AutoFeatureExtractor, AutoImageProcessor, pipeline
 from PIL import Image
 import requests
 import asyncio
@@ -1223,7 +1223,9 @@ with st.sidebar:
 if page == "Home":
     viste.homepage.view()
     url = "https://repository.falc.biz/samples/2012889010C02-5.JPG"
-    st.write(get_blip_caption_new(url))
+    image_to_text = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning")
+
+    st.write(image_to_text(url))
 
 # ---------------------------
 # 🏠 LOGIN
