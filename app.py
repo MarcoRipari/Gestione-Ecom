@@ -269,19 +269,23 @@ max_length = 16
 num_beams = 3
 gen_kwargs = {"max_length": max_length, "num_beams": num_beams}
 def get_blip_caption_new(image_url: str) -> str:
-    i_image = Image.open(requests.get(image_url, stream=True).raw)
-    if i_image.mode != "RGB":
-        i_image = i_image.convert(mode="RGB")
-
-        images.append(i_image)
-
-    pixel_values = feature_extractor(images=images, return_tensors="pt").pixel_values
-    pixel_values = pixel_values.to(device)
-
-    output_ids = model.generate(pixel_values, **gen_kwargs)
-
-    preds = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
-    preds = [pred.strip() for pred in preds]
+    try:
+        i_image = Image.open(requests.get(image_url, stream=True).raw)
+        if i_image.mode != "RGB":
+            i_image = i_image.convert(mode="RGB")
+    
+            images.append(i_image)
+    
+        pixel_values = feature_extractor(images=images, return_tensors="pt").pixel_values
+        pixel_values = pixel_values.to(device)
+    
+        output_ids = model.generate(pixel_values, **gen_kwargs)
+    
+        preds = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        preds = [pred.strip() for pred in preds]
+    except Exception as e:
+        preds = f"Errore: {e}"
+        
     return preds
     
 # ---------------------------
