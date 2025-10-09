@@ -344,8 +344,10 @@ def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, 
             sku = row["SKU"]
             sku = sku[3:18].replace(".", "").upper()
             url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
+            st.toast(url)
             #caption = get_blip_caption(url)
             caption = get_blip_caption_new(url)
+            
         except Exception as e:
             caption = None
     else:
