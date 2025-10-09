@@ -1207,6 +1207,7 @@ with st.sidebar:
 if page == "Home":
     viste.homepage.view()
     url = "https://repository.falc.biz/samples/2012889010C02-5.JPG"
+    url = "https://repository.falc.biz/samples/0450002010N04-5.JPG"
 
     st.write(get_blip_caption_new(url))
 
