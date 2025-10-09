@@ -263,7 +263,7 @@ model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-capt
 
 def get_blip_caption_new(image_url: str) -> str:
     try:
-        raw_image = Image.open(requests.get(imgage_url, stream=True).raw).convert('RGB')
+        raw_image = Image.open(requests.get(image_url, stream=True).raw).convert('RGB')
         inputs = processor(raw_image, return_tensors="pt")
         out = model.generate(**inputs)
         caption = processor.decode(out[0], skip_special_tokens=True)
