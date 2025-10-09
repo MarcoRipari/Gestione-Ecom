@@ -282,7 +282,7 @@ def get_blip_caption_new(image_url: str) -> str:
 
     output_ids = model.generate(
         inputs,
-        max_new_tokens=30,  # usa solo max_new_tokens
+        max_new_tokens=50,
         num_beams=3,
         early_stopping=True
     )
