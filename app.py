@@ -272,13 +272,6 @@ def get_blip_caption_new(image_url: str) -> str:
         
     return caption
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Carica il modello PromptCap
-model = PromptCap("tifa-benchmark/promptcap-coco-vqa")
-if torch.cuda.is_available():
-    model.cuda()
-
 # Carica modello captioning
 model_name = "nlpconnect/vit-gpt2-image-captioning"
 model = VisionEncoderDecoderModel.from_pretrained(model_name)
