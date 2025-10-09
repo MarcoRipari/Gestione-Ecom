@@ -1537,7 +1537,7 @@ elif page == "Descrizioni":
             if st.button("💬 Mostra Prompt di Anteprima"):
                 with st.spinner("Generazione..."):
                     try:
-                        if sheet_id:
+                        if desc_sheet_id:
                             tab_storico = f"STORICO_{marchio}"
                             data_sheet = get_sheet(desc_sheet_id, tab_storico)
                             df_storico = pd.DataFrame(data_sheet.get_all_records()).tail(500)
@@ -1555,7 +1555,15 @@ elif page == "Descrizioni":
     
                         image_url = test_row.get("Image 1", "")
                         if use_image:
-                            caption = get_blip_caption(image_url) if image_url else None
+                            #caption = get_blip_caption(image_url) if image_url else None
+                            try:
+                                sku = row.get("SKU", "")
+                                sku = sku[3:13].replace(".", "").upper()
+                                url = f"https://repository.falc.biz/samples/{sku}-5.JPG"
+                                #caption = get_blip_caption(url)
+                                caption = get_blip_caption_new(url)
+                            except Exception as e:
+                                caption = None
                         else:
                             caption = None
                         prompt_preview = build_unified_prompt(test_row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
