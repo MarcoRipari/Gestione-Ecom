@@ -1227,7 +1227,7 @@ if page == "Home":
     url = "https://repository.falc.biz/samples/0450002010N04-5.JPG"
 
     #st.write(get_blip_caption_new(url))
-    st.write(get_instructblip_caption(url, "Descrivi solo la scarpa, non indicare il colore e non usare la parola velcro")
+    st.write(get_instructblip_caption(url, "Descrivi solo la scarpa, non indicare il colore e non usare la parola velcro"))
 
 # ---------------------------
 # 🏠 LOGIN
