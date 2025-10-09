@@ -274,15 +274,13 @@ def get_blip_caption_new(image_url: str) -> str:
         if i_image.mode != "RGB":
             i_image = i_image.convert(mode="RGB")
     
-            images.append(i_image)
-    
-        pixel_values = feature_extractor(images=images, return_tensors="pt").pixel_values
+        pixel_values = feature_extractor(i_image, return_tensors="pt").pixel_values
         pixel_values = pixel_values.to(device)
     
         output_ids = model.generate(pixel_values, **gen_kwargs)
     
-        preds = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
-        preds = [pred.strip() for pred in preds]
+        preds = tokenizer.batch_decode(output_ids[0], skip_special_tokens=True)
+        preds = pred.strip()
     except Exception as e:
         preds = f"Errore: {e}"
         
@@ -1223,9 +1221,8 @@ with st.sidebar:
 if page == "Home":
     viste.homepage.view()
     url = "https://repository.falc.biz/samples/2012889010C02-5.JPG"
-    image_to_text = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning")
 
-    st.write(image_to_text(url))
+    st.write(get_blip_caption_new(url))
 
 # ---------------------------
 # 🏠 LOGIN
