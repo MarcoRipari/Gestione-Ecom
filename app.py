@@ -265,7 +265,7 @@ image_processor = AutoImageProcessor.from_pretrained(model_name)
 
 # Se il modello ha il metodo to_empty, usalo prima di spostare il modello su device
 if hasattr(model, "to_empty"):
-    model = model.to_empty()
+    model = model.to_empty(device=device)
 
 model.to(device)
 
