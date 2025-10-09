@@ -19,7 +19,7 @@ import pandas as pd
 import torch
 import logging
 import traceback
-from transformers import BlipProcessor, BlipForConditionalGeneration, InstructBlipProcessor, InstructBlipForConditionalGeneration, VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer, AutoFeatureExtractor
+from transformers import BlipProcessor, BlipForConditionalGeneration, InstructBlipProcessor, InstructBlipForConditionalGeneration, VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer, AutoFeatureExtractor, AutoImageProcessor
 from PIL import Image
 import requests
 import asyncio
