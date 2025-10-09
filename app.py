@@ -280,11 +280,16 @@ def get_blip_caption_new(image_url: str) -> str:
 
     inputs = image_processor(image, return_tensors="pt").pixel_values.to(device)
 
+    decoder_start_token_id = tokenizer.cls_token_id or tokenizer.bos_token_id
+    if decoder_start_token_id is None:
+        return "Errore: tokenizer non ha token di inizio decoder."
+
     output_ids = model.generate(
         inputs,
         max_new_tokens=50,
         num_beams=3,
-        early_stopping=True
+        early_stopping=True,
+        decoder_start_token_id=decoder_start_token_id
     )
 
     caption = tokenizer.decode(output_ids[0], skip_special_tokens=True)
