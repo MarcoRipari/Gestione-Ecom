@@ -1927,7 +1927,7 @@ elif page == "Foto - Riscatta SKU":
                     else:
                         nuovi_valori.append([""])
         
-                range_update = f"N3:N{len(nuovi_valori) + 2}"
+                range_update = f"P3:P{len(nuovi_valori) + 2}"
                 sheet.update(values=nuovi_valori, range_name=range_update)
         
                 # 🔄 Ricarico il DataFrame dal Google Sheet (stesso metodo usato sopra)
