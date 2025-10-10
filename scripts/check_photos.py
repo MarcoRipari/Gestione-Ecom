@@ -232,6 +232,7 @@ async def main():
     try:
         sku_idx = header.index("SKU")
         riscattare_idx = header.index("RISCATTARE")
+        consegnata_idx = header.index("CONSEGNATA")
     except ValueError as e:
         print(f"❌ Colonna mancante: {e}")
         return
@@ -250,7 +251,10 @@ async def main():
     
         # Imposta RISCATTARE = FALSE solo se l'immagine è stata salvata effettivamente
         if salvata and len(row) > riscattare_idx and row[riscattare_idx].strip().lower() == "true":
-            output_col_p.append(["FALSE"])
+            if row[consegnata_idx].strip().lower() == "true":
+                output_col_p.append(["False"])
+            else:
+                output_col_p.append([""])
         else:
             output_col_p.append([""])
     
