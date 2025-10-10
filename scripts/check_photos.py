@@ -251,13 +251,20 @@ async def main():
     
         # Imposta RISCATTARE = FALSE solo se l'immagine è stata salvata effettivamente
         if salvata and len(row) > riscattare_idx and row[riscattare_idx].strip().lower() == "true":
-            print(row)
+            print(consegnata_idx)
+            print(row[consegnata_idx])
             if row[consegnata_idx].strip().lower() == "true":
                 output_col_p.append(["False"])
             else:
                 output_col_p.append([""])
         else:
-            output_col_p.append([""])
+            if row[riscattare_idx].strip().lower() == "true":
+                if row[consegnata_idx].strip().lower() == "true":
+                    output_col_p.append(["False"])
+                else:
+                    output_col_p.append(["True"])
+            else:
+                output_col_p.append([""])
     
     # Aggiorna le due colonne nel foglio
     sheet.batch_update([
