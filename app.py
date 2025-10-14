@@ -113,6 +113,73 @@ REPO = "Gestione-Ecom"
 WORKFLOW_FILENAME = "check_photos.yml"  # O usa il workflow ID
 REF = "main"  # Branch su cui girare il workflow
 
+def get_last_run(owner, repo, file):
+    filename = f"{file}.yml"
+    url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{filename}/runs"
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        runs = response.json()["workflow_runs"]
+        if runs:
+            return runs[0]  # L’ultima esecuzione
+    return None
+
+def run_workflow(owner, repo, file):
+    filename = f"{file}.yml"
+    url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{filename}/dispatches"
+        
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    data = {
+        "ref": REF,
+        "inputs": {}
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+    return response
+
+def get_workflow_logs(owner, repo, run_id, artifact_name="log-output.txt"):
+    # 1. Ottieni URL di download artifact
+    url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/artifacts"
+    r = requests.get(url, headers=headers)
+    artifacts = r.json()["artifacts"]
+    if not artifacts:
+        return "Nessun artifact trovato."
+
+    download_url = artifacts[0]["archive_download_url"]
+
+    # 2. Scarica il file zip
+    r = requests.get(download_url, headers=headers)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+
+    # 3. Leggi file .txt dentro lo zip
+    with z.open(artifact_name) as f:
+        content = f.read().decode("utf-8")
+        return content
+    
+def workflow(owner, repo, file, interval=5, timeout=120):
+    run = run_workflow(owner, repo, file)
+    
+    # aspetta 30 secondi
+    # avvia run_id = get_last_run(owner, repo, file)
+    run_id = get_last_run(owner, repo, file)
+    
+    start_time = time.time()
+    while True:
+        url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            status = data["status"]
+            conclusion = data["conclusion"]
+            if status == "completed":
+                logs = get_workflow_logs(owner, repo, run_id)
+        if time.time() - start_time > timeout:
+            return "timeout"
+        time.sleep(interval)
+
 # ---------------------------
 # 📦 Embedding & FAISS Setup
 # ---------------------------
