@@ -103,6 +103,16 @@ def check_openai_key():
         msg = str(e).lower()
         return False
 
+
+# ---------------------------
+# Github Repo
+# ---------------------------
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Puoi usare st.secrets in Streamlit Cloud
+OWNER = "MarcoRipari"
+REPO = "Gestione-Ecom"
+WORKFLOW_FILENAME = "check_photos.yml"  # O usa il workflow ID
+REF = "main"  # Branch su cui girare il workflow
+
 # ---------------------------
 # 📦 Embedding & FAISS Setup
 # ---------------------------
@@ -1645,6 +1655,28 @@ elif page == "Foto - Gestione":
                 st.error(f"Errore: {str(e)}")
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
+            
+        if st.button("Esegui controllo"):
+            url = f"https://api.github.com/repos/{OWNER}/{REPO}/actions/workflows/{WORKFLOW_FILENAME}/dispatches"
+        
+            headers = {
+                "Authorization": f"token {GITHUB_TOKEN}",
+                "Accept": "application/vnd.github+json",
+            }
+        
+            data = {
+                "ref": REF,
+                "inputs": {
+                    "my_input": "valore di esempio"
+                }
+            }
+        
+            response = requests.post(url, headers=headers, json=data)
+        
+            if response.status_code == 204:
+                st.success("✅ Workflow avviato con successo!")
+            else:
+                st.error(f"❌ Errore: {response.status_code} - {response.text}")
             
     with col2:
         c1, c2, c3, c4, c5 = st.columns([0.35,1,1,1,1])
