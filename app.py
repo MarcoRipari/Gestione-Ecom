@@ -1724,7 +1724,7 @@ elif page == "Foto - Gestione":
         if st.button("🔄 Refresh"):
             st.session_state["refresh_foto_token"] = str(time.time())
             
-        if st.button("Esegui controllo"):
+        if st.button("Esegui controllo2"):
             url = f"https://api.github.com/repos/{OWNER}/{REPO}/actions/workflows/{WORKFLOW_FILENAME}/dispatches"
         
             headers = {
