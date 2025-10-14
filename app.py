@@ -134,7 +134,7 @@ def run_workflow(owner, repo, file):
     response = requests.post(url, headers=git_headers, json=git_data)
     return response
 
-def get_workflow_logs(owner, repo, run_id, artifact_name="log-output.txt"):
+def get_workflow_logs(owner, repo, run_id, artifact_name="output.txt"):
     # 1. Ottieni URL di download artifact
     url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/artifacts"
     r = requests.get(url, headers=git_headers)
