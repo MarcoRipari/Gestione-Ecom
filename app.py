@@ -1712,7 +1712,7 @@ elif page == "Foto - Gestione":
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Avvia nuovo workflow"):
+        if st.button("Avvia workflow"):
             workflow("MarcoRipari", "Gestione-Ecom", "check_photos")
             
         if st.button("📦 Genera lista SKU"):
