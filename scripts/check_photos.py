@@ -254,7 +254,7 @@ async def main():
             if row[consegnata_idx].strip().lower() == "true":
                 output_col_p.append(["False"])
             else:
-                output_col_p.append([""])
+                output_col_p.append(["True"])
         else:
             if row[riscattare_idx].strip().lower() == "true":
                 if row[consegnata_idx].strip().lower() == "true":
