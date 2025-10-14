@@ -155,7 +155,9 @@ def get_workflow_logs(owner, repo, run_id, artifact_name="output.txt"):
     
 def workflow(owner, repo, file, interval=5, timeout=120):
     run = run_workflow(owner, repo, file)
-    
+    if run.status_code != 204:
+        return st.error(f"❌ Errore: {run.status_code} - {run.text}")
+        
     time.sleep(10)
     
     run = get_last_run(owner, repo, file)
