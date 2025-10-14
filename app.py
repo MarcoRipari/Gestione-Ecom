@@ -176,6 +176,7 @@ def workflow(owner, repo, file, interval=5, timeout=120):
             conclusion = data["conclusion"]
             if status == "completed":
                 logs = get_workflow_logs(owner, repo, run_id)
+                st.write(logs)
         if time.time() - start_time > timeout:
             return "timeout"
         time.sleep(interval)
