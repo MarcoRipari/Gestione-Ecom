@@ -49,8 +49,7 @@ import pdfplumber
 import PyPDF2
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
-import viste
-
+import zipfile
 from google.oauth2 import service_account
 import gspread
 from gspread_formatting import CellFormat, NumberFormat, format_cell_ranges
@@ -62,6 +61,8 @@ import gspread.utils
 from googleapiclient.discovery import build
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+
+import viste
 
 from functions.supabase_creds import *
 from functions.auth_system import *
@@ -108,15 +109,18 @@ def check_openai_key():
 # Github Repo
 # ---------------------------
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Puoi usare st.secrets in Streamlit Cloud
-OWNER = "MarcoRipari"
-REPO = "Gestione-Ecom"
-WORKFLOW_FILENAME = "check_photos.yml"  # O usa il workflow ID
-REF = "main"  # Branch su cui girare il workflow
-
+git_headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json",
+    }
+git_data = {
+        "ref": "main",
+        "inputs": {}
+    }
 def get_last_run(owner, repo, file):
     filename = f"{file}.yml"
     url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{filename}/runs"
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=git_headers)
     if response.status_code == 200:
         runs = response.json()["workflow_runs"]
         if runs:
@@ -126,24 +130,14 @@ def get_last_run(owner, repo, file):
 def run_workflow(owner, repo, file):
     filename = f"{file}.yml"
     url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{filename}/dispatches"
-        
-    headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github+json",
-    }
 
-    data = {
-        "ref": REF,
-        "inputs": {}
-    }
-
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=git_headers, json=git_data)
     return response
 
 def get_workflow_logs(owner, repo, run_id, artifact_name="log-output.txt"):
     # 1. Ottieni URL di download artifact
     url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/artifacts"
-    r = requests.get(url, headers=headers)
+    r = requests.get(url, headers=git_headers)
     artifacts = r.json()["artifacts"]
     if not artifacts:
         return "Nessun artifact trovato."
@@ -151,7 +145,7 @@ def get_workflow_logs(owner, repo, run_id, artifact_name="log-output.txt"):
     download_url = artifacts[0]["archive_download_url"]
 
     # 2. Scarica il file zip
-    r = requests.get(download_url, headers=headers)
+    r = requests.get(download_url, headers=git_headers)
     z = zipfile.ZipFile(io.BytesIO(r.content))
 
     # 3. Leggi file .txt dentro lo zip
@@ -162,14 +156,15 @@ def get_workflow_logs(owner, repo, run_id, artifact_name="log-output.txt"):
 def workflow(owner, repo, file, interval=5, timeout=120):
     run = run_workflow(owner, repo, file)
     
-    # aspetta 30 secondi
-    # avvia run_id = get_last_run(owner, repo, file)
-    run_id = get_last_run(owner, repo, file)
+    time.sleep(10)
+    
+    run = get_last_run(owner, repo, file)
+    run_id = run["id"]
     
     start_time = time.time()
     while True:
         url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}"
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=git_headers)
         if response.status_code == 200:
             data = response.json()
             status = data["status"]
@@ -177,6 +172,7 @@ def workflow(owner, repo, file, interval=5, timeout=120):
             if status == "completed":
                 logs = get_workflow_logs(owner, repo, run_id)
                 st.write(logs)
+                return
         if time.time() - start_time > timeout:
             return "timeout"
         time.sleep(interval)
@@ -1715,6 +1711,9 @@ elif page == "Foto - Gestione":
     
     col1, col2 = st.columns(2)
     with col1:
+        if st.button("Avvia nuovo workflow"):
+            workflow("MarcoRipari", "Gestione-Ecom", "check_photos")
+            
         if st.button("📦 Genera lista SKU"):
             try:
                 genera_lista_sku(foto_sheet_id, tab_names)
