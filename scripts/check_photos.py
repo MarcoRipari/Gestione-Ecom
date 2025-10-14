@@ -250,17 +250,22 @@ async def main():
         output_col_k.append([str(mancante)])
     
         # Imposta RISCATTARE = FALSE solo se l'immagine è stata salvata effettivamente
-        if salvata and len(row) > riscattare_idx and row[riscattare_idx].strip().lower() == "true":
-            if row[consegnata_idx].strip().lower() == "true":
-                output_col_p.append(["False"])
-            else:
-                output_col_p.append(["True"])
+        if salvata and len(row) > riscattare_idx:
+            if row[riscattare_idx].strip().lower() == "true":
+                if row[consegnata_idx].strip().lower() == "true":
+                    output_col_p.append(["Check"])
+                else:
+                    output_col_p.append(["True"])
+            elif row[riscattare_idx].strip().lower() == "check":
+                output_col_p.append([""])
         else:
             if row[riscattare_idx].strip().lower() == "true":
                 if row[consegnata_idx].strip().lower() == "true":
-                    output_col_p.append(["False"])
+                    output_col_p.append(["Check"])
                 else:
                     output_col_p.append(["True"])
+            elif row[riscattare_idx].strip().lower() == "check":
+                output_col_p.append(["Check"])
             else:
                 output_col_p.append([""])
     
