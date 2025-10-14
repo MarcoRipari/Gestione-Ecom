@@ -1666,9 +1666,7 @@ elif page == "Foto - Gestione":
         
             data = {
                 "ref": REF,
-                "inputs": {
-                    "my_input": "valore di esempio"
-                }
+                "inputs": {}
             }
         
             response = requests.post(url, headers=headers, json=data)
