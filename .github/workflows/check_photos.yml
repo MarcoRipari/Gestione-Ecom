@@ -45,3 +45,9 @@ jobs:
           DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
           DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
         run: python scripts/check_photos.py
+
+      - name: Salva output come artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-output
+          path: output.txt
