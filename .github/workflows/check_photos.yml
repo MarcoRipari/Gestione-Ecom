@@ -44,7 +44,7 @@ jobs:
           DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
           DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
           DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
-        run: python scripts/check_photos.py
+        run: python scripts/check_photos.py > output.txt
 
       - name: Salva output come artifact
         uses: actions/upload-artifact@v4
