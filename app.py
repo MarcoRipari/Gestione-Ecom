@@ -160,22 +160,23 @@ def workflow(owner, repo, file, interval=5, timeout=120):
     
     run = get_last_run(owner, repo, file)
     run_id = run["id"]
-    
-    start_time = time.time()
-    while True:
-        url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}"
-        response = requests.get(url, headers=git_headers)
-        if response.status_code == 200:
-            data = response.json()
-            status = data["status"]
-            conclusion = data["conclusion"]
-            if status == "completed":
-                logs = get_workflow_logs(owner, repo, run_id)
-                st.write(logs)
-                return
-        if time.time() - start_time > timeout:
-            return "timeout"
-        time.sleep(interval)
+
+    with st.spinner("Controllo in corso..."):
+        start_time = time.time()
+        while True:
+            url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}"
+            response = requests.get(url, headers=git_headers)
+            if response.status_code == 200:
+                data = response.json()
+                status = data["status"]
+                conclusion = data["conclusion"]
+                if status == "completed":
+                    logs = get_workflow_logs(owner, repo, run_id)
+                    st.write(logs)
+                    return
+            if time.time() - start_time > timeout:
+                return "timeout"
+            time.sleep(interval)
 
 # ---------------------------
 # 📦 Embedding & FAISS Setup
