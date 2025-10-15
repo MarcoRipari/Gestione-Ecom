@@ -392,12 +392,19 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 - Tono: {", ".join(selected_tones)}
 - Ometti sempre: Codice, Nome, Marca, Colore (nemmeno in forma implicita)
 - Lingua: adatta al paese target
-- Utilizza esclusivamente il tipo di calzatura passato nell info articoli
-- Non usare il genere
-- Usa sempre la parola strappo, niente sinonimi ne velcro
-- Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo (non menzionare i nomi delle stagioni nella descrizione)
+- Utilizza esclusivamente il tipo di calzatura passato nelle info articoli
+- Non usare il genere maschile / femminale, bambino / bambina, bimbo / bimba
+- Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo
 - Evita le percentuali materiali
 - Non tradurre MAI le parole velour e suede per le descrizioni in italiano
+
+>>> OMETTERE SEMPRE ANCHE IN FORMA IMPLICITA
+- Velcro (utilizza strappo)
+- Velluto (utilizza Velour o suede)
+- Primavera / primaverile
+- Estate / estivo
+- Autunno / autunnale
+- Inverno / invernale
 
 >>> REGOLE
 - desc_lunga: {desc_lunga_length} parole → enfasi su comfort, materiali, utilizzo
@@ -409,7 +416,7 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 
 {sim_text}
 
->>>
+>>> CONTROLLO FINALE
 Prima di generare l'output verifica che non ci siano errori grammaticali o di traduzione, altrimenti rigenera la descrizione o correggila.
 """
     return prompt
