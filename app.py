@@ -395,8 +395,9 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 - Utilizza esclusivamente il tipo di calzatura passato nell info articoli
 - Non usare il genere
 - Usa sempre la parola strappo, niente sinonimi ne velcro
-- Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo (non usare la stagione nella descrizione)
+- Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo (non menzionare i nomi delle stagioni nella descrizione)
 - Evita le percentuali materiali
+- Non tradurre MAI le parole velour e suede per le descrizioni in italiano
 
 >>> REGOLE
 - desc_lunga: {desc_lunga_length} parole → enfasi su comfort, materiali, utilizzo
@@ -1574,7 +1575,10 @@ elif page == "Descrizioni":
                         logs.append(log_entry)
             
                     # 🔄 Salvataggio solo dei nuovi risultati
-                    #with st.spinner("📤 Salvataggio nuovi dati..."):
+                    with st.spinner("📤 Salvataggio nuovi dati..."):
+                        for log in logs:
+                            append_log(desc_sheet_id, log)
+                            
                     #    for lang in selected_langs:
                     #        df_out = pd.DataFrame(all_outputs[lang])
                     #        df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
