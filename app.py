@@ -74,7 +74,7 @@ LANG_NAMES = {
     "EN": "inglese",
     "FR": "francese",
     "DE": "tedesco",
-    "ES": :"spagnolo"
+    "ES": "spagnolo"
 }
 LANG_LABELS = {v.capitalize(): k for k, v in LANG_NAMES.items()}
 
