@@ -1580,20 +1580,7 @@ elif page == "Descrizioni":
                                 "estimated_cost_usd": round(usage.get("total_tokens", 0) / 1000 * 0.001, 6)
                             })
                         logs.append(log_entry)
-            
-                    # 🔄 Salvataggio solo dei nuovi risultati
-                    #with st.spinner("📤 Salvataggio nuovi dati..."):
-                    #    for log in logs:
-                    #        append_log(desc_sheet_id, log)
-                            
-                    #    for lang in selected_langs:
-                    #        df_out = pd.DataFrame(all_outputs[lang])
-                    #        df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
-                    #        if not df_new.empty:
-                    #            append_to_sheet(desc_sheet_id, lang, df_new)
-                    #    for log in logs:
-                    #        append_log(desc_sheet_id, log)
-            
+
                     # 📦 ZIP finale
                     with st.spinner("📦 Generazione ZIP..."):
                         mem_zip = BytesIO()
@@ -1607,6 +1594,19 @@ elif page == "Descrizioni":
                                 })
                                 zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
                         mem_zip.seek(0)
+                        
+                    🔄 Salvataggio solo dei nuovi risultati
+                    with st.spinner("📤 Salvataggio nuovi dati..."):
+                        try:
+                            for lang in selected_langs:
+                                df_out = pd.DataFrame(all_outputs[lang])
+                                df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
+                                if not df_new.empty:
+                                    append_to_sheet(desc_sheet_id, lang, df_new)
+                            for log in logs:
+                                append_log(desc_sheet_id, log)
+                        except Exception as e:
+                            st.warning(f"Errore: {e}")
             
                     st.success("✅ Tutto fatto!")
                     st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
