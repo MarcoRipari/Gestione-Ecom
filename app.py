@@ -394,7 +394,7 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 - Lingua: adatta al paese target
 - Non usare il genere
 - Usa sempre la parola strappo, niente sinonimi ne velcro
-- Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo
+- Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo (non usare la stagione nella descrizione)
 - Evita le percentuali materiali
 - Evita gli errori grammaticali
 
@@ -1352,21 +1352,11 @@ elif page == "Descrizioni":
             st.markdown("### 1. Seleziona colonne")
             available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
     
-            def_column = ["skuarticolo",
-                          "Classification",
-                          "Matiere", "Sexe",
-                          "Saison", "Silouhette",
-                          "shoe_toecap_zalando",
-                          "shoe_detail_zalando",
-                          "heel_height_zalando",
-                          "heel_form_zalando",
+            def_column = ["Saison", "Silouhette",
                           "sole_material_zalando",
                           "shoe_fastener_zalando",
-                          "pattern_zalando",
                           "upper_material_zalando",
                           "futter_zalando",
-                          "Subtile2",
-                          "Concept",
                           "Sp.feature"
                          ]
     
@@ -1582,14 +1572,14 @@ elif page == "Descrizioni":
                         logs.append(log_entry)
             
                     # 🔄 Salvataggio solo dei nuovi risultati
-                    with st.spinner("📤 Salvataggio nuovi dati..."):
-                        for lang in selected_langs:
-                            df_out = pd.DataFrame(all_outputs[lang])
-                            df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
-                            if not df_new.empty:
-                                append_to_sheet(desc_sheet_id, lang, df_new)
-                        for log in logs:
-                            append_log(desc_sheet_id, log)
+                    #with st.spinner("📤 Salvataggio nuovi dati..."):
+                    #    for lang in selected_langs:
+                    #        df_out = pd.DataFrame(all_outputs[lang])
+                    #        df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
+                    #        if not df_new.empty:
+                    #            append_to_sheet(desc_sheet_id, lang, df_new)
+                    #    for log in logs:
+                    #        append_log(desc_sheet_id, log)
             
                     # 📦 ZIP finale
                     with st.spinner("📦 Generazione ZIP..."):
