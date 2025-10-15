@@ -168,7 +168,7 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                         print("DEBUG: hash old:", h1)
                         print("DEBUG: hash new:", h2)
                         print("DEBUG: pHash diff:", diff)
-                        pritn("DEBUG: is equal:", is_eq)
+                        print("DEBUG: is equal:", is_eq)
 
                         
                         if not old_img or not images_are_equal(new_img, old_img):
