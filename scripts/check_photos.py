@@ -164,25 +164,28 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
 
                     if riscattare:
                         old_name, old_img = get_dropbox_latest_image(sku)
-                        score = ssim_similarity(new_img, old_img)
-                        print(f"{sku} - SSIM score: {score}")
-                        if not old_img or not images_are_equal(new_img, old_img):
-                            if score < 0.98:
-                                if old_name:
-                                    date_suffix = datetime.now().strftime("%d%m%Y")
-                                    ext = old_name.split(".")[-1]
-                                    new_old_name = f"{sku}_{date_suffix}.{ext}"
-                                    try:
-                                        dbx.files_move_v2(
-                                            from_path=f"/repository/{sku}/{old_name}",
-                                            to_path=f"/repository/{sku}/{new_old_name}",
-                                            allow_shared_folder=True,
-                                            autorename=True
-                                        )
-                                    except Exception as e:
-                                        print(f"⚠️ Errore rinominando {old_name}: {e}")
-                                save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
-                                foto_salvata = True
+                        if old_img:
+                            score = ssim_similarity(new_img, old_img)
+                            print(f"{sku} - SSIM score: {score}")
+                        else:
+                            score = 0
+                            print(f"{sku} - SSIM score: foto sku non trovata in repository")
+                        if not old_img or not images_are_equal(new_img, old_img) and score < 0.98:
+                            if old_name:
+                                date_suffix = datetime.now().strftime("%d%m%Y")
+                                ext = old_name.split(".")[-1]
+                                new_old_name = f"{sku}_{date_suffix}.{ext}"
+                                try:
+                                    dbx.files_move_v2(
+                                        from_path=f"/repository/{sku}/{old_name}",
+                                        to_path=f"/repository/{sku}/{new_old_name}",
+                                        allow_shared_folder=True,
+                                        autorename=True
+                                    )
+                                except Exception as e:
+                                    print(f"⚠️ Errore rinominando {old_name}: {e}")
+                            save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
+                            foto_salvata = True
 
                     return sku, False, foto_salvata
                 else:
