@@ -111,7 +111,7 @@ def images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 0) -
     hash2 = imagehash.phash(img2)
     return hash1 - hash2 <= threshold  # soglia 0 = identiche, 1-2 = molto simili
 
-def test_image_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 0) -> bool:
+def test_images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 0) -> bool:
     """Confronta le immagini usando perceptual hash (pHash)."""
     hash1 = imagehash.phash(img1)
     hash2 = imagehash.phash(img2)
