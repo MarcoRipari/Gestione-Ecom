@@ -111,11 +111,12 @@ def images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 0) -
     hash2 = imagehash.phash(img2)
     return hash1 - hash2 <= threshold  # soglia 0 = identiche, 1-2 = molto simili
 
-def test_images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 0) -> bool:
+def test_images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 1) -> bool:
     """Confronta le immagini usando perceptual hash (pHash)."""
     hash1 = imagehash.phash(img1)
     hash2 = imagehash.phash(img2)
-    return hash1, hash2, hash1 - hash2 <= threshold  # soglia 0 = identiche, 1-2 = molto simili
+    diff = hash1 - hash2
+    return hash1, hash2, diff, hash1 - hash2 <= threshold  # soglia 0 = identiche, 1-2 = molto simili
 
 def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
     folder_path = f"/repository/{sku}"
@@ -162,11 +163,12 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
 
                     if riscattare:
                         old_name, old_img = get_dropbox_latest_image(sku)
-                        h1,h2,hdiff = test_images_are_equal(new_img, old_img)
+                        h1,h2,diff, is_eq = test_images_are_equal(new_img, old_img)
                         print("DEBUG: old_img is None?", old_img is None)
                         print("DEBUG: hash old:", h1)
                         print("DEBUG: hash new:", h2)
-                        print("DEBUG: pHash diff:", hdiff)
+                        print("DEBUG: pHash diff:", diff)
+                        pritn("DEBUG: is equal:", is_eq)
 
                         
                         if not old_img or not images_are_equal(new_img, old_img):
