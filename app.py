@@ -1575,9 +1575,9 @@ elif page == "Descrizioni":
                         logs.append(log_entry)
             
                     # 🔄 Salvataggio solo dei nuovi risultati
-                    with st.spinner("📤 Salvataggio nuovi dati..."):
-                        for log in logs:
-                            append_log(desc_sheet_id, log)
+                    #with st.spinner("📤 Salvataggio nuovi dati..."):
+                    #    for log in logs:
+                    #        append_log(desc_sheet_id, log)
                             
                     #    for lang in selected_langs:
                     #        df_out = pd.DataFrame(all_outputs[lang])
