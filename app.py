@@ -1595,7 +1595,7 @@ elif page == "Descrizioni":
                                 zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
                         mem_zip.seek(0)
                         
-                    🔄 Salvataggio solo dei nuovi risultati
+                    # 🔄 Salvataggio solo dei nuovi risultati
                     with st.spinner("📤 Salvataggio nuovi dati..."):
                         try:
                             for lang in selected_langs:
