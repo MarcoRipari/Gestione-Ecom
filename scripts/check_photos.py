@@ -109,6 +109,10 @@ def images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 0) -
     """Confronta le immagini usando perceptual hash (pHash)."""
     hash1 = imagehash.phash(img1)
     hash2 = imagehash.phash(img2)
+    print("DEBUG: hash1:", hash1)
+    print("DEBUG: hash2:", hash2)
+    print("DEBUG: hash diff:", hash1 - hash2)
+    print("DEBUG: is eq?", hash1 - hash2 <= threshold)
     return hash1 - hash2 <= threshold  # soglia 0 = identiche, 1-2 = molto simili
 
 def test_images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 1) -> bool:
@@ -163,14 +167,7 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
 
                     if riscattare:
                         old_name, old_img = get_dropbox_latest_image(sku)
-                        h1,h2,diff, is_eq = test_images_are_equal(new_img, old_img)
-                        print("DEBUG: old_img is None?", old_img is None)
-                        print("DEBUG: hash old:", h1)
-                        print("DEBUG: hash new:", h2)
-                        print("DEBUG: pHash diff:", diff)
-                        print("DEBUG: is equal:", is_eq)
-
-                        
+                        print(url)
                         if not old_img or not images_are_equal(new_img, old_img):
                             if old_name:
                                 date_suffix = datetime.now().strftime("%d%m%Y")
