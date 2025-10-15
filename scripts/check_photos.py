@@ -12,6 +12,8 @@ from typing import List, Dict
 from google.oauth2.service_account import Credentials
 import dropbox
 from dropbox.files import WriteMode
+from skimage.metrics import structural_similarity as ssim
+import numpy as np
 
 DEBUG = 0  # Imposta a 0 per eseguire lo script completo
 async def test_debug():
@@ -105,22 +107,17 @@ def hash_image(image: Image.Image) -> str:
     image.save(img_bytes, format="JPEG")
     return hashlib.md5(img_bytes.getvalue()).hexdigest()
 
-def images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 0) -> bool:
+def images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 2) -> bool:
     """Confronta le immagini usando perceptual hash (pHash)."""
     hash1 = imagehash.phash(img1)
     hash2 = imagehash.phash(img2)
-    print("DEBUG: hash1:", hash1)
-    print("DEBUG: hash2:", hash2)
-    print("DEBUG: hash diff:", hash1 - hash2)
-    print("DEBUG: is eq?", hash1 - hash2 <= threshold)
     return hash1 - hash2 <= threshold  # soglia 0 = identiche, 1-2 = molto simili
 
-def test_images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 1) -> bool:
-    """Confronta le immagini usando perceptual hash (pHash)."""
-    hash1 = imagehash.phash(img1)
-    hash2 = imagehash.phash(img2)
-    diff = hash1 - hash2
-    return hash1, hash2, diff, hash1 - hash2 <= threshold  # soglia 0 = identiche, 1-2 = molto simili
+def ssim_similarity(img1, img2):
+    img1 = np.array(img1.resize((256, 256)).convert("L"))
+    img2 = np.array(img2.resize((256, 256)).convert("L"))
+    score, _ = ssim(img1, img2, full=True)
+    return score
 
 def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
     folder_path = f"/repository/{sku}"
@@ -167,23 +164,25 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
 
                     if riscattare:
                         old_name, old_img = get_dropbox_latest_image(sku)
-                        print(url)
+                        score = ssim_similarity(new_img, old_img)
+                        print(f"{sku} - SSIM score: {score}")
                         if not old_img or not images_are_equal(new_img, old_img):
-                            if old_name:
-                                date_suffix = datetime.now().strftime("%d%m%Y")
-                                ext = old_name.split(".")[-1]
-                                new_old_name = f"{sku}_{date_suffix}.{ext}"
-                                try:
-                                    dbx.files_move_v2(
-                                        from_path=f"/repository/{sku}/{old_name}",
-                                        to_path=f"/repository/{sku}/{new_old_name}",
-                                        allow_shared_folder=True,
-                                        autorename=True
-                                    )
-                                except Exception as e:
-                                    print(f"⚠️ Errore rinominando {old_name}: {e}")
-                            save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
-                            foto_salvata = True
+                            if score < 0.98:
+                                if old_name:
+                                    date_suffix = datetime.now().strftime("%d%m%Y")
+                                    ext = old_name.split(".")[-1]
+                                    new_old_name = f"{sku}_{date_suffix}.{ext}"
+                                    try:
+                                        dbx.files_move_v2(
+                                            from_path=f"/repository/{sku}/{old_name}",
+                                            to_path=f"/repository/{sku}/{new_old_name}",
+                                            allow_shared_folder=True,
+                                            autorename=True
+                                        )
+                                    except Exception as e:
+                                        print(f"⚠️ Errore rinominando {old_name}: {e}")
+                                save_image_to_dropbox(sku, f"{sku}.jpg", new_img)
+                                foto_salvata = True
 
                     return sku, False, foto_salvata
                 else:
