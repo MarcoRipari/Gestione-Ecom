@@ -107,7 +107,7 @@ def hash_image(image: Image.Image) -> str:
     image.save(img_bytes, format="JPEG")
     return hashlib.md5(img_bytes.getvalue()).hexdigest()
 
-def images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 2) -> bool:
+def images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 0) -> bool:
     """Confronta le immagini usando perceptual hash (pHash)."""
     hash1 = imagehash.phash(img1)
     hash2 = imagehash.phash(img2)
@@ -162,7 +162,7 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                     new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
                     foto_salvata = False
 
-                    if riscattare:
+                    if riscattare or riscattare.lower() == "check":
                         old_name, old_img = get_dropbox_latest_image(sku)
                         if old_img:
                             score = ssim_similarity(new_img, old_img)
