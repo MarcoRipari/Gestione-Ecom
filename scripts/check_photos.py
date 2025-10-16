@@ -144,7 +144,7 @@ def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
         latest = jpgs[0]
         _, resp = dbx.files_download(latest.path_display)
         img = Image.open(io.BytesIO(resp.content)).convert("RGB")
-        return latest.name, latest.client_modified, img
+        return latest.name, latest.client_modified.strftime("%d%m%Y"), img
     except dropbox.exceptions.ApiError:
         return None, None
 
