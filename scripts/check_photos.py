@@ -181,7 +181,7 @@ async def check_photo(sku: str, riscattare: str, sem: asyncio.Semaphore, session
                             ssim_score = ssim_similarity(new_img, old_img)
                             mse_score = mse(new_img, old_img)
                             print(f"{sku} - HASHDIFF score: {hash_score}")
-                            print(f"{sku} - SSIM score: {score}")
+                            print(f"{sku} - SSIM score: {hash_score}")
                             print(f"{sku} - MSE score: {mse_score}")
                         else:
                             hash_score = 5
@@ -190,7 +190,7 @@ async def check_photo(sku: str, riscattare: str, sem: asyncio.Semaphore, session
                             print(f"{sku} - Foto sku non trovata in repository")
 
                         #if not old_img or not images_are_equal(new_img, old_img) and score < 0.98:
-                        if not old_img or hash_score > 1 and ssim_score < 0.998 and mse_score > 50:
+                        if not old_img or hash_score >= 0 and ssim_score < 0.998 and mse_score > 50:
                             if old_name:
                                 date_suffix = datetime.now().strftime("%d%m%Y")
                                 ext = old_name.split(".")[-1]
