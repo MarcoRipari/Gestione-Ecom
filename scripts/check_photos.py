@@ -113,6 +113,11 @@ def images_are_equal(img1: Image.Image, img2: Image.Image, threshold: int = 0) -
     hash2 = imagehash.phash(img2)
     return hash1 - hash2 <= threshold  # soglia 0 = identiche, 1-2 = molto simili
 
+def hashdiff(img1: Image.Image, img2: Image.Image):
+    hash1 = imagehash.phash(img1)
+    hash2 = imagehash.phash(img2)
+    return hash1 - hash2
+
 def ssim_similarity(img1, img2):
     img1 = np.array(img1.resize((256, 256)).convert("L"))
     img2 = np.array(img2.resize((256, 256)).convert("L"))
@@ -179,7 +184,8 @@ async def check_photo(sku: str, riscattare: str, sem: asyncio.Semaphore, session
                         else:
                             score = 0
                             print(f"{sku} - SSIM score: foto sku non trovata in repository")
-                        if not old_img or not images_are_equal(new_img, old_img) and score < 0.98:
+                        #if not old_img or not images_are_equal(new_img, old_img) and score < 0.98:
+                        if not old_img or phash_diff > 1 and ssim_score < 0.998 and mse_score > 50:
                             if old_name:
                                 date_suffix = datetime.now().strftime("%d%m%Y")
                                 ext = old_name.split(".")[-1]
