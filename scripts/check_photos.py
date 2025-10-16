@@ -119,6 +119,12 @@ def ssim_similarity(img1, img2):
     score, _ = ssim(img1, img2, full=True)
     return score
 
+def mse(img1, img2):
+    """Mean Squared Error tra due immagini."""
+    arr1 = np.array(img1.resize((256, 256)).convert("L"))
+    arr2 = np.array(img2.resize((256, 256)).convert("L"))
+    return np.mean((arr1 - arr2) ** 2)
+
 def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
     folder_path = f"/repository/{sku}"
     try:
@@ -168,6 +174,8 @@ async def check_photo(sku: str, riscattare: str, sem: asyncio.Semaphore, session
                         if old_img:
                             score = ssim_similarity(new_img, old_img)
                             print(f"{sku} - SSIM score: {score}")
+                            mse_score = mse(new_img, old_img)
+                            print(f"{sku} - MSE score: {mse_score}")
                         else:
                             score = 0
                             print(f"{sku} - SSIM score: foto sku non trovata in repository")
