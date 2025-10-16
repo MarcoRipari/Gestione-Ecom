@@ -162,7 +162,7 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                     new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
                     foto_salvata = False
 
-                    if riscattare or riscattare.lower() == "check":
+                    if riscattare:
                         old_name, old_img = get_dropbox_latest_image(sku)
                         if old_img:
                             score = ssim_similarity(new_img, old_img)
