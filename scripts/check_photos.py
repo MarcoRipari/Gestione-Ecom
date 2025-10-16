@@ -152,7 +152,8 @@ def save_image_to_dropbox(sku: str, filename: str, image: Image.Image):
 
     dbx.files_upload(img_bytes.read(), file_path, mode=WriteMode("overwrite"))
 
-async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, session: aiohttp.ClientSession) -> (str, bool, bool):
+#async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, session: aiohttp.ClientSession) -> (str, bool, bool):
+async def check_photo(sku: str, riscattare: str, sem: asyncio.Semaphore, session: aiohttp.ClientSession) -> (str, bool, bool):
     url = f"https://repository.falc.biz/fal001{sku.lower()}-1.jpg"
     async with sem:
         try:
@@ -162,7 +163,7 @@ async def check_photo(sku: str, riscattare: bool, sem: asyncio.Semaphore, sessio
                     new_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
                     foto_salvata = False
                     
-                    if riscattare or riscattare == "Check":
+                    if riscattare == "true" or riscattare == "check":
                         old_name, old_img = get_dropbox_latest_image(sku)
                         if old_img:
                             score = ssim_similarity(new_img, old_img)
@@ -203,7 +204,8 @@ async def process_skus(data_rows: List[List[str]], sku_idx: int, riscattare_idx:
         for i, row in enumerate(data_rows):
             if len(row) > max(sku_idx, riscattare_idx):
                 sku = row[sku_idx].strip()
-                riscattare = row[riscattare_idx].strip().lower() == "true"
+                #riscattare = row[riscattare_idx].strip().lower() == "true"
+                riscattare = row[riscattare_idx].strip().lower()
                 if sku:
                     tasks[sku] = asyncio.create_task(check_photo(sku, riscattare, sem, session))
         for sku, task in tasks.items():
