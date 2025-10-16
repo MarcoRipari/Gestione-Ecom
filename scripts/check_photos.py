@@ -144,7 +144,7 @@ def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
         latest = jpgs[0]
         _, resp = dbx.files_download(latest.path_display)
         img = Image.open(io.BytesIO(resp.content)).convert("RGB")
-        return latest.name, img
+        return latest.name, latest.client_modified, img
     except dropbox.exceptions.ApiError:
         return None, None
 
@@ -175,7 +175,7 @@ async def check_photo(sku: str, riscattare: str, sem: asyncio.Semaphore, session
                     foto_salvata = False
                     
                     if riscattare == "true" or riscattare == "check":
-                        old_name, old_img = get_dropbox_latest_image(sku)
+                        old_name, old_date, old_img = get_dropbox_latest_image(sku)
                         if old_img:
                             hash_score = hashdiff(new_img, old_img)
                             ssim_score = ssim_similarity(new_img, old_img)
@@ -192,9 +192,9 @@ async def check_photo(sku: str, riscattare: str, sem: asyncio.Semaphore, session
                         #if not old_img or not images_are_equal(new_img, old_img) and score < 0.98:
                         if not old_img or hash_score >= 0 and ssim_score < 0.998 and mse_score > 1.5:
                             if old_name:
-                                date_suffix = datetime.now().strftime("%d%m%Y")
+                                #date_suffix = datetime.now().strftime("%d%m%Y")
                                 ext = old_name.split(".")[-1]
-                                new_old_name = f"{sku}_{date_suffix}.{ext}"
+                                new_old_name = f"{sku}_{old_date}.{ext}"
                                 try:
                                     dbx.files_move_v2(
                                         from_path=f"/repository/{sku}/{old_name}",
