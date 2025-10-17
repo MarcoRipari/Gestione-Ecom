@@ -383,32 +383,32 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
             sim_text = "\nDescrizioni simili:\n" + "\n".join(sim_lines)
 
     # Prompt finale
-    prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
+    prompt = f"""Scrivi due descrizioni coerente con le INFO ARTICOLO per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
 
->>> FORMATO OUTPUT
-{{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
-
->>> GUIDA STILE
+>>> GUIDA STILE E LINGUAGGIO
 - Tono: {", ".join(selected_tones)}
-- Ometti sempre: Codice, Nome, Marca, Colore (nemmeno in forma implicita)
 - Lingua: adatta al paese target
+- Mai usare: Codice, Nome, Marca, Colore
 - Utilizza esclusivamente il tipo di calzatura passato nelle info articoli
-- Non usare il genere maschile / femminale, bambino / bambina, bimbo / bimba
-- Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo
+- Non usare generi o età (es. maschile/femminile, bambino/bambina)
 - Evita le percentuali materiali
-- Non tradurre MAI le parole velour e suede per le descrizioni in italiano
+- Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo
 
->>> OMETTERE SEMPRE ANCHE IN FORMA IMPLICITA
-- Velcro (utilizza strappo)
-- Velluto (utilizza Velour o suede)
-- Primavera / primaverile
-- Estate / estivo
-- Autunno / autunnale
-- Inverno / invernale
+
+>>> PAROLE DA EVITARE (anche implicite)
+- velcro → usa "strappo"
+- velluto → usa "velour" o "suede"
+- primavera, estate, autunno, inverno (e derivati)
+
+>>> ESEMPI DI ERRORI DA EVITARE
+❌ "velluto" → ✅ "velour" o "suede"
+❌ "primaverile" → ✅ descrizione neutra sulla stagione
+❌ "per bambina" → ✅ descrizione neutra
 
 >>> REGOLE
 - desc_lunga: {desc_lunga_length} parole → enfasi su comfort, materiali, utilizzo
 - desc_breve: {desc_breve_length} parole → adatta a social media o schede prodotto rapide
+- Output JSON: {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
 
 >>> INFO ARTICOLO
 {product_info}
@@ -417,7 +417,10 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 {sim_text}
 
 >>> CONTROLLO FINALE
-Prima di generare l'output verifica che non ci siano errori grammaticali o di traduzione, altrimenti rigenera la descrizione o correggila.
+Controlla attentamente che le descrizioni:
+- rispettino tutte le regole fornite (parole vietate, formato, tono, ecc.)
+- non contengano errori grammaticali o di traduzione
+Se rilevi problemi, **rigenera o correggi** la descrizione **prima di fornire l'output finale**.
 """
     return prompt
 
@@ -814,7 +817,8 @@ async def async_generate_description(prompt: str, idx: int):
             return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
         else:
             response = await client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                #model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=3000
