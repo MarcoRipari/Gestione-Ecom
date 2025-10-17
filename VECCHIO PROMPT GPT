@@ -1,0 +1,36 @@
+prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
+
+>>> FORMATO OUTPUT
+{{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
+
+>>> GUIDA STILE
+- Tono: {", ".join(selected_tones)}
+- Ometti sempre: Codice, Nome, Marca, Colore (nemmeno in forma implicita)
+- Lingua: adatta al paese target
+- Utilizza esclusivamente il tipo di calzatura passato nelle info articoli
+- Non usare il genere maschile / femminale, bambino / bambina, bimbo / bimba
+- Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo
+- Evita le percentuali materiali
+- Non tradurre MAI le parole velour e suede per le descrizioni in italiano
+
+>>> OMETTERE SEMPRE ANCHE IN FORMA IMPLICITA
+- Velcro (utilizza strappo)
+- Velluto (utilizza Velour o suede)
+- Primavera / primaverile
+- Estate / estivo
+- Autunno / autunnale
+- Inverno / invernale
+
+>>> REGOLE
+- desc_lunga: {desc_lunga_length} parole → enfasi su comfort, materiali, utilizzo
+- desc_breve: {desc_breve_length} parole → adatta a social media o schede prodotto rapide
+
+>>> INFO ARTICOLO
+{product_info}
+{image_line}
+
+{sim_text}
+
+>>> CONTROLLO FINALE
+Prima di generare l'output verifica che non ci siano errori grammaticali o di traduzione, altrimenti rigenera la descrizione o correggila.
+"""
