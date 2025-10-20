@@ -811,14 +811,15 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
 # ---------------------------
 client = AsyncOpenAI(api_key=openai.api_key)
 
-async def async_generate_description(prompt: str, idx: int):
+async def async_generate_description(prompt: str, idx: int, use_model):
     try:
         if len(prompt) < 50:
             return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
         else:
             response = await client.chat.completions.create(
                 #model="gpt-3.5-turbo",
-                model="gpt-4o-mini",
+                #model="gpt-4o-mini",
+                model = use_model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=3000
@@ -830,8 +831,8 @@ async def async_generate_description(prompt: str, idx: int):
     except Exception as e:
         return idx, {"error": str(e)}
 
-async def generate_all_prompts(prompts: list[str]) -> dict:
-    tasks = [async_generate_description(prompt, idx) for idx, prompt in enumerate(prompts)]
+async def generate_all_prompts(prompts: list[str], model) -> dict:
+    tasks = [async_generate_description(prompt, idx, model) for idx, prompt in enumerate(prompts)]
     results = await asyncio.gather(*tasks)
     return dict(results)
 
@@ -1414,6 +1415,8 @@ elif page == "Descrizioni":
                 k_simili = 2 if use_simili else 0
                 
                 use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
+
+                model = st.radio("Seleziona modello GPT", ["gpt-3.5-turbo","gpt-4o-mini"],horizontal = True)
     
             with settings_col2:
                 selected_labels = st.multiselect(
@@ -1539,7 +1542,7 @@ elif page == "Descrizioni":
                             all_prompts.append(prompt)
             
                     with st.spinner("🚀 Generazione asincrona in corso..."):
-                        results = asyncio.run(generate_all_prompts(all_prompts))
+                        results = asyncio.run(generate_all_prompts(all_prompts, model=model))
             
                     # Parsing risultati
                     all_outputs = already_generated.copy()
