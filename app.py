@@ -1416,7 +1416,7 @@ elif page == "Descrizioni":
                 
                 use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
 
-                model = st.radio("Seleziona modello GPT", ["gpt-3.5-turbo","gpt-4o-mini"],horizontal = True)
+                use_model = st.radio("Seleziona modello GPT", ["gpt-3.5-turbo","gpt-4o-mini"],horizontal = True)
     
             with settings_col2:
                 selected_labels = st.multiselect(
@@ -1542,7 +1542,7 @@ elif page == "Descrizioni":
                             all_prompts.append(prompt)
             
                     with st.spinner("🚀 Generazione asincrona in corso..."):
-                        results = asyncio.run(generate_all_prompts(all_prompts, model=model))
+                        results = asyncio.run(generate_all_prompts(all_prompts, use_model))
             
                     # Parsing risultati
                     all_outputs = already_generated.copy()
