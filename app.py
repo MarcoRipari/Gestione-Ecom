@@ -828,12 +828,9 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                     "messages": [{"role": "user", "content": prompt}]
                 }
                 
-                try:
-                    response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
-                except Exception as e:
-                    response = e
+                response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
 
-                st.write(response.json)
+                st.write(response.json["choices"][0]["message"]["content"])
                 
                 #content = response.choices[0].message.content
                 content = response["choices"][0]["message"]["content"]
