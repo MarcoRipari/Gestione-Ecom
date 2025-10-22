@@ -833,7 +833,7 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                 except Exception as e:
                     response = e
 
-                st.write(response)
+                st.write(response["choices"][0])
                 
                 #content = response.choices[0].message.content
                 content = response["choices"][0]["message"]["content"]
