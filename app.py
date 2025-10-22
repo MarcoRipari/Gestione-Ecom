@@ -425,6 +425,92 @@ Se rilevi problemi, **rigenera o correggi** la descrizione **prima di fornire l'
 """
     return prompt
 
+client = AsyncOpenAI(api_key=openai.api_key)
+
+# Configurazione per il piano gratuito
+RPS_LIMIT = 1  # 1 richiesta al secondo per il piano gratuito
+MAX_RETRIES = 3  # Numero massimo di tentativi per ogni richiesta
+DELAY_BETWEEN_REQUESTS = 1  # 1 secondo tra una richiesta e l'altra
+
+async def async_generate_description(
+    session: aiohttp.ClientSession,
+    prompt: str,
+    idx: int,
+    use_model: str,
+    semaphore: asyncio.Semaphore
+):
+    if len(prompt) < 50:
+        return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
+
+    if use_model not in ["mistral-medium", "mistral-large"]:
+        # Gestione per altri modelli (es. OpenAI)
+        try:
+            response = await client.chat.completions.create(
+                model=use_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=3000
+            )
+            content = response.choices[0].message.content
+            usage = response.usage
+            data = json.loads(content)
+            return idx, {"result": data, "usage": usage.model_dump()}
+        except Exception as e:
+            return idx, {"error": str(e)}
+
+    # Gestione per Mistral
+    for attempt in range(MAX_RETRIES):
+        try:
+            async with semaphore:  # Limita le richieste concorrenti
+                headers = {
+                    "Authorization": f"Bearer {MISTRAL_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                data = {
+                    "model": use_model,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+
+                async with session.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=data) as response:
+                    if response.status != 200:
+                        error_msg = await response.text()
+                        raise Exception(f"API Error: {error_msg}")
+
+                    response_json = await response.json()
+                    content = response_json["choices"][0]["message"]["content"]
+                    content = content.replace("**", "")  # Rimuovi eventuali **
+                    json_match = re.search(r'\{.*\}', content, re.DOTALL)
+
+                    if json_match:
+                        content = json.loads(json_match.group(0))
+                    else:
+                        raise Exception("No valid JSON found in response")
+
+                    usage = response_json.get("usage", {})
+                    return idx, {"result": content, "usage": usage}
+
+        except Exception as e:
+            if attempt == MAX_RETRIES - 1:
+                return idx, {"error": f"Failed after {MAX_RETRIES} attempts: {str(e)}"}
+            await asyncio.sleep(DELAY_BETWEEN_REQUESTS * (attempt + 1))  # Attesa esponenziale
+
+
+async def generate_all_prompts(prompts: list[str], model) -> dict:
+    tasks = [async_generate_description(prompt, idx, model) for idx, prompt in enumerate(prompts)]
+    results = await asyncio.gather(*tasks)
+    return dict(results)
+
+async def generate_all_prompts_mistral(prompts: list[str], model: str) -> dict:
+    semaphore = asyncio.Semaphore(RPS_LIMIT)  # Limita a 1 richiesta al secondo
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [
+            async_generate_description(session, prompt, idx, model, semaphore)
+            for idx, prompt in enumerate(prompts)
+        ]
+        results = await asyncio.gather(*tasks)
+        return dict(results)
+
 def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, desc_lunga_length, desc_breve_length, k_simili, use_image, faiss_index, DEBUG=False):
     if df_input.empty:
         return None, None, "❌ Il CSV è vuoto"
@@ -804,159 +890,7 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
     doc.build(elements)
 
     return open(file_path, "rb").read()
-
-
     
-# ---------------------------
-# Async
-# ---------------------------
-client = AsyncOpenAI(api_key=openai.api_key)
-
-async def async_generate_description(prompt: str, idx: int, use_model):
-    if use_model == "mistral-medium" or use_model == "mistral-large":
-        try:
-            if len(prompt) < 50:
-                return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
-            else:
-                MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"  # Verifica l'URL corretto nella documentazione
-                headers = {
-                    "Authorization": f"Bearer {MISTRAL_API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                data = {
-                    "model": use_model,
-                    "messages": [{"role": "user", "content": prompt}]
-                }
-                
-                response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
-
-                
-                #content = response.choices[0].message.content
-                content = response.json()["choices"][0]["message"]["content"]
-                json_match = re.search(r'\{.*\}', content, re.DOTALL)
-                if json_match:
-                    json_str = json_match.group(0)
-                    content = json.loads(json_str)
-
-                #usage = response.usage
-                usage = response.json()["usage"]
-                #data_res = json.loads(content)
-                data_res = content
-                return idx, {"result": data_res, "usage": usage}
-        except Exception as e:
-            return idx, {"error": str(e)}
-    else:
-        try:
-            if len(prompt) < 50:
-                return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
-            else:
-                response = await client.chat.completions.create(
-                    #model="gpt-3.5-turbo",
-                    #model="gpt-4o-mini",
-                    model = use_model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.7,
-                    max_tokens=3000
-                )
-                content = response.choices[0].message.content
-                usage = response.usage  # <-- aggiunto
-                data = json.loads(content)
-                return idx, {"result": data, "usage": usage.model_dump()}
-        except Exception as e:
-            return idx, {"error": str(e)}
-
-async def generate_all_prompts(prompts: list[str], model) -> dict:
-    tasks = [async_generate_description(prompt, idx, model) for idx, prompt in enumerate(prompts)]
-    results = await asyncio.gather(*tasks)
-    return dict(results)
-
-# ---------------------------
-# Async Mistral
-# ---------------------------
-RPS_LIMIT = 1  # Imposta in base al tuo tier (es. 10 per Pro, 1 per Free)
-MAX_RETRIES = 3  # Numero massimo di tentativi per ogni richiesta
-BATCH_SIZE = 10  # Numero di prompt da processare in parallelo per batch
-DELAY_BETWEEN_BATCHES = 1  # Secondi di attesa tra un batch e l'altro
-async def async_generate_description_mistral(
-    session: aiohttp.ClientSession,
-    prompt: str,
-    idx: int,
-    use_model: str,
-    semaphore: asyncio.Semaphore
-) -> Dict[int, Dict[str, Any]]:
-    for attempt in range(MAX_RETRIES):
-        try:
-            async with semaphore:
-                headers = {
-                    "Authorization": f"Bearer {MISTRAL_API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                data = {
-                    "model": use_model,
-                    "messages": [{"role": "user", "content": prompt}]
-                }
-
-                async with session.post(MISTRAL_API_URL, headers=headers, json=data) as response:
-                    response_json = await response.json()
-
-                    # Se lo status non è 200, solleva un'eccezione per forzare il retry
-                    if response.status != 200:
-                        error_msg = response_json.get("message", f"HTTP {response.status}")
-                        raise Exception(f"API Error: {error_msg}")
-
-                    content = response_json["choices"][0]["message"]["content"]
-                    content = content.replace("**", "")  # Rimuovi eventuali **
-                    json_match = re.search(r'\{.*\}', content, re.DOTALL)
-
-                    if json_match:
-                        content = json.loads(json_match.group(0))
-                    else:
-                        raise Exception("No valid JSON found in response")
-
-                    usage = response_json.get("usage", {})
-                    return idx, {"result": content, "usage": usage}
-
-        except Exception as e:
-            if attempt == MAX_RETRIES - 1:
-                return idx, {"error": f"Failed after {MAX_RETRIES} attempts: {str(e)}"}
-            await asyncio.sleep(1 * (attempt + 1))  # Attesa esponenziale
-
-async def process_batch_mistral(
-    session: aiohttp.ClientSession,
-    batch: List[Dict[str, Any]],
-    use_model: str,
-    semaphore: asyncio.Semaphore
-) -> Dict[int, Dict[str, Any]]:
-    tasks = [
-        async_generate_description_mistral(session, prompt["prompt"], prompt["idx"], use_model, semaphore)
-        for prompt in batch
-    ]
-    return dict(await asyncio.gather(*tasks))
-
-async def generate_all_prompts_mistral(
-    prompts: List[str],
-    use_model: str,
-    rps_limit: int = RPS_LIMIT,
-    batch_size: int = BATCH_SIZE,
-    delay_between_batches: int = DELAY_BETWEEN_BATCHES
-) -> Dict[int, Dict[str, Any]]:
-    semaphore = asyncio.Semaphore(rps_limit)
-    results = {}
-
-    async with aiohttp.ClientSession() as session:
-        # Dividi i prompt in batch
-        batches = [
-            {"prompt": prompt, "idx": idx}
-            for idx, prompt in enumerate(prompts)
-        ]
-        batches = [batches[i:i + batch_size] for i in range(0, len(batches), batch_size)]
-
-        for batch in batches:
-            batch_results = await process_batch_mistral(session, batch, use_model, semaphore)
-            results.update(batch_results)
-            await asyncio.sleep(delay_between_batches)  # Attesa tra batch
-
-    return results
 # ---------------------------
 # Funzioni gestione foto
 # ---------------------------
