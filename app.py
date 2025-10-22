@@ -1113,6 +1113,23 @@ def get_country_from_address(address):
         
     return "N/A"
 
+
+def test_mistral():
+    MISTRAL_API_KEY = "b0C0D4G2vq0YNTr4n20q5BPSrarbNIiu"
+    MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"  # Verifica l'URL corretto nella documentazione
+
+    headers = {
+        "Authorization": f"Bearer {MISTRAL_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "mistral-medium",  # o "mistral-large"
+        "messages": [{"role": "user", "content": prompt}]
+    }
+    response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
+    
+    return response.json()
+
     
 # ---------------------------
 # 📦 Streamlit UI
@@ -1307,7 +1324,10 @@ with st.sidebar:
 # 🏠 HOME
 # ---------------------------
 if page == "Home":
-    st.write("Ok")
+    prompt = st.text_input("Inserisci il tuo prompt:")
+    if st.button("Invia"):
+        result = test_mistral(prompt)
+        st.write("Risposta:", result["choices"][0]["message"]["content"])
     viste.homepage.view()
 
 # ---------------------------
