@@ -833,9 +833,15 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                 st.write(response.json()["choices"][0]["message"]["content"])
                 
                 #content = response.choices[0].message.content
-                content = response["choices"][0]["message"]["content"]
+                content = response.json()["choices"][0]["message"]["content"]
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(0)
+                    content = json.loads(json_str)
+
+                st.write(content)
                 #usage = response.usage
-                usage = response["usage"]
+                usage = response.json()["usage"]
                 data_res = json.loads(content)
                 return idx, {"result": data_res, "usage": usage.model_dump()}
         except Exception as e:
