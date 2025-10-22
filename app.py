@@ -87,6 +87,7 @@ foto_sheet_id = st.secrets['FOTO_GSHEET_ID']
 anagrafica_sheet_id = st.secrets['ANAGRAFICA_GSHEET_ID']
 ferie_sheet_id = st.secrets['FERIE_GSHEET_ID']
 ordini_sheet_id = st.secrets['ORDINI_GSHEET_ID']
+MISTRAL_API_KEY = st.secrets['MISTRAL_API_KEY']
 
 # ---------------------------
 # 🔐 Setup API keys and credentials
@@ -812,24 +813,47 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
 client = AsyncOpenAI(api_key=openai.api_key)
 
 async def async_generate_description(prompt: str, idx: int, use_model):
-    try:
-        if len(prompt) < 50:
-            return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
-        else:
-            response = await client.chat.completions.create(
-                #model="gpt-3.5-turbo",
-                #model="gpt-4o-mini",
-                model = use_model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=3000
-            )
-            content = response.choices[0].message.content
-            usage = response.usage  # <-- aggiunto
-            data = json.loads(content)
-            return idx, {"result": data, "usage": usage.model_dump()}
-    except Exception as e:
-        return idx, {"error": str(e)}
+    if use_model == "mistral-medium" or use_model == "mistral-large":
+        try:
+            if len(prompt) < 50:
+                return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
+            else:
+                MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"  # Verifica l'URL corretto nella documentazione
+                headers = {
+                    "Authorization": f"Bearer {MISTRAL_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                data = {
+                    "model": use_model,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+                response = await requests.post(MISTRAL_API_URL, headers=headers, json=data)
+                content = response.choices[0].message.content
+                #content = response["choices"][0]["message"]["content"]
+                usage = response.usage
+                data_res = json.loads(content)
+                return idx, {"result": data_res, "usage": usage.model_dump()}
+        except Exception as e:
+            return idx, {"error": str(e)}
+    else:
+        try:
+            if len(prompt) < 50:
+                return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
+            else:
+                response = await client.chat.completions.create(
+                    #model="gpt-3.5-turbo",
+                    #model="gpt-4o-mini",
+                    model = use_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7,
+                    max_tokens=3000
+                )
+                content = response.choices[0].message.content
+                usage = response.usage  # <-- aggiunto
+                data = json.loads(content)
+                return idx, {"result": data, "usage": usage.model_dump()}
+        except Exception as e:
+            return idx, {"error": str(e)}
 
 async def generate_all_prompts(prompts: list[str], model) -> dict:
     tasks = [async_generate_description(prompt, idx, model) for idx, prompt in enumerate(prompts)]
@@ -1437,7 +1461,7 @@ elif page == "Descrizioni":
                 
                 use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
 
-                use_model = st.radio("Seleziona modello GPT", ["gpt-3.5-turbo","gpt-4o-mini"],horizontal = True)
+                use_model = st.radio("Seleziona modello GPT", ["gpt-3.5-turbo","gpt-4o-mini", "mistral-medium", "mistral-large"],horizontal = True)
     
             with settings_col2:
                 selected_labels = st.multiselect(
