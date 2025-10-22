@@ -396,7 +396,6 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 - Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo
 - Non usare **alcuna formattazione Markdown** nell'output
 
-
 >>> PAROLE DA EVITARE (anche implicite)
 - velcro → usa "strappo"
 - velluto → usa "velour" o "suede"
@@ -871,6 +870,93 @@ async def generate_all_prompts(prompts: list[str], model) -> dict:
     results = await asyncio.gather(*tasks)
     return dict(results)
 
+# ---------------------------
+# Async Mistral
+# ---------------------------
+RPS_LIMIT = 1  # Imposta in base al tuo tier (es. 10 per Pro, 1 per Free)
+MAX_RETRIES = 3  # Numero massimo di tentativi per ogni richiesta
+BATCH_SIZE = 10  # Numero di prompt da processare in parallelo per batch
+DELAY_BETWEEN_BATCHES = 1  # Secondi di attesa tra un batch e l'altro
+async def async_generate_description_mistral(
+    session: aiohttp.ClientSession,
+    prompt: str,
+    idx: int,
+    use_model: str,
+    semaphore: asyncio.Semaphore
+) -> Dict[int, Dict[str, Any]]:
+    for attempt in range(MAX_RETRIES):
+        try:
+            async with semaphore:
+                headers = {
+                    "Authorization": f"Bearer {MISTRAL_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                data = {
+                    "model": use_model,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+
+                async with session.post(MISTRAL_API_URL, headers=headers, json=data) as response:
+                    response_json = await response.json()
+
+                    # Se lo status non è 200, solleva un'eccezione per forzare il retry
+                    if response.status != 200:
+                        error_msg = response_json.get("message", f"HTTP {response.status}")
+                        raise Exception(f"API Error: {error_msg}")
+
+                    content = response_json["choices"][0]["message"]["content"]
+                    content = content.replace("**", "")  # Rimuovi eventuali **
+                    json_match = re.search(r'\{.*\}', content, re.DOTALL)
+
+                    if json_match:
+                        content = json.loads(json_match.group(0))
+                    else:
+                        raise Exception("No valid JSON found in response")
+
+                    usage = response_json.get("usage", {})
+                    return idx, {"result": content, "usage": usage}
+
+        except Exception as e:
+            if attempt == MAX_RETRIES - 1:
+                return idx, {"error": f"Failed after {MAX_RETRIES} attempts: {str(e)}"}
+            await asyncio.sleep(1 * (attempt + 1))  # Attesa esponenziale
+
+async def process_batch_mistral(
+    session: aiohttp.ClientSession,
+    batch: List[Dict[str, Any]],
+    use_model: str,
+    semaphore: asyncio.Semaphore
+) -> Dict[int, Dict[str, Any]]:
+    tasks = [
+        async_generate_description_mistral(session, prompt["prompt"], prompt["idx"], use_model, semaphore)
+        for prompt in batch
+    ]
+    return dict(await asyncio.gather(*tasks))
+
+async def generate_all_prompts_mistral(
+    prompts: List[str],
+    use_model: str,
+    rps_limit: int = RPS_LIMIT,
+    batch_size: int = BATCH_SIZE,
+    delay_between_batches: int = DELAY_BETWEEN_BATCHES
+) -> Dict[int, Dict[str, Any]]:
+    semaphore = asyncio.Semaphore(rps_limit)
+    results = {}
+
+    async with aiohttp.ClientSession() as session:
+        # Dividi i prompt in batch
+        batches = [
+            {"prompt": prompt, "idx": idx}
+            for idx, prompt in enumerate(prompts)
+        ]
+        batches = [batches[i:i + batch_size] for i in range(0, len(batches), batch_size)]
+
+        for batch in batches:
+            batch_results = await process_batch_mistral(session, batch, use_model, semaphore)
+            results.update(batch_results)
+            await asyncio.sleep(delay_between_batches)  # Attesa tra batch
+
+    return results
 # ---------------------------
 # Funzioni gestione foto
 # ---------------------------
@@ -1598,7 +1684,10 @@ elif page == "Descrizioni":
                             all_prompts.append(prompt)
             
                     with st.spinner("🚀 Generazione asincrona in corso..."):
-                        results = asyncio.run(generate_all_prompts(all_prompts, use_model))
+                        if use_model == "mistral-medium" or use_model == "mistral-large":
+                            results = asyncio.run(generate_all_prompts_mistral(all_prompts, use_model))
+                        else:
+                            results = asyncio.run(generate_all_prompts(all_prompts, use_model))
             
                     # Parsing risultati
                     all_outputs = already_generated.copy()
