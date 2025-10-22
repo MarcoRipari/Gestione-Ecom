@@ -1606,7 +1606,6 @@ elif page == "Descrizioni":
                     
                     for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
                         result = results.get(i, {})
-                        st.write(result)
                         if "error" in result:
                             logs.append({
                                 "utente": st.session_state.user["username"],
