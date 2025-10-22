@@ -1591,7 +1591,9 @@ elif page == "Descrizioni":
             
                     # Parsing risultati
                     all_outputs = already_generated.copy()
-            
+
+                    st.write(all_outputs)
+                    
                     for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
                         result = results.get(i, {})
                         if "error" in result:
@@ -1652,6 +1654,7 @@ elif page == "Descrizioni":
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
+                                st.write(df_out)
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
                                     "Descrizione lunga": df_out.get("Description", ""),
