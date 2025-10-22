@@ -842,8 +842,7 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                 usage = response.json()["usage"]
                 #data_res = json.loads(content)
                 data_res = content
-                st.write(data_res)
-                return idx, {"result": data_res, "usage": usage.model_dump()}
+                return idx, {"result": data_res, "usage": usage}
         except Exception as e:
             return idx, {"error": str(e)}
     else:
