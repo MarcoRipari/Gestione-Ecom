@@ -829,7 +829,7 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                 }
                 
                 try:
-                    response = await requests.post(MISTRAL_API_URL, headers=headers, json=data)
+                    response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
                 except Exception as e:
                     response = e
 
