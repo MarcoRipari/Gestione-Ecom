@@ -1114,7 +1114,7 @@ def get_country_from_address(address):
     return "N/A"
 
 
-def test_mistral():
+def test_mistral(prompt):
     MISTRAL_API_KEY = "b0C0D4G2vq0YNTr4n20q5BPSrarbNIiu"
     MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"  # Verifica l'URL corretto nella documentazione
 
