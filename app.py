@@ -828,11 +828,13 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                     "messages": [{"role": "user", "content": prompt}]
                 }
                 response = await requests.post(MISTRAL_API_URL, headers=headers, json=data)
-                #content = response.choices[0].message.content
-                content = response["choices"][0]["message"]["content"]
-                #usage = response.usage
-                usage = response["usage"]
+                content = response.choices[0].message.content
+                #content = response["choices"][0]["message"]["content"]
+                usage = response.usage
+                #usage = response["usage"]
                 data_res = json.loads(content)
+                st.write(content)
+                st.write(data_res)
                 return idx, {"result": data_res, "usage": usage.model_dump()}
         except Exception as e:
             return idx, {"error": str(e)}
