@@ -842,6 +842,7 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                 usage = response.json()["usage"]
                 #data_res = json.loads(content)
                 data_res = content
+                st.write(data_res)
                 return idx, {"result": data_res, "usage": usage.model_dump()}
         except Exception as e:
             return idx, {"error": str(e)}
@@ -1602,8 +1603,10 @@ elif page == "Descrizioni":
                     # Parsing risultati
                     all_outputs = already_generated.copy()
                     
+                    
                     for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
                         result = results.get(i, {})
+                        st.write(result)
                         if "error" in result:
                             logs.append({
                                 "utente": st.session_state.user["username"],
