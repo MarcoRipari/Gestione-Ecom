@@ -827,7 +827,7 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                     "model": use_model,
                     "messages": [{"role": "user", "content": prompt}]
                 }
-                response = await requests.post(MISTRAL_API_URL, headers=headers, json=data)
+                response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
                 content = response.choices[0].message.content
                 #content = response["choices"][0]["message"]["content"]
                 usage = response.usage
@@ -1594,8 +1594,6 @@ elif page == "Descrizioni":
             
                     # Parsing risultati
                     all_outputs = already_generated.copy()
-
-                    st.write(all_outputs)
                     
                     for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
                         result = results.get(i, {})
@@ -1657,7 +1655,6 @@ elif page == "Descrizioni":
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
-                                st.write(df_out)
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
                                     "Descrizione lunga": df_out.get("Description", ""),
