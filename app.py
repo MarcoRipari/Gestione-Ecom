@@ -394,6 +394,7 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 - Non usare generi o età (es. maschile/femminile, bambino/bambina)
 - Evita le percentuali materiali
 - Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo
+- Non usare **alcuna formattazione Markdown** nell'output
 
 
 >>> PAROLE DA EVITARE (anche implicite)
