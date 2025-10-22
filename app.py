@@ -828,11 +828,11 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                     "messages": [{"role": "user", "content": prompt}]
                 }
                 response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
-                
+                st.write(use_model)
                 #content = response.choices[0].message.content
                 content = response["choices"][0]["message"]["content"]
                 st.write(use_model)
-                st.write(content)
+                st.write("1")
                 #usage = response.usage
                 usage = response["usage"]
                 st.write(use_model)
