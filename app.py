@@ -818,7 +818,6 @@ async def async_generate_description(prompt: str, idx: int, use_model):
             if len(prompt) < 50:
                 return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
             else:
-                st.write(use_model)
                 MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"  # Verifica l'URL corretto nella documentazione
                 headers = {
                     "Authorization": f"Bearer {MISTRAL_API_KEY}",
@@ -828,15 +827,14 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                     "model": use_model,
                     "messages": [{"role": "user", "content": prompt}]
                 }
+                st.write(use_model)
                 response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
+                st.write(use_model)
                 #content = response.choices[0].message.content
                 content = response["choices"][0]["message"]["content"]
                 #usage = response.usage
                 usage = response["usage"]
                 data_res = json.loads(content)
-                st.write(content)
-                st.write(data_res)
-                st.write(use_model)
                 return idx, {"result": data_res, "usage": usage.model_dump()}
         except Exception as e:
             return idx, {"error": str(e)}
