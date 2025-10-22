@@ -813,6 +813,7 @@ def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
 client = AsyncOpenAI(api_key=openai.api_key)
 
 async def async_generate_description(prompt: str, idx: int, use_model):
+    st.write(use_model)
     if use_model == "mistral-medium" or use_model == "mistral-large":
         try:
             if len(prompt) < 50:
