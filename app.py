@@ -1307,6 +1307,7 @@ with st.sidebar:
 # 🏠 HOME
 # ---------------------------
 if page == "Home":
+    st.write("Ok")
     viste.homepage.view()
 
 # ---------------------------
