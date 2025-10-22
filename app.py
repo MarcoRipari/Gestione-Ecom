@@ -830,7 +830,6 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                 
                 response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
 
-                st.write(response.json()["choices"][0]["message"]["content"])
                 
                 #content = response.choices[0].message.content
                 content = response.json()["choices"][0]["message"]["content"]
@@ -839,7 +838,7 @@ async def async_generate_description(prompt: str, idx: int, use_model):
                     json_str = json_match.group(0)
                     content = json.loads(json_str)
 
-                st.write(content)
+                st.write(json.loads(content))
                 #usage = response.usage
                 usage = response.json()["usage"]
                 data_res = json.loads(content)
