@@ -474,6 +474,7 @@ async def async_generate_description(
                 async with session.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=data) as response:
                     if response.status != 200:
                         error_msg = await response.text()
+                        st.write(f"{error_msg}")
                         raise Exception(f"API Error: {error_msg}")
 
                     response_json = await response.json()
@@ -1167,23 +1168,6 @@ def get_country_from_address(address):
         print(f"Errore di geocoding: {e}")
         
     return "N/A"
-
-
-def test_mistral(prompt):
-    MISTRAL_API_KEY = "b0C0D4G2vq0YNTr4n20q5BPSrarbNIiu"
-    MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"  # Verifica l'URL corretto nella documentazione
-
-    headers = {
-        "Authorization": f"Bearer {MISTRAL_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "mistral-medium",  # o "mistral-large"
-        "messages": [{"role": "user", "content": prompt}]
-    }
-    response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
-    
-    return response.json()
 
     
 # ---------------------------
