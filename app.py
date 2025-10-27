@@ -476,12 +476,7 @@ async def rate_limiter():
     request_times.append(time.time())
 
 
-async def async_generate_description(
-    session: aiohttp.ClientSession,
-    prompt: str,
-    idx: int,
-    use_model: str
-):
+async def async_generate_description(prompt: str, idx: int, use_model: str):
     if len(prompt) < 50:
         return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
         
@@ -621,6 +616,7 @@ async def async_generate_description_mistral(
 
 
 async def generate_all_prompts(prompts: list[str], model: str) -> dict:
+    st.write(model)
     tasks = [async_generate_description(prompt, idx, model) for idx, prompt in enumerate(prompts)]
     results = await asyncio.gather(*tasks)
     return dict(results)
