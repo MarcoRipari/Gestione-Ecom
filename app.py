@@ -474,9 +474,32 @@ async def rate_limiter():
 
     # Registra questa richiesta
     request_times.append(time.time())
-    
+
 
 async def async_generate_description(
+    session: aiohttp.ClientSession,
+    prompt: str,
+    idx: int,
+    use_model: str
+):
+    if len(prompt) < 50:
+        return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
+        
+    try:
+        response = await client.chat.completions.create(
+            model=use_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=3000
+        )
+        content = response.choices[0].message.content
+        usage = response.usage
+        data = json.loads(content)
+        return idx, {"result": data, "usage": usage.model_dump()}
+    except Exception as e:
+        return idx, {"error": str(e)}
+
+async def async_generate_description_mistral(
     session: aiohttp.ClientSession,
     prompt: str,
     idx: int,
@@ -598,8 +621,7 @@ async def async_generate_description(
 
 
 async def generate_all_prompts(prompts: list[str], model: str) -> dict:
-    semaphore = asyncio.Semaphore(RPS_LIMIT)
-    tasks = [async_generate_description(prompt, idx, model, semaphore) for idx, prompt in enumerate(prompts)]
+    tasks = [async_generate_description(prompt, idx, model) for idx, prompt in enumerate(prompts)]
     results = await asyncio.gather(*tasks)
     return dict(results)
 
@@ -608,7 +630,7 @@ async def generate_all_prompts_mistral(prompts: list[str], model: str) -> dict:
 
     async with aiohttp.ClientSession() as session:
         tasks = [
-            async_generate_description(session, prompt, idx, model, semaphore)
+            async_generate_description_mistral(session, prompt, idx, model, semaphore)
             for idx, prompt in enumerate(prompts)
         ]
         results = await asyncio.gather(*tasks)
@@ -619,7 +641,7 @@ async def generate_all_prompts_deepseek(prompts: list[str], model: str) -> dict:
 
     async with aiohttp.ClientSession() as session:
         tasks = [
-            async_generate_description(session, prompt, idx, model, semaphore)
+            async_generate_description_mistral(session, prompt, idx, model, semaphore)
             for idx, prompt in enumerate(prompts)
         ]
         results = await asyncio.gather(*tasks)
@@ -1733,8 +1755,6 @@ elif page == "Descrizioni":
             
                     # Parsing risultati
                     all_outputs = already_generated.copy()
-
-                    st.write(results)
                     
                     for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
                         result = results.get(i, {})
