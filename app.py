@@ -1687,7 +1687,7 @@ elif page == "Descrizioni":
                         if use_model == "mistral-medium":
                             results = asyncio.run(generate_all_prompts_mistral(all_prompts, use_model))
                         elif use_model == "deepseek-chimera":
-                            results = asyncio.run(generate_all_prompts(all_prompts, use_model))
+                            results = asyncio.run(generate_all_prompts_deepseek(all_prompts, use_model))
                         else:
                             results = asyncio.run(generate_all_prompts(all_prompts, use_model))
             
