@@ -61,6 +61,7 @@ import gspread.utils
 from googleapiclient.discovery import build
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+from collections import deque
 
 import viste
 
@@ -430,9 +431,35 @@ client = AsyncOpenAI(api_key=openai.api_key)
 
 # Configurazione per il piano gratuito
 RPS_LIMIT = 1  # 1 richiesta al secondo per il piano gratuito
-RPS_LIMIT_DEEPSEEK = 10 # Prova per deepseek
+RPS_LIMIT_DEEPSEEK = 20 # Prova per deepseek
 MAX_RETRIES = 3  # Numero massimo di tentativi per ogni richiesta
 DELAY_BETWEEN_REQUESTS = 1  # 1 secondo tra una richiesta e l'altra
+
+# -----------------------------
+# RATE LIMITER (20 richieste/min)
+# -----------------------------
+MAX_REQUESTS_PER_MIN = RPS_LIMIT_DEEPSEEK
+request_times = deque()
+
+async def rate_limiter():
+    """Assicura che non vengano fatte più di MAX_REQUESTS_PER_MIN richieste in 60s."""
+    now = time.time()
+    # Rimuove timestamp più vecchi di 60s
+    while request_times and now - request_times[0] > 60:
+        request_times.popleft()
+
+    if len(request_times) >= MAX_REQUESTS_PER_MIN:
+        sleep_for = 60 - (now - request_times[0])
+        st.warning(f"⏳ Rate limit raggiunto. Attendo {sleep_for:.1f}s...")
+        await asyncio.sleep(sleep_for)
+        # Dopo l'attesa, aggiorna il deque
+        now = time.time()
+        while request_times and now - request_times[0] > 60:
+            request_times.popleft()
+
+    # Registra questa richiesta
+    request_times.append(time.time())
+    
 
 async def async_generate_description(
     session: aiohttp.ClientSession,
@@ -461,71 +488,53 @@ async def async_generate_description(
             return idx, {"error": str(e)}
     
     if use_model == "deepseek-chimera":
-        try:
-            headers = {
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json"
-            }
-            data = {
-                "model": "tngtech/deepseek-r1t2-chimera:free",
-                "messages": [{"role": "user", "content": prompt}]
-            }
+        for attempt in range(MAX_RETRIES):
+            try:
+                async with semaphore:  # Limita richieste concorrenti
+                    await rate_limiter()  # ⏱️ Controlla limite 20/min
 
-            async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as response:
-                if response.status != 200:
-                    error_msg = await response.text()
-                    st.write(f"{error_msg}")
-                    raise Exception(f"API Error: {error_msg}")
+                    headers = {
+                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                        "Content-Type": "application/json",
+                    }
 
-                response_json = await response.json()
-                content = response_json["choices"][0]["message"]["content"]
-                content = content.replace("**", "")  # Rimuovi eventuali **
-                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                    data = {
+                        "model": "tngtech/deepseek-r1t2-chimera:free",
+                        "messages": [{"role": "user", "content": prompt}],
+                    }
 
-                if json_match:
-                    content = json.loads(json_match.group(0))
-                else:
-                    raise Exception("No valid JSON found in response")
+                    async with session.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers=headers,
+                        json=data
+                    ) as response:
+                        if response.status == 429:
+                            st.warning("🚫 Rate limit API raggiunto. Attendo 60s...")
+                            await asyncio.sleep(60)
+                            continue
 
-                usage = response_json.get("usage", {})
-                return idx, {"result": content, "usage": usage}
-        except Exception as e:
-            return idx, {"error": str(e)}
-            
-        #for attempt in range(MAX_RETRIES):
-        #    try:
-        #        async with semaphore:  # Limita le richieste concorrenti
-        #            headers={
-        #                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        #                    "Content-Type": "application/json",
-        #                  }
-        #            data = {
-        #                "model": "tngtech/deepseek-r1t2-chimera:free",
-        #                "messages": [{"role": "user", "content": prompt}],
-        #              }
-        #
-        #            async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as response:
-        #                if response.status != 200:
-        #                    error_msg = await response.text()
-        #                    st.write(f"{error_msg}")
-        #                    raise Exception(f"API Error: {error_msg}")
-        #                    
-        #                response_json = await response.json()
-        #                content = response_json["choices"][0]["message"]["content"]
-        #                content = content.replace("**", "")  # Rimuovi eventuali **
-        #                json_match = re.search(r'\{.*\}', content, re.DOTALL)
-   # 
-   #                     if json_match:
-   #                         content = json.loads(json_match.group(0))
-   #                     else:
-   #                         raise Exception("No valid JSON found in response")
-   # 
-   #                     usage = response_json.get("usage", {})
-   #                     return idx, {"result": content, "usage": usage}
-   #         except Exception as e:
-   #             if attempt == MAX_RETRIES - 1:
-   #                 return idx, {"error": f"Failed after {MAX_RETRIES} attempts: {str(e)}"}
-   #             await asyncio.sleep(DELAY_BETWEEN_REQUESTS * (attempt + 1))  # Attesa esponenziale
+                        if response.status != 200:
+                            error_msg = await response.text()
+                            st.write(f"{error_msg}")
+                            raise Exception(f"API Error: {error_msg}")
+
+                        response_json = await response.json()
+                        content = response_json["choices"][0]["message"]["content"]
+                        content = content.replace("**", "")
+                        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+
+                        if json_match:
+                            content = json.loads(json_match.group(0))
+                        else:
+                            raise Exception("No valid JSON found in response")
+
+                        usage = response_json.get("usage", {})
+                        return idx, {"result": content, "usage": usage}
+
+            except Exception as e:
+                if attempt == MAX_RETRIES - 1:
+                    return idx, {"error": f"Failed after {MAX_RETRIES} attempts: {str(e)}"}
+                await asyncio.sleep(DELAY_BETWEEN_REQUESTS * (attempt + 1))  # Attesa esponenziale
 
     
     # Gestione per Mistral
@@ -584,7 +593,7 @@ async def generate_all_prompts_mistral(prompts: list[str], model: str) -> dict:
         return dict(results)
 
 async def generate_all_prompts_deepseek(prompts: list[str], model: str) -> dict:
-    semaphore = asyncio.Semaphore(RPS_LIMIT_DEEPSEEK)  # Limita a 1 richiesta al secondo
+    semaphore = asyncio.Semaphore(5)  # Limita a X richieste al secondo
 
     async with aiohttp.ClientSession() as session:
         tasks = [
