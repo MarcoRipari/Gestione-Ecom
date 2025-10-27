@@ -1527,7 +1527,7 @@ elif page == "Descrizioni":
             st.session_state.config_ready = False
         if "generate" not in st.session_state:
             st.session_state.generate = False
-        st.success("✅ File caricato con successo!")e
+        st.success("✅ File caricato con successo!")
 
     # 📊 Anteprima dati
     if "df_input" in st.session_state:
