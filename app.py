@@ -1684,9 +1684,6 @@ elif page == "Descrizioni":
                             descr_breve = lang_data.get("desc_breve", "").strip()
                             output_row["Description"] = descr_lunga
                             output_row["Description2"] = descr_breve
-                            st.write(row)
-                            st.write(row.to_dict())
-                            st.write(output_row)
                             all_outputs[lang].append(output_row)
             
                         log_entry = {
@@ -1712,6 +1709,7 @@ elif page == "Descrizioni":
                         try:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
+                                st.write(df_out)
                                 df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
                                 if not df_new.empty:
                                     append_to_sheet(desc_sheet_id, lang, df_new)
