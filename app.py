@@ -1527,7 +1527,7 @@ elif page == "Descrizioni":
             st.session_state.config_ready = False
         if "generate" not in st.session_state:
             st.session_state.generate = False
-        st.success("✅ File caricato con successo!")
+        st.success("✅ File caricato con successo!")e
 
     # 📊 Anteprima dati
     if "df_input" in st.session_state:
@@ -1547,6 +1547,14 @@ elif page == "Descrizioni":
                           "futter_zalando",
                           "Sp.feature"
                          ]
+            trans_def_colum = {"Saison": "Stagione",
+                               "Silouhette": "Tipo di calzatura",
+                               "sole_material_zalando": "Soletta interna",
+                               "shoe_fastener_zalando": "Chiusura",
+                               "upper_material_zalando": "Tomaia",
+                               "futter_zalando": "Fodera interna",
+                               "Sp.feature": "Caratteristica"
+                              }
     
             missing = not_in_array(df_input.columns, def_column)
             if missing:
@@ -1563,6 +1571,7 @@ elif page == "Descrizioni":
                 for col in st.session_state.selected_cols:
                     st.session_state.col_weights.setdefault(col, 1)
                     st.session_state.col_display_names.setdefault(col, col)
+                    st.session_state.col_display_names.setdefault(trans, trans_def_colum[col])
     
                     cols = st.columns([2, 3])
                     with cols[0]:
@@ -1571,7 +1580,7 @@ elif page == "Descrizioni":
                         )
                     with cols[1]:
                         st.session_state.col_display_names[col] = st.text_input(
-                            f"Etichetta: {col}", value=st.session_state.col_display_names[col], key=f"label_{col}"
+                            f"Etichetta: {col}", value=st.session_state.col_display_names[trans], key=f"label_{col}"
                         )
     
         # 🌍 Lingue e parametri
@@ -1601,7 +1610,7 @@ elif page == "Descrizioni":
                 selected_tones = st.multiselect(
                     "Tono desiderato",
                     ["professionale", "amichevole", "accattivante", "descrittivo", "tecnico", "ironico", "minimal", "user friendly", "SEO-friendly"],
-                    default=["professionale", "user friendly", "SEO-friendly"]
+                    default=["professionale", "user friendly", "SEO-friendly", "SEO-optimized"]
                 )
     
             with settings_col3:
