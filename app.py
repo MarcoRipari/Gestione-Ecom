@@ -505,22 +505,19 @@ async def async_generate_description(
                             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                             "Content-Type": "application/json",
                           },
-                    #data = json.dumps({
-                    #    "model": "tngtech/deepseek-r1t2-chimera:free",
-                    #    "messages": [{"role": "user", "content": prompt}],
-                    #  })
-                    data = {
+                    data = json.dumps({
                         "model": "tngtech/deepseek-r1t2-chimera:free",
-                        "messages": [{"role": "user", "content": prompt}]
-                    }
+                        "messages": [{"role": "user", "content": prompt}],
+                      })
     
                     async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as response:
                         if response.status != 200:
                             error_msg = await response.text()
                             st.write(f"{error_msg}")
                             raise Exception(f"API Error: {error_msg}")
-    
+                            
                         response_json = await response.json()
+                        st.write(response_json)
                         content = response_json["choices"][0]["message"]["content"]
                         content = content.replace("**", "")  # Rimuovi eventuali **
                         json_match = re.search(r'\{.*\}', content, re.DOTALL)
