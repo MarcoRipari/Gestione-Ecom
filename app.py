@@ -1609,7 +1609,7 @@ elif page == "Descrizioni":
                 
                 selected_tones = st.multiselect(
                     "Tono desiderato",
-                    ["professionale", "amichevole", "accattivante", "descrittivo", "tecnico", "ironico", "minimal", "user friendly", "SEO-friendly"],
+                    ["professionale", "amichevole", "accattivante", "descrittivo", "tecnico", "ironico", "minimal", "user friendly", "SEO-friendly", "SEO-optimized"],
                     default=["professionale", "user friendly", "SEO-friendly", "SEO-optimized"]
                 )
     
