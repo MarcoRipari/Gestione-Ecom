@@ -1603,7 +1603,7 @@ elif page == "Descrizioni":
                 selected_labels = st.multiselect(
                     "Lingue di output",
                     options=list(LANG_LABELS.keys()),
-                    default=["Italiano", "Inglese", "Francese", "Tedesco"]
+                    default=["Italiano", "Inglese", "Francese", "Tedesco", "Spagnolo"]
                 )
                 selected_langs = [LANG_LABELS[label] for label in selected_labels]
                 
