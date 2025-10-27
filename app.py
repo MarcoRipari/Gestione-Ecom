@@ -1571,7 +1571,6 @@ elif page == "Descrizioni":
                 for col in st.session_state.selected_cols:
                     st.session_state.col_weights.setdefault(col, 1)
                     st.session_state.col_display_names.setdefault(col, col)
-                    st.session_state.col_display_names_trans.setdefault(trans_def_colum[col], trans)
     
                     cols = st.columns([2, 3])
                     with cols[0]:
