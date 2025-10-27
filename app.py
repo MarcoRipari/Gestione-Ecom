@@ -471,7 +471,7 @@ async def async_generate_description(
                 "messages": [{"role": "user", "content": prompt}]
             }
 
-            async with session.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=data) as response:
+            async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as response:
                 if response.status != 200:
                     error_msg = await response.text()
                     st.write(f"{error_msg}")
