@@ -429,6 +429,7 @@ client = AsyncOpenAI(api_key=openai.api_key)
 
 # Configurazione per il piano gratuito
 RPS_LIMIT = 1  # 1 richiesta al secondo per il piano gratuito
+RPS_LIMIT_DEEPSEEK = 10 # Prova per deepseek
 MAX_RETRIES = 3  # Numero massimo di tentativi per ogni richiesta
 DELAY_BETWEEN_REQUESTS = 1  # 1 secondo tra una richiesta e l'altra
 
@@ -442,7 +443,7 @@ async def async_generate_description(
     if len(prompt) < 50:
         return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
 
-    if use_model not in ["mistral-medium", "mistral-large"]:
+    if use_model not in ["mistral-medium", "deepseek-chimera"]:
         # Gestione per altri modelli (es. OpenAI)
         try:
             response = await client.chat.completions.create(
@@ -459,36 +460,68 @@ async def async_generate_description(
             return idx, {"error": str(e)}
 
     # Gestione per Mistral
-    for attempt in range(MAX_RETRIES):
-        try:
-            async with semaphore:  # Limita le richieste concorrenti
-                headers = {
-                    "Authorization": f"Bearer {MISTRAL_API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                data = {
-                    "model": use_model,
-                    "messages": [{"role": "user", "content": prompt}]
-                }
-
-                async with session.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=data) as response:
-                    if response.status != 200:
-                        error_msg = await response.text()
-                        st.write(f"{error_msg}")
-                        raise Exception(f"API Error: {error_msg}")
-
-                    response_json = await response.json()
-                    content = response_json["choices"][0]["message"]["content"]
-                    content = content.replace("**", "")  # Rimuovi eventuali **
-                    json_match = re.search(r'\{.*\}', content, re.DOTALL)
-
-                    if json_match:
-                        content = json.loads(json_match.group(0))
-                    else:
-                        raise Exception("No valid JSON found in response")
-
-                    usage = response_json.get("usage", {})
-                    return idx, {"result": content, "usage": usage}
+    if use_model == "mistral-medium":
+        for attempt in range(MAX_RETRIES):
+            try:
+                async with semaphore:  # Limita le richieste concorrenti
+                    headers = {
+                        "Authorization": f"Bearer {MISTRAL_API_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                    data = {
+                        "model": use_model,
+                        "messages": [{"role": "user", "content": prompt}]
+                    }
+    
+                    async with session.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=data) as response:
+                        if response.status != 200:
+                            error_msg = await response.text()
+                            st.write(f"{error_msg}")
+                            raise Exception(f"API Error: {error_msg}")
+    
+                        response_json = await response.json()
+                        content = response_json["choices"][0]["message"]["content"]
+                        content = content.replace("**", "")  # Rimuovi eventuali **
+                        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+    
+                        if json_match:
+                            content = json.loads(json_match.group(0))
+                        else:
+                            raise Exception("No valid JSON found in response")
+    
+                        usage = response_json.get("usage", {})
+                        return idx, {"result": content, "usage": usage}
+    elif use_model == "deepseek-chimera":
+        for attempt in range(MAX_RETRIES):
+            try:
+                async with semaphore:  # Limita le richieste concorrenti
+                    headers={
+                            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                            "Content-Type": "application/json",
+                          },
+                    data = {
+                        "model": "tngtech/deepseek-r1t2-chimera:free",
+                        "messages": [{"role": "user", "content": prompt}]
+                    }
+    
+                    async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as response:
+                        if response.status != 200:
+                            error_msg = await response.text()
+                            st.write(f"{error_msg}")
+                            raise Exception(f"API Error: {error_msg}")
+    
+                        response_json = await response.json()
+                        content = response_json["choices"][0]["message"]["content"]
+                        content = content.replace("**", "")  # Rimuovi eventuali **
+                        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+    
+                        if json_match:
+                            content = json.loads(json_match.group(0))
+                        else:
+                            raise Exception("No valid JSON found in response")
+    
+                        usage = response_json.get("usage", {})
+                        return idx, {"result": content, "usage": usage}
 
         except Exception as e:
             if attempt == MAX_RETRIES - 1:
@@ -503,6 +536,17 @@ async def generate_all_prompts(prompts: list[str], model) -> dict:
 
 async def generate_all_prompts_mistral(prompts: list[str], model: str) -> dict:
     semaphore = asyncio.Semaphore(RPS_LIMIT)  # Limita a 1 richiesta al secondo
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [
+            async_generate_description(session, prompt, idx, model, semaphore)
+            for idx, prompt in enumerate(prompts)
+        ]
+        results = await asyncio.gather(*tasks)
+        return dict(results)
+
+async def generate_all_prompts_deepseek(prompts: list[str], model: str) -> dict:
+    semaphore = asyncio.Semaphore(RPS_LIMIT_DEEPSEEK)  # Limita a 1 richiesta al secondo
 
     async with aiohttp.ClientSession() as session:
         tasks = [
@@ -1476,7 +1520,7 @@ elif page == "Descrizioni":
                 
                 use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
 
-                use_model = st.radio("Seleziona modello GPT", ["gpt-3.5-turbo","gpt-4o-mini", "mistral-medium", "mistral-large"],horizontal = True)
+                use_model = st.radio("Seleziona modello GPT", ["gpt-3.5-turbo","gpt-4o-mini", "mistral-medium", "deepseek-chimera"],horizontal = True)
     
             with settings_col2:
                 selected_labels = st.multiselect(
@@ -1602,8 +1646,10 @@ elif page == "Descrizioni":
                             all_prompts.append(prompt)
             
                     with st.spinner("🚀 Generazione asincrona in corso..."):
-                        if use_model == "mistral-medium" or use_model == "mistral-large":
+                        if use_model == "mistral-medium":
                             results = asyncio.run(generate_all_prompts_mistral(all_prompts, use_model))
+                        elif use_model == "deepseek-chimera":
+                            results = asyncio.run(generate_all_prompts_deepseek(all_prompts, use_model))
                         else:
                             results = asyncio.run(generate_all_prompts(all_prompts, use_model))
             
