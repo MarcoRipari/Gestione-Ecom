@@ -88,6 +88,7 @@ anagrafica_sheet_id = st.secrets['ANAGRAFICA_GSHEET_ID']
 ferie_sheet_id = st.secrets['FERIE_GSHEET_ID']
 ordini_sheet_id = st.secrets['ORDINI_GSHEET_ID']
 MISTRAL_API_KEY = st.secrets['MISTRAL_API_KEY']
+OPENROUTER_API_KEY = st.secrets['OPENROUTER_API_KEY']
 
 # ---------------------------
 # 🔐 Setup API keys and credentials
@@ -504,10 +505,14 @@ async def async_generate_description(
                             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                             "Content-Type": "application/json",
                           },
-                    data = json.dumps({
+                    #data = json.dumps({
+                    #    "model": "tngtech/deepseek-r1t2-chimera:free",
+                    #    "messages": [{"role": "user", "content": prompt}],
+                    #  })
+                    data = {
                         "model": "tngtech/deepseek-r1t2-chimera:free",
-                        "messages": [{"role": "user", "content": prompt}],
-                      })
+                        "messages": [{"role": "user", "content": prompt}]
+                    }
     
                     async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as response:
                         if response.status != 200:
