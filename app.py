@@ -463,7 +463,7 @@ async def async_generate_description(
     if use_model == "deepseek-chimera":
         try:
             headers = {
-                "Authorization": f"Bearer {MISTRAL_API_KEY}",
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                 "Content-Type": "application/json"
             }
             data = {
