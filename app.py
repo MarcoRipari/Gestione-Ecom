@@ -504,7 +504,7 @@ async def async_generate_description(
                     headers={
                             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                             "Content-Type": "application/json",
-                          },
+                          }
                     data = {
                         "model": "tngtech/deepseek-r1t2-chimera:free",
                         "messages": [{"role": "user", "content": prompt}],
