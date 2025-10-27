@@ -505,10 +505,10 @@ async def async_generate_description(
                             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                             "Content-Type": "application/json",
                           },
-                    data = json.dumps({
+                    data = {
                         "model": "tngtech/deepseek-r1t2-chimera:free",
                         "messages": [{"role": "user", "content": prompt}],
-                      })
+                      }
     
                     async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as response:
                         if response.status != 200:
@@ -1661,7 +1661,6 @@ elif page == "Descrizioni":
             
                     # Parsing risultati
                     all_outputs = already_generated.copy()
-                    st.write(results)
                     
                     
                     for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
