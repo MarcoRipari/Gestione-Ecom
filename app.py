@@ -459,7 +459,9 @@ async def async_generate_description(
             return idx, {"result": data, "usage": usage.model_dump()}
         except Exception as e:
             return idx, {"error": str(e)}
-
+    if not semaphore:
+        semaphore = []
+        
     # Gestione per Mistral
     if use_model == "mistral-medium":
         for attempt in range(MAX_RETRIES):
@@ -504,7 +506,7 @@ async def async_generate_description(
                 "Content-Type": "application/json"
             }
             data = {
-                "model": use_model,
+                "model": "tngtech/deepseek-r1t2-chimera:free",
                 "messages": [{"role": "user", "content": prompt}]
             }
 
