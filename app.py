@@ -517,7 +517,6 @@ async def async_generate_description(
                             raise Exception(f"API Error: {error_msg}")
                             
                         response_json = await response.json()
-                        st.write(response_json)
                         content = response_json["choices"][0]["message"]["content"]
                         content = content.replace("**", "")  # Rimuovi eventuali **
                         json_match = re.search(r'\{.*\}', content, re.DOTALL)
@@ -1685,6 +1684,9 @@ elif page == "Descrizioni":
                             descr_breve = lang_data.get("desc_breve", "").strip()
                             output_row["Description"] = descr_lunga
                             output_row["Description2"] = descr_breve
+                            st.write(row)
+                            st.write(row.to_dict())
+                            st.write(output_row)
                             all_outputs[lang].append(output_row)
             
                         log_entry = {
