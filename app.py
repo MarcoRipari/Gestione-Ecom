@@ -491,6 +491,11 @@ async def async_generate_description(
     
                         usage = response_json.get("usage", {})
                         return idx, {"result": content, "usage": usage}
+            except Exception as e:
+                if attempt == MAX_RETRIES - 1:
+                    return idx, {"error": f"Failed after {MAX_RETRIES} attempts: {str(e)}"}
+                await asyncio.sleep(DELAY_BETWEEN_REQUESTS * (attempt + 1))  # Attesa esponenziale
+                
     elif use_model == "deepseek-chimera":
         for attempt in range(MAX_RETRIES):
             try:
@@ -522,11 +527,11 @@ async def async_generate_description(
     
                         usage = response_json.get("usage", {})
                         return idx, {"result": content, "usage": usage}
-
-        except Exception as e:
-            if attempt == MAX_RETRIES - 1:
-                return idx, {"error": f"Failed after {MAX_RETRIES} attempts: {str(e)}"}
-            await asyncio.sleep(DELAY_BETWEEN_REQUESTS * (attempt + 1))  # Attesa esponenziale
+            except Exception as e:
+                if attempt == MAX_RETRIES - 1:
+                    return idx, {"error": f"Failed after {MAX_RETRIES} attempts: {str(e)}"}
+                await asyncio.sleep(DELAY_BETWEEN_REQUESTS * (attempt + 1))  # Attesa esponenziale
+            
 
 
 async def generate_all_prompts(prompts: list[str], model) -> dict:
