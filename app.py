@@ -598,7 +598,8 @@ async def async_generate_description(
 
 
 async def generate_all_prompts(prompts: list[str], model) -> dict:
-    tasks = [async_generate_description(prompt, idx, model) for idx, prompt in enumerate(prompts)]
+    semaphore = 0
+    tasks = [async_generate_description(prompt, idx, model, semaphore) for idx, prompt in enumerate(prompts)]
     results = await asyncio.gather(*tasks)
     return dict(results)
 
