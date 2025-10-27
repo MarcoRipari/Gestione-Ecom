@@ -434,6 +434,21 @@ RPS_LIMIT = 1  # 1 richiesta al secondo per il piano gratuito
 RPS_LIMIT_DEEPSEEK = 20 # Prova per deepseek
 MAX_RETRIES = 3  # Numero massimo di tentativi per ogni richiesta
 DELAY_BETWEEN_REQUESTS = 1  # 1 secondo tra una richiesta e l'altra
+TOKEN_WINDOW = deque()  # (timestamp, token_count)
+MAX_TOKENS_PER_MINUTE = 500000
+
+def check_token_limit(tokens: int) -> bool:
+    current_time = time.time()
+    # Rimuovi i record più vecchi di 60 secondi
+    while TOKEN_WINDOW and current_time - TOKEN_WINDOW[0][0] > 60:
+        TOKEN_WINDOW.popleft()
+
+    total_tokens = sum(count for _, count in TOKEN_WINDOW)
+    if total_tokens + tokens > MAX_TOKENS_PER_MINUTE:
+        return False  # Limite superato
+
+    TOKEN_WINDOW.append((current_time, tokens))
+    return True
 
 # -----------------------------
 # RATE LIMITER (20 richieste/min)
@@ -568,6 +583,12 @@ async def async_generate_description(
                             raise Exception("No valid JSON found in response")
     
                         usage = response_json.get("usage", {})
+                        total_tokens = usage.get("total_tokens", 0)
+
+                        # Controlla il limite dei token al minuto
+                        if not check_token_limit(total_tokens):
+                            raise Exception("Token limit per minute exceeded")
+                            
                         return idx, {"result": content, "usage": usage}
             except Exception as e:
                 if attempt == MAX_RETRIES - 1:
