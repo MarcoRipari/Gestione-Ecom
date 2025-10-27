@@ -498,40 +498,71 @@ async def async_generate_description(
                 await asyncio.sleep(DELAY_BETWEEN_REQUESTS * (attempt + 1))  # Attesa esponenziale
                 
     elif use_model == "deepseek-chimera":
-        for attempt in range(MAX_RETRIES):
-            try:
-                async with semaphore:  # Limita le richieste concorrenti
-                    headers={
-                            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                            "Content-Type": "application/json",
-                          }
-                    data = {
-                        "model": "tngtech/deepseek-r1t2-chimera:free",
-                        "messages": [{"role": "user", "content": prompt}],
-                      }
-    
-                    async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as response:
-                        if response.status != 200:
-                            error_msg = await response.text()
-                            st.write(f"{error_msg}")
-                            raise Exception(f"API Error: {error_msg}")
-                            
-                        response_json = await response.json()
-                        content = response_json["choices"][0]["message"]["content"]
-                        content = content.replace("**", "")  # Rimuovi eventuali **
-                        json_match = re.search(r'\{.*\}', content, re.DOTALL)
-    
-                        if json_match:
-                            content = json.loads(json_match.group(0))
-                        else:
-                            raise Exception("No valid JSON found in response")
-    
-                        usage = response_json.get("usage", {})
-                        return idx, {"result": content, "usage": usage}
-            except Exception as e:
-                if attempt == MAX_RETRIES - 1:
-                    return idx, {"error": f"Failed after {MAX_RETRIES} attempts: {str(e)}"}
-                await asyncio.sleep(DELAY_BETWEEN_REQUESTS * (attempt + 1))  # Attesa esponenziale
+        try:
+            headers = {
+                "Authorization": f"Bearer {MISTRAL_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": use_model,
+                "messages": [{"role": "user", "content": prompt}]
+            }
+
+            async with session.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=data) as response:
+                if response.status != 200:
+                    error_msg = await response.text()
+                    st.write(f"{error_msg}")
+                    raise Exception(f"API Error: {error_msg}")
+
+                response_json = await response.json()
+                content = response_json["choices"][0]["message"]["content"]
+                content = content.replace("**", "")  # Rimuovi eventuali **
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+
+                if json_match:
+                    content = json.loads(json_match.group(0))
+                else:
+                    raise Exception("No valid JSON found in response")
+
+                usage = response_json.get("usage", {})
+                return idx, {"result": content, "usage": usage}
+        except Exception as e:
+            return idx, {"error": str(e)}
+            
+        #for attempt in range(MAX_RETRIES):
+        #    try:
+        #        async with semaphore:  # Limita le richieste concorrenti
+        #            headers={
+        #                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        #                    "Content-Type": "application/json",
+        #                  }
+        #            data = {
+        #                "model": "tngtech/deepseek-r1t2-chimera:free",
+        #                "messages": [{"role": "user", "content": prompt}],
+        #              }
+        #
+        #            async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as response:
+        #                if response.status != 200:
+        #                    error_msg = await response.text()
+        #                    st.write(f"{error_msg}")
+        #                    raise Exception(f"API Error: {error_msg}")
+        #                    
+        #                response_json = await response.json()
+        #                content = response_json["choices"][0]["message"]["content"]
+        #                content = content.replace("**", "")  # Rimuovi eventuali **
+        #                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+   # 
+   #                     if json_match:
+   #                         content = json.loads(json_match.group(0))
+   #                     else:
+   #                         raise Exception("No valid JSON found in response")
+   # 
+   #                     usage = response_json.get("usage", {})
+   #                     return idx, {"result": content, "usage": usage}
+   #         except Exception as e:
+   #             if attempt == MAX_RETRIES - 1:
+   #                 return idx, {"error": f"Failed after {MAX_RETRIES} attempts: {str(e)}"}
+   #             await asyncio.sleep(DELAY_BETWEEN_REQUESTS * (attempt + 1))  # Attesa esponenziale
             
 
 
@@ -1655,7 +1686,7 @@ elif page == "Descrizioni":
                         if use_model == "mistral-medium":
                             results = asyncio.run(generate_all_prompts_mistral(all_prompts, use_model))
                         elif use_model == "deepseek-chimera":
-                            results = asyncio.run(generate_all_prompts_deepseek(all_prompts, use_model))
+                            results = asyncio.run(generate_all_prompts(all_prompts, use_model))
                         else:
                             results = asyncio.run(generate_all_prompts(all_prompts, use_model))
             
