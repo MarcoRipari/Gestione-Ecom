@@ -508,7 +508,6 @@ async def async_generate_description(
                         "model": "tngtech/deepseek-r1t2-chimera:free",
                         "messages": [{"role": "user", "content": prompt}],
                       })
-                    )
     
                     async with session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as response:
                         if response.status != 200:
