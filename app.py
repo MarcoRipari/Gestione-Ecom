@@ -1358,6 +1358,11 @@ def append_to_sheet(sheet_id, tab, df):
     values = df.values.tolist()
     sheet.append_rows(values, value_input_option="RAW")  # ✅ chiamata unica
 
+def append_logs(sheet_id, logs_data):
+    sheet = get_sheet(sheet_id, tab)
+    values = [list(log.values()) for log in logs]
+    sheet.append_rows(values, value_input_option="RAW")
+    
 def append_log(sheet_id, log_data):
     sheet = get_sheet(sheet_id, "logs")
     sheet.append_row(list(log_data.values()), value_input_option="RAW")
@@ -1811,8 +1816,10 @@ elif page == "Descrizioni":
                                 df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
                                 if not df_new.empty:
                                     append_to_sheet(desc_sheet_id, lang, df_new)
-                            for log in logs:
-                                append_log(desc_sheet_id, log)
+
+                            append_logs(desc_sheet_id, logs)
+                            #for log in logs:
+                            #    append_log(desc_sheet_id, log)
                         except Exception as e:
                             st.warning(f"Errore: {e}")
 
