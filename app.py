@@ -485,7 +485,6 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
             response = await client.chat.completions.create(
                 model=use_model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
                 max_completion_tokens=3000
             )
         else:
