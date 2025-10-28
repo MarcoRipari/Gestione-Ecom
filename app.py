@@ -419,11 +419,15 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 
 {sim_text}
 
+Dopo aver generato le descrizioni, rileggi e correggi eventuali errori grammaticali o di genere **prima** di produrre l'output finale JSON.
+
 >>> CONTROLLO FINALE
 Controlla attentamente che le descrizioni:
 - rispettino tutte le regole fornite (parole vietate, formato, tono, ecc.)
-- non contengano errori grammaticali o di traduzione
-Se rilevi problemi, **rigenera o correggi** la descrizione **prima di fornire l'output finale**.
+- non contengano errori grammaticali, di concordanza o di traduzione in nessuna lingua
+- in italiano, controlla sempre il genere e il numero dei sostantivi (es. "questi sandali", non "queste sandali")
+- se trovi errori di grammatica, rigenera o correggi la frase **prima di fornire l'output finale**
+- fornisci l'output finale **solo dopo** aver verificato che sia grammaticalmente e stilisticamente corretto in tutte le lingue
 """
     return prompt
 
