@@ -481,12 +481,20 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
         return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
         
     try:
-        response = await client.chat.completions.create(
-            model=use_model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=3000
-        )
+        if use_model == "gpt-5-nano":
+            response = await client.chat.completions.create(
+                model=use_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_completion_tokens=3000
+            )
+        else:
+            response = await client.chat.completions.create(
+                model=use_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=3000
+            )
         content = response.choices[0].message.content
         usage = response.usage
         data = json.loads(content)
