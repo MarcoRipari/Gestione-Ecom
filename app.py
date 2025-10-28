@@ -616,7 +616,6 @@ async def async_generate_description_mistral(
 
 
 async def generate_all_prompts(prompts: list[str], model: str) -> dict:
-    st.write(model)
     tasks = [async_generate_description(prompt, idx, model) for idx, prompt in enumerate(prompts)]
     results = await asyncio.gather(*tasks)
     return dict(results)
@@ -1748,7 +1747,9 @@ elif page == "Descrizioni":
                             results = asyncio.run(generate_all_prompts_deepseek(all_prompts, use_model))
                         else:
                             results = asyncio.run(generate_all_prompts(all_prompts, use_model))
-            
+
+                    st.write(results)
+                    
                     # Parsing risultati
                     all_outputs = already_generated.copy()
                     
