@@ -495,7 +495,6 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
                 max_tokens=3000
             )
         content = response.choices[0].message.content
-        st.write(f"DEBUG - content: {repr(content)}")
         usage = response.usage
         data = json.loads(content)
         return idx, {"result": data, "usage": usage.model_dump()}
@@ -1755,8 +1754,6 @@ elif page == "Descrizioni":
                             results = asyncio.run(generate_all_prompts_deepseek(all_prompts, use_model))
                         else:
                             results = asyncio.run(generate_all_prompts(all_prompts, use_model))
-
-                    st.write(results)
                     
                     # Parsing risultati
                     all_outputs = already_generated.copy()
