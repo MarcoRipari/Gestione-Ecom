@@ -1359,7 +1359,7 @@ def append_to_sheet(sheet_id, tab, df):
     sheet.append_rows(values, value_input_option="RAW")  # ✅ chiamata unica
 
 def append_logs(sheet_id, logs_data):
-    sheet = get_sheet(sheet_id, tab)
+    sheet = get_sheet(sheet_id, "logs")
     values = [list(log.values()) for log in logs]
     sheet.append_rows(values, value_input_option="RAW")
     
