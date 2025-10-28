@@ -1631,7 +1631,7 @@ elif page == "Descrizioni":
                 
                 use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
 
-                use_model = st.radio("Seleziona modello GPT", ["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4.1-nano", "gpt-5-nano", "mistral-medium", "deepseek-chimera"],horizontal = True)
+                use_model = st.radio("Seleziona modello GPT", ["gpt-4o-mini", "gpt-3.5-turbo", "gpt-4.1-nano", "gpt-5-nano", "mistral-medium", "deepseek-chimera"], index=1, horizontal = True)
     
             with settings_col2:
                 selected_labels = st.multiselect(
