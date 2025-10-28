@@ -485,7 +485,7 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
             response = await client.chat.completions.create(
                 model=use_model,
                 messages=[{"role": "user", "content": prompt}],
-                max_completion_tokens=3000
+                max_output_tokens=3000
             )
         else:
             response = await client.chat.completions.create(
@@ -495,6 +495,7 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
                 max_tokens=3000
             )
         content = response.choices[0].message.content
+        st.write(f"DEBUG - content: {repr(content)}")
         usage = response.usage
         data = json.loads(content)
         return idx, {"result": data, "usage": usage.model_dump()}
