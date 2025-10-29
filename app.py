@@ -1831,6 +1831,7 @@ elif page == "Descrizioni":
                                 df_out = pd.DataFrame(all_outputs[lang])
                                 df_out['Subtitle'] = df_out['Subtitle'].apply(lambda x: translator.translate(str(x), src='it', dest=lang).text)
                                 df_out['Subtitle2'] = df_out['Subtitle2'].apply(lambda x: translator.translate(str(x), src='it', dest=lang).text)
+                                
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
                                     "Subtitle": df_out.get("Subtitle", ""),
