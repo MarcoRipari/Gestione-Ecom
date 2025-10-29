@@ -63,6 +63,7 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from collections import deque
 from deep_translator import GoogleTranslator
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import viste
 
@@ -977,15 +978,31 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     st.text("✅ Operazione completata!")
     return len(new_rows), len(updates)
 
-def traduci_colonna(texts, source, target, batch_size=10):
-    translator = GoogleTranslator(source=source, target=target)
+# Traduttore singolo (creato una sola volta per efficienza)
+def create_translator(source, target):
+    return GoogleTranslator(source=source, target=target)
+
+def safe_translate(text, translator):
+    """Traduci testo con gestione errori"""
+    try:
+        if not text or str(text).strip() == "":
+            return ""
+        return translator.translate(str(text))
+    except Exception as e:
+        print(f"❌ Errore durante la traduzione: {e}")
+        return str(text)  # fallback: restituisce testo originale
+
+def translate_column_parallel(col_values, source, target, max_workers=5):
+    """Traduci una colonna in parallelo"""
+    translator = create_translator(source, target)
     results = []
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i:i+batch_size]
-        joined = " ||| ".join(map(str, batch))  # separatore unico
-        translated = translator.translate(joined)
-        parts = translated.split(" ||| ")
-        results.extend(parts)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # invia tutte le traduzioni in parallelo
+        future_to_text = {executor.submit(safe_translate, text, translator): text for text in col_values}
+        for future in as_completed(future_to_text):
+            results.append(future.result())
+
     return results
     
 # --- Funzione per generare PDF ---
@@ -1839,8 +1856,8 @@ elif page == "Descrizioni":
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
                                 df_out["Code langue"] = lang.lower()
-                                df_out['Subtitle_trad'] = traduci_colonna(df_out['Subtitle'].tolist(), source='it', target=lang.lower())
-                                df_out['Subtile2_trad'] = traduci_colonna(df_out['Subtile2'].tolist(), source='it', target=lang.lower())
+                                df_out['Subtitle_trad'] = translate_column_parallel(df_out['Subtitle'].fillna("").tolist(),source='it', target=lang.lower(), max_workers=5)
+                                df_out['Subtile2_trad'] = translate_column_parallel(df_out['Subtile2'].fillna("").tolist(),source='it', target=lang.lower(), max_workers=5)
                                 
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
