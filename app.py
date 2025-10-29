@@ -1829,9 +1829,9 @@ elif page == "Descrizioni":
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
                                 df_out["Code lang"] = lang
-                                df_out['Subtitle_trad'] = df_out['Subtitle'].apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
+                                df_out['Subtitle_trad'] = df_out.get('Subtitle', pd.Series([""]*len(df_out))).apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
                                 st.write(df_out)
-                                df_out['Subtitle2_trad'] = df_out['Subtitle2'].apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
+                                df_out['Subtitle2_trad'] = df_out.get('Subtitle2', pd.Series([""]*len(df_out))).apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
                                 
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
