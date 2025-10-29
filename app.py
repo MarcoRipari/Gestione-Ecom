@@ -1833,8 +1833,8 @@ elif page == "Descrizioni":
                                 df_out = pd.DataFrame(all_outputs[lang])
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
-                                    "Subtitle": translator.translate(df_out.get("Subtitle", ""), src='it', dest=lang),
-                                    "Subtitle2": translator.translate(df_out.get("Subtitle2", ""), src='it', dest=lang),
+                                    "Subtitle": translator.translate(df_out.get("Subtitle", ""), src='it', dest=lang).text,
+                                    "Subtitle2": translator.translate(df_out.get("Subtitle2", ""), src='it', dest=lang).text,
                                     "Descrizione lunga": df_out.get("Description", ""),
                                     "Descrizione breve": df_out.get("Description2", "")
                                 })
