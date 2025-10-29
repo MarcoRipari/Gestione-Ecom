@@ -1828,6 +1828,7 @@ elif page == "Descrizioni":
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
+                                st.write(df_out)
                                 df_out['Subtitle'] = df_out['Subtitle'].apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
                                 df_out['Subtitle2'] = df_out['Subtitle2'].apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
                                 
