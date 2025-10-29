@@ -1825,7 +1825,6 @@ elif page == "Descrizioni":
                     # 📦 ZIP finale
                     with st.spinner("📦 Generazione ZIP..."):
                         mem_zip = BytesIO()
-                        translator = Translator()
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
