@@ -984,6 +984,7 @@ def create_translator(source, target):
 
 def safe_translate(text, translator):
     """Traduci testo con gestione errori"""
+    time.sleep(0.1)
     try:
         if not text or str(text).strip() == "":
             return ""
@@ -993,15 +994,21 @@ def safe_translate(text, translator):
         return str(text)  # fallback: restituisce testo originale
 
 def translate_column_parallel(col_values, source, target, max_workers=5):
-    """Traduci una colonna in parallelo"""
+    """Traduci una colonna mantenendo l'ordine originale"""
     translator = create_translator(source, target)
-    results = []
+    results = [None] * len(col_values)  # lista vuota della lunghezza giusta
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # invia tutte le traduzioni in parallelo
-        future_to_text = {executor.submit(safe_translate, text, translator): text for text in col_values}
-        for future in as_completed(future_to_text):
-            results.append(future.result())
+        # assegna a ogni future il suo indice
+        futures = {executor.submit(safe_translate, text, translator): i for i, text in enumerate(col_values)}
+        
+        for future in as_completed(futures):
+            idx = futures[future]
+            try:
+                results[idx] = future.result()
+            except Exception as e:
+                print(f"Errore riga {idx}: {e}")
+                results[idx] = str(col_values[idx])  # fallback originale
 
     return results
     
