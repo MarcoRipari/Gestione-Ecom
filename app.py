@@ -977,6 +977,16 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     st.text("✅ Operazione completata!")
     return len(new_rows), len(updates)
 
+def traduci_colonna(texts, source, target, batch_size=10):
+    translator = GoogleTranslator(source=source, target=target)
+    results = []
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i+batch_size]
+        joined = " ||| ".join(map(str, batch))  # separatore unico
+        translated = translator.translate(joined)
+        parts = translated.split(" ||| ")
+        results.extend(parts)
+    return results
     
 # --- Funzione per generare PDF ---
 def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
@@ -1829,8 +1839,8 @@ elif page == "Descrizioni":
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
                                 df_out["Code langue"] = lang.lower()
-                                df_out['Subtitle_trad'] = df_out.get('Subtitle', pd.Series([""]*len(df_out))).apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
-                                df_out['Subtitle2_trad'] = df_out.get('Subtile2', pd.Series([""]*len(df_out))).apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
+                                df_out['Subtitle_trad'] = traduci_colonna(df_out['Subtitle'].tolist(), source='it', target=lang.lower())
+                                df_out['Subtile2_trad'] = traduci_colonna(df_out['Subtile2'].tolist(), source='it', target=lang.lower())
                                 
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
