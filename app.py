@@ -62,6 +62,7 @@ from googleapiclient.discovery import build
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from collections import deque
+from googletrans import Translator
 
 import viste
 
@@ -1828,15 +1829,16 @@ elif page == "Descrizioni":
                         mem_zip = BytesIO()
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
+                                translator = Translator()
                                 df_out = pd.DataFrame(all_outputs[lang])
-                                df_out["Code langue"] = lang
-                                #df_export = pd.DataFrame({
-                                #    "SKU": df_out.get("SKU", ""),
-                                #    "Descrizione lunga": df_out.get("Description", ""),
-                                #    "Descrizione breve": df_out.get("Description2", "")
-                                #})
-                                #zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
-                                zf.writestr(f"descrizioni_{land}.csv", df_out.to_csv(index=False).encode("utf-8"))
+                                df_export = pd.DataFrame({
+                                    "SKU": df_out.get("SKU", ""),
+                                    "Subtitle": translator.translate(df_out.get("Subtitle", ""), src='it', dest=lang),
+                                    "Subtitle2": translator.translate(df_out.get("Subtitle2", ""), src='it', dest=lang),
+                                    "Descrizione lunga": df_out.get("Description", ""),
+                                    "Descrizione breve": df_out.get("Description2", "")
+                                })
+                                zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
                         mem_zip.seek(0)
             
                     st.success("✅ Tutto fatto!")
