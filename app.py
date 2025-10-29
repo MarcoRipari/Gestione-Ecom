@@ -1827,16 +1827,16 @@ elif page == "Descrizioni":
                     # 📦 ZIP finale
                     with st.spinner("📦 Generazione ZIP..."):
                         mem_zip = BytesIO()
+                        translator = Translator()
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
-                                translator = Translator()
                                 df_out = pd.DataFrame(all_outputs[lang])
-                                sub = translator.translate(df_out.get("Subtitle", ""), src='it', dest=lang)
-                                sub2 = translator.translate(df_out.get("Subtitle2", ""), src='it', dest=lang)
+                                df_out['Subtitle'] = df_out['Subtitle'].apply(lambda x: translator.translate(str(x), src='it', dest=lang).text)
+                                df_out['Subtitle2'] = df_out['Subtitle2'].apply(lambda x: translator.translate(str(x), src='it', dest=lang).text)
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
-                                    "Subtitle": sub.text,
-                                    "Subtitle2": sub2.text,
+                                    "Subtitle": df_out.get("Subtitle", ""),
+                                    "Subtitle2": df_out.get("Subtitle2", ""),
                                     "Descrizione lunga": df_out.get("Description", ""),
                                     "Descrizione breve": df_out.get("Description2", "")
                                 })
