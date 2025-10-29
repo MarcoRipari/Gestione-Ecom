@@ -1828,15 +1828,14 @@ elif page == "Descrizioni":
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
-                                st.write(df_out.columns.tolist())
                                 df_out["Code langue"] = lang.lower()
                                 df_out['Subtitle_trad'] = df_out.get('Subtitle', pd.Series([""]*len(df_out))).apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
-                                df_out['Subtitle2_trad'] = df_out.get('Subtitle2', pd.Series([""]*len(df_out))).apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
+                                df_out['Subtitle2_trad'] = df_out.get('Subtile2', pd.Series([""]*len(df_out))).apply(lambda x: GoogleTranslator(source='it', target=lang.lower()).translate(str(x)))
                                 
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
                                     "Subtitle": df_out.get("Subtitle_trad", ""),
-                                    "Subtitle2": df_out.get("Subtitle2_trad", ""),
+                                    "Subtile2": df_out.get("Subtile2_trad", ""),
                                     "Descrizione lunga": df_out.get("Description", ""),
                                     "Descrizione breve": df_out.get("Description2", "")
                                 })
