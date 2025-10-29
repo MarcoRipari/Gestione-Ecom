@@ -978,6 +978,13 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     return len(new_rows), len(updates)
 
 
+async def traduci_colonna(colonna, src, dest):
+    traduzioni = []
+    translator = Translator()
+    for x in colonna:
+        traduzione = await translator.translate(str(x), src=src, dest=dest)
+        traduzioni.append(traduzione.text)
+    return traduzioni
 
     
 # --- Funzione per generare PDF ---
@@ -1831,8 +1838,8 @@ elif page == "Descrizioni":
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
-                                df_out['Subtitle'] = df_out['Subtitle'].apply(lambda x: translator.translate(str(x), src='it', dest=lang).text)
-                                df_out['Subtitle2'] = df_out['Subtitle2'].apply(lambda x: translator.translate(str(x), src='it', dest=lang).text)
+                                df_out['Subtitle'] = await traduci_colonna(df_out['Subtitle'], src='it', dest=lang)
+                                df_out['Subtitle2'] = await traduci_colonna(df_out['Subtitle2'], src='it', dest=lang)
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
                                     "Subtitle": df_out.get("Subtitle", ""),
