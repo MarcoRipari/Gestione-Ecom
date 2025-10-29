@@ -43,7 +43,7 @@ streamlit-authenticator
 pdfplumber
 PyPDF2
 geopy
-googletrans==4.0.0-rc1
+googletrans==4.0.2
 
 # UI / UX
 streamlit-option-menu
