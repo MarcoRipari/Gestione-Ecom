@@ -62,7 +62,7 @@ from googleapiclient.discovery import build
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from collections import deque
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 
 import viste
 
@@ -1829,8 +1829,8 @@ elif page == "Descrizioni":
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
-                                df_out['Subtitle'] = df_out['Subtitle'].apply(lambda x: translator.translate(str(x), src='it', dest=lang).text)
-                                df_out['Subtitle2'] = df_out['Subtitle2'].apply(lambda x: translator.translate(str(x), src='it', dest=lang).text)
+                                df_out['Subtitle'] = df_out['Subtitle'].apply(lambda x: GoogleTranslator(source='it', target=lang).translate(str(x)))
+                                df_out['Subtitle2'] = df_out['Subtitle2'].apply(lambda x: GoogleTranslator(source='it', target=lang).translate(str(x)))
                                 
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
