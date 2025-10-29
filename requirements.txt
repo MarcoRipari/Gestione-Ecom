@@ -44,7 +44,7 @@ pdfplumber
 PyPDF2
 geopy
 googletrans==4.0.0
-aq84a564
+
 # UI / UX
 streamlit-option-menu
 streamlit-aggrid
