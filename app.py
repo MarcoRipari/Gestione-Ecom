@@ -1829,12 +1829,14 @@ elif page == "Descrizioni":
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
-                                df_export = pd.DataFrame({
-                                    "SKU": df_out.get("SKU", ""),
-                                    "Descrizione lunga": df_out.get("Description", ""),
-                                    "Descrizione breve": df_out.get("Description2", "")
-                                })
-                                zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
+                                df_out["Code langue"] = lang
+                                #df_export = pd.DataFrame({
+                                #    "SKU": df_out.get("SKU", ""),
+                                #    "Descrizione lunga": df_out.get("Description", ""),
+                                #    "Descrizione breve": df_out.get("Description2", "")
+                                #})
+                                #zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
+                                zf.writestr(f"descrizioni_{land}.csv", df_out.to_csv(index=False).encode("utf-8"))
                         mem_zip.seek(0)
             
                     st.success("✅ Tutto fatto!")
