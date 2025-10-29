@@ -1632,7 +1632,7 @@ elif page == "Descrizioni":
                 
                 use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
 
-                use_model = st.radio("Seleziona modello GPT", ["gpt-4o-mini", "gpt-3.5-turbo", "gpt-4.1-nano", "gpt-5-nano", "mistral-medium", "deepseek-chimera"], index=1, horizontal = True)
+                use_model = st.radio("Seleziona modello GPT", ["gpt-4o-mini", "gpt-3.5-turbo", "gpt-4.1-nano", "gpt-5-nano", "mistral-medium", "deepseek-chimera"], index=0, horizontal = True)
     
             with settings_col2:
                 selected_labels = st.multiselect(
@@ -1831,10 +1831,12 @@ elif page == "Descrizioni":
                             for lang in selected_langs:
                                 translator = Translator()
                                 df_out = pd.DataFrame(all_outputs[lang])
+                                sub = translator.translate(df_out.get("Subtitle", ""), src='it', dest=lang)
+                                sub2 = translator.translate(df_out.get("Subtitle2", ""), src='it', dest=lang)
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
-                                    "Subtitle": translator.translate(df_out.get("Subtitle", ""), src='it', dest=lang).text,
-                                    "Subtitle2": translator.translate(df_out.get("Subtitle2", ""), src='it', dest=lang).text,
+                                    "Subtitle": sub.text,
+                                    "Subtitle2": sub2.text,
                                     "Descrizione lunga": df_out.get("Description", ""),
                                     "Descrizione breve": df_out.get("Description2", "")
                                 })
