@@ -1765,6 +1765,14 @@ elif page == "Descrizioni":
                                "futter_zalando": "Fodera interna",
                                "Sp.feature": "Caratteristica"
                               }
+            def_col_weights = {"Saison": "4",
+                               "Silouhette": "5",
+                               "sole_material_zalando": "3",
+                               "shoe_fastener_zalando": "1",
+                               "upper_material_zalando": "3",
+                               "futter_zalando": "3",
+                               "Sp.feature": "1"
+                              }
     
             missing = not_in_array(df_input.columns, def_column)
             if missing:
@@ -1779,7 +1787,7 @@ elif page == "Descrizioni":
             if st.session_state.get("config_ready"):
                 st.markdown("### 2. Configura pesi ed etichette")
                 for col in st.session_state.selected_cols:
-                    st.session_state.col_weights.setdefault(col, 1)
+                    st.session_state.col_weights.setdefault(col, def_col_weights[col])
                     st.session_state.col_display_names.setdefault(col, col)
     
                     cols = st.columns([2, 3])
