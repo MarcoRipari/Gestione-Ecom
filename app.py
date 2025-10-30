@@ -2012,10 +2012,11 @@ elif page == "Descrizioni":
                                     append_to_sheet(desc_sheet_id, lang, df_new)
 
                             append_logs(desc_sheet_id, logs)
-                            #for log in logs:
-                            #    append_log(desc_sheet_id, log)
+                            st.write(len(df_out))
                         except Exception as e:
                             st.warning(f"Errore: {e}")
+
+                    
 
                     # 📦 ZIP finale
                     with st.spinner("📦 Generazione ZIP..."):
@@ -2026,6 +2027,7 @@ elif page == "Descrizioni":
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
+                                st.write(len(df_out))
                                 df_out["Code langue"] = lang.lower()
                                 df_out['Subtitle_trad'] = translate_column_parallel(df_out['Subtitle'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
                                 df_out['Subtile2_trad'] = translate_column_parallel(df_out['Subtile2'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
