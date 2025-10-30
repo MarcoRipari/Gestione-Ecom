@@ -483,30 +483,45 @@ async def rate_limiter():
 
 
 async def async_generate_description(prompt: str, idx: int, use_model: str):
-    # Evita prompt troppo corti (es. titoli vuoti)
     if len(prompt.strip()) < 50:
-        return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
-        
-    try:
-        # 🔧 Parametri comuni, ma flessibili per modelli diversi
-        response = await client.chat.completions.create(
-            model=use_model,               # es: "gpt-4o-mini" o "gpt-5"
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=3000,
-            response_format={"type": "json_object"} if "gpt-5" in use_model else None
-        )
+        return idx, {
+            "result": prompt,
+            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        }
 
-        # 🔍 Estrazione del contenuto (compatibile con GPT-5 e GPT-4o)
+    try:
+        # 🔍 Imposta i parametri base
+        params = {
+            "model": use_model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.7,
+        }
+
+        # GPT-5 e alcuni modelli 2025 usano `max_completion_tokens`
+        if "gpt-5" in use_model:
+            params["max_completion_tokens"] = 3000
+            params["response_format"] = {"type": "json_object"}
+        else:
+            params["max_tokens"] = 3000
+
+        # 🚀 Chiamata API asincrona
+        response = await client.chat.completions.create(**params)
+
+        # ✅ Estrai il contenuto
         content = response.choices[0].message.content
-        
-        # GPT-5 può già restituire un JSON valido, GPT-4o a volte no
+
+        # 🔧 Prova a interpretare il JSON
         try:
             data = json.loads(content)
         except json.JSONDecodeError:
             data = {"text": content}
 
-        usage = response.usage.model_dump() if hasattr(response.usage, "model_dump") else vars(response.usage)
+        # ✅ Gestione compatibile del conteggio token
+        usage = (
+            response.usage.model_dump()
+            if hasattr(response.usage, "model_dump")
+            else vars(response.usage)
+        )
 
         return idx, {"result": data, "usage": usage}
     except Exception as e:
