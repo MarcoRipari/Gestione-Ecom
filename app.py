@@ -483,27 +483,32 @@ async def rate_limiter():
 
 
 async def async_generate_description(prompt: str, idx: int, use_model: str):
-    if len(prompt) < 50:
+    # Evita prompt troppo corti (es. titoli vuoti)
+    if len(prompt.strip()) < 50:
         return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
         
     try:
-        if use_model == "gpt-5-nano":
-            response = await client.chat.completions.create(
-                model=use_model,
-                messages=[{"role": "user", "content": prompt}],
-                max_completion_tokens=3000
-            )
-        else:
-            response = await client.chat.completions.create(
-                model=use_model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=3000
-            )
+        # 🔧 Parametri comuni, ma flessibili per modelli diversi
+        response = await client.chat.completions.create(
+            model=use_model,               # es: "gpt-4o-mini" o "gpt-5"
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=3000,
+            response_format={"type": "json_object"} if "gpt-5" in use_model else None
+        )
+
+        # 🔍 Estrazione del contenuto (compatibile con GPT-5 e GPT-4o)
         content = response.choices[0].message.content
-        usage = response.usage
-        data = json.loads(content)
-        return idx, {"result": data, "usage": usage.model_dump()}
+
+        # GPT-5 può già restituire un JSON valido, GPT-4o a volte no
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            data = {"text": content}
+
+        usage = response.usage.model_dump() if hasattr(response.usage, "model_dump") else vars(response.usage)
+
+        return idx, {"result": data, "usage": usage}
     except Exception as e:
         return idx, {"error": str(e)}
 
