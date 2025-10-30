@@ -490,33 +490,35 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
         }
 
     try:
-        # 🔍 Imposta i parametri base
+        # Base params validi per tutti
         params = {
             "model": use_model,
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.7,
         }
 
-        # GPT-5 e alcuni modelli 2025 usano `max_completion_tokens`
+        # GPT-5 → usa max_completion_tokens e nessuna temperatura
         if "gpt-5" in use_model:
             params["max_completion_tokens"] = 3000
             params["response_format"] = {"type": "json_object"}
+
+        # GPT-4o / GPT-4o-mini → usa max_tokens e temperature
         else:
             params["max_tokens"] = 3000
+            params["temperature"] = 0.7
 
-        # 🚀 Chiamata API asincrona
+        # 🚀 Chiamata API
         response = await client.chat.completions.create(**params)
 
-        # ✅ Estrai il contenuto
+        # Estrazione del contenuto
         content = response.choices[0].message.content
 
-        # 🔧 Prova a interpretare il JSON
+        # Parsing del risultato
         try:
             data = json.loads(content)
         except json.JSONDecodeError:
             data = {"text": content}
 
-        # ✅ Gestione compatibile del conteggio token
+        # Conteggio token (compatibilità piena)
         usage = (
             response.usage.model_dump()
             if hasattr(response.usage, "model_dump")
