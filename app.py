@@ -496,10 +496,13 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
             max_tokens=3000,
             response_format={"type": "json_object"} if "gpt-5" in use_model else None
         )
+        st.write(response)
 
         # 🔍 Estrazione del contenuto (compatibile con GPT-5 e GPT-4o)
         content = response.choices[0].message.content
 
+        st.write(content)
+        
         # GPT-5 può già restituire un JSON valido, GPT-4o a volte no
         try:
             data = json.loads(content)
