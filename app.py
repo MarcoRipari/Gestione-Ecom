@@ -979,36 +979,83 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     return len(new_rows), len(updates)
 
 # Traduttore singolo (creato una sola volta per efficienza)
+TRANSLATION_DB_FILE = "translations_db.json"
+
+def load_translation_db():
+    """Carica il file JSON delle traduzioni"""
+    if os.path.exists(TRANSLATION_DB_FILE):
+        with open(TRANSLATION_DB_FILE, "r", encoding="utf-8") as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                print("⚠️ File DB traduzioni danneggiato, lo ricreo.")
+                return []
+    return []
+
+def save_translation_db(db):
+    """Salva il DB nel file JSON"""
+    with open(TRANSLATION_DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(db, f, ensure_ascii=False, indent=2)
+
+def find_translation(db, text_it, target_lang):
+    """Cerca una traduzione esistente nel DB"""
+    for entry in db:
+        if entry.get("it", "").strip().lower() == text_it.strip().lower():
+            return entry.get(target_lang)
+    return None
+
+def add_translation(db, text_it, lang, translated_text):
+    """Aggiunge o aggiorna una traduzione nel DB"""
+    for entry in db:
+        if entry.get("it", "").strip().lower() == text_it.strip().lower():
+            entry[lang] = translated_text
+            break
+    else:
+        db.append({"it": text_it, lang: translated_text})
+    save_translation_db(db)
+
 def create_translator(source, target):
     return GoogleTranslator(source=source, target=target)
 
 def safe_translate(text, translator):
-    """Traduci testo con gestione errori"""
+    """Traduci testo con gestione errori e cache su file"""
     time.sleep(0.1)
     try:
         if not text or str(text).strip() == "":
             return ""
-        return translator.translate(str(text))
+
+        text_it = str(text).strip()
+        target_lang = translator.target
+        db = load_translation_db()
+
+        # 1️⃣ Controlla se esiste già nel DB
+        cached = find_translation(db, text_it, target_lang)
+        if cached:
+            return cached
+
+        # 2️⃣ Se non esiste → traduci e salva nel DB
+        translated = translator.translate(text_it)
+        add_translation(db, text_it, target_lang, translated)
+        return translated
+
     except Exception as e:
         print(f"❌ Errore durante la traduzione: {e}")
-        return str(text)  # fallback: restituisce testo originale
+        return str(text)  # fallback
 
 def translate_column_parallel(col_values, source, target, max_workers=5):
     """Traduci una colonna mantenendo l'ordine originale"""
     translator = create_translator(source, target)
-    results = [None] * len(col_values)  # lista vuota della lunghezza giusta
+    results = [None] * len(col_values)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # assegna a ogni future il suo indice
         futures = {executor.submit(safe_translate, text, translator): i for i, text in enumerate(col_values)}
-        
         for future in as_completed(futures):
             idx = futures[future]
             try:
                 results[idx] = future.result()
             except Exception as e:
                 print(f"Errore riga {idx}: {e}")
-                results[idx] = str(col_values[idx])  # fallback originale
+                results[idx] = str(col_values[idx])
 
     return results
     
