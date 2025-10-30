@@ -508,7 +508,8 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
             )
         
         content = response.choices[0].message.content
-        usage = response.usage data = json.loads(content)
+        usage = response.usage
+        data = json.loads(content)
         return idx, {"result": data, "usage": usage.model_dump()}
     except Exception as e:
         return idx, {"error": str(e)}
