@@ -1874,7 +1874,7 @@ elif page == "Descrizioni":
                     for i, row in df_input.iterrows():
                         sku = str(row.get("SKU", "")).strip()
                         if not sku:
-                            #rows_to_generate.append(i)
+                            rows_to_generate.append(i)
                             continue
             
                         all_present = True
