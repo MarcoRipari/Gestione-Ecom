@@ -1988,28 +1988,6 @@ elif page == "Descrizioni":
                                 copied_row["SKU"] = sku  # sostituisci con lo SKU corrente
                                 all_outputs[lang].append(copied_row)
 
-
-                    # 🔄 Riordina all_outputs in base all'ordine originale di df_input
-                    for lang in selected_langs:
-                        df_temp = pd.DataFrame(all_outputs[lang])
-                    
-                        if "SKU" in df_temp.columns:
-                            # Normalizza SKU a stringa
-                            df_temp["SKU"] = df_temp["SKU"].astype(str)
-                            df_input["SKU"] = df_input["SKU"].astype(str)
-                    
-                            # Mantieni solo le righe che esistono nel df_input (evita righe spurie)
-                            df_temp = df_temp[df_temp["SKU"].isin(df_input["SKU"])]
-                    
-                            # Ordina in base all'ordine originale di df_input
-                            df_temp = df_temp.set_index("SKU").reindex(df_input["SKU"]).reset_index()
-                    
-                            # Rimuovi eventuali duplicati conservando la prima occorrenza (ordine stabile)
-                            df_temp = df_temp.drop_duplicates(subset=["SKU"], keep="first")
-                    
-                            # Sovrascrivi il contenuto di all_outputs[lang]
-                            all_outputs[lang] = df_temp.to_dict(orient="records")
-
                     # 🔄 Salvataggio solo dei nuovi risultati
                     with st.spinner("📤 Salvataggio nuovi dati..."):
                         try:
