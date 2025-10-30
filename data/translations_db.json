@@ -1,1 +1,688 @@
-
+[
+  {
+    "it": "Sandali in suede",
+    "en": "Suede sandals",
+    "fr": "Sandales en daim",
+    "de": "Wildledersandalen",
+    "es": "Sandalias de ante"
+  },
+  {
+    "it": "Sandali in pelle",
+    "en": "Leather sandals",
+    "fr": "Sandales en cuir",
+    "de": "Ledersandalen",
+    "es": "Sandalias de piel"
+  },
+  {
+    "it": "Sandali in pelle con cuori",
+    "en": "Leather sandals with hearts",
+    "fr": "Sandales en cuir avec coeurs",
+    "de": "Ledersandalen mit Herzen",
+    "es": "Sandalias de piel con corazones."
+  },
+  {
+    "it": "Sandali in pelle con stampa floreale",
+    "en": "Leather sandals with floral print",
+    "fr": "Sandales en cuir à imprimé fleuri",
+    "de": "Ledersandalen mit Blumendruck",
+    "es": "Sandalias de piel con estampado floral."
+  },
+  {
+    "it": "Sandali semi chiusi in pelle",
+    "en": "Semi-closed leather sandals",
+    "fr": "Sandales semi-fermées en cuir",
+    "de": "Halbgeschlossene Ledersandalen",
+    "es": "Sandalias semicerradas de piel."
+  },
+  {
+    "it": "Sandali semi chiusi in suede",
+    "en": "Semi-closed suede sandals",
+    "fr": "Sandales semi-fermées en daim",
+    "de": "Halbgeschlossene Wildledersandalen",
+    "es": "Sandalias semicerradas de ante"
+  },
+  {
+    "it": "Sandali semi aperti in pelle",
+    "en": "Semi-open leather sandals",
+    "fr": "Sandales semi-ouvertes en cuir",
+    "de": "Halboffene Ledersandalen",
+    "es": "Sandalias semiabiertas de piel"
+  },
+  {
+    "it": "Sandali in tessuto",
+    "en": "Fabric sandals",
+    "fr": "Sandales en tissu",
+    "de": "Stoffsandalen",
+    "es": "Sandalias de tela"
+  },
+  {
+    "it": "Sandali semi chiusi in ecopelle e tessuto",
+    "en": "Semi-closed sandals in eco-leather and fabric",
+    "fr": "Sandales semi-fermées en éco-cuir et tissu",
+    "de": "Halbgeschlossene Sandalen aus Öko-Leder und Stoff",
+    "es": "Sandalias semicerradas en ecopiel y tejido."
+  },
+  {
+    "it": "Sandali semi chiusi in pelle e suede",
+    "en": "Semi-closed sandals in leather and suede",
+    "fr": "Sandales semi-fermées en cuir et daim",
+    "de": "Halbgeschlossene Sandalen aus Leder und Wildleder",
+    "es": "Sandalias semicerradas en piel y ante."
+  },
+  {
+    "it": "Sneakers in pelle",
+    "en": "Leather sneakers",
+    "fr": "Baskets en cuir",
+    "de": "Ledersneaker",
+    "es": "Zapatillas de piel"
+  },
+  {
+    "it": "Sneakers in pelle e suede",
+    "en": "Leather and suede sneakers",
+    "fr": "Baskets en cuir et daim",
+    "de": "Sneakers aus Leder und Wildleder",
+    "es": "Zapatillas de piel y ante."
+  },
+  {
+    "it": "Sneakers in tessuto",
+    "en": "Fabric sneakers",
+    "fr": "Baskets en tissu",
+    "de": "Stoff-Sneaker",
+    "es": "Zapatillas de tela"
+  },
+  {
+    "it": "Sneakers in suede",
+    "en": "Suede sneakers",
+    "fr": "Baskets en daim",
+    "de": "Wildleder-Sneaker",
+    "es": "Zapatillas de ante"
+  },
+  {
+    "it": "Sneakers in pelle e vernice",
+    "en": "Leather and patent leather sneakers",
+    "fr": "Baskets en cuir et vernis",
+    "de": "Sneakers aus Leder und Lackleder",
+    "es": "Deportivas de piel y charol."
+  },
+  {
+    "it": "Sneakers in pelle e tessuto tecnico",
+    "en": "Sneakers in leather and technical fabric",
+    "fr": "Baskets en cuir et tissu technique",
+    "de": "Sneakers aus Leder und technischem Stoff",
+    "es": "Deportivas en piel y tejido técnico."
+  },
+  {
+    "it": "Sneakers in pelle con stella",
+    "en": "Leather sneakers with star",
+    "fr": "Baskets en cuir avec étoile",
+    "de": "Ledersneaker mit Stern",
+    "es": "Deportivas de piel con estrella."
+  },
+  {
+    "it": "Sneakers in pelle e suede con stella",
+    "en": "Leather and suede sneakers with star",
+    "fr": "Baskets en cuir et daim avec étoile",
+    "de": "Sneakers aus Leder und Wildleder mit Stern",
+    "es": "Deportivas de piel y ante con estrella."
+  },
+  {
+    "it": "Sneakers in suede e tessuto tecnico",
+    "en": "Sneakers in suede and technical fabric",
+    "fr": "Baskets en daim et tissu technique",
+    "de": "Sneakers aus Wildleder und technischem Stoff",
+    "es": "Zapatillas deportivas en ante y tejido técnico."
+  },
+  {
+    "it": "Sneakers in pelle e tessuto",
+    "en": "Leather and fabric sneakers",
+    "fr": "Baskets en cuir et tissu",
+    "de": "Sneakers aus Leder und Stoff",
+    "es": "Zapatillas de piel y tela."
+  },
+  {
+    "it": "Sneakers in ecopelle e tessuto",
+    "en": "Sneakers in eco-leather and fabric",
+    "fr": "Baskets en éco-cuir et tissu",
+    "de": "Sneakers aus Öko-Leder und Stoff",
+    "es": "Zapatillas en ecopiel y tejido."
+  },
+  {
+    "it": "Sneakers in vernice",
+    "en": "Patent leather sneakers",
+    "fr": "Baskets en cuir verni",
+    "de": "Sneakers aus Lackleder",
+    "es": "Zapatillas de charol"
+  },
+  {
+    "it": "Sneakers in tessuto e ecopelle",
+    "en": "Sneakers in fabric and eco-leather",
+    "fr": "Baskets en tissu et éco-cuir",
+    "de": "Sneakers aus Stoff und Kunstleder",
+    "es": "Zapatillas deportivas en tejido y ecopiel."
+  },
+  {
+    "it": "Sneakers in suede e vernice",
+    "en": "Suede and patent leather sneakers",
+    "fr": "Baskets en daim et cuir verni",
+    "de": "Sneakers aus Wildleder und Lackleder",
+    "es": "Deportivas de ante y charol."
+  },
+  {
+    "it": "Rosa",
+    "en": "Rose",
+    "fr": "Blanc",
+    "de": "Rose",
+    "es": "Rosa"
+  },
+  {
+    "it": "Bianco",
+    "en": "Navy",
+    "fr": "Blanc",
+    "de": "Weiß",
+    "es": "Blanco"
+  },
+  {
+    "it": "Marrone chiaro",
+    "en": "Light brown",
+    "fr": "Marron clair",
+    "de": "Hellbraun",
+    "es": "Marrón claro"
+  },
+  {
+    "it": "Navy",
+    "en": "Navy",
+    "fr": "Marine",
+    "de": "Marine",
+    "es": "Marina de guerra"
+  },
+  {
+    "it": "Azzurro",
+    "en": "Sky blue",
+    "fr": "Bleu ciel",
+    "de": "Himmelblau",
+    "es": "azul cielo"
+  },
+  {
+    "it": "Bianco-Platino",
+    "en": "White-Platinum",
+    "fr": "Blanc-Platine",
+    "de": "Weiß-Platin",
+    "es": "Blanco-Platino"
+  },
+  {
+    "it": "Bianco-Rosa",
+    "en": "White-Pink",
+    "fr": "Blanc-Rose",
+    "de": "Weiß-Rosa",
+    "es": "Blanco-Rosa"
+  },
+  {
+    "it": "Panna",
+    "en": "Cream",
+    "fr": "Crème",
+    "de": "Creme",
+    "es": "Crema"
+  },
+  {
+    "it": "Argento",
+    "en": "Silver",
+    "fr": "Argent",
+    "de": "Silber",
+    "es": "Plata"
+  },
+  {
+    "it": "Giallo",
+    "en": "Yellow",
+    "fr": "Jaune",
+    "de": "Gelb",
+    "es": "Amarillo"
+  },
+  {
+    "it": "Blu",
+    "en": "Blue",
+    "fr": "Bleu",
+    "de": "Blau",
+    "es": "Azul"
+  },
+  {
+    "it": "Tortora",
+    "en": "Dove grey",
+    "fr": "Gris tourterelle",
+    "de": "Taubengrau",
+    "es": "Gris paloma"
+  },
+  {
+    "it": "Verde",
+    "en": "Green",
+    "fr": "Vert",
+    "de": "Grün",
+    "es": "Verde"
+  },
+  {
+    "it": "Panna-Rosa",
+    "en": "Cream-Pink",
+    "fr": "Crème-Rose",
+    "de": "Creme-Rosa",
+    "es": "Crema-Rosa"
+  },
+  {
+    "it": "Lilla",
+    "en": "Lilac",
+    "fr": "Lilas",
+    "de": "Lila",
+    "es": "Lila"
+  },
+  {
+    "it": "Platino",
+    "en": "Platinum",
+    "fr": "Platine",
+    "de": "Platin",
+    "es": "Platino"
+  },
+  {
+    "it": "Bianco-Argento",
+    "en": "White-Silver",
+    "fr": "Blanc-Argent",
+    "de": "Weiß-Silber",
+    "es": "Blanco-Plata"
+  },
+  {
+    "it": "Cipria",
+    "en": "Powder",
+    "fr": "Poudre",
+    "de": "Pulver",
+    "es": "Polvo"
+  },
+  {
+    "it": "Blu-Arancione",
+    "en": "Blue-Orange",
+    "fr": "Bleu-Orange",
+    "de": "Blau-Orange",
+    "es": "Azul-Naranja"
+  },
+  {
+    "it": "Giallo-Blu",
+    "en": "Yellow-Blue",
+    "fr": "Jaune-Bleu",
+    "de": "Gelb-Blau",
+    "es": "Amarillo-Azul"
+  },
+  {
+    "it": "Beige-Azzurro",
+    "en": "Beige-Light blue",
+    "fr": "Beige-Bleu clair",
+    "de": "Beige-Hellblau",
+    "es": "Beige-Azul claro"
+  },
+  {
+    "it": "Bianco-Azzurro",
+    "en": "White-Blue",
+    "fr": "Blanc-Bleu",
+    "de": "Weiß-Blau",
+    "es": "Blanco-Azul"
+  },
+  {
+    "it": "Blu-Giallo",
+    "en": "Blue-Yellow",
+    "fr": "Bleu-Jaune",
+    "de": "Blau-Gelb",
+    "es": "Azul-amarillo"
+  },
+  {
+    "it": "Bianco-Blu",
+    "en": "White-Blue",
+    "fr": "Blanc-Bleu",
+    "de": "Weiß-Blau",
+    "es": "Blanco-Azul"
+  },
+  {
+    "it": "Fuchsia",
+    "en": "Fuchsia",
+    "fr": "Fuchsia",
+    "de": "Fuchsie",
+    "es": "Fucsia"
+  },
+  {
+    "it": "Rosa-Lilla",
+    "en": "Pink-Lilac",
+    "fr": "Rose-Lilas",
+    "de": "Rosa-Flieder",
+    "es": "Rosa-Lila"
+  },
+  {
+    "it": "Bianco-Rosso",
+    "en": "White-Red",
+    "fr": "Blanc-Rouge",
+    "de": "Weiß-Rot",
+    "es": "Blanco-Rojo"
+  },
+  {
+    "it": "Celeste",
+    "en": "Celeste",
+    "fr": "Céleste",
+    "de": "Celeste",
+    "es": "celeste"
+  },
+  {
+    "it": "Beige",
+    "en": "Beige",
+    "fr": "Beige",
+    "de": "Beige",
+    "es": "Beige"
+  },
+  {
+    "it": "Panna-Azzurro",
+    "en": "Cream-Blue",
+    "fr": "Crème-Bleu",
+    "de": "Cremeblau",
+    "es": "Crema-Azul"
+  },
+  {
+    "it": "Cipria-Platino",
+    "en": "Powder-Platinum",
+    "fr": "Poudre-Platine",
+    "de": "Pulver-Platin",
+    "es": "Platino en polvo"
+  },
+  {
+    "it": "Azzurro-Verde",
+    "en": "Blue-Green",
+    "fr": "Bleu-Vert",
+    "de": "Blau-Grün",
+    "es": "Azul-Verde"
+  },
+  {
+    "it": "Salvia-Beige",
+    "en": "Sage-Beige",
+    "fr": "Sauge-Beige",
+    "de": "Salbei-Beige",
+    "es": "Beige salvia"
+  },
+  {
+    "it": "Platino-Panna",
+    "en": "Platinum-Cream",
+    "fr": "Platine-Crème",
+    "de": "Platin-Creme",
+    "es": "Platino-Crema"
+  },
+  {
+    "it": "Navy-Zucca",
+    "en": "Navy-Pumpkin",
+    "fr": "Marine-Citrouille",
+    "de": "Navy-Kürbis",
+    "es": "Azul marino-calabaza"
+  },
+  {
+    "it": "Bianco-Arancione",
+    "en": "White-Orange",
+    "fr": "Blanc-Orange",
+    "de": "Weiß-Orange",
+    "es": "Blanco-Naranja"
+  },
+  {
+    "it": "Verde-Beige",
+    "en": "Green-Beige",
+    "fr": "Vert-Beige",
+    "de": "Grün-Beige",
+    "es": "Verde-Beige"
+  },
+  {
+    "it": "Cipria-Celeste",
+    "en": "Powder-Celeste",
+    "fr": "Poudre-Céleste",
+    "de": "Pulver-Celeste",
+    "es": "Polvo-Celeste"
+  },
+  {
+    "it": "Platino-Rosa",
+    "en": "Platinum-Pink",
+    "fr": "Platine-Rose",
+    "de": "Platin-Rosa",
+    "es": "Platino-Rosa"
+  },
+  {
+    "it": "Beige-Bianco",
+    "en": "Beige-White",
+    "fr": "Beige-Blanc",
+    "de": "Beige-Weiß",
+    "es": "Beige-Blanco"
+  },
+  {
+    "it": "Bianco-Verde",
+    "en": "White-Green",
+    "fr": "Blanc-Vert",
+    "de": "Weiß-Grün",
+    "es": "Blanco-Verde"
+  },
+  {
+    "it": "Bianco-Grigio",
+    "en": "White-Grey",
+    "fr": "Blanc-Gris",
+    "de": "Weiß-Grau",
+    "es": "Blanco-Gris"
+  },
+  {
+    "it": "Salvia",
+    "en": "Sage",
+    "fr": "Sage",
+    "de": "Salbei",
+    "es": "Sabio"
+  },
+  {
+    "it": "Bianco-Cipria",
+    "en": "White-Powder",
+    "fr": "Poudre blanche",
+    "de": "Weißes Pulver",
+    "es": "Polvo blanco"
+  },
+  {
+    "it": "Rosa-Bianco",
+    "en": "Pink-White",
+    "fr": "Rose-Blanc",
+    "de": "Rosa-Weiß",
+    "es": "Rosa-Blanco"
+  },
+  {
+    "it": "Fuchsia-Bianco",
+    "en": "Fuchsia-White",
+    "fr": "Fuchsia-Blanc",
+    "de": "Fuchsia-Weiß",
+    "es": "Fucsia-Blanco"
+  },
+  {
+    "it": "Celeste-Bianco",
+    "en": "Celestial-White",
+    "fr": "Blanc céleste",
+    "de": "Himmlisches Weiß",
+    "es": "Celestial-Blanco"
+  },
+  {
+    "it": "Rosa-Celeste",
+    "en": "Pink-Celestial",
+    "fr": "Rose-Céleste",
+    "de": "Rosa-himmlisch",
+    "es": "Rosa-Celestial"
+  },
+  {
+    "it": "Beige-Verde",
+    "en": "Beige-Green",
+    "fr": "Beige-Vert",
+    "de": "Beige-Grün",
+    "es": "Beige-Verde"
+  },
+  {
+    "it": "Cipria-Bianco",
+    "en": "Powder-White",
+    "fr": "Blanc poudré",
+    "de": "Puderweiß",
+    "es": "Blanco polvo"
+  },
+  {
+    "it": "Azzurro-Grigio",
+    "en": "Light blue-Grey",
+    "fr": "Bleu clair-Gris",
+    "de": "Hellblau-Grau",
+    "es": "Azul claro-Gris"
+  },
+  {
+    "it": "Bianco-Celeste",
+    "en": "White-Celestial",
+    "fr": "Blanc-Céleste",
+    "de": "Weiß-Himmlisch",
+    "es": "Blanco-Celestial"
+  },
+  {
+    "it": "Bianco-Lilla",
+    "en": "White-Lilac",
+    "fr": "Blanc-Lilas",
+    "de": "Weiß-Flieder",
+    "es": "Blanco-Lila"
+  },
+  {
+    "it": "Grigio-Azzurro",
+    "en": "Grey-Blue",
+    "fr": "Gris-Bleu",
+    "de": "Grau-Blau",
+    "es": "Gris-Azul"
+  },
+  {
+    "it": "Beige-Navy",
+    "en": "Beige-Navy",
+    "fr": "Beige-Marine",
+    "de": "Beige-Marine",
+    "es": "Beige-Marino"
+  },
+  {
+    "it": "Verde militare",
+    "en": "Military green",
+    "fr": "Vert militaire",
+    "de": "Militärgrün",
+    "es": "Verde militar"
+  },
+  {
+    "it": "Verde militare-Giallo",
+    "en": "Military green-Yellow",
+    "fr": "Vert militaire-Jaune",
+    "de": "Militärgrün-Gelb",
+    "es": "Verde militar-amarillo"
+  },
+  {
+    "it": "Panna-Beige",
+    "en": "Cream-Beige",
+    "fr": "Crème-Beige",
+    "de": "Creme-Beige",
+    "es": "Crema-Beige"
+  },
+  {
+    "it": "Marrone-Panna",
+    "en": "Brown-Cream",
+    "fr": "Marron-Crème",
+    "de": "Braun-Creme",
+    "es": "Marrón-Crema"
+  },
+  {
+    "it": "Tortora-Panna",
+    "en": "Taupe-Cream",
+    "fr": "Taupe-Crème",
+    "de": "Taupe-Creme",
+    "es": "Taupe-Crema"
+  },
+  {
+    "it": "Arancione",
+    "en": "Orange",
+    "fr": "Orange",
+    "de": "Orange",
+    "es": "Naranja"
+  },
+  {
+    "it": "Azzurro-Panna",
+    "en": "Light blue-Cream",
+    "fr": "Bleu clair-Crème",
+    "de": "Hellblau-Creme",
+    "es": "Azul claro-Crema"
+  },
+  {
+    "it": "Rosa-Panna",
+    "en": "Pink-Cream",
+    "fr": "Rose-Crème",
+    "de": "Rosa-Creme",
+    "es": "Rosa-Crema"
+  },
+  {
+    "it": "Giallo-Azzurro",
+    "en": "Yellow-Blue",
+    "fr": "Jaune-Bleu",
+    "de": "Gelb-Blau",
+    "es": "Amarillo-Azul"
+  },
+  {
+    "it": "Lilla-Rosa",
+    "en": "Lilac-Pink",
+    "fr": "Lilas-Rose",
+    "de": "Lila-Rosa",
+    "es": "Lila-Rosa"
+  },
+  {
+    "it": "Platino-Cipria",
+    "en": "Platinum-Powder",
+    "fr": "Poudre de platine",
+    "de": "Platin-Pulver",
+    "es": "Platino en polvo"
+  },
+  {
+    "it": "Azzurro-Arancione",
+    "en": "Light blue-Orange",
+    "fr": "Bleu clair-Orange",
+    "de": "Hellblau-Orange",
+    "es": "Azul claro-Naranja"
+  },
+  {
+    "it": "Verde-Azzurro",
+    "en": "Green-Blue",
+    "fr": "Vert-Bleu",
+    "de": "Grün-Blau",
+    "es": "Verde-Azul"
+  },
+  {
+    "it": "Azzurro-Bianco",
+    "en": "Light blue-White",
+    "fr": "Bleu clair-Blanc",
+    "de": "Hellblau-Weiß",
+    "es": "Azul claro-Blanco"
+  },
+  {
+    "it": "Panna-Platino",
+    "en": "Cream-Platinum",
+    "fr": "Crème-Platine",
+    "de": "Creme-Platin",
+    "es": "Crema-Platino"
+  },
+  {
+    "it": "Marrone",
+    "en": "Brown",
+    "fr": "Brun",
+    "de": "Braun",
+    "es": "Marrón"
+  },
+  {
+    "it": "Panna-Grigio",
+    "en": "Cream-Grey",
+    "fr": "Crème-Gris",
+    "de": "Cremegrau",
+    "es": "Crema-Gris"
+  },
+  {
+    "it": "Panna-Salvia",
+    "en": "Cream-Sage",
+    "fr": "Crème-Sauge",
+    "de": "Creme-Salbei",
+    "es": "Crema-Salvia"
+  },
+  {
+    "it": "Rosa-Platino",
+    "en": "Pink-Platinum",
+    "fr": "Rose-Platine",
+    "de": "Pink-Platin",
+    "es": "Rosa-Platino"
+  }
+]
