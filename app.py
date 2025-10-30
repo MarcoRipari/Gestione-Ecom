@@ -483,49 +483,27 @@ async def rate_limiter():
 
 
 async def async_generate_description(prompt: str, idx: int, use_model: str):
-    if len(prompt.strip()) < 50:
-        return idx, {
-            "result": prompt,
-            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-        }
-
+   if len(prompt) < 50:
+       return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
+       
     try:
-        # Base params validi per tutti
-        params = {
-            "model": use_model,
-            "messages": [{"role": "user", "content": prompt}],
-        }
-
-        # GPT-5 → usa max_completion_tokens e nessuna temperatura
-        if "gpt-5" in use_model:
-            params["max_completion_tokens"] = 3000
-            params["response_format"] = {"type": "json_object"}
-
-        # GPT-4o / GPT-4o-mini → usa max_tokens e temperature
+        if use_model == "gpt-5":
+            response = await client.chat.completions.create(
+                model=use_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_completion_tokens=3000
+            )
         else:
-            params["max_tokens"] = 3000
-            params["temperature"] = 0.7
-
-        # 🚀 Chiamata API
-        response = await client.chat.completions.create(**params)
-
-        # Estrazione del contenuto
+            response = await client.chat.completions.create(
+                model=use_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=3000
+            )
+        
         content = response.choices[0].message.content
-
-        # Parsing del risultato
-        try:
-            data = json.loads(content)
-        except json.JSONDecodeError:
-            data = {"text": content}
-
-        # Conteggio token (compatibilità piena)
-        usage = (
-            response.usage.model_dump()
-            if hasattr(response.usage, "model_dump")
-            else vars(response.usage)
-        )
-
-        return idx, {"result": data, "usage": usage}
+        usage = response.usage data = json.loads(content)
+        return idx, {"result": data, "usage": usage.model_dump()}
     except Exception as e:
         return idx, {"error": str(e)}
 
