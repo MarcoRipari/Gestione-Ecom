@@ -2007,17 +2007,25 @@ elif page == "Descrizioni":
                         try:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
-                                df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
+                                #df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
+                                # Recupera gli SKU già presenti nello sheet
+                                try:
+                                    sheet_df = pd.DataFrame(get_sheet(desc_sheet_id, lang).get_all_records())
+                                    sheet_df["SKU"] = sheet_df["SKU"].astype(str)
+                                    existing_skus = set(sheet_df["SKU"].tolist())
+                                except:
+                                    existing_skus = set()
+
+                                df_new = df_out[~df_out["SKU"].astype(str).isin(existing_skus)]
+        
                                 if not df_new.empty:
                                     append_to_sheet(desc_sheet_id, lang, df_new)
 
                             append_logs(desc_sheet_id, logs)
-                            st.write(len(df_out))
                         except Exception as e:
                             st.warning(f"Errore: {e}")
 
                     
-
                     # 📦 ZIP finale
                     with st.spinner("📦 Generazione ZIP..."):
                         translation_db = download_translation_db_from_github()
@@ -2027,7 +2035,6 @@ elif page == "Descrizioni":
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
-                                st.write(len(df_out))
                                 df_out["Code langue"] = lang.lower()
                                 df_out['Subtitle_trad'] = translate_column_parallel(df_out['Subtitle'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
                                 df_out['Subtile2_trad'] = translate_column_parallel(df_out['Subtile2'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
