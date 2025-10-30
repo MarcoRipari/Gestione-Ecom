@@ -493,21 +493,12 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
         }
         
     try:
-        if use_model == "gpt-5":
-            response = await client.chat.completions.create(
-                model=use_model,
-                messages=[{"role": "user", "content": prompt}],
-                max_completion_tokens=3000
-            )
-            
-        else:
-            response = await client.chat.completions.create(
-                model=use_model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=3000
-            )
-            logging.info(response)
+        response = await client.chat.completions.create(
+            model=use_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=3000
+        )
         
         content = response.choices[0].message.content
         usage = response.usage
@@ -1824,7 +1815,7 @@ elif page == "Descrizioni":
                 
                 use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
 
-                use_model = st.radio("Seleziona modello GPT", ["gpt-4o-mini", "gpt-5", "gpt-3.5-turbo", "gpt-4.1-nano", "gpt-5-nano", "mistral-medium", "deepseek-chimera"], index=0, horizontal = True)
+                use_model = st.radio("Seleziona modello GPT", ["gpt-4o-mini", "gpt-4o", "gpt-5", "gpt-3.5-turbo", "gpt-4.1-nano", "gpt-5-nano", "mistral-medium", "deepseek-chimera"], index=0, horizontal = True)
     
             with settings_col2:
                 selected_labels = st.multiselect(
