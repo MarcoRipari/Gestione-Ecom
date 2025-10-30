@@ -176,7 +176,7 @@
   },
   {
     "it": "Bianco",
-    "en": "Navy",
+    "en": "Bianco",
     "fr": "Blanc",
     "de": "Weiß",
     "es": "Blanco"
@@ -193,7 +193,7 @@
     "en": "Navy",
     "fr": "Marine",
     "de": "Marine",
-    "es": "Marina de guerra"
+    "es": "Azul marino"
   },
   {
     "it": "Azzurro",
@@ -466,7 +466,7 @@
     "en": "Sage",
     "fr": "Sage",
     "de": "Salbei",
-    "es": "Sabio"
+    "es": "Salvia"
   },
   {
     "it": "Bianco-Cipria",
@@ -491,14 +491,14 @@
   },
   {
     "it": "Celeste-Bianco",
-    "en": "Celestial-White",
+    "en": "Ligh blue-White",
     "fr": "Blanc céleste",
     "de": "Himmlisches Weiß",
     "es": "Celestial-Blanco"
   },
   {
     "it": "Rosa-Celeste",
-    "en": "Pink-Celestial",
+    "en": "Pink-Light blue",
     "fr": "Rose-Céleste",
     "de": "Rosa-himmlisch",
     "es": "Rosa-Celestial"
@@ -526,7 +526,7 @@
   },
   {
     "it": "Bianco-Celeste",
-    "en": "White-Celestial",
+    "en": "White-Light blue",
     "fr": "Blanc-Céleste",
     "de": "Weiß-Himmlisch",
     "es": "Blanco-Celestial"
