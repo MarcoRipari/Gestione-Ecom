@@ -483,9 +483,15 @@ async def rate_limiter():
 
 
 async def async_generate_description(prompt: str, idx: int, use_model: str):
-   if len(prompt) < 50:
-       return idx, {"result": prompt, "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
-       
+    if len(prompt) < 50:
+        return idx, {
+            "result": prompt,
+            "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0}
+        }
+        
     try:
         if use_model == "gpt-5":
             response = await client.chat.completions.create(
