@@ -499,10 +499,13 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
             temperature=0.7,
             max_tokens=3000
         )
+        logging.info(response)
         
         content = response.choices[0].message.content
+        logging.info(content)
         usage = response.usage
         data = json.loads(content)
+        logging.info(data)
         return idx, {"result": data, "usage": usage.model_dump()}
     except Exception as e:
         return idx, {"error": str(e)}
@@ -1952,8 +1955,6 @@ elif page == "Descrizioni":
                             results = asyncio.run(generate_all_prompts_deepseek(all_prompts, use_model))
                         else:
                             results = asyncio.run(generate_all_prompts(all_prompts, use_model))
-
-                    st.write(results)
                     
                     # Parsing risultati
                     all_outputs = already_generated.copy()
