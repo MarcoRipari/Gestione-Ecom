@@ -2044,18 +2044,18 @@ elif page == "Descrizioni":
                         upload_translation_db_to_github(translation_db, original_db_json)
 
                         # Carico il file su dropbox
-                        #try:
-                        #    file_bytes = mem_zip.getvalue()
-                        #    folder_path = "/CATALOGO/DESCRIZIONI"  # cartella su Dropbox
-                        #    file_name = f"descrizioni_{time.strftime('%Y%m%d_%H%M%S')}.zip"
-                        #    access_token = get_dropbox_access_token()
-                        #    dbx = dropbox.Dropbox(access_token)
-                        #    upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
-                        #except Exception as e:
-                        #    st.error(f"❌ Errore durante l'upload su Dropbox: {e}")
+                        try:
+                            file_bytes = mem_zip.getvalue()
+                            folder_path = "/CATALOGO/DESCRIZIONI"  # cartella su Dropbox
+                            file_name = f"descrizioni_{time.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
+                            access_token = get_dropbox_access_token()
+                            dbx = dropbox.Dropbox(access_token)
+                            upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
+                        except Exception as e:
+                            st.error(f"❌ Errore durante l'upload su Dropbox: {e}")
                             
                     st.success("✅ Tutto fatto!")
-                    st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name=f"descrizioni_{time.strftime('%Y%m%d_%H%M%S')}.zip")
+                    st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name=f"descrizioni_{time.strftime('%d-%m-%Y_%H-%M-%S')}.zip")
                     st.session_state["generate"] = False
             
                 except Exception as e:
