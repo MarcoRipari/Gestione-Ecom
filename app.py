@@ -1719,7 +1719,7 @@ if page == "🔑 Login":
 # 📝 GENERAZIONE DESCRIZIONI
 # ---------------------------
 elif page == "Descrizioni":
-    st.header("📥 Caricamento CSV dei prodotti2")
+    st.header("📥 Caricamento CSV dei prodotti")
     
     uploaded = st.file_uploader("Carica un file CSV", type="csv")
     
