@@ -2052,11 +2052,13 @@ elif page == "Descrizioni":
                         # Aggiorno il file della traduzioni
                         upload_translation_db_to_github(translation_db, original_db_json)
 
+                        tz = pytz.timezone("Europe/Rome")
+                        now = datetime.now(tz)
+                        file_name = f"descrizioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
                         # Carico il file su dropbox
                         try:
                             file_bytes = mem_zip.getvalue()
                             folder_path = "/CATALOGO/DESCRIZIONI"  # cartella su Dropbox
-                            file_name = f"descrizioni_{time.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
                             access_token = get_dropbox_access_token()
                             dbx = dropbox.Dropbox(access_token)
                             upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
@@ -2064,7 +2066,7 @@ elif page == "Descrizioni":
                             st.error(f"❌ Errore durante l'upload su Dropbox: {e}")
                             
                     st.success("✅ Tutto fatto!")
-                    st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name=f"descrizioni_{time.strftime('%d-%m-%Y_%H-%M-%S')}.zip")
+                    st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name=file_name)
                     st.session_state["generate"] = False
             
                 except Exception as e:
