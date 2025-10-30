@@ -978,47 +978,130 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     st.text("✅ Operazione completata!")
     return len(new_rows), len(updates)
 
-# Traduttore singolo (creato una sola volta per efficienza)
-TRANSLATION_DB_FILE = "translations_db.json"
+# =========================================================
+# ⚙️ CONFIGURAZIONE FILE DB + GITHUB
+# =========================================================
 
-def load_translation_db():
-    """Carica il file JSON delle traduzioni"""
-    if os.path.exists(TRANSLATION_DB_FILE):
-        with open(TRANSLATION_DB_FILE, "r", encoding="utf-8") as f:
-            try:
-                return json.load(f)
-            except json.JSONDecodeError:
-                print("⚠️ File DB traduzioni danneggiato, lo ricreo.")
+GITHUB_REPO = "MarcoRipari/Gestione-Ecom"
+GITHUB_PATH = "data/translations_db.json"
+GITHUB_BRANCH = "main"
+
+
+# =========================================================
+# 🌐 FUNZIONI DI GESTIONE SU GITHUB
+# =========================================================
+
+def download_translation_db_from_github():
+    """Scarica il file JSON delle traduzioni da GitHub e lo restituisce come oggetto Python"""
+    github_token = os.getenv("GITHUB_TOKEN")
+    if not github_token:
+        print("⚠️ Nessun GITHUB_TOKEN trovato tra i secrets.")
+        return []
+
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_PATH}"
+    headers = {"Authorization": f"token {github_token}"}
+
+    try:
+        r = requests.get(url, headers=headers)
+        if r.status_code == 200:
+            data = r.json()
+            if "content" in data:
+                content = base64.b64decode(data["content"]).decode("utf-8")
+                print("✅ DB traduzioni caricato da GitHub.")
+                return json.loads(content)
+            else:
+                print("⚠️ Nessun contenuto trovato nel file GitHub.")
                 return []
-    return []
+        elif r.status_code == 404:
+            print("⚠️ File delle traduzioni non trovato su GitHub. Creerò un nuovo DB.")
+            return []
+        else:
+            print(f"⚠️ Errore scaricando DB da GitHub: {r.status_code} - {r.text}")
+            return []
+    except Exception as e:
+        print(f"❌ Errore durante il download del DB: {e}")
+        return []
 
-def save_translation_db(db):
-    """Salva il DB nel file JSON"""
-    with open(TRANSLATION_DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(db, f, ensure_ascii=False, indent=2)
+
+def upload_translation_db_to_github(db, original_db_json):
+    """Carica o aggiorna il file delle traduzioni su GitHub solo se ci sono modifiche"""
+    github_token = os.getenv("GITHUB_TOKEN")
+    if not github_token:
+        print("⚠️ Nessun GITHUB_TOKEN trovato tra i secrets. Upload annullato.")
+        return
+
+    # 🔍 Confronto con il contenuto originale
+    new_db_json = json.dumps(db, ensure_ascii=False, indent=2)
+    if new_db_json == original_db_json:
+        print("ℹ️ Nessuna nuova traduzione aggiunta: nessun upload necessario.")
+        return  # Non aggiorna GitHub se identico
+
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_PATH}"
+    headers = {"Authorization": f"token {github_token}"}
+
+    try:
+        content = base64.b64encode(new_db_json.encode("utf-8")).decode("utf-8")
+
+        # Ottieni SHA del file esistente (necessario per aggiornamento)
+        sha = None
+        r = requests.get(url, headers=headers)
+        if r.status_code == 200:
+            sha = r.json().get("sha")
+
+        message = "Aggiornamento automatico del DB traduzioni"
+        data = {
+            "message": message,
+            "content": content,
+            "branch": GITHUB_BRANCH,
+        }
+        if sha:
+            data["sha"] = sha  # necessario se il file esiste già
+
+        r = requests.put(url, headers=headers, json=data)
+
+        if r.status_code in (200, 201):
+            print("✅ File delle traduzioni aggiornato su GitHub!")
+        else:
+            print(f"❌ Errore aggiornando su GitHub: {r.status_code} - {r.text}")
+
+    except Exception as e:
+        print(f"❌ Errore durante l'upload su GitHub: {e}")
+
+
+# =========================================================
+# 🧩 FUNZIONI DI GESTIONE DEL DB (IN MEMORIA)
+# =========================================================
 
 def find_translation(db, text_it, target_lang):
     """Cerca una traduzione esistente nel DB"""
+    text_it = str(text_it).strip().lower()
     for entry in db:
-        if entry.get("it", "").strip().lower() == text_it.strip().lower():
+        if entry.get("it", "").strip().lower() == text_it:
             return entry.get(target_lang)
     return None
 
+
 def add_translation(db, text_it, lang, translated_text):
-    """Aggiunge o aggiorna una traduzione nel DB"""
+    """Aggiunge o aggiorna una traduzione nel DB (solo in memoria)"""
+    text_it = str(text_it).strip()
     for entry in db:
-        if entry.get("it", "").strip().lower() == text_it.strip().lower():
+        if entry.get("it", "").strip().lower() == text_it.lower():
             entry[lang] = translated_text
             break
     else:
         db.append({"it": text_it, lang: translated_text})
-    save_translation_db(db)
+
+
+# =========================================================
+# 🧠 FUNZIONI DI TRADUZIONE
+# =========================================================
 
 def create_translator(source, target):
     return GoogleTranslator(source=source, target=target)
 
-def safe_translate(text, translator):
-    """Traduci testo con gestione errori e cache su file"""
+
+def safe_translate(text, translator, db):
+    """Traduci testo con gestione errori e uso del DB GitHub"""
     time.sleep(0.1)
     try:
         if not text or str(text).strip() == "":
@@ -1026,29 +1109,29 @@ def safe_translate(text, translator):
 
         text_it = str(text).strip()
         target_lang = translator.target
-        db = load_translation_db()
 
         # 1️⃣ Controlla se esiste già nel DB
         cached = find_translation(db, text_it, target_lang)
         if cached:
             return cached
 
-        # 2️⃣ Se non esiste → traduci e salva nel DB
+        # 2️⃣ Se non esiste → traduci e aggiungi
         translated = translator.translate(text_it)
         add_translation(db, text_it, target_lang, translated)
         return translated
 
     except Exception as e:
         print(f"❌ Errore durante la traduzione: {e}")
-        return str(text)  # fallback
+        return str(text)
 
-def translate_column_parallel(col_values, source, target, max_workers=5):
+
+def translate_column_parallel(col_values, source, target, db, max_workers=5):
     """Traduci una colonna mantenendo l'ordine originale"""
     translator = create_translator(source, target)
     results = [None] * len(col_values)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(safe_translate, text, translator): i for i, text in enumerate(col_values)}
+        futures = {executor.submit(safe_translate, text, translator, db): i for i, text in enumerate(col_values)}
         for future in as_completed(futures):
             idx = futures[future]
             try:
@@ -1058,6 +1141,27 @@ def translate_column_parallel(col_values, source, target, max_workers=5):
                 results[idx] = str(col_values[idx])
 
     return results
+
+
+# =========================================================
+# 🚀 ESEMPIO DI UTILIZZO
+# =========================================================
+
+if __name__ == "__main__":
+    # 1️⃣ Scarica il DB traduzioni da GitHub
+    translation_db = download_translation_db_from_github()
+    original_db_json = json.dumps(translation_db, ensure_ascii=False, indent=2)  # per il confronto finale
+
+    # 2️⃣ Esegui traduzioni di esempio
+    testi = ["Rosa", "Nero", "Blu"]
+    traduzioni_en = translate_column_parallel(testi, source="it", target="en", db=translation_db, max_workers=5)
+
+    print("Risultati:")
+    for it, en in zip(testi, traduzioni_en):
+        print(f"{it} → {en}")
+
+    # 3️⃣ Carica su GitHub solo se ci sono modifiche
+    upload_translation_db_to_github(translation_db, original_db_json)
     
 # --- Funzione per generare PDF ---
 def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
