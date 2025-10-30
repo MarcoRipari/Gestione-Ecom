@@ -2048,7 +2048,7 @@ elif page == "Descrizioni":
                         # Carico il file su dropbox
                         try:
                             file_bytes = mem_zip.getvalue()
-                            folder_path = "/Ecommerce_Export"  # cartella su Dropbox
+                            folder_path = "/CATALOGO/DESCRIZIONI"  # cartella su Dropbox
                             file_name = f"descrizioni_{time.strftime('%Y%m%d_%H%M%S')}.zip"
                             upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
                         except Exception as e:
