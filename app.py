@@ -729,7 +729,20 @@ def get_dropbox_access_token():
 def get_dropbox_client():
     access_token = get_dropbox_access_token()
     return dropbox.Dropbox(access_token)
-
+    
+def upload_to_dropbox(dbx, folder_path: str, file_name: str, file_bytes: bytes):
+    dbx_path = f"{folder_path}/{file_name}"
+    try:
+        dbx.files_create_folder_v2(folder_path)
+    except dropbox.exceptions.ApiError:
+        pass  # cartella già esiste
+    try:
+        dbx.files_upload(file_bytes, dbx_path, mode=WriteMode("overwrite"))
+        
+        st.success(f"✅ File caricato su Dropbox: {dbx_path}")
+    except Exception as e:
+        st.error(f"❌ Errore upload su Dropbox: {e}")
+        
 def upload_csv_to_dropbox(dbx, folder_path: str, file_name: str, file_bytes: bytes):
     dbx_path = f"{folder_path}/{file_name}"
     try:
@@ -1987,11 +2000,13 @@ elif page == "Descrizioni":
                                 copied_row = prefix_to_output[lang][prefix].copy()
                                 copied_row["SKU"] = sku  # sostituisci con lo SKU corrente
                                 all_outputs[lang].append(copied_row)
+                                
 
                     # 🔄 Salvataggio solo dei nuovi risultati
                     with st.spinner("📤 Salvataggio nuovi dati..."):
                         try:
                             for lang in selected_langs:
+                                all_outputs[lang] = all_outputs[lang].sort_values(by="SKU")
                                 df_out = pd.DataFrame(all_outputs[lang])
                                 df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
                                 if not df_new.empty:
@@ -2011,6 +2026,7 @@ elif page == "Descrizioni":
                         mem_zip = BytesIO()
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
+                                all_outputs[lang]= all_outputs[lang].sort_values(by="SKU")
                                 df_out = pd.DataFrame(all_outputs[lang])
                                 df_out["Code langue"] = lang.lower()
                                 df_out['Subtitle_trad'] = translate_column_parallel(df_out['Subtitle'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
@@ -2025,10 +2041,21 @@ elif page == "Descrizioni":
                                 })
                                 zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
                         mem_zip.seek(0)
+
+                        # Aggiorno il file della traduzioni
                         upload_translation_db_to_github(translation_db, original_db_json)
-                        
+
+                        # Carico il file su dropbox
+                        try:
+                            file_bytes = mem_zip.getvalue()
+                            folder_path = "/Ecommerce_Export"  # cartella su Dropbox
+                            file_name = f"descrizioni_{time.strftime('%Y%m%d_%H%M%S')}.zip"
+                            upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
+                        except Exception as e:
+                            st.error(f"❌ Errore durante l'upload su Dropbox: {e}")
+                            
                     st.success("✅ Tutto fatto!")
-                    st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
+                    st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name=f"descrizioni_{time.strftime('%Y%m%d_%H%M%S')}.zip")
                     st.session_state["generate"] = False
             
                 except Exception as e:
