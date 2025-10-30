@@ -2050,6 +2050,8 @@ elif page == "Descrizioni":
                             file_bytes = mem_zip.getvalue()
                             folder_path = "/CATALOGO/DESCRIZIONI"  # cartella su Dropbox
                             file_name = f"descrizioni_{time.strftime('%Y%m%d_%H%M%S')}.zip"
+                            access_token = get_dropbox_access_token()
+                            dbx = dropbox.Dropbox(access_token)
                             upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
                         except Exception as e:
                             st.error(f"❌ Errore durante l'upload su Dropbox: {e}")
