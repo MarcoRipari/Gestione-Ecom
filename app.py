@@ -1141,27 +1141,6 @@ def translate_column_parallel(col_values, source, target, db, max_workers=5):
                 results[idx] = str(col_values[idx])
 
     return results
-
-
-# =========================================================
-# 🚀 ESEMPIO DI UTILIZZO
-# =========================================================
-
-if __name__ == "__main__":
-    # 1️⃣ Scarica il DB traduzioni da GitHub
-    translation_db = download_translation_db_from_github()
-    original_db_json = json.dumps(translation_db, ensure_ascii=False, indent=2)  # per il confronto finale
-
-    # 2️⃣ Esegui traduzioni di esempio
-    testi = ["Rosa", "Nero", "Blu"]
-    traduzioni_en = translate_column_parallel(testi, source="it", target="en", db=translation_db, max_workers=5)
-
-    print("Risultati:")
-    for it, en in zip(testi, traduzioni_en):
-        print(f"{it} → {en}")
-
-    # 3️⃣ Carica su GitHub solo se ci sono modifiche
-    upload_translation_db_to_github(translation_db, original_db_json)
     
 # --- Funzione per generare PDF ---
 def genera_pdf_aggrid(df_table, file_path="giac_corridoio.pdf"):
@@ -2009,13 +1988,16 @@ elif page == "Descrizioni":
 
                     # 📦 ZIP finale
                     with st.spinner("📦 Generazione ZIP..."):
+                        translation_db = download_translation_db_from_github()
+                        original_db_json = json.dumps(translation_db, ensure_ascii=False, indent=2)
+                        
                         mem_zip = BytesIO()
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
                                 df_out["Code langue"] = lang.lower()
-                                df_out['Subtitle_trad'] = translate_column_parallel(df_out['Subtitle'].fillna("").tolist(),source='it', target=lang.lower(), max_workers=5)
-                                df_out['Subtile2_trad'] = translate_column_parallel(df_out['Subtile2'].fillna("").tolist(),source='it', target=lang.lower(), max_workers=5)
+                                df_out['Subtitle_trad'] = translate_column_parallel(df_out['Subtitle'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
+                                df_out['Subtile2_trad'] = translate_column_parallel(df_out['Subtile2'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
                                 
                                 df_export = pd.DataFrame({
                                     "SKU": df_out.get("SKU", ""),
@@ -2026,7 +2008,8 @@ elif page == "Descrizioni":
                                 })
                                 zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
                         mem_zip.seek(0)
-            
+                        upload_translation_db_to_github(translation_db, original_db_json)
+                        
                     st.success("✅ Tutto fatto!")
                     st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name="descrizioni.zip")
                     st.session_state["generate"] = False
