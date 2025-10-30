@@ -2052,8 +2052,7 @@ elif page == "Descrizioni":
                         # Aggiorno il file della traduzioni
                         upload_translation_db_to_github(translation_db, original_db_json)
 
-                        tz = pytz.timezone("Europe/Rome")
-                        now = datetime.now(tz)
+                        now = datetime.now(ZoneInfo("Europe/Rome"))
                         file_name = f"descrizioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
                         # Carico il file su dropbox
                         try:
