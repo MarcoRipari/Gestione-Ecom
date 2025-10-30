@@ -1869,7 +1869,8 @@ elif page == "Descrizioni":
                             existing_data[lang] = tab_df.set_index("SKU")
                         except:
                             existing_data[lang] = pd.DataFrame(columns=["Description", "Description2"])
-            
+
+                    unique_sku_prefixes = {}
                     for i, row in df_input.iterrows():
                         sku = str(row.get("SKU", "")).strip()
                         if not sku:
@@ -1895,7 +1896,11 @@ elif page == "Descrizioni":
                                 output_row["Description2"] = desc["Description2"]
                                 already_generated[lang].append(output_row)
                         else:
-                            rows_to_generate.append(i)
+                            prefix = sku[:13]
+                            if prefix not in unique_sku_prefixes:
+                                unique_sku_prefixes[prefix] = i  # memorizza l'indice della prima occorrenza
+                                rows_to_generate.append(i)
+                            #rows_to_generate.append(i)
             
                     df_input_to_generate = df_input.iloc[rows_to_generate]
             
@@ -1929,9 +1934,12 @@ elif page == "Descrizioni":
                     
                     # Parsing risultati
                     all_outputs = already_generated.copy()
+                    prefix_to_output = {lang: {} for lang in selected_langs}
                     
                     for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
                         result = results.get(i, {})
+                        sku = str(row.get("SKU", "")).strip()
+                        prefix = sku[:13]
                         if "error" in result:
                             logs.append({
                                 "utente": st.session_state.user["username"],
@@ -1952,6 +1960,7 @@ elif page == "Descrizioni":
                             output_row["Description"] = descr_lunga
                             output_row["Description2"] = descr_breve
                             all_outputs[lang].append(output_row)
+                            prefix_to_output[lang][prefix] = output_row
             
                         log_entry = {
                             "utente": st.session_state.user["username"],
@@ -1970,7 +1979,15 @@ elif page == "Descrizioni":
                                 "estimated_cost_usd": round(usage.get("total_tokens", 0) / 1000 * 0.001, 6)
                             })
                         logs.append(log_entry)
-
+                    for i, row in df_input.iterrows():
+                        sku = str(row.get("SKU", "")).strip()
+                        prefix = sku[:13]
+                        if prefix in prefix_to_output[selected_langs[0]] and i not in rows_to_generate:
+                            for lang in selected_langs:
+                                copied_row = prefix_to_output[lang][prefix].copy()
+                                copied_row["SKU"] = sku  # sostituisci con lo SKU corrente
+                                all_outputs[lang].append(copied_row)
+                                
                     # 🔄 Salvataggio solo dei nuovi risultati
                     with st.spinner("📤 Salvataggio nuovi dati..."):
                         try:
