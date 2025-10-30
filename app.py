@@ -499,13 +499,10 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
             temperature=0.7,
             max_tokens=3000
         )
-        logging.info(response)
         
         content = response.choices[0].message.content
-        logging.info(content)
         usage = response.usage
         data = json.loads(content)
-        logging.info(data)
         return idx, {"result": data, "usage": usage.model_dump()}
     except Exception as e:
         return idx, {"error": str(e)}
@@ -1900,7 +1897,7 @@ elif page == "Descrizioni":
                         if not sku:
                             rows_to_generate.append(i)
                             continue
-            
+                    
                         all_present = True
                         for lang in selected_langs:
                             df_lang = existing_data.get(lang)
@@ -1911,8 +1908,9 @@ elif page == "Descrizioni":
                             if not desc["Description"] or not desc["Description2"]:
                                 all_present = False
                                 break
-            
+                    
                         if all_present:
+                            # ✅ SKU già presente in tutti i fogli
                             for lang in selected_langs:
                                 desc = existing_data[lang].loc[sku]
                                 output_row = row.to_dict()
@@ -1921,10 +1919,27 @@ elif page == "Descrizioni":
                                 already_generated[lang].append(output_row)
                         else:
                             prefix = sku[:13]
-                            if prefix not in unique_sku_prefixes:
-                                unique_sku_prefixes[prefix] = i  # memorizza l'indice della prima occorrenza
-                                rows_to_generate.append(i)
-                            #rows_to_generate.append(i)
+                    
+                            # 🔍 Cerca se esiste già una SKU con questo prefisso in existing_data
+                            found_existing = False
+                            for lang in selected_langs:
+                                df_lang = existing_data.get(lang)
+                                if df_lang is not None:
+                                    # Controlla se esiste uno SKU con lo stesso prefisso
+                                    match = [s for s in df_lang.index if s.startswith(prefix)]
+                                    if match:
+                                        desc = df_lang.loc[match[0]]
+                                        output_row = row.to_dict()
+                                        output_row["Description"] = desc["Description"]
+                                        output_row["Description2"] = desc["Description2"]
+                                        already_generated[lang].append(output_row)
+                                        found_existing = True
+                    
+                            # Se nessuna SKU con quel prefisso è già presente → generala ora
+                            if not found_existing:
+                                if prefix not in unique_sku_prefixes:
+                                    unique_sku_prefixes[prefix] = i
+                                    rows_to_generate.append(i)
             
                     df_input_to_generate = df_input.iloc[rows_to_generate]
             
