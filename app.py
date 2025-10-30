@@ -2052,7 +2052,7 @@ elif page == "Descrizioni":
                         #    dbx = dropbox.Dropbox(access_token)
                         #    upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
                         #except Exception as e:
-                            st.error(f"❌ Errore durante l'upload su Dropbox: {e}")
+                        #    st.error(f"❌ Errore durante l'upload su Dropbox: {e}")
                             
                     st.success("✅ Tutto fatto!")
                     st.download_button("📥 Scarica descrizioni (ZIP)", mem_zip, file_name=f"descrizioni_{time.strftime('%Y%m%d_%H%M%S')}.zip")
