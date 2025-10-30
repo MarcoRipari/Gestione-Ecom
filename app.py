@@ -2006,8 +2006,8 @@ elif page == "Descrizioni":
                     with st.spinner("📤 Salvataggio nuovi dati..."):
                         try:
                             for lang in selected_langs:
-                                all_outputs[lang] = all_outputs[lang].sort_values(by="SKU")
                                 df_out = pd.DataFrame(all_outputs[lang])
+                                df_out = df_out.sort_values(by="SKU")
                                 df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
                                 if not df_new.empty:
                                     append_to_sheet(desc_sheet_id, lang, df_new)
@@ -2026,8 +2026,8 @@ elif page == "Descrizioni":
                         mem_zip = BytesIO()
                         with zipfile.ZipFile(mem_zip, "w") as zf:
                             for lang in selected_langs:
-                                all_outputs[lang]= all_outputs[lang].sort_values(by="SKU")
                                 df_out = pd.DataFrame(all_outputs[lang])
+                                df_out = df_out.sort_values(by="SKU")
                                 df_out["Code langue"] = lang.lower()
                                 df_out['Subtitle_trad'] = translate_column_parallel(df_out['Subtitle'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
                                 df_out['Subtile2_trad'] = translate_column_parallel(df_out['Subtile2'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
