@@ -2064,9 +2064,15 @@ elif page == "Descrizioni":
                                 df_out["Code langue"] = lang.lower()
                                 df_out['Subtitle_trad'] = translate_column_parallel(df_out['Subtitle'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
                                 df_out['Subtile2_trad'] = translate_column_parallel(df_out['Subtile2'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
+                                df_out["SKU"] = (
+                                    df_out["SKU"]
+                                    .astype(str)
+                                    .str.replace(r"^001", "", regex=True)  # rimuove prefisso "001"
+                                    .str.replace(".", "", regex=False)     # rimuove i punti
+                                )
                                 
                                 df_export = pd.DataFrame({
-                                    "skucolore": df_out.get("skucolore", ""),
+                                    "skucolore": df_out.get("SKU", ""),
                                     f"Modello ({lang.lower()})": df_out.get("Short_title", ""),
                                     f"Variante ({lang.lower()})": df_out.get("Subtitle_trad", ""),
                                     f"Colore ({lang.lower()})": df_out.get("Subtile2_trad", ""),
