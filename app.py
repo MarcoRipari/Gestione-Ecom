@@ -2024,8 +2024,12 @@ elif page == "Descrizioni":
                         if prefix in prefix_to_output[selected_langs[0]] and i not in rows_to_generate:
                             for lang in selected_langs:
                                 copied_row = prefix_to_output[lang][prefix].copy()
-                                copied_row["SKU"] = sku  # sostituisci con lo SKU corrente
-                                all_outputs[lang].append(copied_row)
+                                new_row = row.copy()
+                                #copied_row["SKU"] = sku  # sostituisci con lo SKU corrente
+                                new_row["Description"] = copied_row.get("Description", "")
+                                new_row["Description2"] = copied_row.get("Description2", "")
+                                all_outputs[lang].append(new_row)
+                                #all_outputs[lang].append(copied_row)
                                 
 
                     # 🔄 Salvataggio solo dei nuovi risultati
@@ -2064,7 +2068,7 @@ elif page == "Descrizioni":
                                 df_out["Code langue"] = lang.lower()
                                 df_out['Subtitle_trad'] = translate_column_parallel(df_out['Subtitle'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
                                 df_out['Subtile2_trad'] = translate_column_parallel(df_out['Subtile2'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
-                                
+
                                 df_export = pd.DataFrame({
                                     "skucolore": df_out.get("skucolore", ""),
                                     f"Modello ({lang.lower()})": df_out.get("Short_title", ""),
