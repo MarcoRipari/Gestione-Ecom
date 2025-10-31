@@ -691,5 +691,250 @@
     "fr": "Sandales ouvertes avec déchirure",
     "de": "Offene Sandalen mit Riss",
     "es": "Sandalias abiertas con lágrima"
+  },
+  {
+    "it": "Scarpe primi passi in suede",
+    "en": "First steps shoes in suede",
+    "fr": "Chaussures premiers pas en daim",
+    "de": "Schuhe für die ersten Schritte aus Wildleder",
+    "es": "Zapatos primeros pasos en ante."
+  },
+  {
+    "it": "Scarpe primi passi in pelle laminata",
+    "en": "First steps shoes in laminated leather",
+    "fr": "Chaussures premiers pas en cuir lamé",
+    "de": "Schuhe für die ersten Schritte aus laminiertem Leder",
+    "es": "Zapatos primeros pasos en piel laminada."
+  },
+  {
+    "it": "Scarpine primi passi in vernice",
+    "en": "Patent leather first steps shoes",
+    "fr": "Chaussures premiers pas en cuir verni",
+    "de": "Erste-Schritte-Schuhe aus Lackleder",
+    "es": "Zapatos primeros pasos en ante."
+  },
+  {
+    "it": "Scarpe primi passi in pelle metallizzata",
+    "en": "First steps shoes in metallic leather",
+    "fr": "Chaussures premiers pas en cuir métallisé",
+    "de": "Erste-Schritte-Schuhe aus Metallic-Leder",
+    "es": "Zapatos primeros pasos en piel metalizada."
+  },
+  {
+    "it": "Scarpine primi passi in suede",
+    "en": "Suede first steps shoes",
+    "fr": "Chaussures premiers pas en daim",
+    "de": "Wildlederschuhe für die ersten Schritte",
+    "es": "Zapatos primeros pasos ante"
+  },
+  {
+    "it": "Scarpine primi passi in pelle",
+    "en": "Leather first steps shoes",
+    "fr": "Chaussures premiers pas en cuir",
+    "de": "Erste-Schritte-Schuhe aus Leder",
+    "es": "Zapatos primeros pasos piel"
+  },
+  {
+    "it": "Scarpine primi passi in tela",
+    "en": "First steps shoes in canvas",
+    "fr": "Chaussures premiers pas en toile",
+    "de": "Schuhe für die ersten Schritte aus Canvas",
+    "es": "Zapatos primeros pasos en lona."
+  },
+  {
+    "it": "Scarpine primi passi in suede glitterato",
+    "en": "First steps shoes in glittery suede",
+    "fr": "Chaussures premiers pas en daim pailleté",
+    "de": "Erste-Schritte-Schuhe aus glitzerndem Wildleder",
+    "es": "Zapatos primeros pasos en ante brillante"
+  },
+  {
+    "it": "Scarpine primi passi in suede laminato",
+    "en": "First steps shoes in laminated suede",
+    "fr": "Chaussures premiers pas en daim lamé",
+    "de": "Schuhe für die ersten Schritte aus laminiertem Wildleder",
+    "es": "Zapatos primeros pasos en ante laminado."
+  },
+  {
+    "it": "Scarpine primi passi in suede con stampa pony",
+    "en": "Suede first steps shoes with pony print",
+    "fr": "Chaussures premiers pas en daim imprimé poney",
+    "de": "Wildleder-Laufschuhe mit Pony-Print",
+    "es": "Zapatos primeros pasos de ante con estampado de pony"
+  },
+  {
+    "it": "Scarpe primi passi in pelle",
+    "en": "Leather first steps shoes",
+    "fr": "Chaussures premiers pas en cuir",
+    "de": "Erste-Schritte-Schuhe aus Leder",
+    "es": "Zapatos primeros pasos piel"
+  },
+  {
+    "it": "Scarpe primi passi in tessuto con glitter",
+    "en": "First steps shoes in fabric with glitter",
+    "fr": "Chaussures premiers pas en tissu à paillettes",
+    "de": "Schuhe für die ersten Schritte aus Stoff mit Glitzer",
+    "es": "Zapatos primeros pasos en tela con purpurina."
+  },
+  {
+    "it": "Scarpine primi passi in pelle spazzolata",
+    "en": "First steps shoes in brushed leather",
+    "fr": "Chaussures premiers pas en cuir brossé",
+    "de": "Erste-Schritte-Schuhe aus gebürstetem Leder",
+    "es": "Zapatos primeros pasos en piel cepillada."
+  },
+  {
+    "it": "Sandali primi passi",
+    "en": "First steps sandals",
+    "fr": "Sandales premiers pas",
+    "de": "Sandalen für die ersten Schritte",
+    "es": "Sandalias primeros pasos"
+  },
+  {
+    "it": "Sandali primi passi in pelle",
+    "en": "First steps sandals in leather",
+    "fr": "Sandales premiers pas en cuir",
+    "de": "Sandalen für die ersten Schritte aus Leder",
+    "es": "Sandalias primeros pasos en piel."
+  },
+  {
+    "it": "Sandali semi chiusi",
+    "en": "Semi closed sandals",
+    "fr": "Sandales semi fermées",
+    "de": "Halbgeschlossene Sandalen",
+    "es": "Sandalias semicerradas"
+  },
+  {
+    "it": "Scarpine primi passi in pelle con zip",
+    "en": "Leather first steps shoes with zip",
+    "fr": "Chaussures premiers pas en cuir avec zip",
+    "de": "Erste-Schritte-Schuhe aus Leder mit Reißverschluss",
+    "es": "Zapatos primeros pasos piel con cremallera."
+  },
+  {
+    "it": "Scarpine primi passi in suede con zip",
+    "en": "First steps shoes in suede with zip",
+    "fr": "Chaussures premiers pas en daim avec zip",
+    "de": "Erste-Schritte-Schuhe aus Wildleder mit Reißverschluss",
+    "es": "Zapatos primeros pasos en ante con cremallera."
+  },
+  {
+    "it": "Sandali semi aperti in suede",
+    "en": "Semi-open suede sandals",
+    "fr": "Sandales semi-ouvertes en daim",
+    "de": "Halboffene Wildledersandalen",
+    "es": "Sandalias semiabiertas de ante"
+  },
+  {
+    "it": "Scarpine primi passi in pelle laminata",
+    "en": "First steps shoes in laminated leather",
+    "fr": "Chaussures premiers pas en cuir lamé",
+    "de": "Schuhe für die ersten Schritte aus laminiertem Leder",
+    "es": "Zapatos primeros pasos en piel laminada."
+  },
+  {
+    "it": "Scarpe primi passi in vernice",
+    "en": "Patent leather first steps shoes",
+    "fr": "Chaussures premiers pas en cuir verni",
+    "de": "Erste-Schritte-Schuhe aus Lackleder",
+    "es": "Zapatos primeros pasos charol"
+  },
+  {
+    "it": "Sandali semi chiusi in pelle laminata",
+    "en": "Semi-closed sandals in laminated leather",
+    "fr": "Sandales semi-fermées en cuir lamé",
+    "de": "Halbgeschlossene Sandalen aus laminiertem Leder",
+    "es": "Sandalias semicerradas en piel laminada."
+  },
+  {
+    "it": "Ballerine primi passi in pelle con cinturino",
+    "en": "First steps ballet flats in leather with strap",
+    "fr": "Ballerines premiers pas en cuir avec bride",
+    "de": "Ballerinas für erste Schritte aus Leder mit Riemchen",
+    "es": "Bailarinas primeros pasos de piel con correa"
+  },
+  {
+    "it": "Ballerine primi passi in pelle laminata con cinturino",
+    "en": "First steps ballet flats in laminated leather with strap",
+    "fr": "Ballerines premiers pas en cuir lamé avec bride",
+    "de": "Ballerinas für die ersten Schritte aus laminiertem Leder mit Riemen",
+    "es": "Bailarinas primeros pasos en piel laminada con correa"
+  },
+  {
+    "it": "Rosa chiaro",
+    "en": "Light pink",
+    "fr": "Rose clair",
+    "de": "Hellrosa",
+    "es": "rosa claro"
+  },
+  {
+    "it": "Rosa carne",
+    "en": "Flesh pink",
+    "fr": "Rose chair",
+    "de": "Grau",
+    "es": "Rosa carne"
+  },
+  {
+    "it": "Grigio",
+    "en": "Grey",
+    "fr": "Gris",
+    "de": "Grau",
+    "es": "Gris"
+  },
+  {
+    "it": "Ghiaccio-Nero",
+    "en": "Ice-Black",
+    "fr": "Glace-Noir",
+    "de": "Eisschwarz",
+    "es": "Negro hielo"
+  },
+  {
+    "it": "Rosa antico",
+    "en": "Antique pink",
+    "fr": "Rose antique",
+    "de": "Antikrosa",
+    "es": "rosa antiguo"
+  },
+  {
+    "it": "Multicolore",
+    "en": "Multicolored",
+    "fr": "Multicolore",
+    "de": "Mehrfarbig",
+    "es": "Multicolor"
+  },
+  {
+    "it": "Rosa cipria",
+    "en": "Powder pink",
+    "fr": "Rose poudré",
+    "de": "Puderrosa",
+    "es": "Rosa empolvado"
+  },
+  {
+    "it": "Antracite",
+    "en": "Anthracite",
+    "fr": "Anthracite",
+    "de": "Anthrazit",
+    "es": "Antracita"
+  },
+  {
+    "it": "Beige-Nero",
+    "en": "Beige-Black",
+    "fr": "Beige-Noir",
+    "de": "Beige-Schwarz",
+    "es": "Beige-Negro"
+  },
+  {
+    "it": "Blu scuro",
+    "en": "Dark blue",
+    "fr": "Bleu foncé",
+    "de": "Dunkelblau",
+    "es": "azul oscuro"
+  },
+  {
+    "it": "Cognac",
+    "en": "Cognac",
+    "fr": "Cognac",
+    "de": "Cognac",
+    "es": "Coñac"
   }
 ]
