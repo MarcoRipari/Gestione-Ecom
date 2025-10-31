@@ -936,5 +936,131 @@
     "fr": "Cognac",
     "de": "Cognac",
     "es": "Coñac"
+  },
+  {
+    "it": "Beige-Platino",
+    "en": "Beige-Platinum",
+    "fr": "Beige-Platine",
+    "de": "Beige-Platin",
+    "es": "Beige-Platino"
+  },
+  {
+    "it": "Azzurro scuro",
+    "en": "Dark blue",
+    "fr": "Bleu foncé",
+    "de": "Dunkelblau",
+    "es": "azul oscuro"
+  },
+  {
+    "it": "Zucca",
+    "en": "Pumpkin",
+    "fr": "Citrouille",
+    "de": "Kürbis",
+    "es": "Calabaza"
+  },
+  {
+    "it": "Sabbia",
+    "en": "Sand",
+    "fr": "Sable",
+    "de": "Sand",
+    "es": "Arena"
+  },
+  {
+    "it": "Blu-Marrone",
+    "en": "Blue-Brown",
+    "fr": "Bleu-Marron",
+    "de": "Blaubraun",
+    "es": "Azul-Marrón"
+  },
+  {
+    "it": "Blu-Azzurro",
+    "en": "Blue-Light blue",
+    "fr": "Bleu-Bleu clair",
+    "de": "Blau-Hellblau",
+    "es": "Azul-Azul claro"
+  },
+  {
+    "it": "Beige-Cognac",
+    "en": "Beige-Cognac",
+    "fr": "Beige-Cognac",
+    "de": "Beige-Cognac",
+    "es": "Beige-Coñac"
+  },
+  {
+    "it": "Verde-Marrone",
+    "en": "Green-Brown",
+    "fr": "Vert-Marron",
+    "de": "Grün-Braun",
+    "es": "Verde-Marrón"
+  },
+  {
+    "it": "Verde chiaro",
+    "en": "Light green",
+    "fr": "Vert clair",
+    "de": "Hellgrün",
+    "es": "Verde claro"
+  },
+  {
+    "it": "Caramello",
+    "en": "Caramel",
+    "fr": "Caramel",
+    "de": "Karamell",
+    "es": "Caramelo"
+  },
+  {
+    "it": "Rosso-Marrone",
+    "en": "Red-Brown",
+    "fr": "Rouge-Marron",
+    "de": "Rotbraun",
+    "es": "rojo-marrón"
+  },
+  {
+    "it": "Rosa-Beige",
+    "en": "Pink-Beige",
+    "fr": "Rose-Beige",
+    "de": "Rosa-Beige",
+    "es": "Rosa-Beige"
+  },
+  {
+    "it": "Grigio-Blu",
+    "en": "Grey-Blue",
+    "fr": "Gris-Bleu",
+    "de": "Grau-Blau",
+    "es": "Gris-Azul"
+  },
+  {
+    "it": "Verdone",
+    "en": "Verdone",
+    "fr": "Verdon",
+    "de": "Verdone",
+    "es": "Verdón"
+  },
+  {
+    "it": "Rosa-Grigio",
+    "en": "Pink-Grey",
+    "fr": "Rose-Gris",
+    "de": "Rosa-Grau",
+    "es": "Rosa-Gris"
+  },
+  {
+    "it": "Jeans",
+    "en": "Jeans",
+    "fr": "Jeans",
+    "de": "Jeans",
+    "es": "Vaqueros"
+  },
+  {
+    "it": "Verde oliva",
+    "en": "Olive green",
+    "fr": "Vert olive",
+    "de": "Olivgrün",
+    "es": "verde oliva"
+  },
+  {
+    "it": "Marrone scuro",
+    "en": "Dark brown",
+    "fr": "Brun foncé",
+    "de": "Dunkelbraun",
+    "es": "Marrón oscuro"
   }
 ]
