@@ -2064,7 +2064,6 @@ elif page == "Descrizioni":
                                 df_out["Code langue"] = lang.lower()
                                 df_out['Subtitle_trad'] = translate_column_parallel(df_out['Subtitle'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
                                 df_out['Subtile2_trad'] = translate_column_parallel(df_out['Subtile2'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
-                                df_out["skucolore"] = df_out["skucolore"].astype(str)
                                 
                                 df_export = pd.DataFrame({
                                     "skucolore": df_out.get("skucolore", ""),
