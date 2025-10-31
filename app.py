@@ -2024,11 +2024,14 @@ elif page == "Descrizioni":
                         if prefix in prefix_to_output[selected_langs[0]] and i not in rows_to_generate:
                             for lang in selected_langs:
                                 copied_row = prefix_to_output[lang][prefix].copy()
-                                new_row = row.copy()
-                                new_row["Description"] = copied_row.get("Description", "")
-                                new_row["Description2"] = copied_row.get("Description2", "")
-                                all_outputs[lang].append(new_row)
-                                #copied_row["SKU"] = sku  # sostituisci con lo SKU corrente
+                                #new_row = row.copy()
+                                #new_row["Description"] = copied_row.get("Description", "")
+                                #new_row["Description2"] = copied_row.get("Description2", "")
+                                #all_outputs[lang].append(new_row)
+                                copied_row["SKU"] = sku  # sostituisci con lo SKU corrente
+                                row["Description"] = copied_row.get("Description", "")
+                                row["Description 2"] = copied_row.get("Description 2", "")
+                                all_outputs[lang].append(row)
                                 #all_outputs[lang].append(copied_row)
                                 
 
