@@ -2066,11 +2066,13 @@ elif page == "Descrizioni":
                                 df_out['Subtile2_trad'] = translate_column_parallel(df_out['Subtile2'].fillna("").tolist(),source='it', target=lang.lower(), db=translation_db, max_workers=5)
                                 
                                 df_export = pd.DataFrame({
+                                    "Lingua": lang.lower(),
                                     "SKU": df_out.get("SKU", ""),
-                                    "Subtitle": df_out.get("Subtitle_trad", ""),
-                                    "Subtile2": df_out.get("Subtile2_trad", ""),
-                                    "Descrizione lunga": df_out.get("Description", ""),
-                                    "Descrizione breve": df_out.get("Description2", "")
+                                    "Modello": df_out.get("Short_title", ""),
+                                    "Variante": df_out.get("Subtitle_trad", ""),
+                                    "Colore": df_out.get("Subtile2_trad", ""),
+                                    "Descrizione": df_out.get("Description", ""),
+                                    "Descrizione 2": df_out.get("Description2", "")
                                 })
                                 zf.writestr(f"descrizioni_{lang}.csv", df_export.to_csv(index=False).encode("utf-8"))
                         mem_zip.seek(0)
