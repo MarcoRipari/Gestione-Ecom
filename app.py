@@ -2790,6 +2790,7 @@ elif page == "Giacenze - Importa":
 
     default_sheet_id = foto_sheet_id
     selected_sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
+    nome_sheet_tab = st.text_input("Inserisci nome del TAB", value="GIACENZE")
 
     col1, col2, col3, col4 = st.columns(4)
     
@@ -2830,21 +2831,11 @@ elif page == "Giacenze - Importa":
             if st.button("Importa Giacenze"):
                 sheet_upload_giacenze = get_sheet(selected_sheet_id, "GIACENZE")
                 sheet_upload_pim = get_sheet(selected_sheet_id, "PIM")
+                sheet_upload_tab = get_sheet(selected_sheet_id, nome_sheet_tab)
                 
                 with st.spinner("Aggiorno giacenze su GSheet..."):
-                    if nome_file == "UBIC":
-                        sheet_upload_giacenze.clear()
-                        sheet_upload_giacenze.update("A1", data_to_write)
-                    elif nome_file == "PIM":
-                        sheet_upload_pim.clear()
-                        sheet_upload_pim.update("A1", data_to_write)
-                    elif nome_file == "Manuale":
-                        if manual_nome_file == "UBIC.CSV":
-                            sheet_upload_giacenze.clear()
-                            sheet_upload_giacenze.update("A1", data_to_write)
-                        elif manual_nome_file == "PIM.CSV":
-                            sheet_upload_pim.clear()
-                            sheet_upload_pim.update("A1", data_to_write)
+                    sheet_upload_tab.clear()
+                    sheet_upload_tab.update("A1", data_to_write)
                             
                     last_row = len(df_input) + 1
     
@@ -2864,23 +2855,13 @@ elif page == "Giacenze - Importa":
             if st.button("Importa Giacenze & Anagrafica"):
                 sheet_upload_giacenze = get_sheet(selected_sheet_id, "GIACENZE")
                 sheet_upload_pim = get_sheet(selected_sheet_id, "PIM")
+                sheet_upload_tab = get_sheet(selected_sheet_id, nome_sheet_tab)
                 sheet_upload_anagrafica = get_sheet(selected_sheet_id, "ANAGRAFICA")
                 sheet_anagrafica = get_sheet(anagrafica_sheet_id, "ANAGRAFICA")
                 
                 with st.spinner("Aggiorno giacenze e anagrafica su GSheet..."):
-                    if nome_file == "UBIC":
-                        sheet_upload_giacenze.clear()
-                        sheet_upload_giacenze.update("A1", data_to_write)
-                    elif nome_file == "PIM":
-                        sheet_upload_pim.clear()
-                        sheet_upload_pim.update("A1", data_to_write)
-                    elif nome_file == "Manuale":
-                        if manual_nome_file == "UBIC.CSV":
-                            sheet_upload_giacenze.clear()
-                            sheet_upload_giacenze.update("A1", data_to_write)
-                        elif manual_nome_file == "PIM.CSV":
-                            sheet_upload_pim.clear()
-                            sheet_upload_pim.update("A1", data_to_write)
+                    sheet_upload_tab.clear()
+                    sheet_upload_tab.update("A1", data_to_write)
                             
                     last_row = len(df_input) + 1
     
