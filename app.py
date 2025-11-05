@@ -2790,7 +2790,7 @@ elif page == "Giacenze - Importa":
 
     default_sheet_id = foto_sheet_id
     selected_sheet_id = st.text_input("Inserisci ID del Google Sheet", value=default_sheet_id)
-    nome_sheet_tab = st.text_input("Inserisci nome del TAB", value="GIACENZE2")
+    nome_sheet_tab = st.text_input("Inserisci nome del TAB", value="GIACENZE")
 
     col1, col2, col3, col4 = st.columns(4)
     
