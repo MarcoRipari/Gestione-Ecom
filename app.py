@@ -2829,8 +2829,6 @@ elif page == "Giacenze - Importa":
         # --- Destinazione GSheet ---       
         with col2:
             if st.button("Importa Giacenze"):
-                sheet_upload_giacenze = get_sheet(selected_sheet_id, "GIACENZE")
-                sheet_upload_pim = get_sheet(selected_sheet_id, "PIM")
                 sheet_upload_tab = get_sheet(selected_sheet_id, nome_sheet_tab)
                 
                 with st.spinner("Aggiorno giacenze su GSheet..."):
@@ -2844,7 +2842,7 @@ elif page == "Giacenze - Importa":
                             CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
                         for col_letter, pattern in numeric_cols_info.items()
                     ]
-                    format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
+                    format_cell_ranges(sheet_upload_tab, ranges_to_format)
                     st.success("✅ Giacenze importate con successo!")
 
                 if nome_file == "Manuale" and file_bytes_for_upload:
@@ -2853,8 +2851,6 @@ elif page == "Giacenze - Importa":
                         
         with col3:
             if st.button("Importa Giacenze & Anagrafica"):
-                sheet_upload_giacenze = get_sheet(selected_sheet_id, "GIACENZE")
-                sheet_upload_pim = get_sheet(selected_sheet_id, "PIM")
                 sheet_upload_tab = get_sheet(selected_sheet_id, nome_sheet_tab)
                 sheet_upload_anagrafica = get_sheet(selected_sheet_id, "ANAGRAFICA")
                 sheet_anagrafica = get_sheet(anagrafica_sheet_id, "ANAGRAFICA")
@@ -2870,7 +2866,7 @@ elif page == "Giacenze - Importa":
                             CellFormat(numberFormat=NumberFormat(type="NUMBER", pattern=pattern)))
                         for col_letter, pattern in numeric_cols_info.items()
                     ]
-                    format_cell_ranges(sheet_upload_giacenze, ranges_to_format)
+                    format_cell_ranges(sheet_upload_tab, ranges_to_format)
 
                     sheet_upload_anagrafica.clear()
                     sheet_upload_anagrafica.update("A1", sheet_anagrafica.get_all_values())
