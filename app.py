@@ -387,10 +387,12 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
         if sim_lines:
             sim_text = "\nDescrizioni simili:\n" + "\n".join(sim_lines)
 
+    incipit_seeds = ["Descrittivo", "Pratico", "Poetico"]
     # Prompt finale
     prompt = f"""Scrivi due descrizioni coerente con le INFO ARTICOLO per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
 
 >>> GUIDA STILE E LINGUAGGIO
+- Stile di apertura: {random.choice(incipit_seeds)}
 - Tono: {", ".join(selected_tones)}
 - Lingua: adatta al paese target
 - Mai usare: Codice, Nome, Marca, Colore
@@ -483,6 +485,9 @@ async def rate_limiter():
 
 
 async def async_generate_description(prompt: str, idx: int, use_model: str):
+    temperature = random.uniform(0.9, 1.2)
+    presence_penalty = random.uniform(0.4, 0.8)
+    
     if len(prompt) < 50:
         return idx, {
             "result": prompt,
@@ -496,10 +501,10 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
         response = await client.chat.completions.create(
             model=use_model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=1,
+            temperature=temperature,
             top_p=0.95,
             frequency_penalty=0.4,
-            presence_penalty=0.6,
+            presence_penalty=presence_penalty,
             max_tokens=3000
         )
         
