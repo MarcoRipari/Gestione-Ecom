@@ -146,7 +146,7 @@ def get_dropbox_latest_image(sku: str) -> (str, Image.Image):
         img = Image.open(io.BytesIO(resp.content)).convert("RGB")
         return latest.name, latest.client_modified.strftime("%d%m%Y"), img
     except dropbox.exceptions.ApiError:
-        return None, None
+        return None, None, None
 
 def save_image_to_dropbox(sku: str, filename: str, image: Image.Image):
     folder_path = f"/repository/{sku}"
