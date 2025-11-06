@@ -1867,7 +1867,7 @@ elif page == "Descrizioni":
         openai_check, openai_check_msg = check_openai_key()
         if not openai_check:
             st.error("❌ La chiave OpenAI non è valida o mancante. Inserisci una chiave valida prima di generare descrizioni.")
-            st.error(msg)
+            st.error(openai_check_msg)
         else:
             if st.button("🚀 Genera Descrizioni"):
                 st.session_state["generate"] = True
