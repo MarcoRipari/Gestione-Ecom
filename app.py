@@ -105,10 +105,10 @@ def check_openai_key():
             messages=[{"role": "user", "content": "test"}],
             max_tokens=1
         )
-        return True
+        return True, None
     except Exception as e:  
         msg = str(e).lower()
-        return False
+        return False, msg
 
 
 # ---------------------------
@@ -1864,8 +1864,10 @@ elif page == "Descrizioni":
                 """)
     
         # 🪄 Generazione descrizioni
-        if not check_openai_key():
+        openai_check, openai_check_msg = check_openai_key()
+        if not openai_check:
             st.error("❌ La chiave OpenAI non è valida o mancante. Inserisci una chiave valida prima di generare descrizioni.")
+            st.error(msg)
         else:
             if st.button("🚀 Genera Descrizioni"):
                 st.session_state["generate"] = True
