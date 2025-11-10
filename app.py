@@ -64,7 +64,7 @@ from pydrive2.drive import GoogleDrive
 from collections import deque
 from deep_translator import GoogleTranslator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+import random
 import viste
 
 from functions.supabase_creds import *
