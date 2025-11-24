@@ -2794,7 +2794,8 @@ elif page == "Giacenze - Importa":
     # --- Carico CSV solo se df_input è None ---
     if csv_import and st.session_state.df_input is None:
         with st.spinner("Carico il CSV..."):
-            st.session_state.df_input = read_csv_auto_encoding(csv_import, "\t")
+            #st.session_state.df_input = read_csv_auto_encoding(csv_import, "\t")
+            st.session_state.df_input = read_csv_auto_encoding(csv_import, ";")
 
     df_input = st.session_state.df_input
 
