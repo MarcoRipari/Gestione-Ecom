@@ -2771,6 +2771,7 @@ elif page == "Giacenze - Importa":
             csv_import = uploaded_file
             file_bytes_for_upload = st.session_state.uploaded_file_bytes
             manual_nome_file = uploaded_file.name.upper()
+            manual_nome_file = "GIACENZE.csv"
 
     # --- UBIC / PIM ---
     else:
