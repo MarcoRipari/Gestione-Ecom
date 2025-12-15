@@ -396,9 +396,15 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 - Tono: {", ".join(selected_tones)}
 - Lingua: adatta al paese target
 - Mai usare: Codice, Nome, Marca, Colore
+- Non usare la descrizione del colore (tipo usato, scolorito, ecc...)
 - Utilizza esclusivamente il tipo di calzatura passato nelle info articoli
 - Non usare generi o età (es. maschile/femminile, bambino/bambina)
 - Evita le percentuali materiali
+- Evita la durezza del materiale (soffice come, morbidezza, sensazione al tatto, ecc...)
+- Evita qualsiasi linguaggio sensoriale
+- Evita frasi sulla facilità d'uso generico, non possiamo garantirlo.
+- Evita verbi che implicano promesse o benefici soggettivi (es. garantire, offrire, assicurare, migliorare, accompagnare il piede)
+- NON descrivere il comfort come sensazione o beneficio percepito
 - Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo
 - Non usare **alcuna formattazione Markdown** nell'output
 
@@ -411,9 +417,16 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 ❌ "velluto" → ✅ "velour" o "suede"
 ❌ "primaverile" → ✅ descrizione neutra sulla stagione
 ❌ "per bambina" → ✅ descrizione neutra
+❌ "first shoes" → ✅ scarpe
+❌ "prime scarpe" → ✅ scarpe
+❌ "scarpa da primi passi" → ✅ scarpe
+
+>>> ESEMPIO DI STILE CORRETTO
+❌ "Progettate per garantire comfort e ammortizzazione durante l’uso quotidiano."
+✅ "La suola presenta una struttura multistrato e uno spessore adatto all’uso quotidiano."
 
 >>> REGOLE
-- desc_lunga: {desc_lunga_length} parole → enfasi su comfort, materiali, utilizzo
+- desc_lunga: {desc_lunga_length} parole → enfasi su caratteristiche costruttive, materiali e struttura della calzatura
 - desc_breve: {desc_breve_length} parole → adatta a social media o schede prodotto rapide
 - Output JSON: {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
 
@@ -431,6 +444,7 @@ Controlla attentamente che le descrizioni:
 - non contengano errori grammaticali, di concordanza o di traduzione in nessuna lingua
 - in italiano, controlla sempre il genere e il numero dei sostantivi (es. "questi sandali", non "queste sandali")
 - se trovi errori di grammatica, rigenera o correggi la frase **prima di fornire l'output finale**
+- se una frase non descrive una caratteristica fisica, costruttiva o verificabile della calzatura, rigenera o correggi la frase **prima di fornire l'output finale**
 - fornisci l'output finale **solo dopo** aver verificato che sia grammaticalmente e stilisticamente corretto in tutte le lingue
 """
     return prompt
