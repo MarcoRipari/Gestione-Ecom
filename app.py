@@ -396,7 +396,8 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 - Tono: {", ".join(selected_tones)}
 - Lingua: adatta al paese target
 - Mai usare: Codice, Nome, Marca, Colore
-- Non usare la descrizione del colore (tipo usato, scolorito, ecc...)
+- Non usare descrizioni di colore, finitura, effetto estetico o trattamento visivo (es. usato, effetto usato, scolorito, vintage, lavato, distressed)
+- Descrivi solo materiali e componenti strutturali, NON finiture o trattamenti estetici
 - Utilizza esclusivamente il tipo di calzatura passato nelle info articoli
 - Non usare generi o età (es. maschile/femminile, bambino/bambina)
 - Evita le percentuali materiali
@@ -420,6 +421,7 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 ❌ "first shoes" → ✅ scarpe
 ❌ "prime scarpe" → ✅ scarpe
 ❌ "scarpa da primi passi" → ✅ scarpe
+❌ "in pelle con effetto usato" → ✅ "in pelle"
 
 >>> ESEMPIO DI STILE CORRETTO
 ❌ "Progettate per garantire comfort e ammortizzazione durante l’uso quotidiano."
