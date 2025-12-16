@@ -405,6 +405,9 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 - Evita qualsiasi linguaggio sensoriale
 - Evita frasi sulla facilità d'uso generico, non possiamo garantirlo.
 - Evita verbi che implicano promesse o benefici soggettivi (es. garantire, offrire, assicurare, migliorare, accompagnare il piede)
+- Evita ripetizioni ravvicinate di parole o strutture sintattiche
+- Se lo stesso materiale o elemento compare più volte, raggruppa le informazioni in un’unica frase
+- Alterna la struttura delle frasi per evitare sequenze ripetitive (es. "in pelle", "anch’essa in pelle")
 - NON descrivere il comfort come sensazione o beneficio percepito
 - Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo
 - Non usare **alcuna formattazione Markdown** nell'output
