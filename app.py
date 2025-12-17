@@ -443,8 +443,30 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 {sim_text}
 Dopo aver generato le descrizioni, rileggi e correggi eventuali errori grammaticali o di genere **prima** di produrre l'output finale JSON.
 
+>>> NORMALIZZAZIONE TIPO DI CALZATURA (OBBLIGATORIO)
+- Il valore "Tipo di calzatura" NON deve mai essere tradotto letteralmente
+- "first shoe" deve essere SEMPRE reso come "scarpe" in tutte le lingue
+- È VIETATO usare o derivare espressioni come:
+  - prime scarpe
+  - first shoes
+  - premières chaussures
+  - erste Schuhe
+  - zapatos de primeros pasos
+- Usa esclusivamente il termine generico equivalente a "scarpe"
+
+>>> CONCETTI DA NON INFERIRE O DEDURRE
+È VIETATO inserire:
+- benefici funzionali o qualitativi (es. solidità, resistenza, durata, stabilità, affidabilità)
+- interpretazioni d’uso (es. primo utilizzo, primi passi, fase iniziale)
+- giudizi impliciti o conclusioni non dichiarate nelle INFO ARTICOLO
+- verbi causali o finali (es. garantire, assicurare, permettere, rendere, migliorare)
+- qualsiasi frase che spieghi "a cosa serve" un materiale
+
 >>> CONTROLLO FINALE
 Controlla attentamente che le descrizioni:
+- se compaiono parole astratte non presenti nelle INFO ARTICOLO (es. solido, resistente, stabile, durevole, primo, iniziale), la frase va rigenerata
+- se il tipo di calzatura viene tradotto o riformulato, la descrizione va rigenerata
+- se una frase risponde alla domanda "perché è utile?", va rigenerata
 - rispettino tutte le regole fornite (parole vietate, formato, tono, ecc.)
 - non contengano errori grammaticali, di concordanza o di traduzione in nessuna lingua
 - in italiano, controlla sempre il genere e il numero dei sostantivi (es. "questi sandali", non "queste sandali")
