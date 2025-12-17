@@ -387,7 +387,8 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
         if sim_lines:
             sim_text = "\nDescrizioni simili:\n" + "\n".join(sim_lines)
 
-    incipit_seeds = ["Descrittivo", "Pratico", "Poetico"]
+    #incipit_seeds = ["Descrittivo", "Pratico", "Poetico"]
+    incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
     # Prompt finale
     prompt = f"""Scrivi due descrizioni coerente con le INFO ARTICOLO per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
 
@@ -440,7 +441,6 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 {image_line}
 
 {sim_text}
-
 Dopo aver generato le descrizioni, rileggi e correggi eventuali errori grammaticali o di genere **prima** di produrre l'output finale JSON.
 
 >>> CONTROLLO FINALE
