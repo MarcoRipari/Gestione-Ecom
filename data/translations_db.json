@@ -1062,5 +1062,40 @@
     "fr": "Brun foncé",
     "de": "Dunkelbraun",
     "es": "Marrón oscuro"
+  },
+  {
+    "it": "Scarpe allacciate in suede",
+    "en": "Suede lace-up shoes",
+    "fr": "Chaussures à lacets en daim",
+    "de": "Schnürschuhe aus Wildleder",
+    "es": "Zapatos con cordones de ante"
+  },
+  {
+    "it": "Scarpe in nappa con strappo",
+    "en": "Shoes in nappa with tear",
+    "fr": "Chaussures en nappa avec déchirure",
+    "de": "Schuhe aus Nappaleder mit Riss",
+    "es": "Zapatos en napa con lágrima"
+  },
+  {
+    "it": "Scarpe in pelle con strappo",
+    "en": "Leather shoes with tear",
+    "fr": "Chaussures en cuir avec déchirure",
+    "de": "Schuhe aus Nappaleder mit Riss",
+    "es": "Zapatos de piel con rotura"
+  },
+  {
+    "it": "Nero",
+    "en": "Black",
+    "fr": "Noir",
+    "de": "Schwarz",
+    "es": "Negro"
+  },
+  {
+    "it": "Antracite-Verde",
+    "en": "Anthracite-Green",
+    "fr": "Anthracite-Vert",
+    "de": "Anthrazit-Grün",
+    "es": "Antracita-Verde"
   }
 ]
