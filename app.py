@@ -457,13 +457,6 @@ Dopo aver generato le descrizioni, rileggi e correggi eventuali errori grammatic
 È CONSENTITO attribuire alla CALZATURA (non ai materiali) qualità strutturali generali,
 SOLO se deducibili dalle INFO ARTICOLO.
 
-Qualità ammesse (solo riferite alla calzatura):
-- solida
-- robusta
-- stabile
-- strutturata
-- con supporto
-
 Regole obbligatorie:
 - queste qualità devono riferirsi SEMPRE alla calzatura nel suo insieme
 - NON devono mai essere associate a un singolo materiale o componente
