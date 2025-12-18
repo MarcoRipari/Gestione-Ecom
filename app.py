@@ -449,7 +449,12 @@ Genera due testi:
 - desc_breve: {desc_breve_length} parole
 
 *** Formato JSON ***
-{{"it": {{"desc_lunga": "...", "desc_breve": "..."}}, "en": {{"desc_lunga": "...", "desc_breve": "..."}}, "fr": {{"desc_lunga": "...", "desc_breve": "..."}}, "de": {{"desc_lunga": "...", "desc_breve": "..."}}}}
+{{
+  "it": {{"desc_lunga": "...", "desc_breve": "..."}},
+  "en": {{"desc_lunga": "...", "desc_breve": "..."}},
+  "fr": {{"desc_lunga": "...", "desc_breve": "..."}},
+  "de": {{"desc_lunga": "...", "desc_breve": "..."}}
+}}
 
 ### DESCRIZIONI DI RIFERIMENTO ###
 {sim_text}
