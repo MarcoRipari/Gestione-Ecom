@@ -447,14 +447,7 @@ CONCEPT
 Genera due testi:
 - desc_lunga: {desc_lunga_length} parole
 - desc_breve: {desc_breve_length} parole
-
-*** Formato JSON ***
-{{
-  "it": {{"desc_lunga": "...", "desc_breve": "..."}},
-  "en": {{"desc_lunga": "...", "desc_breve": "..."}},
-  "fr": {{"desc_lunga": "...", "desc_breve": "..."}},
-  "de": {{"desc_lunga": "...", "desc_breve": "..."}}
-}}
+- Output JSON: {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
 
 ### DESCRIZIONI DI RIFERIMENTO ###
 {sim_text}
