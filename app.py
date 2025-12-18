@@ -430,6 +430,18 @@ NON deve mai essere citato esplicitamente nel testo.
 
 Usa solo aggettivi descrittivi e oggettivi.
 
+>>> DIVIETO TRATTAMENTI ESTETICI (RAFFORZATO)
+È VIETATO descrivere qualsiasi trattamento, effetto o lavorazione estetica,
+anche se espresso in modo generico, come:
+- effetto usato
+- effetto vissuto
+- trattato
+- lavorato
+- lavato
+- spazzolato
+- vintage
+
+È ammessa SOLO l’indicazione del materiale nudo (es. "in pelle").
 
 >>> TERMINI AMMESSI SOLO SE DESCRIVONO UNA FORMA VISIBILE
 Parole come:
@@ -483,6 +495,17 @@ Regole:
 - Le qualità devono riferirsi alla calzatura, non ai materiali
 - Non devono essere spiegate o collegate a benefici d’uso
 - Preferibilmente inserite nella frase di apertura
+
+>>> DIVIETO DI VALUTAZIONE DEI MATERIALI
+È VIETATO attribuire giudizi di valore ai materiali, direttamente o indirettamente.
+
+Sono vietate espressioni come:
+- materiali di qualità
+- qualità dei materiali
+- materiali selezionati
+- materiali pregiati
+
+I materiali devono essere solo elencati, non valutati.
 
 >>> NOTA PER SANDALI
 Per i sandali, evita di usare qualità come "robusta".
@@ -549,6 +572,15 @@ Prima dell’output finale, verifica ogni frase:
 - se risponde a "perché è meglio?" → rigenera
 - se risponde a "che sensazione dà?" → rigenera
 - se non descrive qualcosa di fisico → rigenera
+
+>>> REGOLA DI RISCRITTURA AUTOMATICA
+Se una frase:
+- può essere semplificata rimuovendo aggettivi o verbi
+  senza perdere informazioni fisiche
+- contiene concetti astratti non visibili
+- valuta materiali o costruzione
+
+allora va riscritta in forma descrittiva neutra.
 """
     return prompt
 
