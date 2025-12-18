@@ -397,7 +397,8 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 >>> CONCEPT
 {concept}
 
-Il Concept serve esclusivamente a guidare il tono e l’incipit della descrizione.
+Il Concept deve influenzare SOLO la prima frase della descrizione lunga.
+Non deve influenzare le frasi successive.
 NON deve mai essere citato esplicitamente nel testo.
 
 >>> GUIDA STILE E LINGUAGGIO
@@ -415,6 +416,29 @@ NON deve mai essere citato esplicitamente nel testo.
 - Evita verbi che implicano promesse o benefici soggettivi
 - NON descrivere il comfort come sensazione percepita
 - Non usare alcuna formattazione Markdown nell’output
+
+>>> AGGETTIVI VALUTATIVI DA EVITARE
+È VIETATO usare aggettivi soggettivi o valutativi non verificabili, come:
+- elegante
+- raffinato
+- prezioso
+- ricercato
+- moderno
+- alla moda
+- accattivante
+
+Usa solo aggettivi descrittivi e oggettivi.
+
+>>> LESSICO CONSIGLIATO
+Preferisci parole semplici e quotidiane come:
+- modello
+- forma
+- linea
+- costruzione
+- versione
+- dettaglio
+
+Evita termini troppo tecnici o astratti.
 
 >>> LINGUAGGIO SEMPLIFICATO
 - Usa un linguaggio chiaro, quotidiano e naturale
@@ -434,15 +458,23 @@ NON deve mai essere citato esplicitamente nel testo.
 - Usa esclusivamente il termine generico "scarpe"
 
 >>> QUALITÀ STRUTTURALI AMMESSE DELLA CALZATURA
-È CONSENTITO attribuire alla calzatura nel suo insieme:
+È CONSENTITO attribuire alla calzatura nel suo insieme UNA SOLA qualità strutturale,
+scelta tra:
 - solida
 - robusta
 - stabile
 
 Regole:
+- usare al massimo UNA qualità per descrizione
+- è FACOLTATIVO usarla
+- NON usare più qualità nella stessa descrizione
 - Le qualità devono riferirsi alla calzatura, non ai materiali
 - Non devono essere spiegate o collegate a benefici d’uso
 - Preferibilmente inserite nella frase di apertura
+
+>>> NOTA PER SANDALI
+Per i sandali, evita di usare qualità come "robusta".
+Se usi una qualità strutturale, preferisci "stabile" oppure omettila.
 
 >>> REGOLE OUTPUT
 - Genera due descrizioni:
