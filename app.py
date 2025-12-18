@@ -448,6 +448,7 @@ Genera due testi:
 - desc_lunga: {desc_lunga_length} parole
 - desc_breve: {desc_breve_length} parole
 - Output JSON: {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
+**Rispondi solo con il JSON sopra, senza testo aggiuntivo**
 
 ### DESCRIZIONI DI RIFERIMENTO ###
 {sim_text}
