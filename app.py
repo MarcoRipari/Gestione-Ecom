@@ -390,88 +390,80 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     #incipit_seeds = ["Descrittivo", "Pratico", "Poetico"]
     incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
     # Prompt finale
-    prompt = f"""Scrivi due descrizioni coerente con le INFO ARTICOLO per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
+    prompt = f"""Scrivi due descrizioni coerenti con le INFO ARTICOLO per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
+
+>>> CONCEPT
+{concept}
+
+Il Concept serve esclusivamente a guidare il tono e l’incipit della descrizione.
+NON deve mai essere citato esplicitamente nel testo.
 
 >>> GUIDA STILE E LINGUAGGIO
-- Stile di apertura: {random.choice(incipit_seeds)}
+- Stile di apertura: {random.choice(incipit_seeds)}, guidato dal Concept
 - Tono: {", ".join(selected_tones)}
 - Lingua: adatta al paese target
 - Mai usare: Codice, Nome, Marca, Colore
-- Non usare descrizioni di colore, finitura, effetto estetico o trattamento visivo (es. usato, effetto usato, scolorito, vintage, lavato, distressed)
-- Descrivi solo materiali e componenti strutturali, NON finiture o trattamenti estetici
+- Non usare descrizioni di colore, finitura, effetto estetico o trattamento visivo
+- Descrivi materiali, componenti strutturali, costruzione e forma della calzatura
 - Utilizza esclusivamente il tipo di calzatura passato nelle info articoli
-- Non usare generi o età (es. maschile/femminile, bambino/bambina)
-- Evita le percentuali materiali
-- Evita la durezza del materiale (soffice come, morbidezza, sensazione al tatto, ecc...)
-- Evita qualsiasi linguaggio sensoriale
-- Evita frasi sulla facilità d'uso generico, non possiamo garantirlo.
-- Evita verbi che implicano promesse o benefici soggettivi (es. garantire, offrire, assicurare, migliorare, accompagnare il piede)
-- Evita ripetizioni ravvicinate di parole o strutture sintattiche
-- Se lo stesso materiale o elemento compare più volte, raggruppa le informazioni in un’unica frase
-- Alterna la struttura delle frasi per evitare sequenze ripetitive (es. "in pelle", "anch’essa in pelle")
-- NON descrivere il comfort come sensazione o beneficio percepito
-- Verifica la correttezza della descrizione rispetto alla stagione tra le info articolo
-- Non usare **alcuna formattazione Markdown** nell'output
+- Non usare generi o età
+- Evita percentuali materiali
+- Evita linguaggio sensoriale
+- Evita frasi sulla facilità d’uso generica
+- Evita verbi che implicano promesse o benefici soggettivi
+- NON descrivere il comfort come sensazione percepita
+- Non usare alcuna formattazione Markdown nell’output
+
+>>> LINGUAGGIO SEMPLIFICATO
+- Usa un linguaggio chiaro, quotidiano e naturale
+- Evita tecnicismi non necessari (es. assetto, struttura, configurazione)
+- Preferisci termini semplici e comprensibili a un pubblico di genitori
+- Evita la ripetizione della stessa parola chiave
 
 >>> PAROLE DA EVITARE (anche implicite)
 - velcro → usa "strappo"
 - velluto → usa "velour" o "suede"
 - primavera, estate, autunno, inverno (e derivati)
 
->>> ESEMPI DI ERRORI DA EVITARE
-❌ "velluto" → ✅ "velour" o "suede"
-❌ "primaverile" → ✅ descrizione neutra sulla stagione
-❌ "per bambina" → ✅ descrizione neutra
-❌ "first shoes" → ✅ scarpe
-❌ "prime scarpe" → ✅ scarpe
-❌ "scarpa da primi passi" → ✅ scarpe
-❌ "in pelle con effetto usato" → ✅ "in pelle"
+>>> NORMALIZZAZIONE TIPO DI CALZATURA (OBBLIGATORIO)
+- "first shoe" deve essere SEMPRE reso come "scarpe"
+- È vietato usare o derivare espressioni come:
+  prime scarpe, scarpa da primi passi, first shoes
+- Usa esclusivamente il termine generico "scarpe"
 
->>> ESEMPIO DI STILE CORRETTO
-❌ "Progettate per garantire comfort e ammortizzazione durante l’uso quotidiano."
-✅ "La suola presenta una struttura multistrato e uno spessore adatto all’uso quotidiano."
+>>> QUALITÀ STRUTTURALI AMMESSE DELLA CALZATURA
+È CONSENTITO attribuire alla calzatura nel suo insieme:
+- solida
+- robusta
+- stabile
 
->>> REGOLE
-- desc_lunga: {desc_lunga_length} parole → enfasi su caratteristiche costruttive, materiali e struttura della calzatura
-- desc_breve: {desc_breve_length} parole → adatta a social media o schede prodotto rapide
+Regole:
+- Le qualità devono riferirsi alla calzatura, non ai materiali
+- Non devono essere spiegate o collegate a benefici d’uso
+- Preferibilmente inserite nella frase di apertura
+
+>>> REGOLE OUTPUT
+- Genera due descrizioni:
+  - desc_lunga: {desc_lunga_length} parole
+  - desc_breve: {desc_breve_length} parole → adatta a social media o schede prodotto rapide
+- desc_lunga deve seguire questa struttura:
+  1. Incipit descrittivo coerente con il Concept
+  2. Costruzione o forma del modello
+  3. Tomaia
+  4. Fodera e soletta
+  5. Chiusura e fondo
 - Output JSON: {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
 
 >>> INFO ARTICOLO
 {product_info}
 {image_line}
 {sim_text}
-Dopo aver generato le descrizioni, rileggi e correggi eventuali errori grammaticali o di genere **prima** di produrre l'output finale JSON.
-
->>> NORMALIZZAZIONE TIPO DI CALZATURA (OBBLIGATORIO)
-- Il valore "Tipo di calzatura" NON deve mai essere tradotto letteralmente
-- "first shoe" deve essere SEMPRE reso come "scarpe" in tutte le lingue
-- È VIETATO usare o derivare espressioni come:
-  - prime scarpe
-  - first shoes
-  - premières chaussures
-  - erste Schuhe
-  - zapatos de primeros pasos
-- Usa esclusivamente il termine generico equivalente a "scarpe"
-
->>> QUALITÀ STRUTTURALI AMMESSE DELLA CALZATURA
-È CONSENTITO attribuire alla CALZATURA (non ai materiali) qualità strutturali generali,
-SOLO se deducibili dalle INFO ARTICOLO.
-
-Regole obbligatorie:
-- queste qualità devono riferirsi SEMPRE alla calzatura nel suo insieme
-- NON devono mai essere associate a un singolo materiale o componente
-- NON devono essere spiegate, giustificate o collegate a un beneficio d’uso
-- devono comparire preferibilmente nella frase di apertura
 
 >>> CONTROLLO FINALE
-Controlla attentamente che le descrizioni:
-- se il tipo di calzatura viene tradotto o riformulato, la descrizione va rigenerata
-- rispettino tutte le regole fornite (parole vietate, formato, tono, ecc.)
-- non contengano errori grammaticali, di concordanza o di traduzione in nessuna lingua
-- in italiano, controlla sempre il genere e il numero dei sostantivi (es. "questi sandali", non "queste sandali")
-- se trovi errori di grammatica, rigenera o correggi la frase **prima di fornire l'output finale**
-- se una frase non descrive una caratteristica fisica, costruttiva o verificabile della calzatura, rigenera o correggi la frase **prima di fornire l'output finale**
-- fornisci l'output finale **solo dopo** aver verificato che sia grammaticalmente e stilisticamente corretto in tutte le lingue
+- Evita parole astratte non autorizzate
+- Evita ripetizioni lessicali
+- Controlla grammatica e scorrevolezza
+- Fornisci l’output finale solo dopo verifica completa di tutte le regole/condizioni
 """
     return prompt
 
