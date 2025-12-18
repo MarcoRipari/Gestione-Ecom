@@ -1811,10 +1811,12 @@ elif page == "Descrizioni":
                                "shoe_fastener_zalando": "Chiusura",
                                "upper_material_zalando": "Tomaia",
                                "futter_zalando": "Fodera interna",
-                               "Sp.feature": "Caratteristica"
+                               "Sp.feature": "Caratteristica",
+                               "SKU famille": "Codice Articolo"
                               }
-            def_col_weights = {"Saison": 4,
-                               "Silouhette": 5,
+            def_col_weights = {"SKU famille": 5,
+                               "Saison": 4,
+                               "Silouhette": 4,
                                "sole_material_zalando": 3,
                                "shoe_fastener_zalando": 1,
                                "upper_material_zalando": 3,
