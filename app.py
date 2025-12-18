@@ -426,6 +426,7 @@ CONCEPT
   - fondo o suola
 - I materiali devono essere citati in modo chiaro e diretto
 - Gli aggettivi possono essere usati se comuni e descrittivi
+- Vietati: effetto usato, effetto vissuto, trattato, lavorato, lavato, spazzolato, vintage
 
 ### STRUTTURA CONSIGLIATA (NON RIGIDA) ###
 - Frase introduttiva
@@ -435,6 +436,11 @@ CONCEPT
 - Chiusura
 - Fodera e soletta
 - Fondo
+
+### NORMALIZZAZIONE TIPO DI CALZATURA ###
+- "first shoe" → SEMPRE reso come "scarpe"
+- Non usare derivati: prime scarpe, scarpa da primi passi, first shoes
+- Usare solo termine generico "scarpe"
 
 ### OUTPUT ###
 Genera due testi:
