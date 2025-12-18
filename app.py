@@ -445,11 +445,7 @@ Scrivi due descrizioni coerenti con le INFO ARTICOLO per una calzatura da vender
 
 ==============================
 >>> QUALITÀ STRUTTURALI
-- Consentito attribuire UNA SOLA qualità strutturale alla calzatura: solida, robusta, stabile
-- Massimo 1 qualità per descrizione, facoltativa
-- Non spiegare benefici d’uso
-- Preferibilmente in frase di apertura
-- Nota: per sandali evitare "robusta"; usare "stabile" o omettere
+- Non usare qualità strutturali
 
 ==============================
 >>> PAROLE DA EVITARE (ALTRI CASI)
