@@ -366,7 +366,8 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     for col in col_display_names:
         if col in row and pd.notna(row[col]):
             label = col_display_names[col]
-            fields.append(f"- {label}: {row[col]}")
+            if label != "Codice Articolo":
+                fields.append(f"- {label}: {row[col]}")
     product_info = "\n".join(fields)
 
     # Elenco lingue in stringa
@@ -387,6 +388,7 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
         if sim_lines:
             sim_text = "\nDescrizioni simili:\n" + "\n".join(sim_lines)
 
+    concept = row["Concept"]
     #incipit_seeds = ["Descrittivo", "Pratico", "Poetico"]
     incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
     # Prompt finale
@@ -2004,7 +2006,6 @@ elif page == "Descrizioni":
                                     caption = None
                             else:
                                 caption = None
-                            
                             prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
                             all_prompts.append(prompt)
             
