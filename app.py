@@ -442,7 +442,7 @@ Genera due testi:
 - desc_breve: {desc_breve_length} parole
 
 *** Formato JSON ***
-{"it":{"desc_lunga":"...","desc_breve":"..."}, "en":{...}, "fr":{...}, "de":{...}}
+{""it"":{""desc_lunga"":""..."",""desc_breve"":""...""}, ""en"":{...}, ""fr"":{...}, ""de"":{...}}
 
 ### DESCRIZIONI DI RIFERIMENTO ###
 {sim_text}
