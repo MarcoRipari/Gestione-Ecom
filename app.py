@@ -397,8 +397,19 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 Le descrizioni devono riprendere tono, struttura e naturalezza delle descrizioni catalogo tradizionali, con un linguaggio semplice, fluido e descrittivo.
 
 >>> FORMATO OUTPUT
-{{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
-**Rispondi solo con il JSON sopra, senza testo aggiuntivo**
+Regole:
+- Usa solo informazioni visibili nell'INFO ARTICOLO
+- Nessuna aggiunta o spiegazione
+- Rispetta tono e struttura di catalogo
+- Rispondi **solo con JSON valido**
+
+Formato JSON richiesto (usa il template completo):
+{{
+  "it": {{"desc_lunga": "Testo italiano lungo", "desc_breve": "Testo italiano breve"}},
+  "en": {{"desc_lunga": "Long text English", "desc_breve": "Short English"}},
+  "fr": {{"desc_lunga": "Texte français long", "desc_breve": "Court français"}},
+  "de": {{"desc_lunga": "Langer deutscher Text", "desc_breve": "Kurzer deutscher Text"}}
+}}
 
 ### INFO PRODOTTO ###
 {product_info}
