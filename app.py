@@ -402,14 +402,7 @@ Regole:
 - Nessuna aggiunta o spiegazione
 - Rispetta tono e struttura di catalogo
 - Rispondi **solo con JSON valido**
-
-Formato JSON richiesto (usa il template completo):
-{{
-  "it": {{"desc_lunga": "Testo italiano lungo", "desc_breve": "Testo italiano breve"}},
-  "en": {{"desc_lunga": "Long text English", "desc_breve": "Short English"}},
-  "fr": {{"desc_lunga": "Texte français long", "desc_breve": "Court français"}},
-  "de": {{"desc_lunga": "Langer deutscher Text", "desc_breve": "Kurzer deutscher Text"}}
-}}
+- Formato Output JSON: {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
 
 ### INFO PRODOTTO ###
 {product_info}
@@ -477,6 +470,7 @@ Il testo deve:
 - non contenere tecnicismi
 - non sembrare regolamentato o artificiale
 - descrivere solo ciò che è visibile o dichiarato
+- Se l'output non rispetta il formato JSON richiesto rigenera
 """
     return prompt
 
