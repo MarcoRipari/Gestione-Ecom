@@ -1798,7 +1798,8 @@ elif page == "Descrizioni":
             st.markdown("### 1. Seleziona colonne")
             available_cols = [col for col in df_input.columns if col not in ["Description", "Description2"]]
     
-            def_column = ["Saison", "Silouhette",
+            def_column = ["SKU famille", "Saison",
+                          "Silouhette",
                           "sole_material_zalando",
                           "shoe_fastener_zalando",
                           "upper_material_zalando",
