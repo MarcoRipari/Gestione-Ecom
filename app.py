@@ -427,6 +427,7 @@ CONCEPT
 - I materiali devono essere citati in modo chiaro e diretto
 - Gli aggettivi possono essere usati se comuni e descrittivi
 - Vietati: effetto usato, effetto vissuto, trattato, lavorato, lavato, spazzolato, vintage
+- Non inserire la stagionalità del prodotto (il riferimento può essere solo sui sandali)
 
 ### STRUTTURA CONSIGLIATA (NON RIGIDA) ###
 - Frase introduttiva
@@ -1856,9 +1857,9 @@ elif page == "Descrizioni":
                 use_simili = st.checkbox("Usa descrizioni simili (RAG)", value=True)
                 k_simili = 2 if use_simili else 0
                 
-                use_image = st.checkbox("Usa immagine per descrizioni accurate", value=True)
+                use_image = st.checkbox("Usa immagine per descrizioni accurate", value=False)
 
-                use_model = st.radio("Seleziona modello GPT", ["gpt-4o-mini", "gpt-4o", "gpt-5", "gpt-3.5-turbo", "gpt-4.1-nano", "gpt-5-nano", "mistral-medium", "deepseek-chimera"], index=0, horizontal = True)
+                use_model = st.radio("Seleziona modello GPT", ["gpt-4o-mini", "gpt-4o", "gpt-5", "gpt-3.5-turbo", "gpt-4.1-nano", "gpt-5-nano", "mistral-medium", "deepseek-chimera"], index=1, horizontal = True)
     
             with settings_col2:
                 selected_labels = st.multiselect(
