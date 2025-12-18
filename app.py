@@ -391,197 +391,101 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     concept = row["Concept"]
     #incipit_seeds = ["Descrittivo", "Pratico", "Poetico"]
     incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
-    # Prompt finale
-    prompt = f"""Scrivi due descrizioni coerenti con le INFO ARTICOLO per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
 
+    prompt = f"""
+Scrivi due descrizioni coerenti con le INFO ARTICOLO per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
+
+==============================
 >>> CONCEPT
 {concept}
+- Il Concept influenza il ritmo e l’impostazione narrativa della prima frase.
+- NON deve introdurre descrizioni di stile, abbigliamento o abbinamento.
+- NON deve mai essere citato esplicitamente.
 
-Il Concept può influenzare il ritmo e l’impostazione narrativa
-della prima frase, ma NON può introdurre descrizioni di stile,
-abbigliamento o abbinamento.
-NON deve mai essere citato esplicitamente nel testo.
-
->>> GUIDA STILE E LINGUAGGIO
+==============================
+>>> STILE E LINGUAGGIO
 - Stile di apertura: {random.choice(incipit_seeds)}, guidato dal Concept
 - Tono: {", ".join(selected_tones)}
 - Lingua: adatta al paese target
-- Mai usare: Codice, Nome, Marca, Colore
-- Non usare descrizioni di colore, finitura, effetto estetico o trattamento visivo
+- Linguaggio chiaro, quotidiano e naturale, comprensibile a genitori
+- Evita ripetizioni lessicali e termini tecnici non necessari
 - Descrivi materiali, componenti strutturali, costruzione e forma della calzatura
-- Utilizza esclusivamente il tipo di calzatura passato nelle info articoli
-- Non usare generi o età
-- Evita percentuali materiali
-- Evita linguaggio sensoriale
-- Evita frasi sulla facilità d’uso generica
-- Evita verbi che implicano promesse o benefici soggettivi
-- NON descrivere il comfort come sensazione percepita
-- Non usare alcuna formattazione Markdown nell’output
+- Evita sensazioni percepite, benefici soggettivi, promesse o facilità d’uso generica
+- Non usare generi, età, codice, nome, marca o colore
+- Non usare formattazione Markdown
 
->>> AGGETTIVI VALUTATIVI DA EVITARE
-È VIETATO usare aggettivi soggettivi o valutativi non verificabili, come:
-- elegante
-- raffinato
-- prezioso
-- ricercato
-- moderno
-- alla moda
-- accattivante
+==============================
+>>> AGGETTIVI E VALUTAZIONI
+- Consentiti solo aggettivi descrittivi riferiti alla calzatura nel suo insieme
+- Vietati aggettivi soggettivi/non verificabili: elegante, raffinato, prezioso, ricercato, moderno, alla moda, accattivante
+- Vietato associare aggettivi a materiali, componenti o dettagli
+- Vietata qualsiasi valutazione dei materiali (es. materiali di qualità, selezionati, pregiati)
 
-Usa solo aggettivi descrittivi e oggettivi.
+==============================
+>>> TRATTAMENTI ESTETICI E COLORI
+- Vietato descrivere trattamenti o effetti estetici: effetto usato, lavorato, lavato, vintage, ecc.
+- Ammessa solo indicazione del materiale nudo (es. "in pelle")
+- Evita aggettivi sui materiali (morbida, liscia, resistente, elegante)
+- Evita descrizioni di colore
 
->>> DIVIETO TRATTAMENTI ESTETICI (RAFFORZATO)
-È VIETATO descrivere qualsiasi trattamento, effetto o lavorazione estetica,
-anche se espresso in modo generico, come:
-- effetto usato
-- effetto vissuto
-- trattato
-- lavorato
-- lavato
-- spazzolato
-- vintage
+==============================
+>>> TERMINI AMMESSI SOLO SE CONCRETI
+- profilo, linea, costruzione, forma → solo se descrivono elementi visibili
+- Uso astratto non consentito → rigenerare frase
 
-È ammessa SOLO l’indicazione del materiale nudo (es. "in pelle").
-
->>> TERMINI AMMESSI SOLO SE DESCRIVONO UNA FORMA VISIBILE
-Parole come:
-- profilo
-- linea
-- costruzione
-- forma
-
-possono essere usate SOLO se accompagnate da una descrizione concreta e verificabile.
-Se usate da sole o in modo astratto, la frase va rigenerata.
-
+==============================
 >>> LESSICO CONSIGLIATO
-Preferisci parole semplici e quotidiane come:
-- modello
-- forma
-- linea
-- costruzione
-- versione
-- dettaglio
+- Parole semplici e quotidiane: modello, forma, linea, costruzione, versione, dettaglio
+- Evitare termini troppo tecnici o astratti
 
-Evita termini troppo tecnici o astratti.
+==============================
+>>> NORMALIZZAZIONE TIPO DI CALZATURA
+- "first shoe" → sempre "scarpe"
+- Vietato prime scarpe, scarpa da primi passi, first shoes
 
->>> LINGUAGGIO SEMPLIFICATO
-- Usa un linguaggio chiaro, quotidiano e naturale
-- Evita tecnicismi non necessari (es. assetto, struttura, configurazione)
-- Preferisci termini semplici e comprensibili a un pubblico di genitori
-- Evita la ripetizione della stessa parola chiave
+==============================
+>>> QUALITÀ STRUTTURALI
+- Consentito attribuire UNA SOLA qualità strutturale alla calzatura: solida, robusta, stabile
+- Massimo 1 qualità per descrizione, facoltativa
+- Non spiegare benefici d’uso
+- Preferibilmente in frase di apertura
+- Nota: per sandali evitare "robusta"; usare "stabile" o omettere
 
->>> PAROLE DA EVITARE (anche implicite)
-- velcro → usa "strappo"
-- velluto → usa "velour" o "suede"
+==============================
+>>> PAROLE DA EVITARE (ALTRI CASI)
+- velcro → usare "strappo"
+- velluto → usare "velour" o "suede"
 - primavera, estate, autunno, inverno (e derivati)
-- aggettivi sui materiali (es. morbida, liscia, resistente, elegante)
 
->>> NORMALIZZAZIONE TIPO DI CALZATURA (OBBLIGATORIO)
-- "first shoe" deve essere SEMPRE reso come "scarpe"
-- È vietato usare o derivare espressioni come:
-  prime scarpe, scarpa da primi passi, first shoes
-- Usa esclusivamente il termine generico "scarpe"
-
->>> QUALITÀ STRUTTURALI AMMESSE DELLA CALZATURA
-È CONSENTITO attribuire alla calzatura nel suo insieme UNA SOLA qualità strutturale,
-scelta tra:
-- solida
-- robusta
-- stabile
-
-Regole:
-- usare al massimo UNA qualità per descrizione
-- è FACOLTATIVO usarla
-- NON usare più qualità nella stessa descrizione
-- Le qualità devono riferirsi alla calzatura, non ai materiali
-- Non devono essere spiegate o collegate a benefici d’uso
-- Preferibilmente inserite nella frase di apertura
-
->>> DIVIETO DI VALUTAZIONE DEI MATERIALI
-È VIETATO attribuire giudizi di valore ai materiali, direttamente o indirettamente.
-
-Sono vietate espressioni come:
-- materiali di qualità
-- qualità dei materiali
-- materiali selezionati
-- materiali pregiati
-
-I materiali devono essere solo elencati, non valutati.
-
->>> NOTA PER SANDALI
-Per i sandali, evita di usare qualità come "robusta".
-Se usi una qualità strutturale, preferisci "stabile" oppure omettila.
-
->>> ATTRIBUZIONE DEGLI AGGETTIVI (REGOLA FONDAMENTALE)
-
-- Gli aggettivi descrittivi o valutativi sono AMMESSI
-  SOLO se riferiti alla calzatura nel suo insieme.
-
-- È VIETATO associare aggettivi a:
-  - materiali (es. pelle di qualità, pelle elegante)
-  - componenti (es. suola stabile, fodera confortevole)
-  - singoli dettagli costruttivi
-
-Esempi:
-❌ "tomaia in pelle elegante"
-❌ "pelle di qualità"
-❌ "soletta per un buon supporto"
-
-✅ "scarpe dall’aspetto curato"
-✅ "modello solido e ben definito"
-
->>> AGGETTIVI CONSENTITI E LIMITI
-
-Sono consentiti aggettivi che descrivono la calzatura nel suo insieme,
-a condizione che:
-
-- non descrivano sensazioni, benefici o prestazioni
-- non introducano giudizi comparativi o promozionali
-- non siano collegati a un materiale specifico
-
-Sono vietati aggettivi che:
-- qualificano un materiale o un componente
-- implicano qualità non verificabili
-- suggeriscono uno stile, un utilizzo o un abbinamento
-
+==============================
 >>> REGOLE OUTPUT
-- Genera due descrizioni:
+- Generare due descrizioni:
   - desc_lunga: {desc_lunga_length} parole
-  - desc_breve: {desc_breve_length} parole → adatta a social media o schede prodotto rapide
-- desc_lunga deve seguire questa struttura:
-  1. Incipit descrittivo coerente con il Concept
+  - desc_breve: {desc_breve_length} parole (social media o schede rapide)
+- Struttura desc_lunga:
+  1. Incipit descrittivo coerente con Concept
   2. Costruzione o forma del modello
   3. Tomaia
   4. Fodera e soletta
   5. Chiusura e fondo
 - Output JSON: {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
 
+==============================
 >>> INFO ARTICOLO
 {product_info}
 {image_line}
 {sim_text}
 
->>> CONTROLLO FINALE
-- Evita parole astratte non autorizzate
-- Evita ripetizioni lessicali
-- Controlla grammatica e scorrevolezza
-- Fornisci l’output finale solo dopo verifica completa di tutte le regole/condizioni
-
->>> TEST DI VALIDAZIONE OBBLIGATORIO
-Prima dell’output finale, verifica ogni frase:
-- se risponde a "come si indossa?" → rigenera
-- se risponde a "perché è meglio?" → rigenera
-- se risponde a "che sensazione dà?" → rigenera
-- se non descrive qualcosa di fisico → rigenera
-
->>> REGOLA DI RISCRITTURA AUTOMATICA
-Se una frase:
-- può essere semplificata rimuovendo aggettivi o verbi
-  senza perdere informazioni fisiche
-- contiene concetti astratti non visibili
-- valuta materiali o costruzione
-
-allora va riscritta in forma descrittiva neutra.
+==============================
+>>> CONTROLLO FINALE E VALIDAZIONE
+- Evitare parole astratte non autorizzate
+- Evitare ripetizioni lessicali
+- Controllare grammatica e scorrevolezza
+- Verificare che ogni frase descriva solo elementi fisici:
+  - Se risponde a "come si indossa?" → rigenera
+  - Se risponde a "perché è meglio?" → rigenera
+  - Se risponde a "che sensazione dà?" → rigenera
+- Applicare riscrittura automatica per frasi astratte o che valutano materiali
 """
     return prompt
 
