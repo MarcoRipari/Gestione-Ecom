@@ -392,96 +392,72 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     #incipit_seeds = ["Descrittivo", "Pratico", "Poetico"]
     incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
 
-    prompt = f"""
-Scrivi due descrizioni coerenti con le INFO ARTICOLO per una calzatura da vendere online (e-commerce) in ciascuna delle seguenti lingue: {lang_list}.
+    prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
 
-==============================
->>> CONCEPT
-{concept}
-- Il Concept influenza il ritmo e l’impostazione narrativa della prima frase.
-- NON deve introdurre descrizioni di stile, abbigliamento o abbinamento.
-- NON deve mai essere citato esplicitamente.
+Le descrizioni devono riprendere tono, struttura e naturalezza delle descrizioni catalogo tradizionali, con un linguaggio semplice, fluido e descrittivo.
 
-==============================
->>> STILE E LINGUAGGIO
-- Stile di apertura: {random.choice(incipit_seeds)}, guidato dal Concept
-- Tono: {", ".join(selected_tones)}
-- Lingua: adatta al paese target
-- Linguaggio chiaro, quotidiano e naturale, comprensibile a genitori
-- Evita ripetizioni lessicali e termini tecnici non necessari
-- Descrivi materiali, componenti strutturali, costruzione e forma della calzatura
-- Evita sensazioni percepite, benefici soggettivi, promesse o facilità d’uso generica
-- Non usare generi, età, codice, nome, marca o colore
-- Non usare formattazione Markdown
-
-==============================
->>> AGGETTIVI E VALUTAZIONI
-- Consentiti solo aggettivi descrittivi riferiti alla calzatura nel suo insieme
-- Vietati aggettivi soggettivi/non verificabili: elegante, raffinato, prezioso, ricercato, moderno, alla moda, accattivante
-- Vietato associare aggettivi a materiali, componenti o dettagli
-- Vietata qualsiasi valutazione dei materiali (es. materiali di qualità, selezionati, pregiati)
-
-==============================
->>> TRATTAMENTI ESTETICI E COLORI
-- Vietato descrivere trattamenti o effetti estetici: effetto usato, lavorato, lavato, vintage, ecc.
-- Ammessa solo indicazione del materiale nudo (es. "in pelle")
-- Evita aggettivi sui materiali (morbida, liscia, resistente, elegante)
-- Evita descrizioni di colore
-
-==============================
->>> TERMINI AMMESSI SOLO SE CONCRETI
-- profilo, linea, costruzione, forma → solo se descrivono elementi visibili
-- Uso astratto non consentito → rigenerare frase
-
-==============================
->>> LESSICO CONSIGLIATO
-- Parole semplici e quotidiane: modello, forma, linea, costruzione, versione, dettaglio
-- Evitare termini troppo tecnici o astratti
-
-==============================
->>> NORMALIZZAZIONE TIPO DI CALZATURA
-- "first shoe" → sempre "scarpe"
-- Vietato prime scarpe, scarpa da primi passi, first shoes
-
-==============================
->>> QUALITÀ STRUTTURALI
-- Non usare qualità strutturali
-
-==============================
->>> PAROLE DA EVITARE (ALTRI CASI)
-- velcro → usare "strappo"
-- velluto → usare "velour" o "suede"
-- primavera, estate, autunno, inverno (e derivati)
-
-==============================
->>> REGOLE OUTPUT
-- Generare due descrizioni:
-  - desc_lunga: {desc_lunga_length} parole
-  - desc_breve: {desc_breve_length} parole (social media o schede rapide)
-- Struttura desc_lunga:
-  1. Incipit descrittivo coerente con Concept
-  2. Costruzione o forma del modello
-  3. Tomaia
-  4. Fodera e soletta
-  5. Chiusura e fondo
-- Output JSON: {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
-
-==============================
->>> INFO ARTICOLO
+### INFO PRODOTTO ###
 {product_info}
 {image_line}
+CONCEPT
+{concept}
+
+*** Regole del concept ***
+- può ispirare l’apertura del testo
+- non deve essere citato
+- non deve introdurre abbinamenti o stili di abbigliamento
+
+### STILE ###
+- Apertura: {random.choice(incipit_seeds)}
+- Tono: {", ".join(selected_tones)}
+- Linguaggio naturale, editoriale
+- Frasi complete e scorrevoli
+- Nessuna formattazione
+
+### CONTENUTO ###
+- Usa esclusivamente le informazioni presenti nelle INFO ARTICOLO
+- Usa il tipo di calzatura fornito
+- Descrivi:
+  - forma o costruzione
+  - tomaia
+  - eventuali dettagli visibili
+  - chiusura
+  - fodera e soletta
+  - fondo o suola
+- I materiali devono essere citati in modo chiaro e diretto
+- Gli aggettivi possono essere usati se comuni e descrittivi
+
+### STRUTTURA CONSIGLIATA (NON RIGIDA) ###
+- Frase introduttiva
+- Descrizione del modello
+- Tomaia
+- Dettagli
+- Chiusura
+- Fodera e soletta
+- Fondo
+
+### OUTPUT ###
+Genera due testi:
+- desc_lunga: {desc_lunga_length} parole
+- desc_breve: {desc_breve_length} parole
+
+*** Formato JSON ***
+{"it":{"desc_lunga":"...","desc_breve":"..."}, "en":{...}, "fr":{...}, "de":{...}}
+
+### DESCRIZIONI DI RIFERIMENTO ###
 {sim_text}
 
-==============================
->>> CONTROLLO FINALE E VALIDAZIONE
-- Evitare parole astratte non autorizzate
-- Evitare ripetizioni lessicali
-- Controllare grammatica e scorrevolezza
-- Verificare che ogni frase descriva solo elementi fisici:
-  - Se risponde a "come si indossa?" → rigenera
-  - Se risponde a "perché è meglio?" → rigenera
-  - Se risponde a "che sensazione dà?" → rigenera
-- Applicare riscrittura automatica per frasi astratte o che valutano materiali
+*** Uso delle descrizioni di riferimento ***
+- tono
+- ritmo
+- ordine narrativo
+
+### CONTROLLO FINALE ###
+Il testo deve:
+- sembrare scritto da un redattore catalogo
+- non contenere tecnicismi
+- non sembrare regolamentato o artificiale
+- descrivere solo ciò che è visibile o dichiarato
 """
     return prompt
 
