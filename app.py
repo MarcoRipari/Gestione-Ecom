@@ -474,6 +474,7 @@ Evita termini troppo tecnici o astratti.
 - velcro → usa "strappo"
 - velluto → usa "velour" o "suede"
 - primavera, estate, autunno, inverno (e derivati)
+- aggettivi sui materiali (es. morbida, liscia, resistente, elegante)
 
 >>> NORMALIZZAZIONE TIPO DI CALZATURA (OBBLIGATORIO)
 - "first shoe" deve essere SEMPRE reso come "scarpe"
