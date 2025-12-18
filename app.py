@@ -397,8 +397,9 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 >>> CONCEPT
 {concept}
 
-Il Concept deve influenzare SOLO la prima frase della descrizione lunga.
-Non deve influenzare le frasi successive.
+Il Concept può influenzare il ritmo e l’impostazione narrativa
+della prima frase, ma NON può introdurre descrizioni di stile,
+abbigliamento o abbinamento.
 NON deve mai essere citato esplicitamente nel testo.
 
 >>> GUIDA STILE E LINGUAGGIO
@@ -428,6 +429,17 @@ NON deve mai essere citato esplicitamente nel testo.
 - accattivante
 
 Usa solo aggettivi descrittivi e oggettivi.
+
+
+>>> TERMINI AMMESSI SOLO SE DESCRIVONO UNA FORMA VISIBILE
+Parole come:
+- profilo
+- linea
+- costruzione
+- forma
+
+possono essere usate SOLO se accompagnate da una descrizione concreta e verificabile.
+Se usate da sole o in modo astratto, la frase va rigenerata.
 
 >>> LESSICO CONSIGLIATO
 Preferisci parole semplici e quotidiane come:
@@ -476,6 +488,38 @@ Regole:
 Per i sandali, evita di usare qualità come "robusta".
 Se usi una qualità strutturale, preferisci "stabile" oppure omettila.
 
+>>> ATTRIBUZIONE DEGLI AGGETTIVI (REGOLA FONDAMENTALE)
+
+- Gli aggettivi descrittivi o valutativi sono AMMESSI
+  SOLO se riferiti alla calzatura nel suo insieme.
+
+- È VIETATO associare aggettivi a:
+  - materiali (es. pelle di qualità, pelle elegante)
+  - componenti (es. suola stabile, fodera confortevole)
+  - singoli dettagli costruttivi
+
+Esempi:
+❌ "tomaia in pelle elegante"
+❌ "pelle di qualità"
+❌ "soletta per un buon supporto"
+
+✅ "scarpe dall’aspetto curato"
+✅ "modello solido e ben definito"
+
+>>> AGGETTIVI CONSENTITI E LIMITI
+
+Sono consentiti aggettivi che descrivono la calzatura nel suo insieme,
+a condizione che:
+
+- non descrivano sensazioni, benefici o prestazioni
+- non introducano giudizi comparativi o promozionali
+- non siano collegati a un materiale specifico
+
+Sono vietati aggettivi che:
+- qualificano un materiale o un componente
+- implicano qualità non verificabili
+- suggeriscono uno stile, un utilizzo o un abbinamento
+
 >>> REGOLE OUTPUT
 - Genera due descrizioni:
   - desc_lunga: {desc_lunga_length} parole
@@ -498,6 +542,13 @@ Se usi una qualità strutturale, preferisci "stabile" oppure omettila.
 - Evita ripetizioni lessicali
 - Controlla grammatica e scorrevolezza
 - Fornisci l’output finale solo dopo verifica completa di tutte le regole/condizioni
+
+>>> TEST DI VALIDAZIONE OBBLIGATORIO
+Prima dell’output finale, verifica ogni frase:
+- se risponde a "come si indossa?" → rigenera
+- se risponde a "perché è meglio?" → rigenera
+- se risponde a "che sensazione dà?" → rigenera
+- se non descrive qualcosa di fisico → rigenera
 """
     return prompt
 
