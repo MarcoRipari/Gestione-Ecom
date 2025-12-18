@@ -396,6 +396,10 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 
 Le descrizioni devono riprendere tono, struttura e naturalezza delle descrizioni catalogo tradizionali, con un linguaggio semplice, fluido e descrittivo.
 
+>>> FORMATO OUTPUT
+{{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
+**Rispondi solo con il JSON sopra, senza testo aggiuntivo**
+
 ### INFO PRODOTTO ###
 {product_info}
 {image_line}
@@ -447,8 +451,6 @@ CONCEPT
 Genera due testi:
 - desc_lunga: {desc_lunga_length} parole
 - desc_breve: {desc_breve_length} parole
-- Output JSON: {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
-**Rispondi solo con il JSON sopra, senza testo aggiuntivo**
 
 ### DESCRIZIONI DI RIFERIMENTO ###
 {sim_text}
