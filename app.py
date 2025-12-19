@@ -417,11 +417,7 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
 
     if row["Description"].strip() != "" and row["Description2"].strip() != "":
-        prompt = f"""Traduci queste descrizioni nelle seguenti lingue: {lang_list}.
-desc_lunga: {row["Description"]}
-desc_breve: {row["Description2"]}
-La lingua fornita è IT.
-        """
+        prompt = "SaltaRiga"
     else:
         prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
 
@@ -549,7 +545,22 @@ async def async_generate_description(prompt: str, idx: int, use_model: str, lang
     temperature = random.uniform(0.9, 1.2)
     presence_penalty = random.uniform(0.4, 0.8)
     functions = build_function_schema(lang)
-    
+
+    if prompt == "SaltaRiga":
+        continuativo = {}
+        for lang in selected_langs:
+            continuativo[lang] = {
+                "desc_lunga": "Continuativo",
+                "desc_breve": "Continuativo"}
+            }
+        return idx, {
+            "result": continuativo,
+            "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0}
+        }
+        
     if len(prompt) < 50:
         return idx, {
             "result": prompt,
