@@ -417,8 +417,6 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
 
     if pd.notna(row["Description"]) and pd.notna(row["Description2"]):
-        logging.info(row["Description"])
-        logging.info(row["Description2"])
         prompt = "SaltaRiga"
     else:
         prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
@@ -2072,7 +2070,7 @@ elif page == "Descrizioni":
                     
                     for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
                         result = results.get(i, {})
-                        logging.info(result)
+
                         if "Continuativo" in result:
                             continue
                             
