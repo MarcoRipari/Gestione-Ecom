@@ -547,12 +547,6 @@ async def async_generate_description(prompt: str, idx: int, use_model: str, lang
     functions = build_function_schema(lang)
 
     if prompt == "SaltaRiga":
-        continuativo = {}
-        for lang in selected_langs:
-            continuativo[lang] = {
-                "desc_lunga": "Continuativo",
-                "desc_breve": "Continuativo"
-            }
         return idx, {
             "result": continuativo,
             "usage": {
@@ -560,6 +554,13 @@ async def async_generate_description(prompt: str, idx: int, use_model: str, lang
                 "completion_tokens": 0,
                 "total_tokens": 0}
         }
+        return idx, {"Continuativo": "Si",
+                    "usage": {
+                        "prompt_tokens": 0,
+                        "completion_tokens": 0,
+                        "total_tokens": 0
+                    }
+            }
         
     if len(prompt) < 50:
         return idx, {
@@ -2081,9 +2082,8 @@ elif page == "Descrizioni":
                             })
                             continue
 
-                        logging.info("RESULT RAW:", result)
-                        logging.info("RESULT.RESULT:", result.get("result"))
-                        logging.info("SELECTED_LANGS:", selected_langs)
+                        if "Continuativo" in result:
+                            continue
                         
                         sku_generate_lista = []
                         result_data = result.get("result", {})
@@ -2098,8 +2098,6 @@ elif page == "Descrizioni":
                             output_row["Description2"] = descr_breve
                             all_outputs[lang].append(output_row)
                             prefix_to_output[lang][prefix] = output_row
-                            logging.info("LANG DATA:", result.get("result", {}).get(lang.lower()))
-                            logging.info(lang_data)
             
                         log_entry = {
                             "utente": st.session_state.user["username"],
