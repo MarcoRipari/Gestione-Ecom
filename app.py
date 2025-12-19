@@ -11,6 +11,7 @@ import os
 from io import BytesIO
 import zipfile
 import chardet
+import csv
 import hashlib
 import pickle
 from sentence_transformers import SentenceTransformer
@@ -893,11 +894,21 @@ def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
     result = chardet.detect(raw_data)
     encoding = result['encoding'] or 'utf-8'
+    
+    text_data = raw_data.decode(encoding, errors='replace')
+    sniffer = csv.Sniffer()
+    try:
+        dialect = sniffer.sniff(text_data[:4096], delimiters=";,|\t")
+        separator = dialect.delimiter
+    except csv.Error:
+        separator = ','  # fallback
+        
     uploaded_file.seek(0)  # Rewind after read
-    if separatore:
-        return pd.read_csv(uploaded_file, sep=separatore, encoding=encoding, dtype=str)
-    else:
-        return pd.read_csv(uploaded_file, encoding=encoding, dtype=str)
+    return pd.read_csv(uploaded_file, sep=separator, encoding=encoding, dtype=str)
+    #if separatore:
+    #    return pd.read_csv(uploaded_file, sep=separator, encoding=encoding, dtype=str)
+    #else:
+    #    return pd.read_csv(uploaded_file, encoding=encoding, dtype=str)
 
 def not_in_array(array, list):
     missing = not all(col in array for col in list)
