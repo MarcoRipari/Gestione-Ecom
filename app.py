@@ -1825,6 +1825,7 @@ elif page == "Descrizioni":
     
     if uploaded:
         df_input = read_csv_auto_encoding(uploaded, ";")
+        df_input["skucolore"] = df_input["skucolore"].astype(str)
         st.session_state["df_input"] = df_input
          # ✅ Inizializza variabili di stato se non esistono
         if "col_weights" not in st.session_state:
@@ -2148,6 +2149,7 @@ elif page == "Descrizioni":
                         try:
                             for lang in selected_langs:
                                 df_out = pd.DataFrame(all_outputs[lang])
+                                
                                 #df_new = df_out[df_out["SKU"].isin(df_input_to_generate["SKU"].astype(str))]
                                 # Recupera gli SKU già presenti nello sheet
                                 try:
