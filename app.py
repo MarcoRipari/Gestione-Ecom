@@ -458,6 +458,20 @@ CONCEPT
 - Vietati: effetto usato, effetto vissuto, trattato, lavorato, lavato, spazzolato, vintage
 - Non inserire la stagionalità del prodotto (il riferimento può essere solo sui sandali)
 
+### TERMINI VIETATI (NON DEVONO MAI COMPARIRE) ###
+È vietato usare, anche in forma simile, parafrasata o con sinonimi diretti, i seguenti concetti o formulazioni:
+
+- piedi freschi
+- traspirazione / traspirante / traspirabilità
+- respiro al piede / lascia respirare il piede
+- tomaia sofisticata
+- vellutato velour / velour vellutato
+- indossamento eccellente / indossabilità eccellente
+- aspetto distintivo
+- durabilità
+
+Se un concetto non è descrivibile senza usare uno dei termini vietati, deve essere **omesso**.
+
 ### STRUTTURA CONSIGLIATA (NON RIGIDA) ###
 - Frase introduttiva
 - Descrizione del modello
@@ -468,8 +482,8 @@ CONCEPT
 - Fondo
 
 ### NORMALIZZAZIONE TIPO DI CALZATURA ###
-- "first shoe" → SEMPRE reso come "scarpe"
-- Non usare derivati: prime scarpe, scarpa da primi passi, first shoes
+- "first shoe", "first shoes" → SEMPRE trasformato in "scarpe"
+- Non usare derivati: prime scarpe, scarpa da primi passi, first shoes, first shoe
 - Usare solo termine generico "scarpe"
 
 ### OUTPUT ###
