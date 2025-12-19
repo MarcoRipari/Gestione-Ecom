@@ -360,6 +360,31 @@ def get_blip_caption_new(image_url: str) -> str:
 # ---------------------------
 # 🧠 Prompting e Generazione
 # ---------------------------
+def build_function_schema(selected_langs):
+    lang_block = {}
+
+    for lang in selected_langs:
+        lang_block[lang] = {
+            "type": "object",
+            "properties": {
+                "desc_lunga": {"type": "string"},
+                "desc_breve": {"type": "string"}
+            },
+            "required": ["desc_lunga", "desc_breve"]
+        }
+
+    return [
+        {
+            "name": "generate_product_descriptions",
+            "description": "Genera descrizioni prodotto per una calzatura e-commerce",
+            "parameters": {
+                "type": "object",
+                "properties": lang_block,
+                "required": selected_langs
+            }
+        }
+    ]
+    
 def build_unified_prompt(row, col_display_names, selected_langs, image_caption=None, simili=None):
     # Costruzione scheda tecnica
     fields = []
@@ -523,9 +548,10 @@ async def rate_limiter():
     request_times.append(time.time())
 
 
-async def async_generate_description(prompt: str, idx: int, use_model: str):
+async def async_generate_description(prompt: str, idx: int, use_model: str, lang):
     temperature = random.uniform(0.9, 1.2)
     presence_penalty = random.uniform(0.4, 0.8)
+    functions = build_function_schema(lang)
     
     if len(prompt) < 50:
         return idx, {
@@ -544,12 +570,18 @@ async def async_generate_description(prompt: str, idx: int, use_model: str):
             top_p=0.95,
             frequency_penalty=0.4,
             presence_penalty=presence_penalty,
-            max_tokens=3000
+            max_tokens=3000,
+            functions=functions,
+            function_call={"name": "generate_product_descriptions"},
         )
         
         content = response.choices[0].message.content
+        message = response.choices[0].message
         usage = response.usage
-        data = json.loads(content)
+
+        if message.function_call:
+            data = json.loads(message.function_call.arguments)
+            
         return idx, {"result": data, "usage": usage.model_dump()}
     except Exception as e:
         return idx, {"error": str(e)}
@@ -675,8 +707,8 @@ async def async_generate_description_mistral(
             
 
 
-async def generate_all_prompts(prompts: list[str], model: str) -> dict:
-    tasks = [async_generate_description(prompt, idx, model) for idx, prompt in enumerate(prompts)]
+async def generate_all_prompts(prompts: list[str], model: str, langs) -> dict:
+    tasks = [async_generate_description(prompt, idx, model, langs) for idx, prompt in enumerate(prompts)]
     results = await asyncio.gather(*tasks)
     return dict(results)
 
@@ -2020,7 +2052,7 @@ elif page == "Descrizioni":
                         elif use_model == "deepseek-chimera":
                             results = asyncio.run(generate_all_prompts_deepseek(all_prompts, use_model))
                         else:
-                            results = asyncio.run(generate_all_prompts(all_prompts, use_model))
+                            results = asyncio.run(generate_all_prompts(all_prompts, use_model, selected_langs))
                     
                     # Parsing risultati
                     all_outputs = already_generated.copy()
