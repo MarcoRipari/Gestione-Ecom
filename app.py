@@ -418,6 +418,8 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 
     if row["Description"].strip() != "" and row["Description2"].strip() != "":
         prompt = f"""Traduci queste descrizioni nelle seguenti lingue: {lang_list}.
+desc_lunga: {row["Description"]}
+desc_breve: {row["Description2"]}
 La lingua fornita è IT.
         """
     else:
