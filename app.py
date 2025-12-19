@@ -482,7 +482,6 @@ Se un concetto non è descrivibile senza usare uno dei termini vietati, deve ess
 
 ### NORMALIZZAZIONE TIPO DI CALZATURA ###
 - "first shoe", "first shoes" → SEMPRE trasformato in "scarpe"
-- "special case slippers" → SEMPRE trasformato in "pantofole"
 - Non usare derivati: prime scarpe, scarpa da primi passi, first shoes, first shoe
 - Usare solo termine generico "scarpe"
 
