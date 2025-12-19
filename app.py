@@ -2079,7 +2079,7 @@ elif page == "Descrizioni":
                             all_outputs[lang].append(output_row)
                             prefix_to_output[lang][prefix] = output_row
                             logging.info("LANG DATA:", result.get("result", {}).get(lang.lower()))
-                            loggin.info(lang_data)
+                            logging.info(lang_data)
             
                         log_entry = {
                             "utente": st.session_state.user["username"],
