@@ -2073,6 +2073,10 @@ elif page == "Descrizioni":
                             })
                             continue
 
+                        logging.info("RESULT RAW:", result)
+                        logging.info("RESULT.RESULT:", result.get("result"))
+                        logging.info("SELECTED_LANGS:", selected_langs)
+                        
                         sku_generate_lista = []
                         for lang in selected_langs:
                             output_row = row.to_dict()
@@ -2083,6 +2087,8 @@ elif page == "Descrizioni":
                             output_row["Description2"] = descr_breve
                             all_outputs[lang].append(output_row)
                             prefix_to_output[lang][prefix] = output_row
+                            logging.info("LANG DATA:", result.get("result", {}).get(lang.lower()))
+                            loggin.info(lang_data)
             
                         log_entry = {
                             "utente": st.session_state.user["username"],
