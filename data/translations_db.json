@@ -1839,5 +1839,292 @@
     "fr": "Rose Sauge-Pêche",
     "de": "Salbei-Pfirsich-Rose",
     "es": "Rosa salvia-melocotón"
+  },
+  {
+    "it": "Sandali in suede con stelle",
+    "en": "Suede sandals with stars",
+    "fr": "Sandales en daim avec étoiles",
+    "de": "Wildledersandalen mit Sternen",
+    "es": "Sandalias de ante con estrellas."
+  },
+  {
+    "it": "Sandali in pelle con stella",
+    "en": "Leather sandals with star",
+    "fr": "Sandales en cuir avec étoile",
+    "de": "Ledersandalen mit Stern",
+    "es": "Sandalias de piel con estrella."
+  },
+  {
+    "it": "Sandali in pelle con fiori",
+    "en": "Leather sandals with flowers",
+    "fr": "Sandales en cuir à fleurs",
+    "de": "Ledersandalen mit Blumen",
+    "es": "Sandalias de piel con flores."
+  },
+  {
+    "it": "Sandali in pelle con fiori applicati",
+    "en": "Leather sandals with flowers",
+    "fr": "Sandales en cuir avec fleurs appliquées",
+    "de": "Ledersandalen mit applizierten Blumen",
+    "es": "Sandalias de piel con flores aplicadas."
+  },
+  {
+    "it": "Sandali in velour",
+    "en": "Velor sandals",
+    "fr": "Sandales en velours",
+    "de": "Sandalen aus Velours",
+    "es": "Sandalias de terciopelo"
+  },
+  {
+    "it": "Sandalo in pelle con fiocco",
+    "en": "Leather sandal with bow",
+    "fr": "Sandale en cuir avec noeud",
+    "de": "Ledersandale mit Schleife",
+    "es": "Sandalia de piel con lazo"
+  },
+  {
+    "it": "Sandali in pelle e velour con fiori applicati",
+    "en": "Leather and velor sandals with applied flowers",
+    "fr": "Sandales en cuir et velours avec fleurs appliquées",
+    "de": "Sandalen aus Leder und Velours mit applizierten Blumen",
+    "es": "Sandalias de piel y velour con flores aplicadas."
+  },
+  {
+    "it": "Sandali in pelle con strass",
+    "en": "Leather sandals with rhinestones",
+    "fr": "Sandales en cuir avec strass",
+    "de": "Ledersandalen mit Strasssteinen",
+    "es": "Sandalias de piel con pedrería."
+  },
+  {
+    "it": "Sandali in pelle con farfalle applicate",
+    "en": "Leather sandals with applied butterflies",
+    "fr": "Sandales en cuir avec papillons appliqués",
+    "de": "Ledersandalen mit applizierten Schmetterlingen",
+    "es": "Sandalias de piel con mariposas aplicadas."
+  },
+  {
+    "it": "Sandali in pelle con stampa farfalle",
+    "en": "Leather sandals with butterfly print",
+    "fr": "Sandales en cuir à imprimé papillons",
+    "de": "Ledersandalen mit Schmetterlingsprint",
+    "es": "Sandalias de piel con estampado de mariposas."
+  },
+  {
+    "it": "Sandali in pelle e tessuto",
+    "en": "Leather and fabric sandals",
+    "fr": "Sandales en cuir et tissu",
+    "de": "Sandalen aus Leder und Stoff",
+    "es": "Sandalias de piel y tela."
+  },
+  {
+    "it": "Sneakers in pelle e tessuto con glitter",
+    "en": "Sneakers in leather and fabric with glitter",
+    "fr": "Baskets en cuir et tissu à paillettes",
+    "de": "Sneakers aus Leder und Stoff mit Glitzer",
+    "es": "Zapatillas deportivas de piel y tejido con purpurina."
+  },
+  {
+    "it": "Sneakers in pelle e tessuto con fiori applicati",
+    "en": "Leather and fabric sneakers with applied flowers",
+    "fr": "Baskets en cuir et tissu avec fleurs appliquées",
+    "de": "Sneakers aus Leder und Stoff mit applizierten Blumen",
+    "es": "Deportivas de piel y tela con flores aplicadas"
+  },
+  {
+    "it": "Salvia-Rosa-Lilla",
+    "en": "Sage-Pink-Lilac",
+    "fr": "Sauge-Rose-Lilas",
+    "de": "Salbei-Rosa-Flieder",
+    "es": "salvia-rosa-lila"
+  },
+  {
+    "it": "Platino-Beige",
+    "en": "Platinum-Beige",
+    "fr": "Platine-Beige",
+    "de": "Platin-Beige",
+    "es": "Platino-Beige"
+  },
+  {
+    "it": "Azzurro-Giallo",
+    "en": "Light blue-Yellow",
+    "fr": "Bleu clair-Jaune",
+    "de": "Hellblau-Gelb",
+    "es": "Azul claro-amarillo"
+  },
+  {
+    "it": "Navy-Verde",
+    "en": "Navy-Green",
+    "fr": "Marine-Vert",
+    "de": "Marinegrün",
+    "es": "Azul marino-verde"
+  },
+  {
+    "it": "Bianco-Nero",
+    "en": "White-Black",
+    "fr": "Blanc-Noir",
+    "de": "Weiß-Schwarz",
+    "es": "Blanco-Negro"
+  },
+  {
+    "it": "Navy-Bianco",
+    "en": "Navy-White",
+    "fr": "Marine-Blanc",
+    "de": "Marine-Weiß",
+    "es": "Azul Marino-Blanco"
+  },
+  {
+    "it": "Navy-Verde-Arancione",
+    "en": "Navy-Green-Orange",
+    "fr": "Marine-Vert-Orange",
+    "de": "Marineblau-Grün-Orange",
+    "es": "Azul Marino-Verde-Naranja"
+  },
+  {
+    "it": "Navy-Azzurro",
+    "en": "Navy-Blue",
+    "fr": "Bleu marine",
+    "de": "Marineblau",
+    "es": "Azul marino"
+  },
+  {
+    "it": "Platino-Bianco",
+    "en": "Platinum-White",
+    "fr": "Platine-Blanc",
+    "de": "Platin-Weiß",
+    "es": "Platino-Blanco"
+  },
+  {
+    "it": "Rosa-Arancione",
+    "en": "Pink-Orange",
+    "fr": "Rose-Orange",
+    "de": "Rosa-Orange",
+    "es": "Rosa-Naranja"
+  },
+  {
+    "it": "Bianco-Grigio-Azzurro",
+    "en": "White-Grey-Light Blue",
+    "fr": "Blanc-Gris-Bleu clair",
+    "de": "Weiß-Grau-Hellblau",
+    "es": "Blanco-Gris-Azul Claro"
+  },
+  {
+    "it": "Grigio-Azzurro-Militare",
+    "en": "Grey-Light Blue-Military",
+    "fr": "Gris-Bleu clair-Militaire",
+    "de": "Grau-Hellblau-Militär",
+    "es": "Gris-Azul Claro-Militar"
+  },
+  {
+    "it": "Grigio-Arancione-Verde",
+    "en": "Grey-Orange-Green",
+    "fr": "Gris-Orange-Vert",
+    "de": "Grau-Orange-Grün",
+    "es": "Gris-Naranja-Verde"
+  },
+  {
+    "it": "Bianco-Rosa-Platino",
+    "en": "White-Pink-Platinum",
+    "fr": "Blanc-Rose-Platine",
+    "de": "Weiß-Pink-Platin",
+    "es": "Blanco-Rosa-Platino"
+  },
+  {
+    "it": "Verde salvia",
+    "en": "Sage green",
+    "fr": "Vert sauge",
+    "de": "Salbeigrün",
+    "es": "verde salvia"
+  },
+  {
+    "it": "Bianco latte",
+    "en": "Milky white",
+    "fr": "Blanc laiteux",
+    "de": "Milchig weiß",
+    "es": "blanco lechoso"
+  },
+  {
+    "it": "Verde-Bianco",
+    "en": "Green-White",
+    "fr": "Vert-Blanc",
+    "de": "Grün-Weiß",
+    "es": "Verde-Blanco"
+  },
+  {
+    "it": "Blu-Bianco-Azzurro",
+    "en": "Blue-White-Light Blue",
+    "fr": "Bleu-Blanc-Bleu clair",
+    "de": "Blau-Weiß-Hellblau",
+    "es": "Azul-Blanco-Azul Claro"
+  },
+  {
+    "it": "Verde-Arancione",
+    "en": "Green-Orange",
+    "fr": "Vert-Orange",
+    "de": "Grün-Orange",
+    "es": "Verde-Naranja"
+  },
+  {
+    "it": "Bianco-Rosa-Salvia",
+    "en": "White-Pink-Sage",
+    "fr": "Blanc-Rose-Sauge",
+    "de": "Weiß-Rosa-Salbei",
+    "es": "Blanco-Rosa-Salvia"
+  },
+  {
+    "it": "Bianco-Fuchsia-Rosa",
+    "en": "White-Fuchsia-Pink",
+    "fr": "Blanc-Fuchsia-Rose",
+    "de": "Weiß-Fuchsia-Pink",
+    "es": "Blanco-Fucsia-Rosa"
+  },
+  {
+    "it": "Celeste-Giallo",
+    "en": "Celestial-Yellow",
+    "fr": "Jaune céleste",
+    "de": "Himmlisches Gelb",
+    "es": "Amarillo celeste"
+  },
+  {
+    "it": "Rosse-Verde",
+    "en": "Red-Green",
+    "fr": "Rouge-Vert",
+    "de": "Rot-Grün",
+    "es": "Rojo-Verde"
+  },
+  {
+    "it": "Fuchsia-Verde menta",
+    "en": "Fuchsia-Mint green",
+    "fr": "Fuchsia-Vert menthe",
+    "de": "Fuchsia-Mintgrün",
+    "es": "Fucsia-Verde menta"
+  },
+  {
+    "it": "Rosa-Giallo",
+    "en": "Pink-Yellow",
+    "fr": "Rose-Jaune",
+    "de": "Rosa-Gelb",
+    "es": "rosa-amarillo"
+  },
+  {
+    "it": "Bianco-Lilla-Rosa",
+    "en": "White-Lilac-Pink",
+    "fr": "Blanc-Lilas-Rose",
+    "de": "Weiß-Flieder-Rosa",
+    "es": "Blanco-Lila-Rosa"
+  },
+  {
+    "it": "Rosso",
+    "en": "Red",
+    "fr": "Rouge",
+    "de": "Rot",
+    "es": "Rojo"
+  },
+  {
+    "it": "Verde-Rosa",
+    "en": "Green-Pink",
+    "fr": "Vert-Rose",
+    "de": "Grün-Rosa",
+    "es": "Verde-Rosa"
   }
 ]
