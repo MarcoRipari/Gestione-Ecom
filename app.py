@@ -2056,6 +2056,10 @@ elif page == "Descrizioni":
                     
                     for i, (_, row) in enumerate(df_input_to_generate.iterrows()):
                         result = results.get(i, {})
+                        
+                        if "Continuativo" in result:
+                            continue
+                            
                         sku = str(row.get("SKU", "")).strip()
                         prefix = sku[:13]
                         if "error" in result:
@@ -2067,9 +2071,6 @@ elif page == "Descrizioni":
                                 "output": "",
                                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                             })
-                            continue
-
-                        if "Continuativo" in result:
                             continue
                         
                         sku_generate_lista = []
