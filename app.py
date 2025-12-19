@@ -551,7 +551,7 @@ async def async_generate_description(prompt: str, idx: int, use_model: str, lang
         for lang in selected_langs:
             continuativo[lang] = {
                 "desc_lunga": "Continuativo",
-                "desc_breve": "Continuativo"}
+                "desc_breve": "Continuativo"
             }
         return idx, {
             "result": continuativo,
