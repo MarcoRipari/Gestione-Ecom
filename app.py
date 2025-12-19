@@ -417,7 +417,7 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
 
     if row["Description"].strip() != "" and row["Description2"].strip() != "":
-        prompt = f"""Traduci queste descrizioni nelle seguenti lingue: {lang_lista}.
+        prompt = f"""Traduci queste descrizioni nelle seguenti lingue: {lang_list}.
 La lingua fornita è IT.
         """
     else:
