@@ -416,7 +416,7 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     concept = row["Concept"]
     incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
 
-    if if pd.notna(row["Description"]) and pd.notna(row["Description2"]):
+    if pd.notna(row["Description"]) and pd.notna(row["Description2"]):
         logging.info(row["Description"])
         logging.info(row["Description2"])
         prompt = "SaltaRiga"
