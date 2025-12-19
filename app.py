@@ -421,14 +421,6 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
 
 Le descrizioni devono riprendere tono, struttura e naturalezza delle descrizioni catalogo tradizionali, con un linguaggio semplice, fluido e descrittivo.
 
->>> FORMATO OUTPUT
-Regole:
-- Usa solo informazioni visibili nell'INFO ARTICOLO
-- Nessuna aggiunta o spiegazione
-- Rispetta tono e struttura di catalogo
-- Rispondi **solo con JSON valido**
-- Formato Output JSON: {{"it":{{"desc_lunga":"...","desc_breve":"..."}}, "en":{{...}}, "fr":{{...}}, "de":{{...}}}}
-
 ### INFO PRODOTTO ###
 {product_info}
 {image_line}
@@ -495,7 +487,6 @@ Il testo deve:
 - non contenere tecnicismi
 - non sembrare regolamentato o artificiale
 - descrivere solo ciò che è visibile o dichiarato
-- Se l'output non rispetta il formato JSON richiesto rigenera
 """
     return prompt
 
