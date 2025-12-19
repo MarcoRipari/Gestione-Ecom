@@ -416,7 +416,12 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     concept = row["Concept"]
     incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
 
-    prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
+    if row["Description"].strip() != "" and row["Description2"].strip() != "":
+        prompt = f"""Traduci queste descrizioni nelle seguenti lingue: {lang_lista}.
+La lingua fornita è IT.
+        """
+    else:
+        prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
 
 Le descrizioni devono riprendere tono, struttura e naturalezza delle descrizioni catalogo tradizionali, con un linguaggio semplice, fluido e descrittivo.
 
