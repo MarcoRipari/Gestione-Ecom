@@ -2069,9 +2069,12 @@ elif page == "Descrizioni":
                         logging.info("SELECTED_LANGS:", selected_langs)
                         
                         sku_generate_lista = []
+                        result_data = result.get("result", {})
+                        result_data_norm = {k.lower(): v for k, v in result_data.items()}
+                        
                         for lang in selected_langs:
                             output_row = row.to_dict()
-                            lang_data = result.get("result", {}).get(lang.lower(), {})
+                            lang_data = result_data_norm.get(lang.lower(), {})
                             descr_lunga = lang_data.get("desc_lunga", "").strip()
                             descr_breve = lang_data.get("desc_breve", "").strip()
                             output_row["Description"] = descr_lunga
