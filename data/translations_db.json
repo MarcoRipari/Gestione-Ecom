@@ -1559,5 +1559,124 @@
     "fr": "Vert-Jaune",
     "de": "Grün-Gelb",
     "es": "Verde-amarillo"
+  },
+  {
+    "it": "Sandali in pelle e suede",
+    "en": "Leather and suede sandals",
+    "fr": "Sandales en cuir et daim",
+    "de": "Sandalen aus Leder und Wildleder",
+    "es": "Sandalias de piel y ante."
+  },
+  {
+    "it": "Sandali in pelle iridescente",
+    "en": "Iridescent leather sandals",
+    "fr": "Sandales en cuir irisé",
+    "de": "Schillernde Ledersandalen",
+    "es": "Sandalias de piel iridiscentes"
+  },
+  {
+    "it": "Sandali in suede e vernice",
+    "en": "Suede and patent leather sandals",
+    "fr": "Sandales en daim et cuir verni",
+    "de": "Sandalen aus Wildleder und Lackleder",
+    "es": "Sandalias de ante y charol."
+  },
+  {
+    "it": "Sandali in suede con stampa ciliegie",
+    "en": "Suede sandals with cherry print",
+    "fr": "Sandales en daim imprimé cerises",
+    "de": "Wildledersandalen mit Kirschdruck",
+    "es": "Sandalias de ante con estampado de cerezas"
+  },
+  {
+    "it": "Sandali in suede con stampa limoni",
+    "en": "Suede sandals with lemon print",
+    "fr": "Sandales en daim imprimé citron",
+    "de": "Wildledersandalen mit Zitronenprint",
+    "es": "Sandalias de ante con estampado de limones."
+  },
+  {
+    "it": "Sandali in pelle con cuori applicati",
+    "en": "Leather sandals with applied hearts",
+    "fr": "Sandales en cuir avec coeurs appliqués",
+    "de": "Ledersandalen mit applizierten Herzen",
+    "es": "Sandalias de piel con corazones aplicados."
+  },
+  {
+    "it": "Sandali in suede con stampa cuoricini",
+    "en": "Suede sandals with heart print",
+    "fr": "Sandales en daim avec imprimé coeurs",
+    "de": "Wildledersandalen mit Herzdruck",
+    "es": "Sandalias de ante con estampado de corazones"
+  },
+  {
+    "it": "Sandali in vernice",
+    "en": "Patent leather sandals",
+    "fr": "Sandales en cuir verni",
+    "de": "Sandalen aus Lackleder",
+    "es": "Sandalias de charol"
+  },
+  {
+    "it": "Ciabatte in pelle",
+    "en": "Leather slippers",
+    "fr": "Pantoufles en cuir",
+    "de": "Lederhausschuhe",
+    "es": "Zapatillas de cuero"
+  },
+  {
+    "it": "Ballerine in pelle",
+    "en": "Leather ballet flats",
+    "fr": "Ballerines en cuir",
+    "de": "Ballerinas aus Leder",
+    "es": "Bailarinas de piel"
+  },
+  {
+    "it": "Ballerine in pelle con cinturino",
+    "en": "Leather ballet flats with strap",
+    "fr": "Ballerines en cuir avec bride",
+    "de": "Ballerinas aus Leder mit Riemen",
+    "es": "Bailarinas de piel con correa"
+  },
+  {
+    "it": "Mocassino in pelle",
+    "en": "Leather moccasin",
+    "fr": "Mocassin en cuir",
+    "de": "Mokassin aus Leder",
+    "es": "Mocasín de piel"
+  },
+  {
+    "it": "Platino-Multicolore",
+    "en": "Platinum-Multicolor",
+    "fr": "Platine-Multicolore",
+    "de": "Platin-Mehrfarbig",
+    "es": "Platino-Multicolor"
+  },
+  {
+    "it": "Cipria-Multicolore",
+    "en": "Powder-Multicolour",
+    "fr": "Poudre-Multicolore",
+    "de": "Pulver-Mehrfarbig",
+    "es": "Polvo-Multicolor"
+  },
+  {
+    "it": "Giallo-Platino",
+    "en": "Yellow-Platinum",
+    "fr": "Jaune-Platine",
+    "de": "Gelb-Platin",
+    "es": "Amarillo-Platino"
+  },
+  {
+    "it": "Argento-Celeste",
+    "en": "Silver-Celestial",
+    "fr": "Argent-Céleste",
+    "de": "Silber-Himmlisch",
+    "es": "Plata-Celestial"
+  },
+  {
+    "it": "Bianco-Multicolore",
+    "en": "White-Multicolor",
+    "fr": "Blanc-Multicolore",
+    "de": "Weiß-Mehrfarbig",
+    "es": "Blanco-Multicolor"
   }
 ]
