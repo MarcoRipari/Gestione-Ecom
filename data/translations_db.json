@@ -1111,5 +1111,124 @@
     "fr": "Chaussures pieds nus en cuir",
     "de": "Barfußschuhe aus Leder",
     "es": "Zapatos descalzos de cuero"
+  },
+  {
+    "it": "Sandali in ecopelle e tessuto",
+    "en": "Sneakers in eco-leather and technical fabric",
+    "fr": "Sandales en éco-cuir et tissu",
+    "de": "Halbgeschlossene Sandalen aus Öko-Leder und Stoff",
+    "es": "Sandalias en ecopiel y tejido."
+  },
+  {
+    "it": "Sandali semichiusi in ecopelle e tessuto",
+    "en": "Semi-closed sandals in eco-leather and fabric",
+    "fr": "Sandales semi-fermées en éco-cuir et tissu",
+    "de": "Halbgeschlossene Sandalen aus Öko-Leder und Stoff",
+    "es": "Sandalias semicerradas en ecopiel y tejido."
+  },
+  {
+    "it": "Sneakers in ecopelle e tessuto tecnico",
+    "en": "Sneakers in eco-leather and technical fabric",
+    "fr": "Baskets en éco-cuir et tissu technique",
+    "de": "Sneakers aus Öko-Leder und technischem Stoff",
+    "es": "Zapatillas deportivas en ecopiel y tejido técnico."
+  },
+  {
+    "it": "Giallo-Verde",
+    "en": "Yellow-Green",
+    "fr": "Jaune-Vert",
+    "de": "Gelbgrün",
+    "es": "Amarillo-Verde"
+  },
+  {
+    "it": "Bianco-Beige",
+    "en": "White-Beige",
+    "fr": "Colombe des sables",
+    "de": "Weiß-Beige",
+    "es": "Blanco-Beige"
+  },
+  {
+    "it": "Sabbia-Tortora",
+    "en": "Sand-Dove",
+    "fr": "Colombe des sables",
+    "de": "Sandtaube",
+    "es": "paloma de arena"
+  },
+  {
+    "it": "Lilla-Grigio",
+    "en": "Lilac-Grey",
+    "fr": "Marine-Orange",
+    "de": "Lila-Grau",
+    "es": "Lila-Gris"
+  },
+  {
+    "it": "Navy-Arancione",
+    "en": "Navy-Orange",
+    "fr": "Marine-Orange",
+    "de": "Marine-Orange",
+    "es": "Azul marino-naranja"
+  },
+  {
+    "it": "Caramello-Beige",
+    "en": "Caramel-Beige",
+    "fr": "Caramel-Beige",
+    "de": "Karamell-Beige",
+    "es": "Caramelo-Beige"
+  },
+  {
+    "it": "Militare-Marrone",
+    "en": "Military-Brown",
+    "fr": "Marron militaire",
+    "de": "Militärbraun",
+    "es": "Marrón militar"
+  },
+  {
+    "it": "Beige-Rosa",
+    "en": "Beige-Pink",
+    "fr": "Beige-Rose",
+    "de": "Beige-Rosa",
+    "es": "Beige-Rosa"
+  },
+  {
+    "it": "Rosa-Fuchsia",
+    "en": "Pink-Fuchsia",
+    "fr": "Rose-Fuchsia",
+    "de": "Rosa-Fuchsia",
+    "es": "Rosa-fucsia"
+  },
+  {
+    "it": "Panna-Navy",
+    "en": "Cream-Navy",
+    "fr": "Crème-Marine",
+    "de": "Creme-Navy",
+    "es": "Crema-Marino"
+  },
+  {
+    "it": "Marrone-Giallo",
+    "en": "Brown-Yellow",
+    "fr": "Marron-Jaune",
+    "de": "Braun-Gelb",
+    "es": "Marrón-amarillo"
+  },
+  {
+    "it": "Celeste-Fuchsia",
+    "en": "Celeste-Fuchsia",
+    "fr": "Céleste-Fuchsia",
+    "de": "Celeste-Fuchsia",
+    "es": "Celeste-fucsia"
+  },
+  {
+    "it": "Cipria-Nero",
+    "en": "Powder-Black",
+    "fr": "Poudre-Noir",
+    "de": "Puderschwarz",
+    "es": "Polvo-Negro"
+  },
+  {
+    "it": "Azzurro-Celeste",
+    "en": "Light blue-celeste",
+    "fr": "Bleu clair-céleste",
+    "de": "Hellblau-Celeste",
+    "es": "Azul claro-celeste"
   }
 ]
