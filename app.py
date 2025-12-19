@@ -547,13 +547,7 @@ async def async_generate_description(prompt: str, idx: int, use_model: str, lang
     functions = build_function_schema(lang)
 
     if prompt == "SaltaRiga":
-        return idx, {"Continuativo": "Si",
-                    "usage": {
-                        "prompt_tokens": 0,
-                        "completion_tokens": 0,
-                        "total_tokens": 0
-                    }
-            }
+        return idx, {"Continuativo": "Si"}
         
     if len(prompt) < 50:
         return idx, {
