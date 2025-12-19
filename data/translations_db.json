@@ -1230,5 +1230,271 @@
     "fr": "Bleu clair-céleste",
     "de": "Hellblau-Celeste",
     "es": "Azul claro-celeste"
+  },
+  {
+    "it": "Scarpe primi passi in pelle e suede",
+    "en": "First steps shoes in leather and suede",
+    "fr": "Chaussures premiers pas en cuir et daim",
+    "de": "Erste-Schritte-Schuhe aus Leder und Wildleder",
+    "es": "Zapatos primeros pasos en piel y ante."
+  },
+  {
+    "it": "Scarpe primi passi in tessuto",
+    "en": "First steps shoes in fabric",
+    "fr": "Chaussures premiers pas en tissu",
+    "de": "Schuhe für die ersten Schritte aus Stoff",
+    "es": "Zapatos primeros pasos en tela."
+  },
+  {
+    "it": "Scarpe primi passi in bianco",
+    "en": "First steps shoes in white",
+    "fr": "Chaussures premiers pas en blanc",
+    "de": "Erste-Schritte-Schuhe in Weiß",
+    "es": "Zapatos primeros pasos en blanco"
+  },
+  {
+    "it": "Sandali primi passi in suede",
+    "en": "First steps sandals in suede",
+    "fr": "Sandales premiers pas en daim",
+    "de": "Sandalen für die ersten Schritte aus Wildleder",
+    "es": "Sandalias primeros pasos en ante."
+  },
+  {
+    "it": "Sandali semi aperti in tessuto",
+    "en": "Semi-open fabric sandals",
+    "fr": "Sandales semi-ouvertes en tissu",
+    "de": "Halboffene Stoffsandalen",
+    "es": "Sandalias semiabiertas de tela"
+  },
+  {
+    "it": "Azurro",
+    "en": "Light blue",
+    "fr": "Bleu clair",
+    "de": "Hellblau",
+    "es": "azul claro"
+  },
+  {
+    "it": "Tortora-Blu",
+    "en": "Dove Grey-Blue",
+    "fr": "Gris Tourterelle-Bleu",
+    "de": "Taubengrau-Blau",
+    "es": "Gris Paloma-Azul"
+  },
+  {
+    "it": "Celeste-Beige",
+    "en": "Celeste-Beige",
+    "fr": "Céleste-Beige",
+    "de": "Celeste-Beige",
+    "es": "Celeste-Beige"
+  },
+  {
+    "it": "Zucca-Salvia",
+    "en": "Pumpkin-Sage",
+    "fr": "Citrouille-Sauge",
+    "de": "Kürbis-Salbei",
+    "es": "Calabaza-Salvia"
+  },
+  {
+    "it": "Verde scuro",
+    "en": "Dark green",
+    "fr": "Vert foncé",
+    "de": "Dunkelgrün",
+    "es": "verde oscuro"
+  },
+  {
+    "it": "Bianco panna",
+    "en": "Creamy white",
+    "fr": "Blanc crème",
+    "de": "Cremiges Weiß",
+    "es": "blanco cremoso"
+  },
+  {
+    "it": "Vaniglia",
+    "en": "Vanilla",
+    "fr": "Vanille",
+    "de": "Vanille",
+    "es": "Vainilla"
+  },
+  {
+    "it": "Blu-Bianco",
+    "en": "Blue-White",
+    "fr": "Bleu-Blanc",
+    "de": "Blau-Weiß",
+    "es": "Azul-Blanco"
+  },
+  {
+    "it": "Verde-Sabbia",
+    "en": "Green-Sand",
+    "fr": "Vert-Sable",
+    "de": "Grüner Sand",
+    "es": "Verde-Arena"
+  },
+  {
+    "it": "Marrone-Grigio",
+    "en": "Brown-Grey",
+    "fr": "Marron-Gris",
+    "de": "Braun-Grau",
+    "es": "Marrón-Gris"
+  },
+  {
+    "it": "Salvia-Sabbia",
+    "en": "Sage-Sand",
+    "fr": "Sauge-Sable",
+    "de": "Salbei-Sand",
+    "es": "salvia-arena"
+  },
+  {
+    "it": "Salvia-Zucca",
+    "en": "Sage-Pumpkin",
+    "fr": "Sauge-Citrouille",
+    "de": "Salbei-Kürbis",
+    "es": "calabaza salvia"
+  },
+  {
+    "it": "Tortora-Beige",
+    "en": "Dove Grey-Beige",
+    "fr": "Gris Tourterelle-Beige",
+    "de": "Taubengrau-Beige",
+    "es": "Gris Paloma-Beige"
+  },
+  {
+    "it": "Menta",
+    "en": "Mint",
+    "fr": "Menthe",
+    "de": "Minze",
+    "es": "Menta"
+  },
+  {
+    "it": "Tortora-Azzurro",
+    "en": "Dove grey-light blue",
+    "fr": "Tourterelle-bleu clair",
+    "de": "Taubengrau-Hellblau",
+    "es": "Gris paloma-azul claro"
+  },
+  {
+    "it": "Celeste-Panna",
+    "en": "Celeste-Panna",
+    "fr": "Céleste-Panna",
+    "de": "Celeste-Panna",
+    "es": "Celeste Panna"
+  },
+  {
+    "it": "Pesca",
+    "en": "Fishing",
+    "fr": "Pêche",
+    "de": "Angeln",
+    "es": "Pesca"
+  },
+  {
+    "it": "Marrone-Beige",
+    "en": "Brown-Beige",
+    "fr": "Marron-Beige",
+    "de": "Braun-Beige",
+    "es": "Marrón-Beige"
+  },
+  {
+    "it": "Sabbia-Marrone",
+    "en": "Sand-Brown",
+    "fr": "Brun sable",
+    "de": "Sandbraun",
+    "es": "Marrón arena"
+  },
+  {
+    "it": "Celeste-Sabbia",
+    "en": "Celeste-Sand",
+    "fr": "Céleste-Sable",
+    "de": "Celeste-Sand",
+    "es": "Celeste-Arena"
+  },
+  {
+    "it": "Sabbia-Verde",
+    "en": "Sand-Green",
+    "fr": "Vert Sable",
+    "de": "Sandgrün",
+    "es": "Verde Arena"
+  },
+  {
+    "it": "Blu-Beige",
+    "en": "Blue-Beige",
+    "fr": "Bleu-Beige",
+    "de": "Blau-Beige",
+    "es": "Azul-Beige"
+  },
+  {
+    "it": "Panna-Verde",
+    "en": "Cream-Green",
+    "fr": "Crème-Vert",
+    "de": "Cremegrün",
+    "es": "Crema-Verde"
+  },
+  {
+    "it": "Panna-Celeste",
+    "en": "Cream-Celeste",
+    "fr": "Crème-Céleste",
+    "de": "Creme-Celeste",
+    "es": "Crema-Celeste"
+  },
+  {
+    "it": "Marrone-Sabbia",
+    "en": "Brown-Sand",
+    "fr": "Brun-Sable",
+    "de": "Braun-Sand",
+    "es": "Marrón-Arena"
+  },
+  {
+    "it": "Rosa-Pesca",
+    "en": "Pink-Peach",
+    "fr": "Rose-Pêche",
+    "de": "Rosa-Pfirsich",
+    "es": "Rosa-Melocotón"
+  },
+  {
+    "it": "Azzurro-Tortora",
+    "en": "Light blue-dove grey",
+    "fr": "Bleu clair-gris tourterelle",
+    "de": "Hellblau-Taubengrau",
+    "es": "Azul claro-gris tórtola"
+  },
+  {
+    "it": "Blu-Panna",
+    "en": "Blue-Cream",
+    "fr": "Bleu-crème",
+    "de": "Blau-Creme",
+    "es": "Azul-Crema"
+  },
+  {
+    "it": "Salvia-Panna",
+    "en": "Sage-Cream",
+    "fr": "Crème-Sauge",
+    "de": "Salbei-Creme",
+    "es": "Crema De Salvia"
+  },
+  {
+    "it": "Sabbia-Celeste",
+    "en": "Sand-Celestial",
+    "fr": "Sable-Céleste",
+    "de": "Sand-Himmlisch",
+    "es": "Arena-Celestial"
+  },
+  {
+    "it": "Sabbia-Panna",
+    "en": "Sand-Cream",
+    "fr": "Sable-Crème",
+    "de": "Sand-Creme",
+    "es": "Crema de arena"
+  },
+  {
+    "it": "Verde-Panna",
+    "en": "Green-Cream",
+    "fr": "Vert-Crème",
+    "de": "Grün-Creme",
+    "es": "Verde-Crema"
+  },
+  {
+    "it": "Rosa-Menta",
+    "en": "Pink-Mint",
+    "fr": "Rose-menthe",
+    "de": "Rosa-Mint",
+    "es": "Rosa-menta"
   }
 ]
