@@ -416,7 +416,7 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     concept = row["Concept"]
     incipit_seeds = ["SEO-oriented", "Descrittivo", "Pratico", "Classico", "Informativo", "Accattivante"]
 
-    if row["Description"] and row["Description2"]:
+    if row["Description"] is not None and row["Description2"] is not None:
         prompt = "SaltaRiga"
     else:
         prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
