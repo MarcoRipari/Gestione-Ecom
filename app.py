@@ -1003,7 +1003,7 @@ def process_csv_and_update(sheet, uploaded_file, batch_size=100):
     expected_cols = [
         "Anno","Stag.","Clz.","Descr.","Serie","Descriz1","Annullato",
         "Campionato","Cat","Cod","Descr2","Var.","DescrizVar","Col.",
-        "DescrCol","TAGLIA","QUANTIA","Vuota","DATA_CREAZIONE","N=NOOS"
+        "DescrCol","TAGLIA","QUANTIA","DATA_CREAZIONE","N=NOOS"
     ]
 
     if df.shape[1] != len(expected_cols):
