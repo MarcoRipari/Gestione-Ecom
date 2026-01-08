@@ -386,7 +386,7 @@ def build_function_schema(selected_langs):
         }
     ]
     
-def build_unified_prompt(row, col_display_names, selected_langs, image_caption=None, simili=None, marchio):
+def build_unified_prompt(row, col_display_names, selected_langs, image_caption=None, simili=None, marchio=None):
     # Costruzione scheda tecnica
     fields = []
     for col in col_display_names:
