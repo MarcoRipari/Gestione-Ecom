@@ -511,7 +511,7 @@ Il testo deve:
 - non sembrare regolamentato o artificiale
 - descrivere solo ciò che è visibile o dichiarato
 """
-        elif marchio.isin(adulto):
+        elif marchio == "VB":
             prompt = f"""
 Scrivi due descrizioni per una calzatura da vendere online (catalogo e-commerce),
 coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
@@ -603,6 +603,97 @@ Il testo deve:
 - non contenere tecnicismi
 - non sembrare regolamentato o artificiale
 - descrivere solo ciò che è visibile o dichiarato
+"""
+        elif marchio == "FM":
+            prompt = f"""
+Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
+
+Le descrizioni devono riprodurre il linguaggio di un catalogo ufficiale Flower Mountain: tecnico, descrittivo, identitario, con struttura riconoscibile e lessico ricorrente.
+
+### INFO PRODOTTO ###
+{product_info}
+{image_line}
+
+CONCEPT
+{concept}
+
+*** Regole del concept ***
+- può ispirare l’apertura del testo
+- non deve essere citato esplicitamente
+- può suggerire il mondo di riferimento (outdoor / sportivo / urbano)
+- non deve introdurre storytelling emotivo o metaforico
+
+### STILE ###
+- Apertura: descrittiva, assertiva (es. ispirazione outdoor, vocazione sportiva)
+- Tono: tecnico–editoriale, brand–driven
+- Linguaggio chiaro e dichiarativo
+- Ammesse valutazioni soft (es. “ideale”, “perfetta”, “assicura”)
+- Ammessi riferimenti a:
+  - mondo outdoor
+  - utilizzo urbano
+  - capsule collection e collaborazioni (se presenti nelle INFO)
+- Frasi complete
+- Nessuna formattazione
+
+### CONTENUTO ###
+- Usa esclusivamente le informazioni presenti nelle INFO ARTICOLO
+- Usa il tipo di calzatura fornito
+- Descrivi, seguendo l’ordine tipico Flower Mountain:
+  - ispirazione del modello
+  - tomaia (materiali e costruzione overlapping se presente)
+  - dettagli iconici (occhielli, nastri, loop, traforature)
+  - chiusura (lacci trekking, quick stop se presente)
+  - fodera e soletta (specificare materiali e trattamento se dichiarato)
+  - fondo o suola (gomma ultra leggera, Vibram, megagrip, battistrada)
+- I materiali devono essere citati in modo esplicito
+- È ammessa la ripetizione di formule lessicali consolidate
+
+### LESSICO GUIDA (AMMESSO E INCORAGGIATO) ###
+- ispirazione outdoor
+- vocazione sportiva
+- design
+- performance
+- comfort e benessere
+- costruzione overlapping
+- lacci trekking / stringhe tecniche
+- occhielli sagomati a fiore
+- soletta in sughero naturale antibatterico / anatomica
+- fondo in gomma ultra leggera
+- battistrada dentellato
+- Vibram / megagrip (se presente)
+
+### LIMITI ###
+- Non introdurre informazioni non presenti nelle INFO ARTICOLO
+- Non inventare certificazioni o trattamenti
+- Non usare metafore o storytelling emozionale
+- Non descrivere abbinamenti di abbigliamento
+- Non usare linguaggio lifestyle generico
+
+### NORMALIZZAZIONE TIPO DI CALZATURA ###
+- Usa esclusivamente il tipo di calzatura fornito
+- Mantieni la terminologia coerente con Flower Mountain
+- Ammessi: sneaker, hiking shoe, stivaletto, slip on, ecc. se presenti nelle INFO
+
+### OUTPUT ###
+Genera due testi per ciascuna lingua:
+- desc_lunga: {desc_lunga_length} parole
+- desc_breve: {desc_breve_length} parole
+
+### DESCRIZIONI DI RIFERIMENTO ###
+{sim_text}
+
+*** Uso delle descrizioni di riferimento ***
+- tono
+- lessico ricorrente
+- struttura narrativa
+- ordine degli elementi
+
+### CONTROLLO FINALE ###
+Il testo deve:
+- sembrare scritto per un catalogo ufficiale Flower Mountain
+- essere coerente con altri modelli simili
+- poter essere riutilizzato su più varianti colore
+- privilegiare coerenza e riconoscibilità rispetto all’unicità
 """
     return prompt
 
