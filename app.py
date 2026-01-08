@@ -386,7 +386,7 @@ def build_function_schema(selected_langs):
         }
     ]
     
-def build_unified_prompt(row, col_display_names, selected_langs, image_caption=None, simili=None):
+def build_unified_prompt(row, col_display_names, selected_langs, image_caption=None, simili=None, marchio):
     # Costruzione scheda tecnica
     fields = []
     for col in col_display_names:
@@ -396,6 +396,10 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
                 fields.append(f"- {label}: {row[col]}")
     product_info = "\n".join(fields)
 
+    # Divisione marchi
+    adulto = ["VB", "FM", "CC", "WZ"]
+    bambino = ["NAT", "FAL"]
+    
     # Elenco lingue in stringa
     lang_list = ", ".join([LANG_NAMES.get(lang, lang) for lang in selected_langs])
 
@@ -420,7 +424,8 @@ def build_unified_prompt(row, col_display_names, selected_langs, image_caption=N
     if pd.notna(row["Description"]) and pd.notna(row["Description2"]):
         prompt = "SaltaRiga"
     else:
-        prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
+        if marchio.isin(bambino):
+            prompt = f"""Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
 
 Le descrizioni devono riprendere tono, struttura e naturalezza delle descrizioni catalogo tradizionali, con un linguaggio semplice, fluido e descrittivo.
 
@@ -498,6 +503,99 @@ Genera due testi:
 - tono
 - ritmo
 - ordine narrativo
+
+### CONTROLLO FINALE ###
+Il testo deve:
+- sembrare scritto da un redattore catalogo
+- non contenere tecnicismi
+- non sembrare regolamentato o artificiale
+- descrivere solo ciò che è visibile o dichiarato
+"""
+        elif marchio.isin(adulto):
+            prompt = f"""
+Scrivi due descrizioni per una calzatura da vendere online (catalogo e-commerce),
+coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
+
+Le descrizioni devono riprodurre tono, ritmo e naturalezza delle descrizioni
+storiche del catalogo Voile Blanche: editoriale, fluido, contemporaneo.
+
+### INFO ARTICOLO ###
+{product_info}
+{image_line}
+
+CONCEPT
+{concept}
+
+*** Regole del concept ***
+- può ispirare l’apertura del testo
+- non deve essere citato
+- non deve diventare storytelling
+- non deve introdurre abbinamenti di stile o outfit
+
+### STILE E TONO ###
+- Apertura: editoriale, interpretativa
+- Tono: fashion contemporaneo
+- Registro: medio-alto
+- Linguaggio naturale, non tecnico
+- Frasi complete, scorrevoli
+- Nessuna formattazione, nessun elenco
+- Il testo deve sembrare scritto da un redattore catalogo
+
+### LINEE GUIDA DI SCRITTURA ###
+- Descrivi il modello come una reinterpretazione contemporanea
+- Introduci mood, ispirazione o attitudine nella frase iniziale
+- Passa poi alla descrizione del modello e dei materiali
+- I dettagli vanno suggeriti, non spiegati
+- Il comfort non va mai argomentato o dimostrato
+- Usa un lessico moda coerente con il catalogo storico
+- Evita razionalizzazioni, cause-effetto, spiegazioni funzionali
+
+### CONTENUTO ###
+- Usa esclusivamente le informazioni presenti nelle INFO ARTICOLO
+- Usa il tipo di calzatura fornito (normalizzato)
+- Descrivi, in modo fluido e narrativo:
+  - linee e costruzione
+  - tomaia e materiali
+  - dettagli estetici visibili
+  - chiusura
+  - fodera e soletta
+  - fondo o suola
+- I materiali devono essere citati in modo chiaro ma non tecnico
+- Gli aggettivi devono essere comuni, descrittivi, editoriali
+- Evita qualsiasi affermazione non visibile o non dichiarata
+
+### TERMINI E CONCETTI VIETATI ###
+È vietato usare, anche in forma parafrasata:
+
+- benefici fisiologici o prestazionali
+- affermazioni misurabili o dimostrative
+- linguaggio tecnico o ingegneristico
+- claim esplicativi (es. “garantisce”, “assicura”, “offre il massimo di”)
+- spiegazioni funzionali del comfort
+
+Se un concetto non è descrivibile senza usare questi approcci, deve essere omesso.
+
+### STRUTTURA NARRATIVA (NON RIGIDA) ###
+- Frase editoriale introduttiva
+- Definizione del modello
+- Tomaia e materiali
+- Dettagli iconici
+- Chiusura
+- Interni
+- Fondo
+
+### OUTPUT ###
+Genera due testi distinti:
+- desc_lunga: {desc_lunga_length} parole
+- desc_breve: {desc_breve_length} parole
+
+### DESCRIZIONI DI RIFERIMENTO ###
+{sim_text}
+
+*** Uso delle descrizioni di riferimento ***
+- imitare tono, ritmo e ordine narrativo
+- non copiare strutture sintattiche
+- non ripetere formulazioni
 
 ### CONTROLLO FINALE ###
 Il testo deve:
@@ -2066,7 +2164,7 @@ elif page == "Descrizioni":
                                     caption = None
                             else:
                                 caption = None
-                            prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
+                            prompt = build_unified_prompt(row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili, marchio=marchio)
                             all_prompts.append(prompt)
             
                     with st.spinner("🚀 Generazione asincrona in corso..."):
@@ -2254,7 +2352,7 @@ elif page == "Descrizioni":
                                 caption = None
                         else:
                             caption = None
-                        prompt_preview = build_unified_prompt(test_row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili)
+                        prompt_preview = build_unified_prompt(test_row, st.session_state.col_display_names, selected_langs, image_caption=caption, simili=simili, marchio=marchio)
                         st.expander("📄 Prompt generato").code(prompt_preview, language="markdown")
                     except Exception as e:
                         st.error(f"Errore: {str(e)}")
