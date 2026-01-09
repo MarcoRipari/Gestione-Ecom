@@ -2350,5 +2350,523 @@
     "fr": "Gris-Noir",
     "de": "Grau-Schwarz",
     "es": "Gris-Negro"
+  },
+  {
+    "it": "Sandali in suede e tessuto tecnico",
+    "en": "Sandals in suede and technical fabric",
+    "fr": "Sandales en daim et tissu technique",
+    "de": "Sandalen aus Wildleder und technischem Stoff",
+    "es": "Sandalias en ante y tejido técnico."
+  },
+  {
+    "it": "Sandali in ecopelle",
+    "en": "Faux leather sandals",
+    "fr": "Sandales en simili cuir",
+    "de": "Sandalen aus Kunstleder",
+    "es": "Sandalias de piel sintética"
+  },
+  {
+    "it": "Sneakers slip on in tessuto",
+    "en": "Slip on sneakers in fabric",
+    "fr": "Baskets à enfiler en tissu",
+    "de": "Slip-on-Sneaker aus Stoff",
+    "es": "Zapatillas sin cordones de tela"
+  },
+  {
+    "it": "Ciabatte in tessuto",
+    "en": "Fabric slippers",
+    "fr": "Chaussons en tissu",
+    "de": "Hausschuhe aus Stoff",
+    "es": "Zapatillas de tela"
+  },
+  {
+    "it": "Verde fluo-Viola",
+    "en": "Fluo green-Purple",
+    "fr": "Vert fluo-Violet",
+    "de": "Fluogrün-Lila",
+    "es": "Verde fluo-Morado"
+  },
+  {
+    "it": "Verde chiaro-Beige",
+    "en": "Light green-Beige",
+    "fr": "Vert clair-Beige",
+    "de": "Hellgrün-Beige",
+    "es": "Verde claro-Beige"
+  },
+  {
+    "it": "Navy-Grigio",
+    "en": "Navy-Grey",
+    "fr": "Marine-Gris",
+    "de": "Marinegrau",
+    "es": "Azul marino-gris"
+  },
+  {
+    "it": "Grigio-Viola",
+    "en": "Navy-Grey",
+    "fr": "Vert clair-Beige",
+    "de": "Grau-Lila",
+    "es": "Gris-violeta"
+  },
+  {
+    "it": "Grigio chiaro-Navy",
+    "en": "Light grey-Navy",
+    "fr": "Gris clair-Marine",
+    "de": "Hellgrau-Marine",
+    "es": "Gris claro-Azul marino"
+  },
+  {
+    "it": "Grigio chiaro-Verde",
+    "en": "Light grey-green",
+    "fr": "Gris-vert clair",
+    "de": "Hellgraugrün",
+    "es": "Gris verdoso claro"
+  },
+  {
+    "it": "Grigio chiaro-Marrone",
+    "en": "Light grey-brown",
+    "fr": "Gris-brun clair",
+    "de": "Hellgraubraun",
+    "es": "Marrón grisáceo claro"
+  },
+  {
+    "it": "Marrone chiaro-Celeste",
+    "en": "Light brown-Heavenly",
+    "fr": "Marron clair-Céleste",
+    "de": "Hellbraun-himmlisch",
+    "es": "Marrón claro-Celestial"
+  },
+  {
+    "it": "Verde petrolio-Cipria",
+    "en": "Petrol green-powder",
+    "fr": "Poudre verte essence",
+    "de": "Benzingrün-Pulver",
+    "es": "Gasolina en polvo verde"
+  },
+  {
+    "it": "Giallo limone-Petrolio",
+    "en": "Lemon yellow-petroleum",
+    "fr": "Jaune citron-pétrole",
+    "de": "Zitronengelb-Petroleum",
+    "es": "Amarillo limón-petróleo"
+  },
+  {
+    "it": "Azzurro-Verde salvia",
+    "en": "Light blue-Sage green",
+    "fr": "Bleu clair-Vert sauge",
+    "de": "Hellblau-Salbeigrün",
+    "es": "Azul claro-Verde salvia"
+  },
+  {
+    "it": "Verde militare-Tortora",
+    "en": "Military green-dove grey",
+    "fr": "Vert militaire-gris tourterelle",
+    "de": "Militärgrün-Taubengrau",
+    "es": "Gris paloma verde militar"
+  },
+  {
+    "it": "Giallo zucca-Arancione",
+    "en": "Pumpkin yellow-orange",
+    "fr": "Citrouille jaune-orange",
+    "de": "Kürbis gelb-orange",
+    "es": "Calabaza amarillo anaranjado"
+  },
+  {
+    "it": "Grigio-Militare-Ruggine",
+    "en": "Grey-Military-Rust",
+    "fr": "Gris-Militaire-Rouille",
+    "de": "Grau-Militär-Rost",
+    "es": "Gris-militar-óxido"
+  },
+  {
+    "it": "Grigio-Bianco-Marrone chiaro",
+    "en": "Grey-White-Light Brown",
+    "fr": "Gris-Blanc-Marron Clair",
+    "de": "Grau-Weiß-Hellbraun",
+    "es": "Gris-Blanco-Marrón Claro"
+  },
+  {
+    "it": "Beige-Bianco latte",
+    "en": "Beige-Milk white",
+    "fr": "Beige-Blanc lait",
+    "de": "Beige-Milchweiß",
+    "es": "Beige-Blanco leche"
+  },
+  {
+    "it": "Fuchsia-Azzurro",
+    "en": "Fuchsia-Light Blue",
+    "fr": "Fuchsia-Bleu Clair",
+    "de": "Fuchsia-Hellblau",
+    "es": "Fucsia-Azul Claro"
+  },
+  {
+    "it": "Viola-Verde",
+    "en": "Purple-Green",
+    "fr": "Violet-Vert",
+    "de": "Lila-Grün",
+    "es": "Morado-Verde"
+  },
+  {
+    "it": "Nero-Bianco",
+    "en": "Black-White",
+    "fr": "Noir-Blanc",
+    "de": "Schwarz-Weiß",
+    "es": "Negro-Blanco"
+  },
+  {
+    "it": "Crema-Bianco",
+    "en": "Cream-White",
+    "fr": "Crème-Blanc",
+    "de": "Cremeweiß",
+    "es": "Crema-Blanco"
+  },
+  {
+    "it": "Navy-Jeans",
+    "en": "Navy-Jeans",
+    "fr": "Jean-Marine",
+    "de": "Navy-Jeans",
+    "es": "Vaqueros-azul marino"
+  },
+  {
+    "it": "Blu scuro-Verde",
+    "en": "Dark blue-Green",
+    "fr": "Bleu foncé-Vert",
+    "de": "Dunkelblau-Grün",
+    "es": "Azul oscuro-Verde"
+  },
+  {
+    "it": "Tortora-Militare-Grigio",
+    "en": "Dove Grey-Military-Grey",
+    "fr": "Gris Tourterelle-Gris Militaire",
+    "de": "Taubengrau-Militärgrau",
+    "es": "Gris Paloma-Gris Militar"
+  },
+  {
+    "it": "Bianco-Grigio-Rosa",
+    "en": "White-Grey-Pink",
+    "fr": "Blanc-Gris-Rose",
+    "de": "Weiß-Grau-Rosa",
+    "es": "Blanco-Gris-Rosa"
+  },
+  {
+    "it": "Verde chiaro-Celeste",
+    "en": "Light green-light blue",
+    "fr": "Vert clair-bleu clair",
+    "de": "Hellgrün-Hellblau",
+    "es": "Verde claro-azul claro"
+  },
+  {
+    "it": "Grigio-Antracite",
+    "en": "Grey-Anthracite",
+    "fr": "Gris-Anthracite",
+    "de": "Grau-Anthrazit",
+    "es": "Gris-Antracita"
+  },
+  {
+    "it": "Rosa chiaro-Lilla",
+    "en": "Light pink-lilac",
+    "fr": "Rose clair-lilas",
+    "de": "Hellrosa-lila",
+    "es": "Rosa claro-lila"
+  },
+  {
+    "it": "Rosa chiaro-Giallo",
+    "en": "Light pink-yellow",
+    "fr": "Rose-jaune clair",
+    "de": "Hellrosa-gelb",
+    "es": "Amarillo rosa claro"
+  },
+  {
+    "it": "Blu chiaro-Grigio",
+    "en": "Light blue-Grey",
+    "fr": "Bleu clair-Gris",
+    "de": "Hellblau-Grau",
+    "es": "Azul claro-Gris"
+  },
+  {
+    "it": "Navy-Beige",
+    "en": "Navy-Beige",
+    "fr": "Marine-Beige",
+    "de": "Marineblau-Beige",
+    "es": "Marino-Beige"
+  },
+  {
+    "it": "Verde-Militare",
+    "en": "Military Green",
+    "fr": "Vert militaire",
+    "de": "Militärgrün",
+    "es": "Verde militar"
+  },
+  {
+    "it": "Grigio chiaro-Celeste chiaro",
+    "en": "Light grey-Light sky blue",
+    "fr": "Gris clair-Bleu ciel clair",
+    "de": "Hellgrau-Hellhimmelblau",
+    "es": "Gris claro-Azul cielo claro"
+  },
+  {
+    "it": "Giallo-Marrone ruggine",
+    "en": "Rusty yellow-brown",
+    "fr": "Jaune-brun rouille",
+    "de": "Rostiges Gelbbraun",
+    "es": "Marrón amarillento oxidado"
+  },
+  {
+    "it": "Beige-Tortora",
+    "en": "Beige-Dove Grey",
+    "fr": "Beige-Gris Tourterelle",
+    "de": "Beige-Taubengrau",
+    "es": "Beige-Gris Tórtola"
+  },
+  {
+    "it": "Grigio-Beige",
+    "en": "Grey-Beige",
+    "fr": "Gris-Beige",
+    "de": "Grau-Beige",
+    "es": "Gris-Beige"
+  },
+  {
+    "it": "Navy-Blu scuro",
+    "en": "Navy-Dark blue",
+    "fr": "Marine-Bleu foncé",
+    "de": "Marineblau-Dunkelblau",
+    "es": "Azul marino-azul oscuro"
+  },
+  {
+    "it": "Blu chiaro-Celeste",
+    "en": "Light blue-Heavenly",
+    "fr": "Bleu clair-Céleste",
+    "de": "Hellblau-himmlisch",
+    "es": "Azul claro-celestial"
+  },
+  {
+    "it": "Lilla-Rosa salmone",
+    "en": "Lilac-Salmon pink",
+    "fr": "Lilas-Rose saumon",
+    "de": "Flieder-Lachsrosa",
+    "es": "Lila-Rosa salmón"
+  },
+  {
+    "it": "Beige-Bianco avorio",
+    "en": "Beige-Ivory white",
+    "fr": "Beige-Blanc ivoire",
+    "de": "Beige-Elfenbeinweiß",
+    "es": "Beige-Blanco marfil"
+  },
+  {
+    "it": "Crema-Giallo",
+    "en": "Cream-Yellow",
+    "fr": "Jaune crème",
+    "de": "Creme-Gelb",
+    "es": "Crema-amarillo"
+  },
+  {
+    "it": "Verde salvia-Rosa",
+    "en": "Sage green-Pink",
+    "fr": "Vert sauge-Rose",
+    "de": "Salbeigrün-Rosa",
+    "es": "Verde salvia-Rosa"
+  },
+  {
+    "it": "Grigio-Marrone",
+    "en": "Grey-Brown",
+    "fr": "Gris-Marron",
+    "de": "Graubraun",
+    "es": "Gris-Marrón"
+  },
+  {
+    "it": "Giallo ocra-Beige",
+    "en": "Ocher yellow-Beige",
+    "fr": "Jaune ocre-Beige",
+    "de": "Ockergelb-Beige",
+    "es": "Amarillo ocre-Beige"
+  },
+  {
+    "it": "Beige-Giallo",
+    "en": "Beige-Yellow",
+    "fr": "Beige-Jaune",
+    "de": "Beige-Gelb",
+    "es": "Beige-Amarillo"
+  },
+  {
+    "it": "Verdone-Beige",
+    "en": "Verdone-Beige",
+    "fr": "Verdone-Beige",
+    "de": "Verdone-Beige",
+    "es": "Verdone-Beige"
+  },
+  {
+    "it": "Beige-Verde-Azzuro",
+    "en": "Beige-Green-Light Blue",
+    "fr": "Beige-Vert-Bleu clair",
+    "de": "Beige-Grün-Hellblau",
+    "es": "Beige-Verde-Azul Claro"
+  },
+  {
+    "it": "Sabbia-Rosa chiaro",
+    "en": "Sand-Light pink",
+    "fr": "Sable-Rose clair",
+    "de": "Sand-Hellrosa",
+    "es": "Arena-Rosa claro"
+  },
+  {
+    "it": "Grigio scuro",
+    "en": "Dark grey",
+    "fr": "Gris foncé",
+    "de": "Dunkelgrau",
+    "es": "Gris oscuro"
+  },
+  {
+    "it": "Beige chiaro-Ruggine",
+    "en": "Light beige-rust",
+    "fr": "Beige clair-rouille",
+    "de": "Heller Beige-Rost",
+    "es": "Beige claro-óxido"
+  },
+  {
+    "it": "Verde chiaro-Verde fluo",
+    "en": "Light green-Fluorescent green",
+    "fr": "Vert clair-Vert fluo",
+    "de": "Hellgrün-Fluoreszierendes Grün",
+    "es": "Verde claro-Verde fluorescente"
+  },
+  {
+    "it": "Bianco-Grigio-Verde militare",
+    "en": "White-Grey-Military green",
+    "fr": "Blanc-Gris-Vert militaire",
+    "de": "Weiß-Grau-Militärgrün",
+    "es": "Blanco-Gris-Verde militar"
+  },
+  {
+    "it": "Navy-Grigio-Tortora",
+    "en": "Navy-Grey-Dove Grey",
+    "fr": "Marine-Gris-Tourterelle",
+    "de": "Marine-Grau-Taubengrau",
+    "es": "Azul Marino-Gris-Gris Paloma"
+  },
+  {
+    "it": "Bianco-Grigio-Tortora",
+    "en": "White-Grey-Dove Grey",
+    "fr": "Blanc-Gris-Tourterelle",
+    "de": "Weiß-Grau-Taubengrau",
+    "es": "Blanco-Gris-Gris Paloma"
+  },
+  {
+    "it": "Grigio-Verde petrolio",
+    "en": "Grey-petroleum green",
+    "fr": "Gris-vert pétrole",
+    "de": "Grau-petroleumgrün",
+    "es": "Gris-verde petróleo"
+  },
+  {
+    "it": "Marrone chiaro-Tortora",
+    "en": "Light brown-dove grey",
+    "fr": "Brun clair-gris tourterelle",
+    "de": "Hellbraun-Taubengrau",
+    "es": "Marrón claro-gris tórtola"
+  },
+  {
+    "it": "Bianco-Verde salvia",
+    "en": "White-Sage green",
+    "fr": "Blanc-Vert sauge",
+    "de": "Weiß-Salbeigrün",
+    "es": "Blanco-Verde salvia"
+  },
+  {
+    "it": "Crema-Rosa",
+    "en": "Cream-Pink",
+    "fr": "Crème-Rose",
+    "de": "Creme-Rosa",
+    "es": "Crema-Rosa"
+  },
+  {
+    "it": "Tortora-Bianco-Giallo",
+    "en": "Dove Grey-White-Yellow",
+    "fr": "Tourterelle Gris-Blanc-Jaune",
+    "de": "Taubengrau-Weiß-Gelb",
+    "es": "Gris Paloma-Blanco-Amarillo"
+  },
+  {
+    "it": "Bianco-Giallo-Verde",
+    "en": "White-Yellow-Green",
+    "fr": "Blanc-Jaune-Vert",
+    "de": "Weiß-Gelb-Grün",
+    "es": "Blanco-Amarillo-Verde"
+  },
+  {
+    "it": "Tortora-Grigio-Verde scuro",
+    "en": "Taupe-Grey-Dark Green",
+    "fr": "Taupe-Gris-Vert Foncé",
+    "de": "Taupe-Grau-Dunkelgrün",
+    "es": "Topo-Gris-Verde Oscuro"
+  },
+  {
+    "it": "Antracite-Militare",
+    "en": "Anthracite-Military",
+    "fr": "Anthracite-Militaire",
+    "de": "Anthrazit-Militär",
+    "es": "Antracita-Militar"
+  },
+  {
+    "it": "Grigio-Grigio chiaro",
+    "en": "Grey-Light grey",
+    "fr": "Gris-Gris clair",
+    "de": "Grau-Hellgrau",
+    "es": "Gris-Gris claro"
+  },
+  {
+    "it": "Grigio-Blu-Arancione",
+    "en": "Grey-Blue-Orange",
+    "fr": "Gris-Bleu-Orange",
+    "de": "Grau-Blau-Orange",
+    "es": "Gris-Azul-Naranja"
+  },
+  {
+    "it": "Beige-Rosa antico",
+    "en": "Antique beige-pink",
+    "fr": "Beige-rose antique",
+    "de": "Antikes Beige-Rosa",
+    "es": "Beige-rosa antiguo"
+  },
+  {
+    "it": "Fuchsia-Arancione",
+    "en": "Fuchsia-Orange",
+    "fr": "Fuchsia-Orange",
+    "de": "Fuchsia-Orange",
+    "es": "fucsia-naranja"
+  },
+  {
+    "it": "Rosa cipria-Grigio chiaro",
+    "en": "Powder pink-Light grey",
+    "fr": "Rose poudré-Gris clair",
+    "de": "Puderrosa-Hellgrau",
+    "es": "Rosa empolvado-Gris claro"
+  },
+  {
+    "it": "Tortora-Sabbia",
+    "en": "Dove Grey-Sand",
+    "fr": "Gris Tourterelle-Sable",
+    "de": "Taubengrau-Sand",
+    "es": "Paloma Gris-Arena"
+  },
+  {
+    "it": "Beige-Marrone chiaro",
+    "en": "Beige-Light brown",
+    "fr": "Beige-Marron clair",
+    "de": "Beige-Hellbraun",
+    "es": "Beige-Marrón claro"
+  },
+  {
+    "it": "Sabbia-Rosa cipria",
+    "en": "Sand-Powder pink",
+    "fr": "Sable-Rose poudré",
+    "de": "Sand-Puderrosa",
+    "es": "Arena-Rosa empolvado"
+  },
+  {
+    "it": "Verde salvia-Marrone chiaro",
+    "en": "Sage green-Light brown",
+    "fr": "Vert sauge-Marron clair",
+    "de": "Salbeigrün-Hellbraun",
+    "es": "Verde salvia-Marrón claro"
   }
 ]
