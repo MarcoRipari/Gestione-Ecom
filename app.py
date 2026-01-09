@@ -935,7 +935,7 @@ async def generate_all_prompts_deepseek(prompts: list[str], model: str) -> dict:
         results = await asyncio.gather(*tasks)
         return dict(results)
 
-def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, desc_lunga_length, desc_breve_length, k_simili, use_image, faiss_index, DEBUG=False):
+def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, desc_lunga_length, desc_breve_length, k_simili, use_image, marchio, faiss_index, DEBUG=False):
     if df_input.empty:
         return None, None, "❌ Il CSV è vuoto"
 
@@ -966,7 +966,8 @@ def calcola_tokens(df_input, col_display_names, selected_langs, selected_tones, 
         col_display_names=col_display_names,
         selected_langs=selected_langs,
         image_caption=caption,
-        simili=simili
+        simili=simili,
+        marchio=marchio
     )
 
     # Token estimation (~4 chars per token)
@@ -2140,6 +2141,7 @@ elif page == "Descrizioni":
                 desc_breve_length=desc_breve_length,
                 k_simili=k_simili,
                 use_image=use_image,
+                marchio=marchio,
                 faiss_index=st.session_state.get("faiss_index"),
                 DEBUG=True
             )
