@@ -2985,7 +2985,7 @@ elif page == "Foto - Aggiungi prelevate":
                 st.info("⚠️ Tutte le SKU inserite sono già presenti nel foglio.")
                 
 elif page == "Giacenze - Importa":
-    st.header("Importa giacenze2")
+    st.header("Importa giacenze")
 
     
     options = ["Manuale", "UBIC", "PIM"]
