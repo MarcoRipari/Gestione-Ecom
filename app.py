@@ -3945,6 +3945,7 @@ elif page == "Traduci":
                     translations = loop.run_until_complete(
                         process_translations(df_original, cols_to_translate, languages)
                     )
+                    st.write(translations)
                     
                     # Creazione ZIP
                     zip_buffer = io.BytesIO()
