@@ -1109,6 +1109,7 @@ async def translate_batch_async(row_data, target_languages, semaphore):
                     {"role": "system", "content": (
                         f"Sei un traduttore. Traduci i testi forniti in queste lingue: {', '.join(target_languages)}. "
                         "Rispondi esclusivamente in formato JSON. "
+                        "La parola STRAPPO deve essere tradotta così: -ES > cierre adherente -FR > scratch -EN > strap"
                         "Struttura: { \"Lingua\": { \"NomeColonna\": \"Traduzione\" } }"
                     )},
                     {"role": "user", "content": json.dumps(row_data)}
@@ -3948,20 +3949,27 @@ elif page == "Traduci":
                             suffix = lang_suffixes.get(lang, "tr")
                             
                             for col in cols_to_translate:
+                                # Trova la posizione originale
                                 idx = df_lang.columns.get_loc(col)
-                                # Rinominiamo la colonna: "Variante (it)" -> "Variante (en)"
+                                
+                                # Genera il nuovo nome
                                 new_col_name = col.replace("(it)", f"({suffix})")
-                                if new_col_name == col: # Se non c'era (it), aggiungiamo il suffisso
+                                if new_col_name == col:
                                     new_col_name = f"{col} ({suffix})"
                                 
+                                # --- FIX PER L'ERRORE ---
+                                # Se la colonna esiste già, la eliminiamo prima di reinserirla
+                                if new_col_name in df_lang.columns:
+                                    df_lang = df_lang.drop(columns=[new_col_name])
+                                # ------------------------
+                        
+                                # Inserimento sicuro
                                 df_lang.insert(idx + 1, new_col_name, translations[lang][col])
                             
                             # Salvataggio singolo file
                             excel_buffer = io.BytesIO()
                             with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
                                 df_lang.to_excel(writer, index=False)
-                            
-                            zip_file.writestr(f"export_{suffix}.xlsx", excel_buffer.getvalue())
     
                     file_bytes = zip_buffer.getvalue()
                     now = datetime.now(ZoneInfo("Europe/Rome"))
