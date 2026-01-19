@@ -1105,11 +1105,13 @@ async def translate_batch_async(row_data, target_languages, semaphore):
             # Prompt ottimizzato per gestire più colonne e più lingue in un colpo solo
             response = await client.chat.completions.create(
                 model="gpt-3.5-turbo-0125",
-                messages=[
+                # Modifica questa riga dentro translate_batch_async
+                "messages"=[
                     {"role": "system", "content": (
-                        f"Sei un traduttore. Traduci i testi forniti in queste lingue: {', '.join(target_languages)}. "
+                        f"Sei un traduttore. Traduci in: {', '.join(target_languages)}. "
                         "Rispondi esclusivamente in formato JSON. "
-                        "La parola STRAPPO deve essere tradotta così: -ES > cierre adherente -FR > scratch -EN > strap"
+                        "IMPORTANTE: Usa esattamente i nomi delle colonne fornite come chiavi nel JSON. "
+                        "La parola STRAPPO deve essere tradotta così: -ES > cierre adherente -FR > scratch -EN > strap. "
                         "Struttura: { \"Lingua\": { \"NomeColonna\": \"Traduzione\" } }"
                     )},
                     {"role": "user", "content": json.dumps(row_data)}
@@ -1123,27 +1125,31 @@ async def translate_batch_async(row_data, target_languages, semaphore):
 
 async def process_translations(df, cols, langs):
     semaphore = asyncio.Semaphore(15) 
-    
-    # Prepariamo la struttura finale: { lingua: { colonna: [lista_traduzioni] } }
     final_results = {lang: {col: [] for col in cols} for lang in langs}
     
-    # Processiamo riga per riga (per mandare tutte le colonne della riga insieme)
     tasks = []
     for _, row in df.iterrows():
-        row_payload = {col: str(row[col]) for col in cols if pd.notna(row[col])}
+        # Payload con valori puliti
+        row_payload = {col: str(row[col]) if pd.notna(row[col]) else "" for col in cols}
         tasks.append(translate_batch_async(row_payload, langs, semaphore))
     
-    st.write(f"Inviando {len(tasks)} pacchetti di traduzione all'AI...")
+    st.info(f"Inviando {len(tasks)} pacchetti di traduzione...")
     all_responses = await asyncio.gather(*tasks)
     
-    # Organizziamo le risposte
+    # DEBUG: Decommenta la riga sotto per vedere cosa risponde l'AI nella UI di Streamlit
+    # st.json(all_responses[0])
+
     for row_resp in all_responses:
         for lang in langs:
+            # 1. Trova la chiave della lingua in modo flessibile
+            lang_key = next((k for k in row_resp.keys() if k.lower() == lang.lower()), None)
+            lang_data = row_resp.get(lang_key, {}) if lang_key else {}
+            
             for col in cols:
-                # Cerchiamo la traduzione nel JSON ritornato
-                # Gestiamo varianti di case-sensitivity dell'AI
-                lang_data = row_resp.get(lang, row_resp.get(lang.lower(), {}))
-                trad = lang_data.get(col, "")
+                # 2. Trova la chiave della colonna in modo flessibile
+                col_key = next((k for k in lang_data.keys() if k.lower() == col.lower()), None)
+                trad = lang_data.get(col_key, "") if col_key else ""
+                
                 final_results[lang][col].append(trad)
                 
     return final_results
