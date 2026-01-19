@@ -3942,50 +3942,53 @@ elif page == "Traduci":
                     
                     # Creazione ZIP
                     zip_buffer = io.BytesIO()
-                    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+                    # È importante usare il blocco 'with' per lo ZIP per assicurarsi che venga chiuso correttamente
+                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                         
                         for lang in languages:
                             df_lang = df_original.copy()
                             suffix = lang_suffixes.get(lang, "tr")
                             
                             for col in cols_to_translate:
-                                # Trova la posizione originale
                                 idx = df_lang.columns.get_loc(col)
-                                
-                                # Genera il nuovo nome
                                 new_col_name = col.replace("(it)", f"({suffix})")
                                 if new_col_name == col:
                                     new_col_name = f"{col} ({suffix})"
                                 
-                                # --- FIX PER L'ERRORE ---
-                                # Se la colonna esiste già, la eliminiamo prima di reinserirla
                                 if new_col_name in df_lang.columns:
                                     df_lang = df_lang.drop(columns=[new_col_name])
-                                # ------------------------
-                        
-                                # Inserimento sicuro
+                                
                                 df_lang.insert(idx + 1, new_col_name, translations[lang][col])
                             
-                            # Salvataggio singolo file
+                            # Salvataggio singolo file Excel in memoria
                             excel_buffer = io.BytesIO()
                             with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
                                 df_lang.to_excel(writer, index=False)
+                            
+                            # --- PUNTO CRITICO: Aggiungi il file Excel allo ZIP ---
+                            excel_data = excel_buffer.getvalue()
+                            zip_file.writestr(f"export_{suffix}.xlsx", excel_data)
     
+                    # Ora che il blocco 'with zip_file' è terminato, lo ZIP è pronto
                     file_bytes = zip_buffer.getvalue()
+                    
+                    # Gestione Dropbox e Ora
                     now = datetime.now(ZoneInfo("Europe/Rome"))
                     file_name = f"traduzioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
-                    folder_path = "/CATALOGO/DESCRIZIONI/traduzioni"  # cartella su Dropbox
-                    access_token = get_dropbox_access_token()
-                    dbx = dropbox.Dropbox(access_token)
-                    upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
                     
-                    st.success("Operazione completata!")
-                    
-
-                    
+                    # Esegui l'upload
+                    try:
+                        folder_path = "/CATALOGO/DESCRIZIONI/traduzioni"
+                        access_token = get_dropbox_access_token()
+                        dbx = dropbox.Dropbox(access_token)
+                        upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
+                        st.success(f"✅ File caricato su Dropbox come: {file_name}")
+                    except Exception as e:
+                        st.error(f"Errore caricamento Dropbox: {e}")
+    
                     st.download_button(
                         label="📥 Scarica ZIP Traduzioni",
-                        data=zip_buffer.getvalue(),
-                        file_name="traduzioni_batch.zip",
+                        data=file_bytes,
+                        file_name=file_name,
                         mime="application/zip"
                     )
