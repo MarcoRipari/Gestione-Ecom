@@ -30,6 +30,8 @@ pandas
 numpy
 
 # Utility
+openpyxl
+xlrd
 tqdm
 aiohttp
 httpx
