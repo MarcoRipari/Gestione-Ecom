@@ -1081,6 +1081,26 @@ def format_dropbox_date(dt):
 # ---------------------------
 # Funzioni varie
 # ---------------------------
+client_transalte = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+def translate_text(text, target_language="Italiano"):
+    if pd.isna(text) or str(text).strip() == "":
+        return text
+    
+    try:
+        response = client_translate.chat.completions.create(
+            model="gpt-3.5-turbo", # O "gpt-4" per maggiore precisione
+            messages=[
+                {"role": "system", "content": f"Sei un traduttore esperto. Traduci il testo in {target_language} mantenendo lo stile originale. Rispondi solo con la traduzione."},
+                {"role": "user", "content": text}
+            ],
+            temperature=0.3
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        st.error(f"Errore durante la traduzione: {e}")
+        return text
+        
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
     result = chardet.detect(raw_data)
@@ -1871,6 +1891,7 @@ with st.sidebar:
                           {"name":"Catalogo", "icon":"list", "role":["logistica","customer care","admin"]},
                           {"name":"Ordini", "icon":"truck", "role":["logistica","customer care","admin"]},
                           {"name":"Descrizioni", "icon":"list", "role":["customer care","admin"]},
+                          {"name":"Traduci", "icon":"list", "role":["customer care","admin"]},
                           {"name":"Foto", "icon":"camera", "role":["logistica","customer care","admin"]},
                           {"name":"Giacenze", "icon":"box", "role":["logistica","customer care","admin"]},
                           {"name":"Ferie", "icon":"palm", "role":["admin"]},
@@ -3846,3 +3867,43 @@ elif page == "Ferie - Report":
     """, unsafe_allow_html=True)
     
     st.markdown(ferie_report_df_styled.to_html(escape=False), unsafe_allow_html=True)
+
+elif page == "Traduci":
+    st.title("Excel Translator AI 🌍")
+    
+    uploaded_file = st.file_uploader("Carica il tuo file Excel (.xlsx)", type=["xlsx"])
+    
+    if uploaded_file:
+        # Leggiamo il file
+        df = pd.read_excel(uploaded_file)
+        st.write("Anteprima dati:", df.head())
+    
+        # Selezione colonne e lingua
+        columns_to_translate = st.multiselect("Seleziona le colonne da tradurre", df.columns)
+        target_lang = st.text_input("Lingua di destinazione", value="Italiano")
+    
+        if st.button("Avvia Traduzione"):
+            if not columns_to_translate:
+                st.warning("Seleziona almeno una colonna.")
+            else:
+                with st.spinner("Traduzione in corso... attendi."):
+                    # Creiamo una copia per non modificare l'originale subito
+                    translated_df = df.copy()
+                    
+                    for col in columns_to_translate:
+                        # Applichiamo la traduzione riga per riga
+                        translated_df[col] = translated_df[col].apply(lambda x: translate_text(x, target_lang))
+                    
+                    # Conversione in Excel mantenendo il formato tramite openpyxl
+                    output = io.BytesIO()
+                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                        translated_df.to_excel(writer, index=False)
+                    
+                    st.success("Traduzione completata!")
+                    
+                    st.download_button(
+                        label="Scarica Excel Tradotto",
+                        data=output.getvalue(),
+                        file_name="file_tradotto.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
