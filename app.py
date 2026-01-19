@@ -3872,7 +3872,7 @@ elif page == "Ferie - Report":
 elif page == "Traduci":
     st.title("Excel Translator AI 🌍")
     
-    uploaded_file = st.file_uploader("Carica il tuo file Excel (.xlsx)", type=["xlsx"])
+    uploaded_file = st.file_uploader("Carica il tuo file Excel (.xls)", type=["xls"])
     
     if uploaded_file:
         # Leggiamo il file
