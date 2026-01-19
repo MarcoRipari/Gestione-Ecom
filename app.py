@@ -3963,7 +3963,18 @@ elif page == "Traduci":
                             
                             zip_file.writestr(f"export_{suffix}.xlsx", excel_buffer.getvalue())
     
+                    file_bytes = zip_buffer.getvalue()
+                    now = datetime.now(ZoneInfo("Europe/Rome"))
+                    file_name = f"traduzioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
+                    folder_path = "/CATALOGO/DESCRIZIONI/traduzioni"  # cartella su Dropbox
+                    access_token = get_dropbox_access_token()
+                    dbx = dropbox.Dropbox(access_token)
+                    upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
+                    
                     st.success("Operazione completata!")
+                    
+
+                    
                     st.download_button(
                         label="📥 Scarica ZIP Traduzioni",
                         data=zip_buffer.getvalue(),
