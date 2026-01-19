@@ -1082,7 +1082,7 @@ def format_dropbox_date(dt):
 # ---------------------------
 # Funzioni varie
 # ---------------------------
-client_transalte = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+client_translate = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def translate_text(text, target_language="Italiano"):
     if pd.isna(text) or str(text).strip() == "":
