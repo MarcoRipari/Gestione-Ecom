@@ -1106,7 +1106,7 @@ async def translate_batch_async(row_data, target_languages, semaphore):
             response = await client.chat.completions.create(
                 model="gpt-3.5-turbo-0125",
                 # Modifica questa riga dentro translate_batch_async
-                "messages"=[
+                messages=[
                     {"role": "system", "content": (
                         f"Sei un traduttore. Traduci in: {', '.join(target_languages)}. "
                         "Rispondi esclusivamente in formato JSON. "
