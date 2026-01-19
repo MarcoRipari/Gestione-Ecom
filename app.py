@@ -1082,31 +1082,50 @@ def format_dropbox_date(dt):
 # ---------------------------
 # Funzioni varie
 # ---------------------------
-async def translate_text_async(text, target_language, semaphore):
+async def translate_batch_async(text, target_languages, semaphore):
+    """
+    Invia un testo e riceve un JSON con tutte le traduzioni richieste.
+    """
     if pd.isna(text) or str(text).strip() == "":
-        return text
+        return {lang: text for lang in target_languages}
     
-    # Il semaforo limita le richieste simultanee per evitare di colpire i rate limit di OpenAI
     async with semaphore:
         try:
+            # Prompt super ottimizzato per risparmiare token
             response = await client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-3.5-turbo-0125", # Versione ottimizzata per JSON
                 messages=[
-                    {"role": "system", "content": f"Sei un traduttore. Traduci in {target_language}. Rispondi solo con il testo tradotto."},
+                    {"role": "system", "content": f"Traduci in: {', '.join(target_languages)}. Rispondi solo in JSON. Formato: {{\"lingua\": \"testo\"}}"},
                     {"role": "user", "content": str(text)}
                 ],
+                response_format={"type": "json_object"},
                 temperature=0
             )
-            return response.choices[0].message.content.strip()
+            return json.loads(response.choices[0].message.content)
         except Exception as e:
-            return f"Errore: {str(e)}"
+            return {lang: f"Error: {str(e)}" for lang in target_languages}
 
-# Funzione per gestire la traduzione di una intera colonna in parallelo
-async def translate_column(column_data, target_language):
-    # Limitiamo a 10 richieste simultanee per non sovraccaricare l'account API
-    semaphore = asyncio.Semaphore(10)
-    tasks = [translate_text_async(val, target_language, semaphore) for val in column_data]
-    return await asyncio.gather(*tasks)
+async def process_translations(df, cols, langs):
+    semaphore = asyncio.Semaphore(20) # Più alto perché facciamo meno chiamate totali
+    
+    # Dizionario per memorizzare i risultati: { lingua: { colonna: [lista_traduzioni] } }
+    results = {lang: {col: [] for col in cols} for lang in langs}
+    
+    for col in cols:
+        st.write(f"Processing colonna: {col}...")
+        tasks = [translate_batch_async(val, langs, semaphore) for val in df[col]]
+        
+        # Eseguiamo la colonna
+        column_results = await asyncio.gather(*tasks)
+        
+        # Smistiamo i risultati del JSON nelle rispettive lingue
+        for res_json in column_results:
+            for lang in langs:
+                # Recuperiamo la traduzione o usiamo l'originale in caso di errore nel JSON
+                traduzione = res_json.get(lang, res_json.get(lang.lower(), ""))
+                results[lang][col].append(traduzione)
+                
+    return results
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
@@ -3878,43 +3897,54 @@ elif page == "Ferie - Report":
 elif page == "Traduci":
     st.title("Excel Translator AI 🌍")
     
-    uploaded_file = st.file_uploader("Carica il file .xls", type=["xls"])
+    uploaded_file = st.file_uploader("Carica .xls", type=["xls"])
 
     if uploaded_file:
-        df = pd.read_excel(uploaded_file, engine='xlrd')
-        st.write(f"File caricato: {len(df)} righe.")
+        df_original = pd.read_excel(uploaded_file, engine='xlrd')
         
-        cols_to_translate = st.multiselect("Seleziona le colonne", df.columns)
-        target_lang = st.text_input("Lingua", value="Italiano")
+        cols_to_translate = st.multiselect("Colonne da tradurre", df_original.columns)
+        languages = st.multiselect("Lingue (1 file per lingua nello ZIP)", 
+                                   ["Francese", "Tedesco", "Inglese", "Spagnolo", "Olandese"])
     
-        if st.button("Avvia Traduzione Veloce"):
-            if not cols_to_translate:
-                st.error("Seleziona le colonne!")
+        if st.button("Genera ZIP Traduzioni"):
+            if not cols_to_translate or not languages:
+                st.error("Seleziona colonne e lingue.")
             else:
-                with st.spinner("Traduzione asincrona in corso..."):
-                    # Creiamo un nuovo event loop per asyncio (necessario in Streamlit)
+                with st.spinner("Traduzione massiva in corso (Batch Mode)..."):
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     
-                    df_result = df.copy()
+                    # Otteniamo tutte le traduzioni mappate per lingua
+                    all_translations = loop.run_until_complete(
+                        process_translations(df_original, cols_to_translate, languages)
+                    )
                     
-                    for col_name in cols_to_translate:
-                        st.info(f"Traduzione parallela colonna: {col_name}...")
+                    # Creazione dello ZIP in memoria
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
                         
-                        # Eseguiamo la traduzione della colonna in modo asincrono
-                        translated_values = loop.run_until_complete(
-                            translate_column(df_result[col_name].tolist(), target_lang)
-                        )
-                        
-                        # Inserimento colonna dopo quella originale
-                        current_idx = df_result.columns.get_loc(col_name)
-                        df_result.insert(current_idx + 1, f"{col_name} (Tradotto)", translated_values)
+                        for lang in languages:
+                            # Creiamo una copia del DF originale per ogni lingua
+                            df_lang = df_original.copy()
+                            
+                            for col in cols_to_translate:
+                                # Troviamo la posizione della colonna originale
+                                idx = df_lang.columns.get_loc(col)
+                                # Inseriamo la traduzione subito dopo
+                                df_lang.insert(idx + 1, f"{col}_{lang}", all_translations[lang][col])
+                            
+                            # Salviamo il singolo Excel in un buffer
+                            excel_buffer = io.BytesIO()
+                            with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+                                df_lang.to_excel(writer, index=False)
+                            
+                            # Aggiungiamo il file Excel allo ZIP
+                            zip_file.writestr(f"traduzione_{lang}.xlsx", excel_buffer.getvalue())
     
-                    st.success("Completato in una frazione del tempo originale!")
-                    
-                    # Download
-                    output = io.BytesIO()
-                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                        df_result.to_excel(writer, index=False)
-                    
-                    st.download_button("Scarica Risultato", output.getvalue(), "tradotto_async.xlsx")
+                    st.success("✅ ZIP generato con successo!")
+                    st.download_button(
+                        label="📥 Scarica ZIP Completo",
+                        data=zip_buffer.getvalue(),
+                        file_name="traduzioni_excel.zip",
+                        mime="application/zip"
+                    )
