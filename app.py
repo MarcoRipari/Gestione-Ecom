@@ -3872,39 +3872,51 @@ elif page == "Ferie - Report":
 elif page == "Traduci":
     st.title("Excel Translator AI 🌍")
     
-    uploaded_file = st.file_uploader("Carica il tuo file Excel (.xls)", type=["xls"])
+    # Caricamento file
+    uploaded_file = st.file_uploader("Carica il file .xls", type=["xls"])
     
     if uploaded_file:
-        # Leggiamo il file
-        df = pd.read_excel(uploaded_file)
-        st.write("Anteprima dati:", df.head())
+        # Per i file .xls usiamo engine='xlrd'
+        df = pd.read_excel(uploaded_file, engine='xlrd')
+        
+        st.write("Anteprima del file caricato:")
+        st.dataframe(df.head())
     
-        # Selezione colonne e lingua
-        columns_to_translate = st.multiselect("Seleziona le colonne da tradurre", df.columns)
-        target_lang = st.text_input("Lingua di destinazione", value="Italiano")
+        # Selezione colonne
+        cols = st.multiselect("Quali colonne vuoi tradurre?", df.columns)
+        target_lang = st.selectbox("Lingua di destinazione", ["Italiano", "Inglese", "Francese", "Tedesco", "Spagnolo"])
     
-        if st.button("Avvia Traduzione"):
-            if not columns_to_translate:
-                st.warning("Seleziona almeno una colonna.")
+        if st.button("Traduci e genera file"):
+            if not cols:
+                st.error("Seleziona almeno una colonna!")
             else:
-                with st.spinner("Traduzione in corso... attendi."):
-                    # Creiamo una copia per non modificare l'originale subito
-                    translated_df = df.copy()
+                progress_bar = st.progress(0)
+                total_cells = len(df) * len(cols)
+                current_cell = 0
+                
+                # Creiamo una copia per il risultato
+                df_translated = df.copy()
+    
+                for col in cols:
+                    translated_column = []
+                    for val in df_translated[col]:
+                        translated_column.append(translate_text(val, target_lang))
+                        current_cell += 1
+                        progress_bar.progress(current_cell / total_cells)
                     
-                    for col in columns_to_translate:
-                        # Applichiamo la traduzione riga per riga
-                        translated_df[col] = translated_df[col].apply(lambda x: translate_text(x, target_lang))
-                    
-                    # Conversione in Excel mantenendo il formato tramite openpyxl
-                    output = io.BytesIO()
-                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                        translated_df.to_excel(writer, index=False)
-                    
-                    st.success("Traduzione completata!")
-                    
-                    st.download_button(
-                        label="Scarica Excel Tradotto",
-                        data=output.getvalue(),
-                        file_name="file_tradotto.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
+                    df_translated[col] = translated_column
+    
+                # Prepariamo il file per il download
+                # Nota: Anche se il file originale è .xls, è consigliabile salvarlo in .xlsx 
+                # per compatibilità moderna, ma mantenendo i dati identici.
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df_translated.to_excel(writer, index=False)
+                
+                st.success("Completato!")
+                st.download_button(
+                    label="Scarica File Tradotto",
+                    data=output.getvalue(),
+                    file_name="file_tradotto.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
