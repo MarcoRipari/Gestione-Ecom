@@ -1082,25 +1082,31 @@ def format_dropbox_date(dt):
 # ---------------------------
 # Funzioni varie
 # ---------------------------
-client_translate = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-def translate_text(text, target_language="Italiano"):
+async def translate_text_async(text, target_language, semaphore):
     if pd.isna(text) or str(text).strip() == "":
         return text
     
-    try:
-        response = client_translate.chat.completions.create(
-            model="gpt-3.5-turbo", # O "gpt-4" per maggiore precisione
-            messages=[
-                {"role": "system", "content": f"Sei un traduttore esperto. Traduci il testo in {target_language} mantenendo lo stile originale. Rispondi solo con la traduzione."},
-                {"role": "user", "content": text}
-            ],
-            temperature=0.3
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        st.error(f"Errore durante la traduzione: {e}")
-        return text
+    # Il semaforo limita le richieste simultanee per evitare di colpire i rate limit di OpenAI
+    async with semaphore:
+        try:
+            response = await client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": f"Sei un traduttore. Traduci in {target_language}. Rispondi solo con il testo tradotto."},
+                    {"role": "user", "content": str(text)}
+                ],
+                temperature=0
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            return f"Errore: {str(e)}"
+
+# Funzione per gestire la traduzione di una intera colonna in parallelo
+async def translate_column(column_data, target_language):
+    # Limitiamo a 10 richieste simultanee per non sovraccaricare l'account API
+    semaphore = asyncio.Semaphore(10)
+    tasks = [translate_text_async(val, target_language, semaphore) for val in column_data]
+    return await asyncio.gather(*tasks)
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
@@ -3872,51 +3878,43 @@ elif page == "Ferie - Report":
 elif page == "Traduci":
     st.title("Excel Translator AI 🌍")
     
-    # Caricamento file
     uploaded_file = st.file_uploader("Carica il file .xls", type=["xls"])
-    
+
     if uploaded_file:
-        # Per i file .xls usiamo engine='xlrd'
         df = pd.read_excel(uploaded_file, engine='xlrd')
+        st.write(f"File caricato: {len(df)} righe.")
         
-        st.write("Anteprima del file caricato:")
-        st.dataframe(df.head())
+        cols_to_translate = st.multiselect("Seleziona le colonne", df.columns)
+        target_lang = st.text_input("Lingua", value="Italiano")
     
-        # Selezione colonne
-        cols = st.multiselect("Quali colonne vuoi tradurre?", df.columns)
-        target_lang = st.selectbox("Lingua di destinazione", ["Italiano", "Inglese", "Francese", "Tedesco", "Spagnolo"])
-    
-        if st.button("Traduci e genera file"):
-            if not cols:
-                st.error("Seleziona almeno una colonna!")
+        if st.button("Avvia Traduzione Veloce"):
+            if not cols_to_translate:
+                st.error("Seleziona le colonne!")
             else:
-                progress_bar = st.progress(0)
-                total_cells = len(df) * len(cols)
-                current_cell = 0
-                
-                # Creiamo una copia per il risultato
-                df_translated = df.copy()
-    
-                for col in cols:
-                    translated_column = []
-                    for val in df_translated[col]:
-                        translated_column.append(translate_text(val, target_lang))
-                        current_cell += 1
-                        progress_bar.progress(current_cell / total_cells)
+                with st.spinner("Traduzione asincrona in corso..."):
+                    # Creiamo un nuovo event loop per asyncio (necessario in Streamlit)
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
                     
-                    df_translated[col] = translated_column
+                    df_result = df.copy()
+                    
+                    for col_name in cols_to_translate:
+                        st.info(f"Traduzione parallela colonna: {col_name}...")
+                        
+                        # Eseguiamo la traduzione della colonna in modo asincrono
+                        translated_values = loop.run_until_complete(
+                            translate_column(df_result[col_name].tolist(), target_lang)
+                        )
+                        
+                        # Inserimento colonna dopo quella originale
+                        current_idx = df_result.columns.get_loc(col_name)
+                        df_result.insert(current_idx + 1, f"{col_name} (Tradotto)", translated_values)
     
-                # Prepariamo il file per il download
-                # Nota: Anche se il file originale è .xls, è consigliabile salvarlo in .xlsx 
-                # per compatibilità moderna, ma mantenendo i dati identici.
-                output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    df_translated.to_excel(writer, index=False)
-                
-                st.success("Completato!")
-                st.download_button(
-                    label="Scarica File Tradotto",
-                    data=output.getvalue(),
-                    file_name="file_tradotto.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+                    st.success("Completato in una frazione del tempo originale!")
+                    
+                    # Download
+                    output = io.BytesIO()
+                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                        df_result.to_excel(writer, index=False)
+                    
+                    st.download_button("Scarica Risultato", output.getvalue(), "tradotto_async.xlsx")
