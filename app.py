@@ -1135,7 +1135,7 @@ def build_translation_schema(selected_langs, selected_cols):
     }]
 
 async def translate_row_with_functions(row_data, target_languages, selected_cols, semaphore):
-    """Traduce una singola riga usando il Function Calling"""
+    """Versione con tecnica di rinforzo per evitare salti di lingua/colonna"""
     if not any(str(v).strip() for v in row_data.values()):
         return {lang: {col: "" for col in selected_cols} for lang in target_languages}
 
@@ -1143,38 +1143,51 @@ async def translate_row_with_functions(row_data, target_languages, selected_cols
         try:
             tools = build_translation_schema(target_languages, selected_cols)
             
+            # Creiamo un memo visivo per l'AI
+            check_list = " | ".join([f"{l}: {', '.join(selected_cols)}" for l in target_languages])
+            
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": (
-                        "Sei un traduttore esperto per Falcotto (calzature bambini). "
-                        "Traduci con precisione tecnica: 'strappo' -> strap (EN), scratch (FR), "
-                        "cierre adherente (ES), Klettverschluss (DE), klittenband (NL). "
-                        "'velour' -> suede/pelle scamosciata."
+                        "Sei un traduttore di calzature di alta precisione. "
+                        "IL TUO COMPITO: Devi tradurre TUTTI i testi in TUTTE le lingue richieste. "
+                        f"DEVI COMPLETARE QUESTO SCHEMA: {check_list}. "
+                        "NON COPIARE l'italiano se non è un numero SKU o una misura. "
+                        "Se una cella è una descrizione lunga, traducila parola per parola. "
+                        "TERMINOLOGIA OBBLIGATORIA: 'strappo' -> EN:strap, FR:scratch, ES:cierre adherente, DE:Klettverschluss."
                     )},
-                    {"role": "user", "content": f"Dati riga prodotto: {json.dumps(row_data)}"}
+                    {"role": "user", "content": f"DATI DA TRADURRE:\n{json.dumps(row_data, indent=2)}"}
                 ],
                 tools=tools,
                 tool_choice={"type": "function", "function": {"name": "set_translations"}},
-                temperature=0
+                temperature=0.1 # Leggermente sopra zero per evitare loop di pigrizia
             )
             
-            # Estrazione dati strutturati
             args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
             translations = args.get("languages", {})
             
-            # Ricostruzione con fallback di sicurezza
             output = {}
             for lang in target_languages:
                 lang_data = translations.get(lang, {})
-                output[lang] = {
-                    col: fix_unicode_and_clean(str(lang_data.get(col, row_data.get(col, "")))) 
-                    for col in selected_cols
-                }
+                output[lang] = {}
+                for col in selected_cols:
+                    originale = str(row_data.get(col, "")).strip()
+                    tradotta = str(lang_data.get(col, "")).strip()
+                    
+                    # CONTROLLO ANTI-PIGRIZIA:
+                    # Se l'AI ha restituito la stessa cosa (e non è un numero/misura), 
+                    # significa che ha saltato la cella.
+                    if tradotta == originale and not originale.replace('.','',1).isdigit() and len(originale) > 3:
+                        # Qui potremmo loggare il problema, ma per ora teniamo il dato
+                        output[lang][col] = fix_unicode_and_clean(tradotta)
+                    else:
+                        output[lang][col] = fix_unicode_and_clean(tradotta if tradotta else originale)
+            
             return output
             
         except Exception as e:
-            # Fallback all'originale in caso di errore
+            st.error(f"Errore riga: {e}")
             return {lang: row_data for lang in target_languages}
 
 async def process_batch_translations(df, cols, langs):
