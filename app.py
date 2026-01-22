@@ -3968,7 +3968,7 @@ elif page == "Ferie - Report":
     st.markdown(ferie_report_df_styled.to_html(escape=False), unsafe_allow_html=True)
 
 elif page == "Traduci":
-    st.title("Excel Translator AI 🌍3")
+    st.title("Excel Translator AI 🌍")
     
     uploaded_file = st.file_uploader("Carica .xls", type=["xls"])
 
