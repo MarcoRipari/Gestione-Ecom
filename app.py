@@ -4024,11 +4024,18 @@ elif page == "Traduci":
         if st.button("Avvia Traduzioni"):
             if cols_to_translate and selected_langs:
                 # Esecuzione del processo
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                all_translations = loop.run_until_complete(
-                    process_batch_with_timer(df_original, cols_to_translate, selected_langs)
-                )
+                try:
+                    try:
+                        loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                    
+                    all_translations = loop.run_until_complete(
+                        process_batch_with_timer(df_original, cols_to_translate, selected_langs)
+                    )
+                except Exception as e:
+                    st.error(f"Errore critico durante la traduzione: {e}")
         
                 # Generazione ZIP
                 zip_buffer = io.BytesIO()
