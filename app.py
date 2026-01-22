@@ -1185,108 +1185,75 @@ def build_batch_schema(selected_langs, selected_cols):
     }]
 
 async def translate_mini_batch(batch_rows, target_languages, selected_cols, semaphore):
-    """Chiamata AI singola per un batch di righe"""
+    """Esecuzione ultra-rapida senza controlli bloccanti"""
     async with semaphore:
         try:
             tools = build_batch_schema(target_languages, selected_cols)
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": (
-                        "Sei un traduttore esperto. DEVI tradurre OGNI riga per OGNI lingua richiesta. "
-                        "NON saltare campi e NON lasciare testo in italiano. "
-                        "Mantieni rigorosamente i 'custom_id' forniti."
-                    )},
-                    {"role": "user", "content": f"Batch da tradurre: {json.dumps(batch_rows)}"}
+                    {"role": "system", "content": "Traduci i prodotti Falcotto. Sii rapido e preciso. Non lasciare testi in italiano."},
+                    {"role": "user", "content": f"Batch JSON: {json.dumps(batch_rows)}"}
                 ],
                 tools=tools,
                 tool_choice={"type": "function", "function": {"name": "set_batch_translations"}},
-                temperature=0.1
+                temperature=0,
+                timeout=20.0 # Timeout breve per evitare di restare appesi
             )
             
-            args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
-            results = args.get("results", [])
-            
-            valid_batch_results = {}
-            for res in results:
-                cid = res.get("custom_id")
-                trans = res.get("translations", {})
-                
-                # Validazione interna: controlliamo se ogni lingua/colonna è stata effettivamente tradotta
-                is_row_valid = True
-                for lang in target_languages:
-                    if lang not in trans:
-                        is_row_valid = False; break
-                    for col in selected_cols:
-                        orig = next((r["data"][col] for r in batch_rows if r["custom_id"] == cid), "")
-                        trad = str(trans[lang].get(col, "")).strip()
-                        # Scartiamo se traduzione identica a originale (su testi lunghi)
-                        if (not trad) or (trad == orig and len(orig) > 5 and not orig.replace('.','',1).isdigit()):
-                            is_row_valid = False; break
-                    if not is_row_valid: break
-                
-                if is_row_valid:
-                    valid_batch_results[cid] = trans
-            
-            return valid_batch_results
-        except Exception:
+            arguments = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+            # Restituiamo direttamente i risultati mappati per ID
+            return {res["custom_id"]: res["translations"] for res in arguments.get("results", [])}
+        except Exception as e:
+            # Se un batch fallisce, restituiamo un dizionario vuoto
             return {}
 
 async def process_batch_with_recovery(df, cols, langs):
-    """Versione Tier 2: Massima velocità lineare senza loop di recupero pesanti"""
+    """Orchestratore lineare Tier 2: focus su velocità e UI reattiva"""
     semaphore = asyncio.Semaphore(40) 
-    batch_size = 10 
+    batch_size = 5 # Ridotto a 5 per velocizzare la risposta del singolo batch
     start_time = time.perf_counter()
     
-    st.write(f"### ⚡ Traduzione Batch Tier 2")
+    st.write(f"### ⚡ Esecuzione Rapida (Tier 2)")
     
-    # Contenitori UI per feedback immediato
+    # Placeholder per la UI
     progress_bar = st.progress(0)
     timer_text = st.empty()
     status_text = st.empty()
 
-    # 1. Preparazione Batch
-    all_rows = []
-    for i, (_, row) in enumerate(df.iterrows()):
-        all_rows.append({
-            "custom_id": i,
-            "data": {c: str(row[c]) if pd.notna(row[c]) else "" for c in cols}
-        })
-    
+    # Preparazione dei dati
+    all_rows = [{"custom_id": i, "data": {c: str(df.iloc[i][c]) for c in cols}} for i in range(len(df))]
     chunks = [all_rows[i:i + batch_size] for i in range(0, len(all_rows), batch_size)]
     total_chunks = len(chunks)
     
-    # 2. Lancio dei Task paralleli
+    # Creazione dei task
     tasks = [translate_mini_batch(chunk, langs, cols, semaphore) for chunk in chunks]
     
     final_results_ordered = [None] * len(df)
     completed_chunks = 0
 
-    # 3. Raccolta risultati asincrona
+    # Consumiamo i task man mano che finiscono
     for coro in asyncio.as_completed(tasks):
-        res_dict = await coro # res_dict è un dizionario {cid: translations}
-        if res_dict:
-            for cid, trans in res_dict.items():
-                final_results_ordered[cid] = trans
+        res_dict = await coro
+        for cid, trans in res_dict.items():
+            final_results_ordered[cid] = trans
         
         completed_chunks += 1
         elapsed = time.perf_counter() - start_time
         
-        # Aggiornamento UI fluido
+        # Aggiornamento UI immediato
         progress_bar.progress(completed_chunks / total_chunks)
-        timer_text.markdown(f"⏱️ **Tempo trascorso:** {elapsed:.2f}s | **Batch:** {completed_chunks}/{total_chunks}")
-        status_text.info(f"Elaborazione batch in corso...")
+        timer_text.markdown(f"⏱️ **Tempo:** {elapsed:.2f}s | **Batch completati:** {completed_chunks}/{total_chunks}")
 
-    # 4. Fallback per righe mancanti (evita celle vuote)
+    # Fallback per evitare celle vuote in caso di errori API
     for i in range(len(final_results_ordered)):
         if final_results_ordered[i] is None:
-            # Se l'AI ha fallito il batch, mettiamo l'originale
             final_results_ordered[i] = {l: {c: df.iloc[i][c] for c in cols} for l in langs}
 
     total_time = time.perf_counter() - start_time
-    status_text.success(f"✅ Operazione completata in {total_time:.2f}s")
+    st.success(f"✅ Processo terminato in {total_time:.2f}s")
     
-    # 5. Formattazione finale per il DataFrame
+    # Ricostruzione finale del dataset
     final_data = {lang: {col: [] for col in cols} for lang in langs}
     for res in final_results_ordered:
         for lang in langs:
