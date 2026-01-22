@@ -4004,12 +4004,12 @@ elif page == "Traduci":
                             iso = lang_map[lang_name] # iso è "en", "fr", ecc.
                             
                             for col in cols_to_translate:
+                                st.write(col.replace("(it)", f"({file_name_suffix.lower()})"))
                                 if file_name_suffix:
                                     old_col = col.replace("(it)", f"({file_name_suffix.lower()})")
-                                    st.write(old_col)
                                     if old_col in df_lang.columns:
                                         df_lang.drop(columns=[old_col], inplace=True)
-                                
+                                st.write(old_col)
                                 new_col = col.replace("(it)", f"({iso.lower()})")
                                 
                                 # ESTRAZIONE DATI DALLA MAPPA
