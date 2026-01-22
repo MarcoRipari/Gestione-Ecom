@@ -3982,7 +3982,7 @@ elif page == "Traduci":
 
     if uploaded_file:
         file_name_suffix = estrai_lingua(uploaded_file.name)
-        st.write(file_name_suffix)
+
         df_original = pd.read_excel(uploaded_file, engine='xlrd')
         cols_to_translate = st.multiselect("Colonne da tradurre", df_original.columns)
         selected_langs = st.multiselect("Lingue target", list(lang_map.keys()))
