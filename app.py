@@ -1091,6 +1091,18 @@ lang_map = {
     "Olandese": "nl"
 }
 
+def clean_excel_string(value):
+    if not isinstance(value, str):
+        return value
+    # Rimuove caratteri di controllo ASCII (tranne tab, newline, carriage return)
+    # che sono illegali nei file XML di Excel
+    illegal_chars = re.compile(r'[\000-\010]|[\013-\014]|[\016-\037]')
+    value = illegal_chars.sub("", value)
+    
+    # Opzionale: Rimuove i residui di LaTeX se l'AI impazzisce
+    value = value.replace("{", "").replace("}", "").replace("\\", "")
+    return value
+    
 # Definizione dello schema della funzione (Tool)
 def get_translation_tool(target_languages):
     return [{
@@ -3954,16 +3966,19 @@ elif page == "Traduci":
                         
                         for col in cols_to_translate:
                             idx = df_lang.columns.get_loc(col)
-                            # Gestione nomi colonne come richiesto
                             new_col_name = col.replace("(it)", f"({suffix})")
-                            if new_col_name == col:
-                                new_col_name = f"{col} ({suffix})"
+                            
+                            # --- PULIZIA DATI ---
+                            # Applichiamo la pulizia a tutta la lista di traduzioni
+                            cleaned_translations = [clean_excel_string(t) for t in all_translations[lang][col]]
                             
                             if new_col_name in df_lang.columns:
                                 df_lang.drop(columns=[new_col_name], inplace=True)
                             
-                            df_lang.insert(idx + 1, new_col_name, all_translations[lang][col])
-    
+                            # Inseriamo i dati puliti
+                            df_lang.insert(idx + 1, new_col_name, cleaned_translations)
+                    
+                        # Salvataggio (il resto del codice rimane uguale)
                         excel_buffer = io.BytesIO()
                         with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
                             df_lang.to_excel(writer, index=False)
