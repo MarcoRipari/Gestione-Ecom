@@ -1104,71 +1104,34 @@ def estrai_lingua(nome_file):
     return match.group(1).upper() if match else None
 
 # --- 2. LOGICA FUNCTION CALLING (DYNAMIC SCHEMA) ---
-
 def build_translation_schema(selected_langs, selected_cols):
-    """Schema piatto: meno nidificazione = meno errori dell'AI"""
+    """Schema piatto per ridurre errori di generazione JSON"""
     properties = {}
-    # Creiamo chiavi tipo "Inglese_Descrizione"
+    required_fields = []
+    
     for lang in selected_langs:
         for col in selected_cols:
-            key = f"{lang}_{col}"
+            key = f"{lang}_{col}".replace(" ", "_") # Evitiamo spazi nelle chiavi
             properties[key] = {"type": "string"}
+            required_fields.append(key)
 
     return [{
         "type": "function",
         "function": {
             "name": "save_translations",
-            "description": "Salva le traduzioni per ogni lingua e colonna",
+            "description": "Salva le traduzioni per ogni lingua e colonna richiesta",
             "parameters": {
                 "type": "object",
                 "properties": properties,
-                "required": list(properties.keys())
+                "required": required_fields
             }
         }
     }]
 
-def fix_unicode_and_clean(text):
-    if not isinstance(text, str): return text
-    try:
-        text = codecs.decode(text, 'unicode_escape')
-    except: pass
-    illegal_chars = re.compile(r'[\000-\010]|[\013-\014]|[\016-\037]')
-    return illegal_chars.sub("", text).strip()
-
-def estrai_lingua(nome_file):
-    match = re.search(r'-([A-Za-z]{2})\.', nome_file)
-    return match.group(1).upper() if match else None
-
-# --- 2. LOGICA BATCH PER TIER 2 (ALTA VELOCITÀ) ---
-
-def build_translation_schema(selected_langs, selected_cols):
-    lang_properties = {}
-    for lang in selected_langs:
-        lang_properties[lang] = {
-            "type": "object",
-            "properties": {col: {"type": "string"} for col in selected_cols},
-            "required": selected_cols
-        }
-    return [{
-        "type": "function",
-        "function": {
-            "name": "set_translations",
-            "description": "Salva le traduzioni dei prodotti",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "languages": {
-                        "type": "object",
-                        "properties": lang_properties,
-                        "required": selected_langs
-                    }
-                },
-                "required": ["languages"]
-            }
-        }
-    }]
+# --- 2. LOGICA DI TRADUZIONE ROBUSTA ---
 
 async def translate_row_with_retry(row_data, target_languages, selected_cols, semaphore, row_idx):
+    """Traduzione con schema piatto e validazione rigorosa"""
     if not any(str(v).strip() for v in row_data.values()):
         return {lang: {col: "" for col in selected_cols} for lang in target_languages}
 
@@ -1180,12 +1143,11 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                     model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": (
-                            "Sei un traduttore per un catalogo di calzature. Traduci i testi forniti. "
-                            "TERMINOLOGIA OBBLIGATORIA: 'strappo' -> EN:strap, FR:scratch, ES:cierre adherente"
-                            "IMPORTANTE: Per ogni lingua e colonna richiesta, devi fornire una traduzione distinta. "
-                            "Non saltare nessuna chiave dello schema."
+                            "Sei un traduttore per Falcotto. Traduci ogni campo. "
+                            "NON copiare l'italiano se il testo è descrittivo. "
+                            "Fornisci una stringa per ogni chiave richiesta."
                         )},
-                        {"role": "user", "content": f"Testi da tradurre: {json.dumps(row_data)}"}
+                        {"role": "user", "content": f"Dati: {json.dumps(row_data)}"}
                     ],
                     tools=tools,
                     tool_choice={"type": "function", "function": {"name": "save_translations"}},
@@ -1193,22 +1155,21 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                     timeout=25.0
                 )
                 
-                # Parsing dei risultati
                 args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
                 
-                # Ricostruzione struttura per il DataFrame
+                # Ricostruzione della struttura attesa dal resto del codice
                 row_translations = {}
                 for lang in target_languages:
                     row_translations[lang] = {}
                     for col in selected_cols:
-                        key = f"{lang}_{col}"
-                        # Se la chiave manca, proviamo a cercarla nel testo o mettiamo errore
+                        key = f"{lang}_{col}".replace(" ", "_")
                         val = args.get(key, "").strip()
                         
-                        # Validazione anti-pigrizia (se identico a originale e lungo > 5)
+                        # Controllo anti-pigrizia
                         orig = str(row_data.get(col, "")).strip()
                         if val == orig and len(orig) > 5 and not orig.replace('.','',1).isdigit():
-                            raise ValueError(f"Pigrizia AI su {key}")
+                            # Se l'AI ha ricopiato l'italiano, forziamo un retry con temperatura più alta
+                            raise ValueError(f"Traduzione mancante per {key}")
                             
                         row_translations[lang][col] = fix_unicode_and_clean(val)
                 
@@ -1216,24 +1177,24 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                 
             except Exception as e:
                 if attempt < 2:
-                    await asyncio.sleep(0.5 * (attempt + 1))
+                    await asyncio.sleep(1) # Attesa per scaricare la pressione sul Tier 2
                     continue
-                # Se fallisce dopo 3 tentativi
+                # Fallback con Marker di Errore
                 return {lang: {col: f"[[ERRORE RIGA {row_idx+2}]]" for col in selected_cols} for lang in target_languages}
+
+# --- 3. ORCHESTRATORE (Aggiornato con Semaphore a 40) ---
 
 async def process_batch_with_timer(df, cols, langs):
     semaphore = asyncio.Semaphore(40)
     start_time = time.perf_counter()
     
-    st.write(f"### 🚀 Traduzione Tier 2 in corso...")
+    st.write(f"### 🚀 Traduzione Tier 2 (Schema Piatto)")
     progress_bar = st.progress(0)
     timer_text = st.empty()
     
-    # Creazione Task passando l'indice della riga (row_idx)
     futures = []
     for i, (_, row) in enumerate(df.iterrows()):
         row_dict = {c: str(row[c]) if pd.notna(row[c]) else "" for c in cols}
-        # Passiamo i (indice) alla funzione per marcare eventuali errori
         futures.append(asyncio.ensure_future(translate_row_with_retry(row_dict, langs, cols, semaphore, i)))
     
     completed = 0
@@ -1241,27 +1202,15 @@ async def process_batch_with_timer(df, cols, langs):
         await task
         completed += 1
         progress_bar.progress(completed / len(futures))
-        timer_text.markdown(f"⏱️ **Tempo:** {time.perf_counter()-start_time:.2f}s | **Elaborate:** {completed}/{len(futures)}")
+        timer_text.markdown(f"⏱️ **Tempo:** {time.perf_counter()-start_time:.2f}s | **Completate:** {completed}/{len(futures)}")
 
-    # Gather finale per mantenere l'ordine
     ordered_results = await asyncio.gather(*futures)
     
-    # Formattazione finale
     final_data = {lang: {col: [] for col in cols} for lang in langs}
-    error_count = 0
-    
     for row_res in ordered_results:
         for lang in langs:
             for col in cols:
-                val = row_res[lang][col]
-                if "[[ERRORE RIGA" in str(val):
-                    error_count += 1
-                final_data[lang][col].append(val)
-    
-    if error_count > 0:
-        st.error(f"⚠️ Attenzione: {error_count} celle contengono errori di traduzione. Cerca 'ERRORE' nel file.")
-    else:
-        st.success("✅ Tutte le righe tradotte correttamente!")
+                final_data[lang][col].append(row_res[lang][col])
                 
     return final_data
         
