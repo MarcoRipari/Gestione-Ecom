@@ -3969,26 +3969,26 @@ elif page == "Traduci":
                             df_lang.to_excel(writer, index=False)
                         zip_file.writestr(f"export_{suffix}.xlsx", excel_buffer.getvalue())
     
-                    # Ora che il blocco 'with zip_file' è terminato, lo ZIP è pronto
-                    file_bytes = zip_buffer.getvalue()
-                    
-                    # Gestione Dropbox e Ora
-                    now = datetime.now(ZoneInfo("Europe/Rome"))
-                    file_name = f"traduzioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
-                    
-                    # Esegui l'upload
-                    try:
-                        folder_path = "/CATALOGO/DESCRIZIONI/traduzioni"
-                        access_token = get_dropbox_access_token()
-                        dbx = dropbox.Dropbox(access_token)
-                        upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
-                        st.success(f"✅ File caricato su Dropbox come: {file_name}")
-                    except Exception as e:
-                        st.error(f"Errore caricamento Dropbox: {e}")
-    
-                    st.download_button(
-                        label="📥 Scarica ZIP Traduzioni",
-                        data=file_bytes,
-                        file_name=file_name,
-                        mime="application/zip"
-                    )
+                # Ora che il blocco 'with zip_file' è terminato, lo ZIP è pronto
+                file_bytes = zip_buffer.getvalue()
+                
+                # Gestione Dropbox e Ora
+                now = datetime.now(ZoneInfo("Europe/Rome"))
+                file_name = f"traduzioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
+                
+                # Esegui l'upload
+                try:
+                    folder_path = "/CATALOGO/DESCRIZIONI/traduzioni"
+                    access_token = get_dropbox_access_token()
+                    dbx = dropbox.Dropbox(access_token)
+                    upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
+                    st.success(f"✅ File caricato su Dropbox come: {file_name}")
+                except Exception as e:
+                    st.error(f"Errore caricamento Dropbox: {e}")
+
+                st.download_button(
+                    label="📥 Scarica ZIP Traduzioni",
+                    data=file_bytes,
+                    file_name=file_name,
+                    mime="application/zip"
+                )
