@@ -1106,101 +1106,68 @@ def estrai_lingua(nome_file):
 
 # --- 2. LOGICA DI TRADUZIONE CON SMART CACHE ---
 
-async def translate_batch_ai(texts_to_translate, target_languages, semaphore):
-    """Versione Blindata: Forza l'AI a restituire un JSON mappato correttamente"""
-    if not texts_to_translate:
-        return {}
+async def translate_row_simultaneous(row_data, target_languages, semaphore):
+    """Traduce tutte le colonne di una riga in una sola chiamata AI"""
+    if not any(row_data.values()):
+        return {lang: {col: "" for col in row_data} for lang in target_languages}
 
     async with semaphore:
         try:
-            # Creiamo un esempio del formato richiesto per non dare spazio a errori
-            example_json = {
-                texts_to_translate[0]: {lang: "..." for lang in target_languages}
-            }
-            
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": (
-                        f"Sei un traduttore esperto per calzature. Traduci in: {', '.join(target_languages)}. "
-                        "REGOLE: 'strappo'->strap/scratch/Klettverschluss. 'velour'->suede. "
-                        "Rispondi ESCLUSIVAMENTE con un oggetto JSON dove le chiavi sono i testi originali forniti. "
-                        f"Esempio formato: {json.dumps(example_json)}"
+                        f"Sei un traduttore esperto per e-commerce di calzature (Falcotto). "
+                        f"Traduci accuratamente in queste lingue: {', '.join(target_languages)}. "
+                        "REGOLE: 'strappo'->EN:strap, FR:scratch, ES:cierre adherente, DE:Klettverschluss, NL:klittenband. "
+                        "'velour'->suede. Mantieni il tono professionale. "
+                        "Rispondi ESCLUSIVAMENTE con un oggetto JSON dove le chiavi sono le lingue e i valori sono oggetti con le colonne tradotte."
                     )},
-                    {"role": "user", "content": f"Testi da tradurre: {json.dumps(texts_to_translate)}"}
+                    {"role": "user", "content": f"Traduci i seguenti dati di prodotto: {json.dumps(row_data)}"}
                 ],
-                response_format={"type": "json_object"}, # Forza l'output JSON
+                response_format={"type": "json_object"},
                 temperature=0
             )
             
-            translated_data = json.loads(response.choices[0].message.content)
+            # La risposta sarà tipo: {"Inglese": {"Col1": "...", "Col2": "..."}, "Francese": {...}}
+            translated_dict = json.loads(response.choices[0].message.content)
             
-            # Debug opzionale (puoi rimuoverlo dopo i test)
-            # st.write("Risposta AI:", translated_data) 
-
-            # Pulizia e mappatura
-            cleaned_results = {}
-            for original_txt, translations in translated_data.items():
-                cleaned_results[original_txt] = {
-                    l: fix_unicode_and_clean(str(v)) for l, v in translations.items()
-                }
-            return cleaned_results
+            # Pulizia unicode su tutti i valori
+            for lang in translated_dict:
+                for col in translated_dict[lang]:
+                    translated_dict[lang][col] = fix_unicode_and_clean(str(translated_dict[lang][col]))
+            
+            return translated_dict
             
         except Exception as e:
-            st.error(f"Errore critico AI: {e}")
-            return {}
+            # In caso di errore, restituiamo i dati originali per quella riga
+            return {lang: row_data for lang in target_languages}
 
-async def process_translations_smart_cache(df, cols, langs):
-    semaphore = asyncio.Semaphore(10) # Leggermente più lento per stabilità
-    global_cache = {}
-    final_results = {lang: {col: [] for col in cols} for lang in langs}
+async def process_translations_row_by_row(df, cols, langs):
+    """Gestisce l'invio delle righe in parallelo"""
+    semaphore = asyncio.Semaphore(10) # 10 righe elaborate contemporaneamente
     
-    progress_bar = st.progress(0)
-    total_rows = len(df)
-
-    for i, (_, row) in enumerate(df.iterrows()):
-        texts_to_ask_ai = []
-        
-        # 1. Analisi celle
-        row_values = {}
-        for col in cols:
-            # Normalizziamo il valore per la cache: togliamo spazi extra
-            val = str(row[col]).strip() if pd.notna(row[col]) else ""
-            row_values[col] = val
-            
-            if val and val not in global_cache and not val.replace('.','',1).isdigit():
-                if val not in texts_to_ask_ai:
-                    texts_to_ask_ai.append(val)
-        
-        # 2. Traduzione delle novità
-        if texts_to_ask_ai:
-            new_translations = await translate_batch_ai(texts_to_ask_ai, langs, semaphore)
-            # Uniamo i nuovi risultati alla cache globale
-            global_cache.update(new_translations)
-        
-        # 3. Popolamento risultati
-        for col in cols:
-            original_val = row_values[col]
-            for lang in langs:
-                if not original_val:
-                    final_results[lang][col].append("")
-                elif original_val.replace('.','',1).isdigit():
-                    #Lascio comunque il campo vuoto
-                    final_results[lang][col].append("")
-                else:
-                    # CERCA NELLA CACHE (con controllo stringa pulita)
-                    trad = global_cache.get(original_val, {}).get(lang)
-                    
-                    if trad:
-                        final_results[lang][col].append(trad)
-                    else:
-                        # Se ancora non trova, proviamo a cercare senza spazi extra
-                        fallback_trad = global_cache.get(original_val.strip(), {}).get(lang, original_val)
-                        final_results[lang][col].append(fallback_trad)
-        
-        progress_bar.progress((i + 1) / total_rows)
-                    
-    return final_results
+    tasks = []
+    for _, row in df.iterrows():
+        # Prepariamo i dati della riga (solo colonne selezionate)
+        row_payload = {col: str(row[col]) if pd.notna(row[col]) else "" for col in cols}
+        tasks.append(translate_row_simultaneous(row_payload, langs, semaphore))
+    
+    # Esegue tutte le traduzioni in parallelo
+    results = await asyncio.gather(*tasks)
+    
+    # Riorganizziamo i risultati per popolare il DataFrame
+    # results è una lista di dizionari (uno per ogni riga)
+    final_data = {lang: {col: [] for col in cols} for lang in langs}
+    
+    for row_res in results:
+        for lang in langs:
+            for col in cols:
+                # Recuperiamo la traduzione, fallback all'originale se manca la chiave
+                val = row_res.get(lang, {}).get(col, "")
+                final_data[lang][col].append(val)
+                
+    return final_data
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
@@ -3982,15 +3949,12 @@ elif page == "Traduci":
         selected_langs = st.multiselect("Lingue target", list(lang_map.keys()))
     
         if st.button("Avvia Traduzione Intelligente"):
-            if not cols_to_translate or not selected_langs:
-                st.error("Seleziona almeno una colonna e una lingua.")
-            else:
-                with st.spinner("Traduzione in corso con ottimizzazione cache..."):
-                    # Esecuzione logica asincrona
+            if cols_to_translate and selected_langs:
+                with st.spinner("Traduzione riga per riga in corso..."):
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     all_translations = loop.run_until_complete(
-                        process_translations_smart_cache(df_original, cols_to_translate, selected_langs)
+                        process_translations_row_by_row(df_original, cols_to_translate, selected_langs)
                     )
 
                     # Generazione ZIP
