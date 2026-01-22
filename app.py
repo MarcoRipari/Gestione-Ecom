@@ -3955,7 +3955,6 @@ elif page == "Traduci":
 
     if uploaded_file:
         file_name_suffix = estrai_lingua(uploaded_file.name)
-        st.write(file_name_suffix.lower())
         df_original = pd.read_excel(uploaded_file, engine='xlrd')
         cols_to_translate = st.multiselect("Colonne da tradurre", df_original.columns)
         selected_langs = st.multiselect("Lingue", list(lang_map.keys()))
@@ -3968,10 +3967,6 @@ elif page == "Traduci":
                     process_translations(df_original, cols_to_translate, selected_langs)
                 )
 
-                
-                
-                df_original.drop(columns=[file_name_suffix], inplace=True)
-    
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                     for lang in selected_langs:
@@ -3985,6 +3980,8 @@ elif page == "Traduci":
                             # --- PULIZIA DATI ---
                             # Applichiamo la pulizia a tutta la lista di traduzioni
                             cleaned_translations = [clean_excel_string(t) for t in all_translations[lang][col]]
+                            
+                            df_lang.drop(columns=[new_col_name.replace(f"({suffix})", f"({file_name_suffix})"], inplace=True)
                             
                             if new_col_name in df_lang.columns:
                                 df_lang.drop(columns=[new_col_name], inplace=True)
