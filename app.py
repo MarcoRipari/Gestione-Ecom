@@ -3946,6 +3946,7 @@ elif page == "Traduci":
     uploaded_file = st.file_uploader("Carica .xls", type=["xls"])
 
     if uploaded_file:
+        st.write(uploaded_file.name)
         df_original = pd.read_excel(uploaded_file, engine='xlrd')
         cols_to_translate = st.multiselect("Colonne da tradurre", df_original.columns)
         selected_langs = st.multiselect("Lingue", list(lang_map.keys()))
@@ -3957,6 +3958,9 @@ elif page == "Traduci":
                 all_translations = loop.run_until_complete(
                     process_translations(df_original, cols_to_translate, selected_langs)
                 )
+
+                #file_name_suffix = uploaded_file.
+                df_original.drop(columns=[file_name_suffix], inplace=True)
     
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
