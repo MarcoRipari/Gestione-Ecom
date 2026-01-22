@@ -1091,6 +1091,14 @@ lang_map = {
     "Olandese": "nl"
 }
 
+def estrai_lingua(nome_file):
+    # Cerca una sequenza di 2 lettere maiuscole preceduta da un trattino
+    # e seguita dal punto dell'estensione
+    match = re.search(r'-([A-Z]{2})\.xls', nome_file)
+    if match:
+        return match.group(1)
+    return None
+    
 def clean_excel_string(value):
     if not isinstance(value, str):
         return value
@@ -3946,7 +3954,8 @@ elif page == "Traduci":
     uploaded_file = st.file_uploader("Carica .xls", type=["xls"])
 
     if uploaded_file:
-        st.write(uploaded_file.name)
+        file_name_suffix = estrai_lingua(uploaded_file.name)
+        st.write(file_name_suffix)
         df_original = pd.read_excel(uploaded_file, engine='xlrd')
         cols_to_translate = st.multiselect("Colonne da tradurre", df_original.columns)
         selected_langs = st.multiselect("Lingue", list(lang_map.keys()))
@@ -3959,7 +3968,8 @@ elif page == "Traduci":
                     process_translations(df_original, cols_to_translate, selected_langs)
                 )
 
-                #file_name_suffix = uploaded_file.
+                
+                
                 df_original.drop(columns=[file_name_suffix], inplace=True)
     
                 zip_buffer = io.BytesIO()
