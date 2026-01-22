@@ -1091,6 +1091,11 @@ lang_map = {
     "Olandese": "nl"
 }
 
+def estrai_lingua(nome_file):
+    """Estrae EN, DE, FR ecc. dal nome file FALCOTTO-EN.xls"""
+    match = re.search(r'-([A-Za-z]{2})\.', nome_file)
+    return match.group(1).upper() if match else None
+    
 async def translate_unique_strings_async(unique_strings, target_languages, semaphore):
     """
     Traduce una lista di stringhe uniche.
