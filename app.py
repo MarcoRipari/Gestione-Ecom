@@ -1094,6 +1094,7 @@ lang_map = {
 def fix_unicode_and_clean(text):
     if not isinstance(text, str): return text
     try:
+        # Trasforma sequenze tipo \u00e9 in caratteri reali
         text = codecs.decode(text, 'unicode_escape')
     except: pass
     illegal_chars = re.compile(r'[\000-\010]|[\013-\014]|[\016-\037]')
@@ -1112,16 +1113,19 @@ async def translate_batch_ai(texts_to_translate, target_languages, semaphore):
 
     async with semaphore:
         try:
+            # Creiamo una stringa per istruire l'AI sulle chiavi esatte da usare
+            keys_instruction = ", ".join([f"'{l}'" for l in target_languages])
+            
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": (
-                        f"Sei un traduttore esperto per e-commerce di scarpe. "
+                        f"Sei un traduttore esperto per e-commerce di calzature. "
                         f"Traduci accuratamente in: {', '.join(target_languages)}. "
                         "REGOLE: 'strappo'->EN:strap, FR:scratch, ES:cierre adherente, DE:Klettverschluss, NL:klittenband. "
                         "'velour'->suede/pelle scamosciata. Colori (es. Rosa) vanno tradotti come colori. "
-                        "Usa caratteri accentati reali."
-                        f"Usa ESATTAMENTE queste chiavi per le lingue nel JSON: {', '.join(target_languages)}."
+                        "Usa caratteri accentati reali. "
+                        f"Nel JSON di risposta usa ESATTAMENTE queste chiavi per le lingue: {keys_instruction}."
                     )},
                     {"role": "user", "content": f"Traduci questa lista di testi: {json.dumps(texts_to_translate)}"}
                 ],
@@ -1154,16 +1158,18 @@ async def translate_batch_ai(texts_to_translate, target_languages, semaphore):
             raw_results = args.get('results', {})
             
             # Pulizia unicode su ogni valore restituito
-            return {txt: {l: fix_unicode_and_clean(str(v)) for l, v in langs.items()} 
-                    for txt, langs in raw_results.items()}
+            cleaned_results = {}
+            for txt, lang_dict in raw_results.items():
+                cleaned_results[txt] = {l: fix_unicode_and_clean(str(v)) for l, v in lang_dict.items()}
+            return cleaned_results
+            
         except Exception as e:
-            st.error(f"Errore API: {e}")
+            st.error(f"Errore API durante la traduzione di {texts_to_translate[:2]}: {e}")
             return {}
 
 async def process_translations_smart_cache(df, cols, langs):
-    """Orchestratore: scorre le righe e gestisce la cache granulare"""
     semaphore = asyncio.Semaphore(15)
-    global_cache = {} # Memoria di tutte le celle già tradotte
+    global_cache = {} # Cache globale dei testi tradotti
     final_results = {lang: {col: [] for col in cols} for lang in langs}
     
     progress_bar = st.progress(0)
@@ -1172,37 +1178,38 @@ async def process_translations_smart_cache(df, cols, langs):
     for i, (_, row) in enumerate(df.iterrows()):
         texts_to_ask_ai = []
         
-        # 1. Analisi celle della riga
+        # 1. Analisi celle della riga per identificare novità
         row_values = {}
         for col in cols:
             val = str(row[col]).strip() if pd.notna(row[col]) else ""
             row_values[col] = val
-            # Aggiungi a lista da tradurre se non in cache e non numerico
             if val and val not in global_cache and not val.replace('.','',1).isdigit():
                 if val not in texts_to_ask_ai:
                     texts_to_ask_ai.append(val)
         
-        # 2. Chiamata AI solo per i testi mancanti
+        # 2. Chiamata AI se necessario
         if texts_to_ask_ai:
             new_translations = await translate_batch_ai(texts_to_ask_ai, langs, semaphore)
             global_cache.update(new_translations)
         
-        # 3. Assemblaggio riga nei risultati finali
+        # 3. Assemblaggio risultati attingendo dalla cache
         for col in cols:
             original_val = row_values[col]
-            for lang in langs: # langs contiene ["Inglese", "Francese", ...]
+            for lang in langs:
                 if not original_val:
                     final_results[lang][col].append("")
                 elif original_val.replace('.','',1).isdigit():
                     final_results[lang][col].append(original_val)
                 else:
-                    # CERCA NELLA CACHE
-                    # Recuperiamo il dizionario delle lingue per quel testo
+                    # Recupero dalla cache: se manca (errore API), segnaliamo o lasciamo originale
                     res_per_testo = global_cache.get(original_val, {})
-                    # Estraiamo la lingua specifica (es. "Inglese")
-                    # Se non esiste, usiamo original_val come fallback (ecco perché vedi l'italiano se fallisce)
-                    trad = res_per_testo.get(lang, original_val)
-                    final_results[lang][col].append(trad)
+                    traduzione = res_per_testo.get(lang)
+                    
+                    if traduzione:
+                        final_results[lang][col].append(traduzione)
+                    else:
+                        # Se l'AI ha fallito, manteniamo l'originale ma avvisiamo nel log
+                        final_results[lang][col].append(original_val)
         
         progress_bar.progress((i + 1) / total_rows)
                     
@@ -3982,71 +3989,68 @@ elif page == "Traduci":
 
     if uploaded_file:
         file_name_suffix = estrai_lingua(uploaded_file.name)
-
         df_original = pd.read_excel(uploaded_file, engine='xlrd')
+        
         cols_to_translate = st.multiselect("Colonne da tradurre", df_original.columns)
         selected_langs = st.multiselect("Lingue target", list(lang_map.keys()))
     
         if st.button("Avvia Traduzione Intelligente"):
-            if cols_to_translate and selected_langs:
-                with st.spinner("Elaborazione righe e ottimizzazione cache..."):
-                    # Avvio logica asincrona
+            if not cols_to_translate or not selected_langs:
+                st.error("Seleziona almeno una colonna e una lingua.")
+            else:
+                with st.spinner("Traduzione in corso con ottimizzazione cache..."):
+                    # Esecuzione logica asincrona
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     all_translations = loop.run_until_complete(
                         process_translations_smart_cache(df_original, cols_to_translate, selected_langs)
                     )
 
-                    # Creazione ZIP e salvataggio CSV
+                    # Generazione ZIP
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                        for lang_name in selected_langs: # lang_name è "Inglese", "Francese", ecc.
+                        for lang_name in selected_langs:
                             df_lang = df_original.copy()
-                            iso = lang_map[lang_name] # iso è "en", "fr", ecc.
+                            iso = lang_map[lang_name] # en, fr, etc.
                             
                             for col in cols_to_translate:
-                                st.write(col.replace("(it)", f"({file_name_suffix.lower()})"))
+                                # 1. Pulizia vecchie colonne se presenti
                                 if file_name_suffix:
-                                    old_col = col.replace("(it)", f"({file_name_suffix.lower()})")
-                                    if old_col in df_lang.columns:
-                                        df_lang.drop(columns=[old_col], inplace=True)
-                                st.write(old_col)
+                                    old_col_name = col.replace("(it)", f"({file_name_suffix.lower()})")
+                                    if old_col_name in df_lang.columns:
+                                        df_lang.drop(columns=[old_col_name], inplace=True)
+                                
+                                # 2. Definizione nome nuova colonna
                                 new_col = col.replace("(it)", f"({iso.lower()})")
+                                if new_col == col:
+                                    new_col = f"{col} ({iso.lower()})"
                                 
-                                # ESTRAZIONE DATI DALLA MAPPA
-                                # Recuperiamo la lista di traduzioni per questa specifica lingua (lang_name) e colonna
+                                # FIX: Rimuovi la colonna se esiste già per evitare ValueError
+                                if new_col in df_lang.columns:
+                                    df_lang.drop(columns=[new_col], inplace=True)
+                                
+                                # 3. Inserimento dati tradotti a fianco della colonna originale
                                 lista_tradotta = all_translations[lang_name][col]
-                                
-                                # Inserimento nel DataFrame
                                 idx = df_lang.columns.get_loc(col)
                                 df_lang.insert(idx + 1, new_col, lista_tradotta)
                             
-                            # Export CSV
+                            # Preparazione CSV nel buffer dello ZIP
                             csv_buf = io.StringIO()
                             df_lang.to_csv(csv_buf, index=False, sep=';', encoding='utf-8-sig')
-                            nome_file_csv = f"{uploaded_file.name.split('-')[0].upper()}-{iso.upper()}.csv"
-                            zip_file.writestr(nome_file_csv, csv_buf.getvalue())
-    
-                    # Ora che il blocco 'with zip_file' è terminato, lo ZIP è pronto
-                    file_bytes = zip_buffer.getvalue()
+                            nome_csv = f"{uploaded_file.name.split('-')[0].upper()}-{iso.upper()}.csv"
+                            zip_file.writestr(nome_csv, csv_buf.getvalue())
+
+                    # Upload Dropbox e Download
+                    zip_data = zip_buffer.getvalue()
+                    now = datetime.now(ZoneInfo("Europe/Rome")).strftime('%d-%m-%Y_%H-%M-%S')
+                    zip_filename = f"traduzioni_{now}.zip"
                     
-                    # Gestione Dropbox e Ora
-                    now = datetime.now(ZoneInfo("Europe/Rome"))
-                    file_name = f"traduzioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
-                    
-                    # Esegui l'upload
                     try:
-                        folder_path = "/CATALOGO/DESCRIZIONI/traduzioni"
                         access_token = get_dropbox_access_token()
                         dbx = dropbox.Dropbox(access_token)
-                        upload_to_dropbox(dbx, folder_path, file_name, file_bytes)
-                        st.success(f"✅ File caricato su Dropbox come: {file_name}")
+                        upload_to_dropbox(dbx, "/CATALOGO/DESCRIZIONI/traduzioni", zip_filename, zip_data)
+                        st.success(f"✅ ZIP caricato su Dropbox: {zip_filename}")
                     except Exception as e:
-                        st.error(f"Errore caricamento Dropbox: {e}")
-    
-                    st.download_button(
-                        label="📥 Scarica ZIP Traduzioni",
-                        data=file_bytes,
-                        file_name=file_name,
-                        mime="application/zip"
-                    )
+                        st.error(f"Errore Dropbox: {e}")
+                    
+                    st.download_button("📥 Scarica ZIP Traduzioni", zip_data, zip_filename, "application/zip")
