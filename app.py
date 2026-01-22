@@ -3981,7 +3981,7 @@ elif page == "Traduci":
                             # Applichiamo la pulizia a tutta la lista di traduzioni
                             cleaned_translations = [clean_excel_string(t) for t in all_translations[lang][col]]
                             
-                            df_lang.drop(columns=[new_col_name.replace(f"({suffix})", f"({file_name_suffix})"], inplace=True)
+                            df_lang.drop(columns=[new_col_name.replace(f"({suffix})", f"({file_name_suffix})")], inplace=True)
                             
                             if new_col_name in df_lang.columns:
                                 df_lang.drop(columns=[new_col_name], inplace=True)
