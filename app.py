@@ -1225,7 +1225,7 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
         return {lang: {col: fix_unicode_and_clean(row_data.get(col, "")) for col in selected_cols} for lang in target_languages}
 
 async def process_batch_with_timer(df, cols, langs):
-    semaphore = asyncio.Semaphore(12)
+    semaphore = asyncio.Semaphore(40)
     start_time = time.perf_counter()
     
     st.write(f"### 🚀 Avvio Traduzione Batch: {len(df)} righe")
