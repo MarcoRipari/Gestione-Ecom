@@ -4006,6 +4006,7 @@ elif page == "Traduci":
                             for col in cols_to_translate:
                                 if file_name_suffix:
                                     old_col = col.replace("(it)", f"({file_name_suffix.lower()})")
+                                    st.write(old_col)
                                     if old_col in df_lang.columns:
                                         df_lang.drop(columns=[old_col], inplace=True)
                                 
