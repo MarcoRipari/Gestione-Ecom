@@ -1131,7 +1131,7 @@ def build_translation_schema(selected_langs, selected_cols):
 # --- 2. LOGICA DI TRADUZIONE ROBUSTA ---
 
 async def translate_row_with_retry(row_data, target_languages, selected_cols, semaphore, row_idx):
-    """Traduzione con schema piatto e validazione rigorosa"""
+    """Traduzione con schema piatto e terminologia tecnica obbligatoria"""
     if not any(str(v).strip() for v in row_data.values()):
         return {lang: {col: "" for col in selected_cols} for lang in target_languages}
 
@@ -1143,11 +1143,14 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                     model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": (
-                            "Sei un traduttore per Falcotto. Traduci ogni campo. "
-                            "NON copiare l'italiano se il testo è descrittivo. "
-                            "Fornisci una stringa per ogni chiave richiesta."
+                            "Sei un traduttore esperto per il brand di calzature Falcotto. "
+                            "Traduci ogni campo in modo accurato. NON copiare l'italiano. "
+                            "TERMINOLOGIA OBBLIGATORIA: "
+                            "'strappo' o 'chiusura a strappo' deve essere tradotto come: "
+                            "EN: strap, FR: scratch, ES: cierre adherente. "
+                            "Assicurati di fornire una stringa per ogni chiave richiesta."
                         )},
-                        {"role": "user", "content": f"Dati: {json.dumps(row_data)}"}
+                        {"role": "user", "content": f"Dati prodotto: {json.dumps(row_data)}"}
                     ],
                     tools=tools,
                     tool_choice={"type": "function", "function": {"name": "save_translations"}},
@@ -1157,7 +1160,6 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                 
                 args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
                 
-                # Ricostruzione della struttura attesa dal resto del codice
                 row_translations = {}
                 for lang in target_languages:
                     row_translations[lang] = {}
@@ -1168,8 +1170,7 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                         # Controllo anti-pigrizia
                         orig = str(row_data.get(col, "")).strip()
                         if val == orig and len(orig) > 5 and not orig.replace('.','',1).isdigit():
-                            # Se l'AI ha ricopiato l'italiano, forziamo un retry con temperatura più alta
-                            raise ValueError(f"Traduzione mancante per {key}")
+                            raise ValueError(f"Traduzione mancante o identica per {key}")
                             
                         row_translations[lang][col] = fix_unicode_and_clean(val)
                 
@@ -1177,9 +1178,9 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                 
             except Exception as e:
                 if attempt < 2:
-                    await asyncio.sleep(1) # Attesa per scaricare la pressione sul Tier 2
+                    await asyncio.sleep(1) 
                     continue
-                # Fallback con Marker di Errore
+                # Fallback con Marker di Errore se falliscono tutti i tentativi
                 return {lang: {col: f"[[ERRORE RIGA {row_idx+2}]]" for col in selected_cols} for lang in target_languages}
 
 # --- 3. ORCHESTRATORE (Aggiornato con Semaphore a 40) ---
