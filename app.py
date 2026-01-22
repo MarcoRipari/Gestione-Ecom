@@ -1129,9 +1129,8 @@ def build_translation_schema(selected_langs, selected_cols):
     }]
 
 # --- 2. LOGICA DI TRADUZIONE ROBUSTA ---
-
 async def translate_row_with_retry(row_data, target_languages, selected_cols, semaphore, row_idx):
-    """Traduzione con schema piatto e terminologia tecnica obbligatoria"""
+    """Traduzione riga con schema piatto e terminologia tecnica"""
     if not any(str(v).strip() for v in row_data.values()):
         return {lang: {col: "" for col in selected_cols} for lang in target_languages}
 
@@ -1143,14 +1142,10 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                     model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": (
-                            "Sei un traduttore esperto per il brand di calzature Falcotto. "
-                            "Traduci ogni campo in modo accurato. NON copiare l'italiano. "
-                            "TERMINOLOGIA OBBLIGATORIA: "
-                            "'strappo' o 'chiusura a strappo' deve essere tradotto come: "
-                            "EN: strap, FR: scratch, ES: cierre adherente. "
-                            "Assicurati di fornire una stringa per ogni chiave richiesta."
+                            "Sei un traduttore per Falcotto. Traduci ogni campo. NON copiare l'italiano. "
+                            "TERMINOLOGIA OBBLIGATORIA: 'strappo' -> EN:strap, FR:scratch, ES:cierre adherente."
                         )},
-                        {"role": "user", "content": f"Dati prodotto: {json.dumps(row_data)}"}
+                        {"role": "user", "content": f"Dati: {json.dumps(row_data)}"}
                     ],
                     tools=tools,
                     tool_choice={"type": "function", "function": {"name": "save_translations"}},
@@ -1159,7 +1154,6 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                 )
                 
                 args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
-                
                 row_translations = {}
                 for lang in target_languages:
                     row_translations[lang] = {}
@@ -1167,88 +1161,76 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                         key = f"{lang}_{col}".replace(" ", "_")
                         val = args.get(key, "").strip()
                         
-                        # Controllo anti-pigrizia
+                        # Controllo pigrizia
                         orig = str(row_data.get(col, "")).strip()
                         if val == orig and len(orig) > 5 and not orig.replace('.','',1).isdigit():
-                            raise ValueError(f"Traduzione mancante o identica per {key}")
+                            raise ValueError("Mancata traduzione")
                             
                         row_translations[lang][col] = fix_unicode_and_clean(val)
-                
                 return row_translations
-                
-            except Exception as e:
+            except:
                 if attempt < 2:
-                    await asyncio.sleep(1) 
+                    await asyncio.sleep(1)
                     continue
-                # Fallback con Marker di Errore se falliscono tutti i tentativi
-                return {lang: {col: f"[[ERRORE RIGA {row_idx+2}]]" for col in selected_cols} for lang in target_languages}
+                # Marker di errore per il Double Pass
+                return {lang: {col: f"[[ERRORE]]" for col in selected_cols} for lang in target_languages}
 
-# --- 3. ORCHESTRATORE (Aggiornato con Semaphore a 40) ---
 async def process_batch_with_timer(df, cols, langs):
     semaphore = asyncio.Semaphore(40)
     start_time = time.perf_counter()
+    st.write(f"### 🚀 Elaborazione Tier 2: {len(df)} righe")
     
-    st.write(f"### 🚀 Traduzione in corso...")
     progress_bar = st.progress(0)
     timer_text = st.empty()
-    status_text = st.empty()
-    
-    # Dizionario finale: indice_riga -> risultato_traduzione
     final_results = {}
-    
-    # --- PASSAGGIO 1: Elaborazione Iniziale ---
-    indices_to_process = list(range(len(df)))
-    
-    async def run_pass(indices):
+
+    async def run_translation_cycle(indices):
         tasks = []
         for i in indices:
             row_dict = {c: str(df.iloc[i][c]) if pd.notna(df.iloc[i][c]) else "" for c in cols}
-            # Usiamo la funzione esistente translate_row_with_retry (quella con schema piatto)
             tasks.append((i, asyncio.ensure_future(translate_row_with_retry(row_dict, langs, cols, semaphore, i))))
         
-        completed_in_pass = 0
+        # Monitoraggio asincrono
+        done_in_cycle = 0
         for _, task in asyncio.as_completed([t[1] for t in tasks]):
             await task
-            completed_in_pass += 1
-            # Aggiornamento UI globale
-            total_done = len(final_results) + completed_in_pass
-            progress_bar.progress(min(total_done / len(df), 1.0))
-            timer_text.markdown(f"⏱️ **Tempo:** {time.perf_counter()-start_time:.2f}s | **Processate:** {total_done}/{len(df)}")
-        
-        # Raccogliamo i risultati di questo pass
+            done_in_cycle += 1
+            total_progress = (len(final_results) + done_in_cycle) / len(df)
+            progress_bar.progress(min(total_progress, 1.0))
+            timer_text.markdown(f"⏱️ **Tempo:** {time.perf_counter()-start_time:.2f}s")
+
+        # Verifica e salvataggio
         for idx, task in tasks:
             res = await task
-            # Verifichiamo se è un errore (marker [[ERRORE...]])
-            is_error = any("[[ERRORE" in str(val) for lang in res.values() for val in lang.values())
-            if not is_error:
+            # Se la riga non contiene il marker [[ERRORE]], la salviamo come definitiva
+            is_valid = not any("[[ERRORE]]" in str(v) for lang_dict in res.values() for v in lang_dict.values())
+            if is_valid:
                 final_results[idx] = res
 
-    # Esecuzione Passaggio 1
-    await run_pass(indices_to_process)
+    # PASSAGGIO 1: Tutte le righe
+    await run_translation_cycle(list(range(len(df))))
 
-    # --- PASSAGGIO 2: Recupero Righe Fallite ---
+    # PASSAGGIO 2: Solo le righe che sono rimaste fuori (perché avevano [[ERRORE]])
     failed_indices = [i for i in range(len(df)) if i not in final_results]
-    
     if failed_indices:
-        status_text.warning(f"⚠️ {len(failed_indices)} righe fallite. Avvio recupero automatico...")
-        # Riduciamo leggermente il semaforo per il recupero per essere più sicuri
-        semaphore = asyncio.Semaphore(20)
-        await run_pass(failed_indices)
-    
-    # Controllo finale: se alcune sono ancora fallite (raro), mettiamo il fallback originale
+        # Riduciamo il parallelismo per il recupero per aumentare la stabilità
+        semaphore = asyncio.Semaphore(15)
+        await run_translation_cycle(failed_indices)
+
+    # Riempimento finale di sicurezza (se falliscono anche al secondo giro)
     for i in range(len(df)):
         if i not in final_results:
-            final_results[i] = {l: {c: f"[[KO]] {df.iloc[i][c]}" for c in cols} for l in langs}
+            final_results[i] = {l: {c: f"[[FIX]] {df.iloc[i][c]}" for c in cols} for l in langs}
 
-    # --- RICOSTRUZIONE DATAFRAME ---
+    # Formattazione per DataFrame
     final_data = {lang: {col: [] for col in cols} for lang in langs}
     for i in range(len(df)):
         row_res = final_results[i]
         for lang in langs:
             for col in cols:
                 final_data[lang][col].append(row_res[lang][col])
-    
-    st.success(f"✅ Processo terminato in {time.perf_counter() - start_time:.2f}s")
+                
+    st.success(f"✅ Traduzione completata in {time.perf_counter() - start_time:.2f}s")
     return final_data
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
