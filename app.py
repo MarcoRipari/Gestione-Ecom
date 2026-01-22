@@ -1175,13 +1175,13 @@ def build_translation_schema(selected_langs, selected_cols):
         }
     }]
 
-async def translate_row_with_retry(row_data, target_languages, selected_cols, semaphore, max_retries=3):
-    """Traduzione riga con Auto-Retry se l'AI restituisce l'originale"""
+async def translate_row_with_retry(row_data, target_languages, selected_cols, semaphore, row_idx):
+    """Traduzione riga: se fallisce dopo i retry, marca la cella con un errore esplicito"""
     if not any(str(v).strip() for v in row_data.values()):
         return {lang: {col: "" for col in selected_cols} for lang in target_languages}
 
     async with semaphore:
-        for attempt in range(max_retries):
+        for attempt in range(3): # 3 tentativi interni
             try:
                 tools = build_translation_schema(target_languages, selected_cols)
                 response = await client.chat.completions.create(
@@ -1195,34 +1195,24 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                     ],
                     tools=tools,
                     tool_choice={"type": "function", "function": {"name": "set_translations"}},
+                    timeout=20.0,
                     temperature=0.2 if attempt == 0 else 0.5
                 )
                 
                 args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
                 translations = args.get("languages", {})
                 
-                # Validazione: l'AI ha tradotto o ha ricopiato l'italiano?
-                is_valid = True
-                for lang in target_languages:
-                    for col in selected_cols:
-                        orig = str(row_data.get(col, "")).strip()
-                        trad = str(translations.get(lang, {}).get(col, "")).strip()
-                        # Fallimento se identico, lungo > 5 caratteri e non numerico
-                        if trad == orig and len(orig) > 5 and not orig.replace('.','',1).isdigit():
-                            is_valid = False
-                            break
-                    if not is_valid: break
+                # Validazione minima: controlliamo che esistano le chiavi lingue
+                if all(lang in translations for lang in target_languages):
+                    return {l: {c: fix_unicode_and_clean(translations[l].get(c, "")) for c in selected_cols} for l in target_languages}
                 
-                if is_valid:
-                    return {l: {c: fix_unicode_and_clean(translations[l][c]) for c in selected_cols} for l in target_languages}
-                
-                if attempt < max_retries - 1: continue 
-
             except Exception:
-                if attempt < max_retries - 1: continue
+                await asyncio.sleep(1) # Piccolo respiro tra i retry
+                continue 
         
-        # Fallback finale all'originale se falliscono tutti i tentativi
-        return {lang: {col: fix_unicode_and_clean(row_data.get(col, "")) for col in selected_cols} for lang in target_languages}
+        # --- SE FALLISCE TUTTO ---
+        # Invece di restituire il testo originale (italiano), restituiamo un marker di errore
+        return {lang: {col: f"[[ERRORE RIGA {row_idx+2}]]" for col in selected_cols} for lang in target_languages}
 
 async def process_batch_with_timer(df, cols, langs):
     # Semaphore a 40 è ottimo per Tier 2, ma aggiungiamo un controllo di attesa totale
