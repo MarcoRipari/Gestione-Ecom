@@ -1184,35 +1184,71 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                 return {lang: {col: f"[[ERRORE RIGA {row_idx+2}]]" for col in selected_cols} for lang in target_languages}
 
 # --- 3. ORCHESTRATORE (Aggiornato con Semaphore a 40) ---
-
 async def process_batch_with_timer(df, cols, langs):
     semaphore = asyncio.Semaphore(40)
     start_time = time.perf_counter()
     
-    st.write(f"### 🚀 Traduzione Tier 2 (Schema Piatto)")
+    st.write(f"### 🚀 Traduzione in corso...")
     progress_bar = st.progress(0)
     timer_text = st.empty()
+    status_text = st.empty()
     
-    futures = []
-    for i, (_, row) in enumerate(df.iterrows()):
-        row_dict = {c: str(row[c]) if pd.notna(row[c]) else "" for c in cols}
-        futures.append(asyncio.ensure_future(translate_row_with_retry(row_dict, langs, cols, semaphore, i)))
+    # Dizionario finale: indice_riga -> risultato_traduzione
+    final_results = {}
     
-    completed = 0
-    for task in asyncio.as_completed(futures):
-        await task
-        completed += 1
-        progress_bar.progress(completed / len(futures))
-        timer_text.markdown(f"⏱️ **Tempo:** {time.perf_counter()-start_time:.2f}s | **Completate:** {completed}/{len(futures)}")
+    # --- PASSAGGIO 1: Elaborazione Iniziale ---
+    indices_to_process = list(range(len(df)))
+    
+    async def run_pass(indices):
+        tasks = []
+        for i in indices:
+            row_dict = {c: str(df.iloc[i][c]) if pd.notna(df.iloc[i][c]) else "" for c in cols}
+            # Usiamo la funzione esistente translate_row_with_retry (quella con schema piatto)
+            tasks.append((i, asyncio.ensure_future(translate_row_with_retry(row_dict, langs, cols, semaphore, i))))
+        
+        completed_in_pass = 0
+        for _, task in asyncio.as_completed([t[1] for t in tasks]):
+            await task
+            completed_in_pass += 1
+            # Aggiornamento UI globale
+            total_done = len(final_results) + completed_in_pass
+            progress_bar.progress(min(total_done / len(df), 1.0))
+            timer_text.markdown(f"⏱️ **Tempo:** {time.perf_counter()-start_time:.2f}s | **Processate:** {total_done}/{len(df)}")
+        
+        # Raccogliamo i risultati di questo pass
+        for idx, task in tasks:
+            res = await task
+            # Verifichiamo se è un errore (marker [[ERRORE...]])
+            is_error = any("[[ERRORE" in str(val) for lang in res.values() for val in lang.values())
+            if not is_error:
+                final_results[idx] = res
 
-    ordered_results = await asyncio.gather(*futures)
+    # Esecuzione Passaggio 1
+    await run_pass(indices_to_process)
+
+    # --- PASSAGGIO 2: Recupero Righe Fallite ---
+    failed_indices = [i for i in range(len(df)) if i not in final_results]
     
+    if failed_indices:
+        status_text.warning(f"⚠️ {len(failed_indices)} righe fallite. Avvio recupero automatico...")
+        # Riduciamo leggermente il semaforo per il recupero per essere più sicuri
+        semaphore = asyncio.Semaphore(20)
+        await run_pass(failed_indices)
+    
+    # Controllo finale: se alcune sono ancora fallite (raro), mettiamo il fallback originale
+    for i in range(len(df)):
+        if i not in final_results:
+            final_results[i] = {l: {c: f"[[KO]] {df.iloc[i][c]}" for c in cols} for l in langs}
+
+    # --- RICOSTRUZIONE DATAFRAME ---
     final_data = {lang: {col: [] for col in cols} for lang in langs}
-    for row_res in ordered_results:
+    for i in range(len(df)):
+        row_res = final_results[i]
         for lang in langs:
             for col in cols:
                 final_data[lang][col].append(row_res[lang][col])
-                
+    
+    st.success(f"✅ Processo terminato in {time.perf_counter() - start_time:.2f}s")
     return final_data
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
