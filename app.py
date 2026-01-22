@@ -1149,11 +1149,12 @@ def estrai_lingua(nome_file):
 # --- 2. LOGICA BATCH PER TIER 2 (ALTA VELOCITÀ) ---
 
 def build_batch_schema(selected_langs, selected_cols):
-    """Schema per tradurre gruppi di righe con validazione ID"""
+    """Schema per tradurre 10 righe alla volta con ID univoco"""
     return [{
         "type": "function",
         "function": {
             "name": "set_batch_translations",
+            "description": "Salva le traduzioni per un gruppo di prodotti",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1185,81 +1186,89 @@ def build_batch_schema(selected_langs, selected_cols):
     }]
 
 async def translate_mini_batch(batch_rows, target_languages, selected_cols, semaphore):
-    """Esecuzione ultra-rapida senza controlli bloccanti"""
+    """Invia un gruppo di righe all'AI in un'unica chiamata"""
     async with semaphore:
         try:
             tools = build_batch_schema(target_languages, selected_cols)
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Traduci i prodotti Falcotto. Sii rapido e preciso. Non lasciare testi in italiano."},
-                    {"role": "user", "content": f"Batch JSON: {json.dumps(batch_rows)}"}
+                    {"role": "system", "content": (
+                        "Sei un traduttore esperto di calzature Falcotto. "
+                        "Traduci ogni riga nel JSON fornito. Mantieni rigorosamente i 'custom_id'. "
+                        "Termini tecnici: 'strappo' -> strap/scratch/Klettverschluss, 'velour' -> suede. "
+                        "NON lasciare mai l'italiano nelle traduzioni."
+                    )},
+                    {"role": "user", "content": f"Traduci questo batch di prodotti: {json.dumps(batch_rows)}"}
                 ],
                 tools=tools,
                 tool_choice={"type": "function", "function": {"name": "set_batch_translations"}},
-                temperature=0,
-                timeout=20.0 # Timeout breve per evitare di restare appesi
+                temperature=0.1
             )
             
-            arguments = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
-            # Restituiamo direttamente i risultati mappati per ID
-            return {res["custom_id"]: res["translations"] for res in arguments.get("results", [])}
+            args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+            return args.get("results", [])
         except Exception as e:
-            # Se un batch fallisce, restituiamo un dizionario vuoto
-            return {}
+            # In caso di errore del batch, restituiamo una lista vuota per gestire il fallback dopo
+            return []
 
-async def process_batch_with_recovery(df, cols, langs):
-    """Orchestratore lineare Tier 2: focus su velocità e UI reattiva"""
-    semaphore = asyncio.Semaphore(40) 
-    batch_size = 5 # Ridotto a 5 per velocizzare la risposta del singolo batch
+async def process_ultra_fast_batch(df, cols, langs):
+    """Orchestratore ottimizzato per Tier 2"""
+    semaphore = asyncio.Semaphore(40) # Alzato per Tier 2
+    batch_size = 10 # 10 righe per chiamata
     start_time = time.perf_counter()
     
-    st.write(f"### ⚡ Esecuzione Rapida (Tier 2)")
+    # Prepariamo i dati in formato lista di dizionari con ID
+    all_rows = []
+    for i, (_, row) in enumerate(df.iterrows()):
+        all_rows.append({
+            "custom_id": i,
+            "data": {c: str(row[c]) if pd.notna(row[c]) else "" for c in cols}
+        })
     
-    # Placeholder per la UI
-    progress_bar = st.progress(0)
-    timer_text = st.empty()
-    status_text = st.empty()
-
-    # Preparazione dei dati
-    all_rows = [{"custom_id": i, "data": {c: str(df.iloc[i][c]) for c in cols}} for i in range(len(df))]
+    # Creiamo i chunk (gruppi di 10 righe)
     chunks = [all_rows[i:i + batch_size] for i in range(0, len(all_rows), batch_size)]
-    total_chunks = len(chunks)
     
-    # Creazione dei task
+    st.write(f"### ⚡ Modalità Tier 2 Attiva")
+    st.info(f"Distribuzione di {len(df)} righe in {len(chunks)} batch simultanei...")
+    
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    # Lancio dei task
     tasks = [translate_mini_batch(chunk, langs, cols, semaphore) for chunk in chunks]
     
-    final_results_ordered = [None] * len(df)
+    # Esecuzione parallela e raccolta
     completed_chunks = 0
-
-    # Consumiamo i task man mano che finiscono
+    raw_results = []
+    
     for coro in asyncio.as_completed(tasks):
-        res_dict = await coro
-        for cid, trans in res_dict.items():
-            final_results_ordered[cid] = trans
-        
+        res = await coro
+        raw_results.extend(res)
         completed_chunks += 1
         elapsed = time.perf_counter() - start_time
-        
-        # Aggiornamento UI immediato
-        progress_bar.progress(completed_chunks / total_chunks)
-        timer_text.markdown(f"⏱️ **Tempo:** {elapsed:.2f}s | **Batch completati:** {completed_chunks}/{total_chunks}")
+        progress_bar.progress(completed_chunks / len(chunks))
+        status_text.markdown(f"**Batch elaborati:** {completed_chunks}/{len(chunks)} | **Tempo:** {elapsed:.2f}s")
 
-    # Fallback per evitare celle vuote in caso di errori API
-    for i in range(len(final_results_ordered)):
-        if final_results_ordered[i] is None:
-            final_results_ordered[i] = {l: {c: df.iloc[i][c] for c in cols} for l in langs}
-
-    total_time = time.perf_counter() - start_time
-    st.success(f"✅ Processo terminato in {total_time:.2f}s")
+    # Ricostruzione ordine originale e fallback
+    final_results_ordered = [None] * len(df)
+    for res in raw_results:
+        final_results_ordered[res["custom_id"]] = res["translations"]
     
-    # Ricostruzione finale del dataset
+    # Creazione delle liste per il DataFrame finale
     final_data = {lang: {col: [] for col in cols} for lang in langs}
-    for res in final_results_ordered:
+    for i, res in enumerate(final_results_ordered):
         for lang in langs:
             for col in cols:
-                final_data[lang][col].append(fix_unicode_and_clean(res[lang][col]))
+                # Se manca la traduzione (batch fallito), usa l'italiano originale dal DF
+                if res and lang in res and col in res[lang]:
+                    val = res[lang][col]
+                else:
+                    val = df.iloc[i][col] if pd.notna(df.iloc[i][col]) else ""
+                final_data[lang][col].append(fix_unicode_and_clean(str(val)))
                 
+    total_time = time.perf_counter() - start_time
+    st.success(f"🚀 Elaborazione completata in {total_time:.2f} secondi!")
     return final_data
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
