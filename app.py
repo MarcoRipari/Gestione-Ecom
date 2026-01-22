@@ -1110,6 +1110,25 @@ def clean_excel_string(value):
     # Opzionale: Rimuove i residui di LaTeX se l'AI impazzisce
     value = value.replace("{", "").replace("}", "").replace("\\", "")
     return value
+
+def fix_unicode_and_clean(text):
+    if not isinstance(text, str):
+        return text
+    
+    # 1. Converte le sequenze letterali \u00e9 in caratteri reali é
+    # Usiamo 'unicode_escape' per interpretare le sequenze di escape
+    try:
+        # Trasformiamo la stringa in byte e poi la decodifichiamo come unicode_escape
+        text = codecs.decode(text, 'unicode_escape')
+    except Exception:
+        pass # Se fallisce, teniamo il testo originale
+    
+    # 2. Rimuoviamo i caratteri di controllo illegali per CSV/Excel
+    # (ASCII bassi che creano problemi di visualizzazione)
+    illegal_chars = re.compile(r'[\000-\010]|[\013-\014]|[\016-\037]')
+    text = illegal_chars.sub("", text)
+    
+    return text
     
 # Definizione dello schema della funzione (Tool)
 def get_translation_tool(target_languages):
@@ -3980,13 +3999,18 @@ elif page == "Traduci":
                                 if col_to_remove in df_lang.columns:
                                     df_lang.drop(columns=[col_to_remove], inplace=True)
                             idx = df_lang.columns.get_loc(col)
+                            
+                            raw_translations = all_translations[lang][col]
+                            # --- APPLICAZIONE FIX UNICODE ---
+                            cleaned_translations = [fix_unicode_and_clean(t) for t in raw_translations]
+                            
                             # Nome colonna pulito: Variante (en)
                             new_col_name = col.replace("(it)", f"({suffix.lower()})")
                             if new_col_name == col:
                                 new_col_name = f"{col} ({suffix.lower()})"
                             
                             # Inseriamo i dati tradotti
-                            df_lang.insert(idx + 1, new_col_name, all_translations[lang][col])
+                            df_lang.insert(idx + 1, new_col_name, cleaned_translations)
         
                         # Prepariamo il CSV
                         # Nota: 'utf-8-sig' serve per far leggere correttamente gli accenti a Excel
