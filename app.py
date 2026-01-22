@@ -1104,7 +1104,9 @@ async def translate_batch_async(text, target_languages, semaphore):
             response = await client.chat.completions.create(
                 model="gpt-3.5-turbo-0125", # Versione ottimizzata per JSON
                 messages=[
-                    {"role": "system", "content": f"Traduci in: {', '.join(target_languages)}. La parola STRAPPO deve essere tradotta così: -ES > cierre adherente -FR > scratch -EN > strap. Rispondi solo in JSON. Formato: {{\"lingua\": \"testo\"}}"}
+                    {"role": "system", "content": f"Traduci in: {', '.join(target_languages)}."
+                    "La parola STRAPPO deve essere tradotta così: -ES > cierre adherente -FR > scratch -EN > strap. Rispondi solo in JSON."
+                     "Formato: {{\"lingua\": \"testo\"}}"},
                     {"role": "user", "content": str(text)}
                 ],
                 response_format={"type": "json_object"},
