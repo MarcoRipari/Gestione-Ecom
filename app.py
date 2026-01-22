@@ -3960,42 +3960,42 @@ elif page == "Traduci":
         selected_langs = st.multiselect("Lingue", list(lang_map.keys()))
     
         if st.button("Esegui Traduzione"):
-            with st.spinner("Traduzione con Tool Calling in corso..."):
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+            with st.spinner("Generazione CSV in corso..."):
+                # Recuperiamo le traduzioni (funzione process_translations già definita)
                 all_translations = loop.run_until_complete(
                     process_translations(df_original, cols_to_translate, selected_langs)
                 )
-
+        
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                     for lang in selected_langs:
                         df_lang = df_original.copy()
-                        suffix = lang_map[lang]
+                        suffix = lang_map[lang] # EN, FR, ecc.
                         
                         for col in cols_to_translate:
+                            if file_name_suffix:
+                                col_to_remove = col.replace("(it)", f"({file_name_suffix.lower()})")
+                                if col_to_remove in df_lang.columns:
+                                    df_lang.drop(columns=[col_to_remove], inplace=True)
                             idx = df_lang.columns.get_loc(col)
-                            new_col_name = col.replace("(it)", f"({suffix})")
+                            # Nome colonna pulito: Variante (en)
+                            new_col_name = col.replace("(it)", f"({suffix.lower()})")
+                            if new_col_name == col:
+                                new_col_name = f"{col} ({suffix.lower()})"
                             
-                            # --- PULIZIA DATI ---
-                            # Applichiamo la pulizia a tutta la lista di traduzioni
-                            cleaned_translations = [clean_excel_string(t) for t in all_translations[lang][col]]
-                            old_col_to_remove = new_col_name.replace(f"({suffix})", f"({file_name_suffix})")
-                            
-                            if old_col_to_remove in df_lang.columns:
-                                df_lang.drop(columns=[old_col_to_remove], inplace=True)
-                            
-                            if new_col_name in df_lang.columns:
-                                df_lang.drop(columns=[new_col_name], inplace=True)
-                            
-                            # Inseriamo i dati puliti
-                            df_lang.insert(idx + 1, new_col_name, cleaned_translations)
-                    
-                        # Salvataggio (il resto del codice rimane uguale)
-                        excel_buffer = io.BytesIO()
-                        with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-                            df_lang.to_excel(writer, index=False)
-                        zip_file.writestr(f"export_{suffix}.xlsx", excel_buffer.getvalue())
+                            # Inseriamo i dati tradotti
+                            df_lang.insert(idx + 1, new_col_name, all_translations[lang][col])
+        
+                        # Prepariamo il CSV
+                        # Nota: 'utf-8-sig' serve per far leggere correttamente gli accenti a Excel
+                        csv_buffer = io.StringIO()
+                        df_lang.to_csv(csv_buffer, index=False, sep=';', encoding='utf-8-sig')
+                        
+                        # Nome file come richiesto: FALCOTTO-EN.csv
+                        nome_base = uploaded_file.name.split('-')[0].split('.')[0].upper()
+                        nome_file_csv = f"{nome_base}-{suffix.upper()}.csv"
+                        
+                        zip_file.writestr(nome_file_csv, csv_buffer.getvalue())
     
                 # Ora che il blocco 'with zip_file' è terminato, lo ZIP è pronto
                 file_bytes = zip_buffer.getvalue()
