@@ -1091,29 +1091,6 @@ lang_map = {
     "Olandese": "nl"
 }
 
-Ecco la versione definitiva e integrata del "Codice Attuale".
-
-Questa versione implementa la Smart Cell Cache: scompone ogni riga, controlla se la singola cella è già stata tradotta in precedenza (anche in colonne o righe diverse) e interroga l'AI solo per le novità. Include le regole terminologiche per le calzature e la gestione CSV/Unicode.
-Python
-
-import streamlit as st
-import pandas as pd
-import asyncio
-import json
-import re
-import codecs
-import io
-import zipfile
-import dropbox
-from datetime import datetime
-from zoneinfo import ZoneInfo
-from openai import AsyncOpenAI
-
-# Inizializzazione Client
-client = AsyncOpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-# --- 1. FUNZIONI DI SUPPORTO E PULIZIA ---
-
 def fix_unicode_and_clean(text):
     if not isinstance(text, str): return text
     try:
