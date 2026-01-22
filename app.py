@@ -1121,6 +1121,7 @@ async def translate_batch_ai(texts_to_translate, target_languages, semaphore):
                         "REGOLE: 'strappo'->EN:strap, FR:scratch, ES:cierre adherente, DE:Klettverschluss, NL:klittenband. "
                         "'velour'->suede/pelle scamosciata. Colori (es. Rosa) vanno tradotti come colori. "
                         "Usa caratteri accentati reali."
+                        f"Usa ESATTAMENTE queste chiavi per le lingue nel JSON: {', '.join(target_languages)}."
                     )},
                     {"role": "user", "content": f"Traduci questa lista di testi: {json.dumps(texts_to_translate)}"}
                 ],
@@ -1189,14 +1190,18 @@ async def process_translations_smart_cache(df, cols, langs):
         # 3. Assemblaggio riga nei risultati finali
         for col in cols:
             original_val = row_values[col]
-            for lang in langs:
+            for lang in langs: # langs contiene ["Inglese", "Francese", ...]
                 if not original_val:
                     final_results[lang][col].append("")
                 elif original_val.replace('.','',1).isdigit():
                     final_results[lang][col].append(original_val)
                 else:
-                    # Recupero dalla cache con fallback all'originale
-                    trad = global_cache.get(original_val, {}).get(lang, original_val)
+                    # CERCA NELLA CACHE
+                    # Recuperiamo il dizionario delle lingue per quel testo
+                    res_per_testo = global_cache.get(original_val, {})
+                    # Estraiamo la lingua specifica (es. "Inglese")
+                    # Se non esiste, usiamo original_val come fallback (ecco perché vedi l'italiano se fallisce)
+                    trad = res_per_testo.get(lang, original_val)
                     final_results[lang][col].append(trad)
         
         progress_bar.progress((i + 1) / total_rows)
@@ -3994,24 +3999,22 @@ elif page == "Traduci":
                     # Creazione ZIP e salvataggio CSV
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                        for lang_name in selected_langs:
+                        for lang_name in selected_langs: # lang_name è "Inglese", "Francese", ecc.
                             df_lang = df_original.copy()
-                            iso = lang_map[lang_name]
+                            iso = lang_map[lang_name] # iso è "en", "fr", ecc.
                             
                             for col in cols_to_translate:
-                                # Pulizia vecchie colonne lingua
-                                if file_name_suffix:
-                                    old_col = col.replace("(it)", f"({file_name_suffix.lower()})")
-                                    if old_col in df_lang.columns: df_lang.drop(columns=[old_col], inplace=True)
+                                # ... (codice pulizia vecchie colonne) ...
                                 
                                 new_col = col.replace("(it)", f"({iso.lower()})")
-                                if new_col == col: new_col = f"{col} ({iso.lower()})"
                                 
-                                if new_col in df_lang.columns: df_lang.drop(columns=[new_col], inplace=True)
+                                # ESTRAZIONE DATI DALLA MAPPA
+                                # Recuperiamo la lista di traduzioni per questa specifica lingua (lang_name) e colonna
+                                lista_tradotta = all_translations[lang_name][col]
                                 
-                                # Inserimento dati tradotti
+                                # Inserimento nel DataFrame
                                 idx = df_lang.columns.get_loc(col)
-                                df_lang.insert(idx + 1, new_col, all_translations[lang_name][col])
+                                df_lang.insert(idx + 1, new_col, lista_tradotta)
                             
                             # Export CSV
                             csv_buf = io.StringIO()
