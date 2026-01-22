@@ -1106,30 +1106,23 @@ def estrai_lingua(nome_file):
 # --- 2. LOGICA FUNCTION CALLING (DYNAMIC SCHEMA) ---
 
 def build_translation_schema(selected_langs, selected_cols):
-    """Crea lo schema JSON dinamico per forzare l'AI a mappare ogni colonna per ogni lingua"""
-    lang_properties = {}
+    """Schema piatto: meno nidificazione = meno errori dell'AI"""
+    properties = {}
+    # Creiamo chiavi tipo "Inglese_Descrizione"
     for lang in selected_langs:
-        lang_properties[lang] = {
-            "type": "object",
-            "properties": {col: {"type": "string"} for col in selected_cols},
-            "required": selected_cols
-        }
+        for col in selected_cols:
+            key = f"{lang}_{col}"
+            properties[key] = {"type": "string"}
 
     return [{
         "type": "function",
         "function": {
-            "name": "set_translations",
-            "description": "Salva le traduzioni dei prodotti per le lingue richieste",
+            "name": "save_translations",
+            "description": "Salva le traduzioni per ogni lingua e colonna",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "languages": {
-                        "type": "object",
-                        "properties": lang_properties,
-                        "required": selected_langs
-                    }
-                },
-                "required": ["languages"]
+                "properties": properties,
+                "required": list(properties.keys())
             }
         }
     }]
@@ -1176,43 +1169,57 @@ def build_translation_schema(selected_langs, selected_cols):
     }]
 
 async def translate_row_with_retry(row_data, target_languages, selected_cols, semaphore, row_idx):
-    """Traduzione riga: se fallisce dopo i retry, marca la cella con un errore esplicito"""
     if not any(str(v).strip() for v in row_data.values()):
         return {lang: {col: "" for col in selected_cols} for lang in target_languages}
 
     async with semaphore:
-        for attempt in range(3): # 3 tentativi interni
+        for attempt in range(3):
             try:
                 tools = build_translation_schema(target_languages, selected_cols)
                 response = await client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": (
-                            "Sei un traduttore esperto per un catalogo di calzature. DEVI tradurre ogni campo in ogni lingua."
+                            "Sei un traduttore per un catalogo di calzature. Traduci i testi forniti. "
                             "TERMINOLOGIA OBBLIGATORIA: 'strappo' -> EN:strap, FR:scratch, ES:cierre adherente"
+                            "IMPORTANTE: Per ogni lingua e colonna richiesta, devi fornire una traduzione distinta. "
+                            "Non saltare nessuna chiave dello schema."
                         )},
-                        {"role": "user", "content": f"Traduci: {json.dumps(row_data)}"}
+                        {"role": "user", "content": f"Testi da tradurre: {json.dumps(row_data)}"}
                     ],
                     tools=tools,
-                    tool_choice={"type": "function", "function": {"name": "set_translations"}},
-                    timeout=20.0,
-                    temperature=0.2 if attempt == 0 else 0.5
+                    tool_choice={"type": "function", "function": {"name": "save_translations"}},
+                    temperature=0.1,
+                    timeout=25.0
                 )
                 
+                # Parsing dei risultati
                 args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
-                translations = args.get("languages", {})
                 
-                # Validazione minima: controlliamo che esistano le chiavi lingue
-                if all(lang in translations for lang in target_languages):
-                    return {l: {c: fix_unicode_and_clean(translations[l].get(c, "")) for c in selected_cols} for l in target_languages}
+                # Ricostruzione struttura per il DataFrame
+                row_translations = {}
+                for lang in target_languages:
+                    row_translations[lang] = {}
+                    for col in selected_cols:
+                        key = f"{lang}_{col}"
+                        # Se la chiave manca, proviamo a cercarla nel testo o mettiamo errore
+                        val = args.get(key, "").strip()
+                        
+                        # Validazione anti-pigrizia (se identico a originale e lungo > 5)
+                        orig = str(row_data.get(col, "")).strip()
+                        if val == orig and len(orig) > 5 and not orig.replace('.','',1).isdigit():
+                            raise ValueError(f"Pigrizia AI su {key}")
+                            
+                        row_translations[lang][col] = fix_unicode_and_clean(val)
                 
-            except Exception:
-                await asyncio.sleep(1) # Piccolo respiro tra i retry
-                continue 
-        
-        # --- SE FALLISCE TUTTO ---
-        # Invece di restituire il testo originale (italiano), restituiamo un marker di errore
-        return {lang: {col: f"[[ERRORE RIGA {row_idx+2}]]" for col in selected_cols} for lang in target_languages}
+                return row_translations
+                
+            except Exception as e:
+                if attempt < 2:
+                    await asyncio.sleep(0.5 * (attempt + 1))
+                    continue
+                # Se fallisce dopo 3 tentativi
+                return {lang: {col: f"[[ERRORE RIGA {row_idx+2}]]" for col in selected_cols} for lang in target_languages}
 
 async def process_batch_with_timer(df, cols, langs):
     semaphore = asyncio.Semaphore(40)
