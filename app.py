@@ -1215,52 +1215,46 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
         return {lang: {col: f"[[ERRORE RIGA {row_idx+2}]]" for col in selected_cols} for lang in target_languages}
 
 async def process_batch_with_timer(df, cols, langs):
-    # Semaphore a 40 è ottimo per Tier 2, ma aggiungiamo un controllo di attesa totale
     semaphore = asyncio.Semaphore(40)
     start_time = time.perf_counter()
     
-    st.write(f"### 🚀 Avvio Traduzione: {len(df)} righe (In corso...)")
+    st.write(f"### 🚀 Traduzione Tier 2 in corso...")
     progress_bar = st.progress(0)
     timer_text = st.empty()
     
-    # 1. Creazione dei Task
-    # Ogni riga viene preparata come un task indipendente
-    tasks = []
-    for _, row in df.iterrows():
+    # Creazione Task passando l'indice della riga (row_idx)
+    futures = []
+    for i, (_, row) in enumerate(df.iterrows()):
         row_dict = {c: str(row[c]) if pd.notna(row[c]) else "" for c in cols}
-        tasks.append(translate_row_with_retry(row_dict, langs, cols, semaphore))
-    
-    # 2. Esecuzione con monitoraggio
-    # Usiamo asyncio.ensure_future per tenere traccia dei task
-    futures = [asyncio.ensure_future(t) for t in tasks]
+        # Passiamo i (indice) alla funzione per marcare eventuali errori
+        futures.append(asyncio.ensure_future(translate_row_with_retry(row_dict, langs, cols, semaphore, i)))
     
     completed = 0
-    total = len(futures)
-    
-    # Monitoriamo il progresso mentre i task vengono eseguiti
     for task in asyncio.as_completed(futures):
         await task
         completed += 1
-        # Aggiornamento UI ogni riga completata
-        progress_bar.progress(completed / total)
-        elapsed = time.perf_counter() - start_time
-        timer_text.markdown(f"⏱️ **Tempo:** {elapsed:.2f}s | **Avanzamento:** {completed}/{total} righe")
+        progress_bar.progress(completed / len(futures))
+        timer_text.markdown(f"⏱️ **Tempo:** {time.perf_counter()-start_time:.2f}s | **Elaborate:** {completed}/{len(futures)}")
 
-    # 3. RECUPERO TOTALE (Il momento critico)
-    # gather garantisce che i risultati siano restituiti nell'ordine esatto del DataFrame originale
-    # e soprattutto aspetta che TUTTI siano finiti.
+    # Gather finale per mantenere l'ordine
     ordered_results = await asyncio.gather(*futures)
     
-    st.success(f"✅ Tutte le {len(ordered_results)} righe sono state elaborate!")
-    
-    # 4. Formattazione finale
+    # Formattazione finale
     final_data = {lang: {col: [] for col in cols} for lang in langs}
+    error_count = 0
+    
     for row_res in ordered_results:
         for lang in langs:
             for col in cols:
-                # Se per qualche motivo row_res è None o incompleto, mettiamo una stringa vuota o l'originale
-                val = row_res.get(lang, {}).get(col, "")
+                val = row_res[lang][col]
+                if "[[ERRORE RIGA" in str(val):
+                    error_count += 1
                 final_data[lang][col].append(val)
+    
+    if error_count > 0:
+        st.error(f"⚠️ Attenzione: {error_count} celle contengono errori di traduzione. Cerca 'ERRORE' nel file.")
+    else:
+        st.success("✅ Tutte le righe tradotte correttamente!")
                 
     return final_data
         
