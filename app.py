@@ -1233,68 +1233,66 @@ async def translate_mini_batch(batch_rows, target_languages, selected_cols, sema
             return {}
 
 async def process_batch_with_recovery(df, cols, langs):
-    """Gestore principale con Loop di Recupero per dati mancanti"""
-    semaphore = asyncio.Semaphore(40) # Ottimizzato Tier 2
+    """Versione Tier 2: Massima velocità lineare senza loop di recupero pesanti"""
+    semaphore = asyncio.Semaphore(40) 
+    batch_size = 10 
     start_time = time.perf_counter()
     
-    # Inizializzazione righe da tradurre
-    pending_rows = []
+    st.write(f"### ⚡ Traduzione Batch Tier 2")
+    
+    # Contenitori UI per feedback immediato
+    progress_bar = st.progress(0)
+    timer_text = st.empty()
+    status_text = st.empty()
+
+    # 1. Preparazione Batch
+    all_rows = []
     for i, (_, row) in enumerate(df.iterrows()):
-        pending_rows.append({
+        all_rows.append({
             "custom_id": i,
             "data": {c: str(row[c]) if pd.notna(row[c]) else "" for c in cols}
         })
     
+    chunks = [all_rows[i:i + batch_size] for i in range(0, len(all_rows), batch_size)]
+    total_chunks = len(chunks)
+    
+    # 2. Lancio dei Task paralleli
+    tasks = [translate_mini_batch(chunk, langs, cols, semaphore) for chunk in chunks]
+    
     final_results_ordered = [None] * len(df)
-    batch_size = 10 
-    attempt = 1
+    completed_chunks = 0
 
-    st.write(f"### 🛡️ Traduzione Integrale Tier 2")
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    total_rows = len(df)
-
-    # LOOP DI RECUPERO: Continua finché pending_rows non è vuota
-    while pending_rows and attempt <= 4:
-        status_text.warning(f"🔄 Tentativo {attempt}: Elaborazione di {len(pending_rows)} righe...")
-        
-        chunks = [pending_rows[i:i + batch_size] for i in range(0, len(pending_rows), batch_size)]
-        tasks = [translate_mini_batch(chunk, langs, cols, semaphore) for chunk in chunks]
-        
-        chunk_results = await asyncio.gather(*tasks)
-        
-        # Mappatura risultati validi
-        for res_dict in chunk_results:
+    # 3. Raccolta risultati asincrona
+    for coro in asyncio.as_completed(tasks):
+        res_dict = await coro # res_dict è un dizionario {cid: translations}
+        if res_dict:
             for cid, trans in res_dict.items():
                 final_results_ordered[cid] = trans
         
-        # Aggiornamento righe mancanti
-        pending_rows = [r for r in pending_rows if final_results_ordered[r["custom_id"]] is None]
+        completed_chunks += 1
+        elapsed = time.perf_counter() - start_time
         
-        # Adattamento per il prossimo tentativo
-        if pending_rows:
-            batch_size = max(1, batch_size // 2) # Riduce il batch per essere più granulare
-            attempt += 1
-            time.sleep(1)
-        
-        # Aggiornamento barra basata sul totale completato
-        completed_count = sum(1 for x in final_results_ordered if x is not None)
-        progress_bar.progress(completed_count / total_rows)
+        # Aggiornamento UI fluido
+        progress_bar.progress(completed_chunks / total_chunks)
+        timer_text.markdown(f"⏱️ **Tempo trascorso:** {elapsed:.2f}s | **Batch:** {completed_chunks}/{total_chunks}")
+        status_text.info(f"Elaborazione batch in corso...")
 
-    # Riempimento finale forzato se qualcosa è rimasto nullo dopo 4 tentativi
+    # 4. Fallback per righe mancanti (evita celle vuote)
     for i in range(len(final_results_ordered)):
         if final_results_ordered[i] is None:
+            # Se l'AI ha fallito il batch, mettiamo l'originale
             final_results_ordered[i] = {l: {c: df.iloc[i][c] for c in cols} for l in langs}
 
     total_time = time.perf_counter() - start_time
-    st.success(f"✅ Completato al 100% in {total_time:.2f}s")
+    status_text.success(f"✅ Operazione completata in {total_time:.2f}s")
     
-    # Trasformazione per DataFrame
+    # 5. Formattazione finale per il DataFrame
     final_data = {lang: {col: [] for col in cols} for lang in langs}
     for res in final_results_ordered:
         for lang in langs:
             for col in cols:
                 final_data[lang][col].append(fix_unicode_and_clean(res[lang][col]))
+                
     return final_data
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
