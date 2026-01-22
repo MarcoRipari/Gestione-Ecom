@@ -1091,114 +1091,55 @@ lang_map = {
     "Olandese": "nl"
 }
 
-def estrai_lingua(nome_file):
-    # Cerca una sequenza di 2 lettere maiuscole preceduta da un trattino
-    # e seguita dal punto dell'estensione
-    match = re.search(r'-([A-Z]{2})\.xls', nome_file)
-    if match:
-        return match.group(1)
-    return None
+async def translate_unique_strings_async(unique_strings, target_languages, semaphore):
+    """
+    Traduce una lista di stringhe uniche.
+    Ritorna un dizionario: { "Testo Originale": { "Inglese": "...", "Francese": "..." } }
+    """
+    results_map = {}
     
-def clean_excel_string(value):
-    if not isinstance(value, str):
-        return value
-    # Rimuove caratteri di controllo ASCII (tranne tab, newline, carriage return)
-    # che sono illegali nei file XML di Excel
-    illegal_chars = re.compile(r'[\000-\010]|[\013-\014]|[\016-\037]')
-    value = illegal_chars.sub("", value)
-    
-    # Opzionale: Rimuove i residui di LaTeX se l'AI impazzisce
-    value = value.replace("{", "").replace("}", "").replace("\\", "")
-    return value
-
-def fix_unicode_and_clean(text):
-    if not isinstance(text, str):
-        return text
-    
-    # 1. Converte le sequenze letterali \u00e9 in caratteri reali é
-    # Usiamo 'unicode_escape' per interpretare le sequenze di escape
-    try:
-        # Trasformiamo la stringa in byte e poi la decodifichiamo come unicode_escape
-        text = codecs.decode(text, 'unicode_escape')
-    except Exception:
-        pass # Se fallisce, teniamo il testo originale
-    
-    # 2. Rimuoviamo i caratteri di controllo illegali per CSV/Excel
-    # (ASCII bassi che creano problemi di visualizzazione)
-    illegal_chars = re.compile(r'[\000-\010]|[\013-\014]|[\016-\037]')
-    text = illegal_chars.sub("", text)
-    
-    return text
-    
-# Definizione dello schema della funzione (Tool)
-def get_translation_tool(target_languages):
-    return [{
-        "type": "function",
-        "function": {
-            "name": "save_translations",
-            "description": "Salva le traduzioni del testo nelle lingue richieste",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "translations": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "language": {"type": "string", "enum": target_languages},
-                                "translated_text": {"type": "string"}
-                            },
-                            "required": ["language", "translated_text"]
-                        }
-                    }
-                },
-                "required": ["translations"]
-            }
-        }
-    }]
-
-async def translate_batch_async(text, target_languages, semaphore):
-    if pd.isna(text) or str(text).strip() == "":
-        return {lang: text for lang in target_languages}
-    
-    async with semaphore:
-        try:
-            response = await client.chat.completions.create(
-                model="gpt-3.5-turbo-0125",
-                messages=[
-                    {"role": "system", "content": f"Sei un traduttore. Traduci il testo in: {', '.join(target_languages)}. Regola speciale: STRAPPO -> ES: cierre adherente, FR: scratch, EN: strap."},
-                    {"role": "user", "content": str(text)}
-                ],
-                tools=get_translation_tool(target_languages),
-                tool_choice={"type": "function", "function": {"name": "save_translations"}},
-                temperature=0
-            )
-            
-            # Estrazione sicura dei dati dalla funzione
-            tool_call = response.choices[0].message.tool_calls[0]
-            args = json.loads(tool_call.function.arguments)
-            
-            # Trasformiamo la lista in un dizionario {lingua: testo}
-            return {item['language']: item['translated_text'] for item in args['translations']}
-            
-        except Exception as e:
-            return {lang: f"Error API" for lang in target_languages}
-
-async def process_translations(df, cols, langs):
-    semaphore = asyncio.Semaphore(15) 
-    results = {lang: {col: [] for col in cols} for lang in langs}
-    
-    for col in cols:
-        st.write(f"Traduzione colonna: {col}...")
-        tasks = [translate_batch_async(val, langs, semaphore) for val in df[col]]
-        column_results = await asyncio.gather(*tasks)
+    # Prepariamo i task per ogni stringa unica
+    async def translate_single_string(text):
+        if not str(text).strip() or str(text).isdigit():
+            return text, {lang: text for lang in target_languages}
         
-        for res_dict in column_results:
-            for lang in langs:
-                # Recupero sicuro: se manca la lingua, mette stringa vuota
-                results[lang][col].append(res_dict.get(lang, ""))
-                
-    return results
+        async with semaphore:
+            try:
+                response = await client.chat.completions.create(
+                    model="gpt-4o-mini", # Passiamo a mini per massimizzare il risparmio
+                    messages=[
+                        {"role": "system", "content": f"Traduci accuratamente in: {', '.join(target_languages)}. Rispondi solo con il formato JSON richiesto."},
+                        {"role": "user", "content": f"Testo da tradurre: {text}"}
+                    ],
+                    tools=[{
+                        "type": "function",
+                        "function": {
+                            "name": "set_translations",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "langs": {
+                                        "type": "object",
+                                        "properties": {l: {"type": "string"} for l in target_languages}
+                                    }
+                                }
+                            }
+                        }
+                    }],
+                    tool_choice={"type": "function", "function": {"name": "set_translations"}},
+                    temperature=0
+                )
+                args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+                # Pulizia unicode immediata
+                clean_res = {l: fix_unicode_and_clean(v) for l, v in args['langs'].items()}
+                return text, clean_res
+            except:
+                return text, {l: "Error" for l in target_languages}
+
+    tasks = [translate_single_string(s) for s in unique_strings]
+    completed_tasks = await asyncio.gather(*tasks)
+    
+    return dict(completed_tasks)
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
@@ -3978,50 +3919,55 @@ elif page == "Traduci":
         cols_to_translate = st.multiselect("Colonne da tradurre", df_original.columns)
         selected_langs = st.multiselect("Lingue", list(lang_map.keys()))
     
-        if st.button("Esegui Traduzione"):
-            with st.spinner("Generazione CSV in corso..."):
+        if st.button("Esegui Traduzioni"):
+            with st.spinner("Analisi valori univoci e traduzione in corso..."):
+                # 1. Estraiamo tutti i valori univoci dalle colonne selezionate
+                all_unique_texts = set()
+                for col in cols_to_translate:
+                    all_unique_texts.update(df_original[col].dropna().unique())
+                
+                st.info(f"Rilevati {len(all_unique_texts)} testi univoci su {len(df_original) * len(cols_to_translate)} celle totali.")
+    
+                # 2. Avviamo la traduzione solo dei testi univoci
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                # Recuperiamo le traduzioni (funzione process_translations già definita)
-                all_translations = loop.run_until_complete(
-                    process_translations(df_original, cols_to_translate, selected_langs)
+                semaphore = asyncio.Semaphore(20)
+                
+                translation_map = loop.run_until_complete(
+                    translate_unique_strings_async(list(all_unique_texts), selected_langs, semaphore)
                 )
-        
+    
+                # 3. Creazione file ZIP e rimappatura
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                     for lang in selected_langs:
                         df_lang = df_original.copy()
-                        suffix = lang_map[lang] # EN, FR, ecc.
+                        suffix = lang_map[lang]
                         
                         for col in cols_to_translate:
+                            # Pulizia colonne vecchie (logica precedente)
                             if file_name_suffix:
-                                col_to_remove = col.replace("(it)", f"({file_name_suffix.lower()})")
-                                if col_to_remove in df_lang.columns:
-                                    df_lang.drop(columns=[col_to_remove], inplace=True)
-                            idx = df_lang.columns.get_loc(col)
+                                col_old = col.replace("(it)", f"({file_name_suffix.lower()})")
+                                if col_old in df_lang.columns: df_lang.drop(columns=[col_old], inplace=True)
                             
-                            raw_translations = all_translations[lang][col]
-                            # --- APPLICAZIONE FIX UNICODE ---
-                            cleaned_translations = [fix_unicode_and_clean(t) for t in raw_translations]
-                            
-                            # Nome colonna pulito: Variante (en)
                             new_col_name = col.replace("(it)", f"({suffix.lower()})")
-                            if new_col_name == col:
-                                new_col_name = f"{col} ({suffix.lower()})"
+                            if new_col_name == col: new_col_name = f"{col} ({suffix.lower()})"
                             
-                            # Inseriamo i dati tradotti
-                            df_lang.insert(idx + 1, new_col_name, cleaned_translations)
-        
-                        # Prepariamo il CSV
-                        # Nota: 'utf-8-sig' serve per far leggere correttamente gli accenti a Excel
+                            # --- RIMAPPATURA ---
+                            # Invece di chiamare l'API, prendiamo il valore dalla mappa creata sopra
+                            df_lang[new_col_name] = df_lang[col].map(lambda x: translation_map.get(x, {}).get(lang, x))
+                            
+                            # Posizionamento colonna
+                            idx = df_lang.columns.get_loc(col)
+                            cols = list(df_lang.columns)
+                            cols.insert(idx + 1, cols.pop(cols.index(new_col_name)))
+                            df_lang = df_lang[cols]
+    
+                        # Generazione CSV
                         csv_buffer = io.StringIO()
                         df_lang.to_csv(csv_buffer, index=False, sep=';', encoding='utf-8-sig')
-                        
-                        # Nome file come richiesto: FALCOTTO-EN.csv
                         nome_base = uploaded_file.name.split('-')[0].split('.')[0].upper()
-                        nome_file_csv = f"{nome_base}-{suffix.upper()}.csv"
-                        
-                        zip_file.writestr(nome_file_csv, csv_buffer.getvalue())
+                        zip_file.writestr(f"{nome_base}-{suffix.upper()}.csv", csv_buffer.getvalue())
     
                 # Ora che il blocco 'with zip_file' è terminato, lo ZIP è pronto
                 file_bytes = zip_buffer.getvalue()
