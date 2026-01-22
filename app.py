@@ -1094,7 +1094,6 @@ lang_map = {
 def fix_unicode_and_clean(text):
     if not isinstance(text, str): return text
     try:
-        # Trasforma sequenze tipo \u00e9 in caratteri reali
         text = codecs.decode(text, 'unicode_escape')
     except: pass
     illegal_chars = re.compile(r'[\000-\010]|[\013-\014]|[\016-\037]')
@@ -1104,68 +1103,104 @@ def estrai_lingua(nome_file):
     match = re.search(r'-([A-Za-z]{2})\.', nome_file)
     return match.group(1).upper() if match else None
 
-# --- 2. LOGICA DI TRADUZIONE CON SMART CACHE ---
+# --- 2. LOGICA FUNCTION CALLING (DYNAMIC SCHEMA) ---
 
-async def translate_row_simultaneous(row_data, target_languages, semaphore):
-    """Traduce tutte le colonne di una riga in una sola chiamata AI"""
-    if not any(row_data.values()):
-        return {lang: {col: "" for col in row_data} for lang in target_languages}
+def build_translation_schema(selected_langs, selected_cols):
+    """Crea lo schema JSON dinamico per forzare l'AI a mappare ogni colonna per ogni lingua"""
+    lang_properties = {}
+    for lang in selected_langs:
+        lang_properties[lang] = {
+            "type": "object",
+            "properties": {col: {"type": "string"} for col in selected_cols},
+            "required": selected_cols
+        }
+
+    return [{
+        "type": "function",
+        "function": {
+            "name": "set_translations",
+            "description": "Salva le traduzioni dei prodotti per le lingue richieste",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "languages": {
+                        "type": "object",
+                        "properties": lang_properties,
+                        "required": selected_langs
+                    }
+                },
+                "required": ["languages"]
+            }
+        }
+    }]
+
+async def translate_row_with_functions(row_data, target_languages, selected_cols, semaphore):
+    """Traduce una singola riga usando il Function Calling"""
+    if not any(str(v).strip() for v in row_data.values()):
+        return {lang: {col: "" for col in selected_cols} for lang in target_languages}
 
     async with semaphore:
         try:
+            tools = build_translation_schema(target_languages, selected_cols)
+            
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": (
-                        f"Sei un traduttore esperto per e-commerce di calzature (Falcotto). "
-                        f"Traduci accuratamente in queste lingue: {', '.join(target_languages)}. "
-                        "REGOLE: 'strappo'->EN:strap, FR:scratch, ES:cierre adherente, DE:Klettverschluss, NL:klittenband. "
-                        "'velour'->suede. Mantieni il tono professionale. "
-                        "Rispondi ESCLUSIVAMENTE con un oggetto JSON dove le chiavi sono le lingue e i valori sono oggetti con le colonne tradotte."
+                        "Sei un traduttore esperto per Falcotto (calzature bambini). "
+                        "Traduci con precisione tecnica: 'strappo' -> strap (EN), scratch (FR), "
+                        "cierre adherente (ES), Klettverschluss (DE), klittenband (NL). "
+                        "'velour' -> suede/pelle scamosciata."
                     )},
-                    {"role": "user", "content": f"Traduci i seguenti dati di prodotto: {json.dumps(row_data)}"}
+                    {"role": "user", "content": f"Dati riga prodotto: {json.dumps(row_data)}"}
                 ],
-                response_format={"type": "json_object"},
+                tools=tools,
+                tool_choice={"type": "function", "function": {"name": "set_translations"}},
                 temperature=0
             )
             
-            # La risposta sarà tipo: {"Inglese": {"Col1": "...", "Col2": "..."}, "Francese": {...}}
-            translated_dict = json.loads(response.choices[0].message.content)
+            # Estrazione dati strutturati
+            args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+            translations = args.get("languages", {})
             
-            # Pulizia unicode su tutti i valori
-            for lang in translated_dict:
-                for col in translated_dict[lang]:
-                    translated_dict[lang][col] = fix_unicode_and_clean(str(translated_dict[lang][col]))
-            
-            return translated_dict
+            # Ricostruzione con fallback di sicurezza
+            output = {}
+            for lang in target_languages:
+                lang_data = translations.get(lang, {})
+                output[lang] = {
+                    col: fix_unicode_and_clean(str(lang_data.get(col, row_data.get(col, "")))) 
+                    for col in selected_cols
+                }
+            return output
             
         except Exception as e:
-            # In caso di errore, restituiamo i dati originali per quella riga
+            # Fallback all'originale in caso di errore
             return {lang: row_data for lang in target_languages}
 
-async def process_translations_row_by_row(df, cols, langs):
-    """Gestisce l'invio delle righe in parallelo"""
-    semaphore = asyncio.Semaphore(10) # 10 righe elaborate contemporaneamente
+async def process_batch_translations(df, cols, langs):
+    """Orchestratore riga per riga parallelo"""
+    semaphore = asyncio.Semaphore(12) # Gestisce 12 righe simultaneamente
     
+    # Creazione dei task per ogni riga
     tasks = []
     for _, row in df.iterrows():
-        # Prepariamo i dati della riga (solo colonne selezionate)
         row_payload = {col: str(row[col]) if pd.notna(row[col]) else "" for col in cols}
-        tasks.append(translate_row_simultaneous(row_payload, langs, semaphore))
+        tasks.append(translate_row_with_functions(row_payload, langs, cols, semaphore))
     
-    # Esegue tutte le traduzioni in parallelo
+    # Esecuzione e raccolta risultati mantenendo l'ordine
+    progress_bar = st.progress(0)
+    results = []
+    
+    # Utilizziamo gather per mantenere l'ordine delle righe dell'Excel
     results = await asyncio.gather(*tasks)
+    progress_bar.progress(1.0)
     
-    # Riorganizziamo i risultati per popolare il DataFrame
-    # results è una lista di dizionari (uno per ogni riga)
+    # Trasformazione in formato colonna per Pandas
     final_data = {lang: {col: [] for col in cols} for lang in langs}
-    
     for row_res in results:
         for lang in langs:
             for col in cols:
-                # Recuperiamo la traduzione, fallback all'originale se manca la chiave
-                val = row_res.get(lang, {}).get(col, "")
-                final_data[lang][col].append(val)
+                final_data[lang][col].append(row_res[lang][col])
                 
     return final_data
         
@@ -3945,63 +3980,60 @@ elif page == "Traduci":
         file_name_suffix = estrai_lingua(uploaded_file.name)
         df_original = pd.read_excel(uploaded_file, engine='xlrd')
         
-        cols_to_translate = st.multiselect("Colonne da tradurre", df_original.columns)
-        selected_langs = st.multiselect("Lingue target", list(lang_map.keys()))
+        cols_to_translate = st.multiselect("Seleziona colonne da tradurre", df_original.columns)
+        selected_langs = st.multiselect("Seleziona lingue target", list(lang_map.keys()))
     
-        if st.button("Avvia Traduzione Intelligente"):
+        if st.button("Avvia Traduzione Batch"):
             if cols_to_translate and selected_langs:
-                with st.spinner("Traduzione riga per riga in corso..."):
+                with st.spinner(f"Traduzione di {len(df_original)} righe in corso..."):
+                    # Avvio asincrono
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     all_translations = loop.run_until_complete(
-                        process_translations_row_by_row(df_original, cols_to_translate, selected_langs)
+                        process_batch_translations(df_original, cols_to_translate, selected_langs)
                     )
 
-                    # Generazione ZIP
+                    # Creazione ZIP
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                         for lang_name in selected_langs:
                             df_lang = df_original.copy()
-                            iso = lang_map[lang_name] # en, fr, etc.
+                            iso = lang_map[lang_name]
                             
                             for col in cols_to_translate:
-                                # 1. Pulizia vecchie colonne se presenti
+                                # Pulizia vecchi suffissi
                                 if file_name_suffix:
-                                    old_col_name = col.replace("(it)", f"({file_name_suffix.lower()})")
-                                    if old_col_name in df_lang.columns:
-                                        df_lang.drop(columns=[old_col_name], inplace=True)
+                                    old_col = col.replace("(it)", f"({file_name_suffix.lower()})")
+                                    if old_col in df_lang.columns: df_lang.drop(columns=[old_col], inplace=True)
                                 
-                                # 2. Definizione nome nuova colonna
+                                # Nome nuova colonna
                                 new_col = col.replace("(it)", f"({iso.lower()})")
-                                if new_col == col:
-                                    new_col = f"{col} ({iso.lower()})"
+                                if new_col == col: new_col = f"{col} ({iso.lower()})"
                                 
-                                # FIX: Rimuovi la colonna se esiste già per evitare ValueError
-                                if new_col in df_lang.columns:
-                                    df_lang.drop(columns=[new_col], inplace=True)
-                                
-                                # 3. Inserimento dati tradotti a fianco della colonna originale
-                                lista_tradotta = all_translations[lang_name][col]
-                                idx = df_lang.columns.get_loc(col)
-                                df_lang.insert(idx + 1, new_col, lista_tradotta)
-                            
-                            # Preparazione CSV nel buffer dello ZIP
-                            csv_buf = io.StringIO()
-                            df_lang.to_csv(csv_buf, index=False, sep=';', encoding='utf-8-sig')
-                            nome_csv = f"{uploaded_file.name.split('-')[0].upper()}-{iso.upper()}.csv"
-                            zip_file.writestr(nome_csv, csv_buf.getvalue())
+                                # Protezione duplicati
+                                if new_col in df_lang.columns: df_lang.drop(columns=[new_col], inplace=True)
 
-                    # Upload Dropbox e Download
+                                # Inserimento dati tradotti
+                                idx = df_lang.columns.get_loc(col)
+                                df_lang.insert(idx + 1, new_col, all_translations[lang_name][col])
+                            
+                            # Export CSV
+                            csv_output = io.StringIO()
+                            df_lang.to_csv(csv_output, index=False, sep=';', encoding='utf-8-sig')
+                            nome_csv = f"{uploaded_file.name.split('-')[0].upper()}-{iso.upper()}.csv"
+                            zip_file.writestr(nome_csv, csv_output.getvalue())
+
+                    # Gestione finale e Dropbox
                     zip_data = zip_buffer.getvalue()
                     now = datetime.now(ZoneInfo("Europe/Rome")).strftime('%d-%m-%Y_%H-%M-%S')
-                    zip_filename = f"traduzioni_{now}.zip"
+                    zip_name = f"traduzioni_{now}.zip"
                     
                     try:
                         access_token = get_dropbox_access_token()
                         dbx = dropbox.Dropbox(access_token)
-                        upload_to_dropbox(dbx, "/CATALOGO/DESCRIZIONI/traduzioni", zip_filename, zip_data)
-                        st.success(f"✅ ZIP caricato su Dropbox: {zip_filename}")
+                        upload_to_dropbox(dbx, "/CATALOGO/DESCRIZIONI/traduzioni", zip_name, zip_data)
+                        st.success(f"✅ Backup su Dropbox completato: {zip_name}")
                     except Exception as e:
-                        st.error(f"Errore Dropbox: {e}")
-                    
-                    st.download_button("📥 Scarica ZIP Traduzioni", zip_data, zip_filename, "application/zip")
+                        st.warning(f"Dropbox non disponibile: {e}")
+
+                    st.download_button("📥 Scarica ZIP Traduzioni", zip_data, zip_name, "application/zip")
