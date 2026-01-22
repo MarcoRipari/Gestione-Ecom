@@ -1107,69 +1107,52 @@ def estrai_lingua(nome_file):
 # --- 2. LOGICA DI TRADUZIONE CON SMART CACHE ---
 
 async def translate_batch_ai(texts_to_translate, target_languages, semaphore):
-    """Invia un gruppo di testi unici all'AI e restituisce le traduzioni mappate"""
+    """Versione Blindata: Forza l'AI a restituire un JSON mappato correttamente"""
     if not texts_to_translate:
         return {}
 
     async with semaphore:
         try:
-            # Creiamo una stringa per istruire l'AI sulle chiavi esatte da usare
-            keys_instruction = ", ".join([f"'{l}'" for l in target_languages])
+            # Creiamo un esempio del formato richiesto per non dare spazio a errori
+            example_json = {
+                texts_to_translate[0]: {lang: "..." for lang in target_languages}
+            }
             
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": (
-                        f"Sei un traduttore esperto per e-commerce di calzature. "
-                        f"Traduci accuratamente in: {', '.join(target_languages)}. "
-                        "REGOLE: 'strappo'->EN:strap, FR:scratch, ES:cierre adherente, DE:Klettverschluss, NL:klittenband. "
-                        "'velour'->suede/pelle scamosciata. Colori (es. Rosa) vanno tradotti come colori. "
-                        "Usa caratteri accentati reali. "
-                        f"Nel JSON di risposta usa ESATTAMENTE queste chiavi per le lingue: {keys_instruction}."
+                        f"Sei un traduttore esperto per calzature. Traduci in: {', '.join(target_languages)}. "
+                        "REGOLE: 'strappo'->strap/scratch/Klettverschluss. 'velour'->suede. "
+                        "Rispondi ESCLUSIVAMENTE con un oggetto JSON dove le chiavi sono i testi originali forniti. "
+                        f"Esempio formato: {json.dumps(example_json)}"
                     )},
-                    {"role": "user", "content": f"Traduci questa lista di testi: {json.dumps(texts_to_translate)}"}
+                    {"role": "user", "content": f"Testi da tradurre: {json.dumps(texts_to_translate)}"}
                 ],
-                tools=[{
-                    "type": "function",
-                    "function": {
-                        "name": "set_translations",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "results": {
-                                    "type": "object",
-                                    "description": "Oggetto con testo originale come chiave",
-                                    "additionalProperties": {
-                                        "type": "object",
-                                        "properties": {l: {"type": "string"} for l in target_languages},
-                                        "required": target_languages
-                                    }
-                                }
-                            },
-                            "required": ["results"]
-                        }
-                    }
-                }],
-                tool_choice={"type": "function", "function": {"name": "set_translations"}},
+                response_format={"type": "json_object"}, # Forza l'output JSON
                 temperature=0
             )
             
-            args = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
-            raw_results = args.get('results', {})
+            translated_data = json.loads(response.choices[0].message.content)
             
-            # Pulizia unicode su ogni valore restituito
+            # Debug opzionale (puoi rimuoverlo dopo i test)
+            # st.write("Risposta AI:", translated_data) 
+
+            # Pulizia e mappatura
             cleaned_results = {}
-            for txt, lang_dict in raw_results.items():
-                cleaned_results[txt] = {l: fix_unicode_and_clean(str(v)) for l, v in lang_dict.items()}
+            for original_txt, translations in translated_data.items():
+                cleaned_results[original_txt] = {
+                    l: fix_unicode_and_clean(str(v)) for l, v in translations.items()
+                }
             return cleaned_results
             
         except Exception as e:
-            st.error(f"Errore API durante la traduzione di {texts_to_translate[:2]}: {e}")
+            st.error(f"Errore critico AI: {e}")
             return {}
 
 async def process_translations_smart_cache(df, cols, langs):
-    semaphore = asyncio.Semaphore(15)
-    global_cache = {} # Cache globale dei testi tradotti
+    semaphore = asyncio.Semaphore(10) # Leggermente più lento per stabilità
+    global_cache = {}
     final_results = {lang: {col: [] for col in cols} for lang in langs}
     
     progress_bar = st.progress(0)
@@ -1178,21 +1161,24 @@ async def process_translations_smart_cache(df, cols, langs):
     for i, (_, row) in enumerate(df.iterrows()):
         texts_to_ask_ai = []
         
-        # 1. Analisi celle della riga per identificare novità
+        # 1. Analisi celle
         row_values = {}
         for col in cols:
+            # Normalizziamo il valore per la cache: togliamo spazi extra
             val = str(row[col]).strip() if pd.notna(row[col]) else ""
             row_values[col] = val
+            
             if val and val not in global_cache and not val.replace('.','',1).isdigit():
                 if val not in texts_to_ask_ai:
                     texts_to_ask_ai.append(val)
         
-        # 2. Chiamata AI se necessario
+        # 2. Traduzione delle novità
         if texts_to_ask_ai:
             new_translations = await translate_batch_ai(texts_to_ask_ai, langs, semaphore)
+            # Uniamo i nuovi risultati alla cache globale
             global_cache.update(new_translations)
         
-        # 3. Assemblaggio risultati attingendo dalla cache
+        # 3. Popolamento risultati
         for col in cols:
             original_val = row_values[col]
             for lang in langs:
@@ -1201,15 +1187,15 @@ async def process_translations_smart_cache(df, cols, langs):
                 elif original_val.replace('.','',1).isdigit():
                     final_results[lang][col].append(original_val)
                 else:
-                    # Recupero dalla cache: se manca (errore API), segnaliamo o lasciamo originale
-                    res_per_testo = global_cache.get(original_val, {})
-                    traduzione = res_per_testo.get(lang)
+                    # CERCA NELLA CACHE (con controllo stringa pulita)
+                    trad = global_cache.get(original_val, {}).get(lang)
                     
-                    if traduzione:
-                        final_results[lang][col].append(traduzione)
+                    if trad:
+                        final_results[lang][col].append(trad)
                     else:
-                        # Se l'AI ha fallito, manteniamo l'originale ma avvisiamo nel log
-                        final_results[lang][col].append(original_val)
+                        # Se ancora non trova, proviamo a cercare senza spazi extra
+                        fallback_trad = global_cache.get(original_val.strip(), {}).get(lang, original_val)
+                        final_results[lang][col].append(fallback_trad)
         
         progress_bar.progress((i + 1) / total_rows)
                     
