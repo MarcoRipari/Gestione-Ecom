@@ -1083,7 +1083,7 @@ def format_dropbox_date(dt):
 # Funzioni varie
 # ---------------------------
 # Mappatura per i suffissi delle colonne
-lang_suffixes = {
+lang_map = {
     "Inglese": "en",
     "Francese": "fr",
     "Tedesco": "de",
