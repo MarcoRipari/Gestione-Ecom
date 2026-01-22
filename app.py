@@ -4057,7 +4057,7 @@ elif page == "Traduci":
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     all_translations = loop.run_until_complete(
-                        process_batch_with_recovery(df_original, cols_to_translate, selected_langs)
+                        process_ultra_fast_batch(df_original, cols_to_translate, selected_langs)
                     )
 
                     # Creazione ZIP
