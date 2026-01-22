@@ -1176,7 +1176,8 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                 return {lang: {col: f"[[ERRORE]]" for col in selected_cols} for lang in target_languages}
 
 async def process_batch_with_timer(df, cols, langs):
-    semaphore = asyncio.Semaphore(40)
+    # Abbassiamo leggermente il semaforo a 30 per evitare saturazione su Streamlit Cloud
+    semaphore = asyncio.Semaphore(30)
     start_time = time.perf_counter()
     st.write(f"### 🚀 Elaborazione Tier 2: {len(df)} righe")
     
@@ -1185,47 +1186,55 @@ async def process_batch_with_timer(df, cols, langs):
     final_results = {}
 
     async def run_translation_cycle(indices):
-        tasks = []
+        # Creiamo i task in modo esplicito
+        tasks_to_track = []
         for i in indices:
             row_dict = {c: str(df.iloc[i][c]) if pd.notna(df.iloc[i][c]) else "" for c in cols}
-            tasks.append((i, asyncio.ensure_future(translate_row_with_retry(row_dict, langs, cols, semaphore, i))))
+            # Creiamo il task e lo mettiamo in una lista di tuple (index, task)
+            task = asyncio.create_task(translate_row_with_retry(row_dict, langs, cols, semaphore, i))
+            tasks_to_track.append((i, task))
         
-        # Monitoraggio asincrono
-        done_in_cycle = 0
-        for _, task in asyncio.as_completed([t[1] for t in tasks]):
-            await task
-            done_in_cycle += 1
-            total_progress = (len(final_results) + done_in_cycle) / len(df)
-            progress_bar.progress(min(total_progress, 1.0))
-            timer_text.markdown(f"⏱️ **Tempo:** {time.perf_counter()-start_time:.2f}s")
+        # Monitoraggio: usiamo wait per maggiore controllo invece di as_completed
+        done_count = 0
+        total_in_cycle = len(tasks_to_track)
+        
+        if total_in_cycle == 0:
+            return
 
-        # Verifica e salvataggio
-        for idx, task in tasks:
-            res = await task
-            # Se la riga non contiene il marker [[ERRORE]], la salviamo come definitiva
-            is_valid = not any("[[ERRORE]]" in str(v) for lang_dict in res.values() for v in lang_dict.values())
-            if is_valid:
-                final_results[idx] = res
+        # Esecuzione e monitoraggio
+        for i, task in tasks_to_track:
+            try:
+                res = await task
+                done_count += 1
+                
+                # Update UI
+                total_done = len(final_results) + done_count
+                progress_bar.progress(min(total_done / len(df), 1.0))
+                timer_text.markdown(f"⏱️ **Tempo:** {time.perf_counter()-start_time:.2f}s | **Completate:** {total_done}/{len(df)}")
+                
+                # Verifica validità: se non c'è errore, salva nel dizionario definitivo
+                is_valid = not any("[[ERRORE]]" in str(v) for lang_dict in res.values() for v in lang_dict.values())
+                if is_valid:
+                    final_results[i] = res
+            except Exception as e:
+                # Se il task crasha proprio, l'indice i rimarrà fuori da final_results
+                # e verrà ripreso dal Passaggio 2
+                continue
 
-    # PASSAGGIO 1: Tutte le righe
+    # PASSAGGIO 1: Primo tentativo globale
     await run_translation_cycle(list(range(len(df))))
 
-    # PASSAGGIO 2: Solo le righe che sono rimaste fuori (perché avevano [[ERRORE]])
+    # PASSAGGIO 2: Recupero righe mancanti
     failed_indices = [i for i in range(len(df)) if i not in final_results]
     if failed_indices:
-        # Riduciamo il parallelismo per il recupero per aumentare la stabilità
-        semaphore = asyncio.Semaphore(15)
+        # Per il recupero usiamo un semaforo molto conservativo
+        semaphore = asyncio.Semaphore(10)
         await run_translation_cycle(failed_indices)
 
-    # Riempimento finale di sicurezza (se falliscono anche al secondo giro)
-    for i in range(len(df)):
-        if i not in final_results:
-            final_results[i] = {l: {c: f"[[FIX]] {df.iloc[i][c]}" for c in cols} for l in langs}
-
-    # Formattazione per DataFrame
+    # Finalizzazione dati (Fallback finale se fallisce anche il recupero)
     final_data = {lang: {col: [] for col in cols} for lang in langs}
     for i in range(len(df)):
-        row_res = final_results[i]
+        row_res = final_results.get(i, {l: {c: f"[[FIX]] {df.iloc[i][c]}" for c in cols} for l in langs})
         for lang in langs:
             for col in cols:
                 final_data[lang][col].append(row_res[lang][col])
