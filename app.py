@@ -1188,8 +1188,8 @@ async def translate_row_with_retry(row_data, target_languages, selected_cols, se
                     model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": (
-                            "Sei un traduttore esperto per Falcotto. DEVI tradurre ogni campo in ogni lingua. "
-                            "NON lasciare mai il testo in italiano. Se il testo originale è lungo, la traduzione deve essere completa."
+                            "Sei un traduttore esperto per un catalogo di calzature. DEVI tradurre ogni campo in ogni lingua."
+                            "TERMINOLOGIA OBBLIGATORIA: 'strappo' -> EN:strap, FR:scratch, ES:cierre adherente"
                         )},
                         {"role": "user", "content": f"Traduci: {json.dumps(row_data)}"}
                     ],
