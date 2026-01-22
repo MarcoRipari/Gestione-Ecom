@@ -3961,6 +3961,8 @@ elif page == "Traduci":
     
         if st.button("Esegui Traduzione"):
             with st.spinner("Generazione CSV in corso..."):
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
                 # Recuperiamo le traduzioni (funzione process_translations già definita)
                 all_translations = loop.run_until_complete(
                     process_translations(df_original, cols_to_translate, selected_langs)
