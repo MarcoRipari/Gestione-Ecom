@@ -1185,7 +1185,8 @@ async def process_translations_smart_cache(df, cols, langs):
                 if not original_val:
                     final_results[lang][col].append("")
                 elif original_val.replace('.','',1).isdigit():
-                    final_results[lang][col].append(original_val)
+                    #Lascio comunque il campo vuoto
+                    final_results[lang][col].append("")
                 else:
                     # CERCA NELLA CACHE (con controllo stringa pulita)
                     trad = global_cache.get(original_val, {}).get(lang)
