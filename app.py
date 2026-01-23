@@ -4154,7 +4154,6 @@ elif page == "Traduci":
             file_name = f"descrizioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.csv"
             # Carico il file su dropbox
             try:
-                file_bytes = mem_zip.getvalue()
                 folder_path = "/CATALOGO/TRADUZIONI"  # cartella su Dropbox
                 access_token = get_dropbox_access_token()
                 dbx = dropbox.Dropbox(access_token)
