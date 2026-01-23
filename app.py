@@ -3992,9 +3992,10 @@ elif page == "Traduci":
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
     
     if uploaded_file:
+        df_uploaded = read_csv_auto_encoding(uploaded_file)
         columns = st.multiselect(
             "Seleziona colonne da tradurre",
-            options=None,
+            options=df_uploaded.columns(),
             default=[]
         )
     
