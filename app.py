@@ -1137,6 +1137,7 @@ def translation_interface(df, selected_cols, selected_langs):
         attempt = 1
 
         async def process_missing_rows(current_df):
+            # Identifichiamo le righe dove almeno una colonna target è vuota o None
             mask_missing = current_df[target_columns].isnull().any(axis=1) | (current_df[target_columns] == "").any(axis=1)
             missing_df = current_df[mask_missing]
             
@@ -1150,34 +1151,22 @@ def translation_interface(df, selected_cols, selected_langs):
             results = []
             for i, task in enumerate(asyncio.as_completed(tasks)):
                 res = await task
-                if res: # Controllo che il batch non sia vuoto
-                    results.extend(res)
+                results.extend(res)
+                # Progresso basato sulle righe mancanti
                 progress_bar.progress(min((i + 1) / len(tasks), 1.0))
             
             if results:
                 res_df = pd.DataFrame(results)
                 if 'row_id' in res_df.columns:
-                    # Fix: Assicuriamoci che row_id sia intero e unico
                     res_df['row_id'] = pd.to_numeric(res_df['row_id'], errors='coerce')
-                    res_df = res_df.dropna(subset=['row_id'])
-                    res_df['row_id'] = res_df['row_id'].astype(int)
-                    res_df = res_df.set_index('row_id')
-                    
-                    # Fix: Prendiamo solo le colonne che esistono effettivamente nei risultati E nei target
-                    cols_to_update = [c for c in res_df.columns if c in target_columns]
-                    
-                    if not cols_to_update:
-                        return current_df, len(missing_df)
-
-                    res_df_to_apply = res_df[cols_to_update]
-                    res_df_to_apply = res_df_to_apply[~res_df_to_apply.index.duplicated(keep='first')]
-                    
-                    # Aggiornamento: update lavora per indice (row_id)
-                    current_df.update(res_df_to_apply)
+                    res_df = res_df.dropna(subset=['row_id']).set_index('row_id')
+                    # Teniamo solo le colonne tradotte
+                    res_df = res_df[[c for c in res_df.columns if c in target_columns]]
+                    res_df = res_df[~res_df.index.duplicated(keep='first')]
+                    # Aggiorniamo il dataframe originale con i nuovi dati
+                    current_df.update(res_df)
             
-            # Ricontrolliamo quante righe mancano dopo l'update
-            new_mask = current_df[target_columns].isnull().any(axis=1) | (current_df[target_columns] == "").any(axis=1)
-            return current_df, new_mask.sum()
+            return current_df, len(missing_df)
 
         # CICLO DI RECOVERY: Continua finché ci sono righe mancanti
         while True:
