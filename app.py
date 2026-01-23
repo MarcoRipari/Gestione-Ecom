@@ -1085,6 +1085,7 @@ def format_dropbox_date(dt):
 # ---------------------------
 AVAILABLE_LANGS = ["en", "fr", "de", "es"]
 OPENAI_MODEL = "gpt-4o-mini"
+TRANSLATION_SHEET_ID = "1wS65klpyHNft8UpJAE1x1yIVa1_8ZRLftFnUBgW_f6o"
 
 # =========================
 # MANUAL OVERRIDES
@@ -3989,12 +3990,12 @@ elif page == "Traduci":
         target_langs = st.multiselect(
             "Lingue",
             AVAILABLE_LANGS,
-            default=["en"]
+            default=AVAILABLE_LANGS
         )
     
         if st.button("🚀 Avvia traduzione") and cols_to_translate and target_langs:
             with st.spinner("Caricamento vocabolario..."):
-                vocab, vocab_df = load_vocab(SHEET_ID, TAB_NAME)
+                vocab, vocab_df = load_vocab(TRANSLATION_SHEET_ID, TAB_NAME)
     
             with st.spinner("Analisi termini mancanti..."):
                 missing_terms = extract_missing_terms(df, cols_to_translate, vocab)
