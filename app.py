@@ -1083,24 +1083,31 @@ def format_dropbox_date(dt):
 # Funzioni varie
 # ---------------------------
 async def translate_batch(batch_df, selected_cols, target_langs):
-    batch_data = [{"row_id": int(idx), **{col: row[col] for col in selected_cols}} 
-                  for idx, row in batch_df.iterrows()]
+    # Usiamo esplicitamente l'indice del DF come row_id
+    batch_data = []
+    for idx, row in batch_df.iterrows():
+        item = {"row_id": int(idx)} # Questo deve tornare indietro identico
+        for col in selected_cols:
+            item[col] = str(row[col]) if pd.notna(row[col]) else ""
+        batch_data.append(item)
 
     prompt = (
-        f"Traduci in {', '.join(target_langs)}. Usa chiavi piatte 'colonna_lingua'. "
-        "Restituisci JSON: {'translations': [...]}. Includi 'row_id'."
+        f"Traduci in {', '.join(target_langs)}. "
+        "IMPORTANTE: Restituisci un JSON con chiave 'translations'. "
+        "Ogni oggetto deve contenere il 'row_id' originale e le nuove chiavi 'Colonna_Lingua'."
     )
     
     try:
         response = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Traduttore esperto JSON."},
+                {"role": "system", "content": "Sei un traduttore preciso. Non saltare righe. Restituisci JSON."},
                 {"role": "user", "content": f"{prompt}\n\nDati:\n{json.dumps(batch_data)}"}
             ],
             response_format={"type": "json_object"}
         )
-        return json.loads(response.choices[0].message.content).get("translations", [])
+        res = json.loads(response.choices[0].message.content).get("translations", [])
+        return res
     except Exception:
         return []
 
@@ -1144,13 +1151,27 @@ def translation_interface(df, selected_cols, selected_langs):
             results = asyncio.run(run_turbo_process())
         
         if results:
-            res_df = pd.DataFrame(results).set_index('row_id')
-            valid_suffixes = [f"_{l}" for l in selected_langs]
-            cols_to_keep = [c for c in res_df.columns if any(c.endswith(s) for s in valid_suffixes)]
-            
-            # Salviamo nello stato per non perdere i dati al termine del fragment
-            st.session_state.final_df = df.join(res_df[cols_to_keep])
-            st.rerun() # Forza il refresh del fragment per mostrare il download
+    # 1. Creiamo il DF dai risultati e puliamo i tipi
+    res_df = pd.DataFrame(results)
+    
+    if 'row_id' in res_df.columns:
+        # Assicuriamoci che row_id sia intero per matchare l'indice originale
+        res_df['row_id'] = pd.to_numeric(res_df['row_id'], errors='coerce')
+        res_df = res_df.dropna(subset=['row_id']).set_index('row_id')
+        
+        # 2. Identifichiamo solo le colonne tradotte effettive
+        valid_suffixes = [f"_{l}" for l in selected_langs]
+        cols_to_keep = [c for c in res_df.columns if any(c.endswith(s) for s in valid_suffixes)]
+        res_df_final = res_df[cols_to_keep]
+
+        # 3. Rimuoviamo eventuali duplicati di indice se l'AI ha sbagliato
+        res_df_final = res_df_final[~res_df_final.index.duplicated(keep='first')]
+
+        # 4. JOIN: usiamo 'left' per mantenere tutte le righe originali
+        # e incolliamo le traduzioni dove l'indice coincide
+        st.session_state.final_df = df.join(res_df_final, how='left')
+        
+        st.rerun()
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
