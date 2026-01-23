@@ -1096,12 +1096,12 @@ TRANSLATE_MANDATORY_TERMS = {
 
 client = AsyncOpenAI()
 
-# ----------------------------------------
+# ---------------- UTILS ----------------
 
 def translate_normalize(text: str) -> str:
     return text.strip()
 
-def translate_text_hash(text: str) -> str:
+def translate_hash(text: str) -> str:
     return hashlib.md5(text.encode("utf-8")).hexdigest()
 
 def translate_apply_mandatory_terms(text: str, lang: str) -> str:
@@ -1130,6 +1130,8 @@ Texts:
 {texts}
 """
 
+# ---------------- OPENAI ----------------
+
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def translate_batch(texts: list[str], lang: str) -> list[str]:
     response = await client.chat.completions.create(
@@ -1139,22 +1141,20 @@ async def translate_batch(texts: list[str], lang: str) -> list[str]:
     )
     return eval(response.choices[0].message.content)
 
-async def translate_column_unique(
-    unique_texts: list[str],
-    lang: str,
-    cache: dict,
-    progress_cb=None
-):
+async def translate_column_unique(unique_texts, lang, cache, progress, total_batches, batch_counter):
     semaphore = asyncio.Semaphore(TRANSLATE_MAX_CONCURRENT)
 
     async def worker(batch):
+        nonlocal batch_counter
         async with semaphore:
             translated = await translate_batch(batch, lang)
+
             for src, trg in zip(batch, translated):
                 trg = translate_apply_mandatory_terms(trg, lang)
                 cache[(src, lang)] = trg
-                if progress_cb:
-                    progress_cb()
+
+            batch_counter[0] += 1
+            progress.progress(batch_counter[0] / total_batches)
 
     tasks = []
     for i in range(0, len(unique_texts), TRANSLATE_BATCH_SIZE):
@@ -1167,56 +1167,6 @@ def translate_validate_no_empty(df: pd.DataFrame, columns: list[str]):
     for col in columns:
         if df[col].isna().any() or (df[col].astype(str).str.strip() == "").any():
             raise ValueError(f"❌ Colonna {col} contiene valori vuoti")
-
-async def translate_csv(
-    input_csv: str,
-    output_csv: str,
-    columns: list[str],
-    languages: list[str],
-    progress_cb=None,
-    timer_cb=None
-):
-    start_time = time.time()
-    df = read_csv_auto_encoding(input_csv)
-    cache = {}
-
-    total_tasks = 0
-    for col in columns:
-        unique = df[col].dropna().map(translate_normalize).unique().tolist()
-        total_tasks += len(unique) * len(languages)
-
-    done_tasks = 0
-
-    def internal_progress():
-        nonlocal done_tasks
-        done_tasks += 1
-        if progress_cb:
-            progress_cb(done_tasks, total_tasks)
-        if timer_cb:
-            timer_cb(time.time() - start_time)
-
-    for col in columns:
-        unique_texts = df[col].dropna().map(translate_normalize).unique().tolist()
-
-        for lang in languages:
-            await translate_column_unique(
-                unique_texts,
-                lang,
-                cache,
-                progress_cb=internal_progress
-            )
-
-            new_col = f"{col}_{lang}"
-            df[new_col] = df[col].map(
-                lambda x: cache[(translate_normalize(x), lang)]
-            )
-
-    translate_validate_no_empty(
-        df,
-        [f"{c}_{l}" for c in columns for l in languages]
-    )
-
-    df.to_csv(output_csv, index=False)
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
@@ -3986,63 +3936,95 @@ elif page == "Ferie - Report":
     st.markdown(ferie_report_df_styled.to_html(escape=False), unsafe_allow_html=True)
 
 elif page == "Traduci":
-    st.set_page_config(layout="wide")
-    st.title("🌍 CSV Translator AI")
+    async def translate_csv(
+        input_file,
+        columns: list[str],
+        languages: list[str],
+        progress_bar,
+        timer_placeholder
+    ):
+        start_time = time.time()
     
+        df = pd.read_csv(input_file)
+        cache = {}
+    
+        # Count total batches for progress
+        total_batches = 0
+        for col in columns:
+            unique_texts = df[col].dropna().map(translate_normalize).unique().tolist()
+            for lang in languages:
+                total_batches += max(1, len(unique_texts) // BATCH_SIZE)
+    
+        batch_counter = [0]
+    
+        for col in columns:
+            unique_texts = df[col].dropna().map(translate_normalize).unique().tolist()
+    
+            for lang in languages:
+                await translate_column_unique(
+                    unique_texts,
+                    lang,
+                    cache,
+                    progress_bar,
+                    total_batches,
+                    batch_counter
+                )
+    
+                new_col = f"{col}_{lang}"
+                df[new_col] = df[col].map(lambda x: cache[(translate_normalize(x), lang)])
+    
+        translate_validate_no_empty(
+            df,
+            [f"{c}_{l}" for c in columns for l in languages]
+        )
+    
+        elapsed = round(time.time() - start_time, 2)
+        timer_placeholder.success(f"⏱ Tempo totale: {elapsed}s")
+    
+        return df
+    
+    st.set_page_config(page_title="CSV Translator", layout="wide")
+    st.title("🌍 CSV Translator (Async OpenAI)")
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
     
     if uploaded_file:
-        df_uploaded = read_csv_auto_encoding(uploaded_file)
+        df_preview = st.read_csv(uploaded_file)
+        st.write("Anteprima CSV", df_preview.head())
+    
         columns = st.multiselect(
             "Seleziona colonne da tradurre",
-            options=df_uploaded.columns.tolist(),
-            default=[]
+            df_preview.columns.tolist()
         )
     
         languages = st.multiselect(
             "Seleziona lingue",
             ["en", "fr", "de", "es"],
-            default=["en", "fr", "de", "es"]
+            default=["en", "fr", "es"]
         )
     
-        if not columns:
-            st.warning("Seleziona almeno una colonna")
-    
         if st.button("🚀 Avvia traduzione"):
-            input_path = "input.csv"
-            output_path = "output.csv"
-    
-            with open(input_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-    
             progress_bar = st.progress(0)
-            timer_text = st.empty()
-            status_text = st.empty()
+            timer_placeholder = st.empty()
     
-            def ui_progress(done, total):
-                progress_bar.progress(min(done / total, 1.0))
-                status_text.info(f"Traduzioni: {done}/{total}")
-    
-            def ui_timer(seconds):
-                timer_text.write(f"⏱️ Tempo: {int(seconds)} sec")
-    
-            async def run_translation():
-                await translate_csv(
-                    input_csv=input_path,
-                    output_csv=output_path,
-                    columns=columns,
-                    languages=languages,
-                    progress_cb=ui_progress,
-                    timer_cb=ui_timer
+            with st.spinner("Traduzione in corso..."):
+                translated_df = asyncio.run(
+                    translate_csv(
+                        uploaded_file,
+                        columns,
+                        languages,
+                        progress_bar,
+                        timer_placeholder
+                    )
                 )
-    
-            asyncio.run(run_translation())
     
             st.success("✅ Traduzione completata")
+            st.dataframe(translated_df.head())
     
-            with open(output_path, "rb") as f:
-                st.download_button(
-                    "⬇ Scarica CSV tradotto",
-                    f,
-                    file_name="output_tradotto.csv"
-                )
+            csv_output = translated_df.to_csv(index=False).encode("utf-8")
+    
+            st.download_button(
+                "📥 Scarica CSV tradotto",
+                csv_output,
+                "translated.csv",
+                "text/csv"
+            )
