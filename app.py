@@ -1097,6 +1097,12 @@ MANUAL_TRANSLATIONS = {
         "de": "klettverschluss"
     }
 }
+MANUAL_TRANSLATIONS_PROMPT = """
+IMPORTANTE:
+Alcune parole devono seguire regole fisse:
+- "strappo" -> {"en": "strap", "fr": "scratch", "es": "cierre adherente"}
+- "sneakers" -> {"en": "sneakers", "fr": "sneakers", "es": "sneakers"}
+"""
 
 # =========================
 # UTILS
@@ -1185,7 +1191,22 @@ def vocab_to_df(vocab):
 # =========================
 async def translate_term(client, term, target_langs):
     messages = [
-        {"role": "user", "content": f"Traduci fedelmente il testo italiano:\n\"\"\"{term}\"\"\""}
+        {"role": "user", "content": f"""
+        Traduci fedelmente il testo italiano nelle lingue: {', '.join(target_langs)}.
+        
+        Testo da tradurre:
+        \"\"\"{term}\"\"\"
+        
+        {MANUAL_TRANSLATIONS_PROMPT}
+        
+        Rispondi SOLO in JSON valido nel formato:
+        {{
+          "en": "...",
+          "fr": "...",
+          "de": "...",
+          "es": "..."
+        }}
+        """}
     ]
 
     functions = [
