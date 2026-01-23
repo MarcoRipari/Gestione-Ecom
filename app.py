@@ -3,6 +3,7 @@ from streamlit_option_menu import option_menu
 import pandas as pd
 import openai
 from openai import OpenAI
+from openai.error import OpenAIError
 import faiss
 import numpy as np
 import time
@@ -1223,15 +1224,24 @@ async def translate_csv(
 
     return df
 
+async def translate_csv_safe(df, columns, languages, progress_bar, timer_placeholder):
+    try:
+        return await translate_csv(df, columns, languages, progress_bar, timer_placeholder)
+    except OpenAIError as e:
+        st.error(f"❌ Errore OpenAI: {e}")
+        return None
+    except Exception as e:
+        st.error(f"❌ Errore inaspettato: {e}")
+        return None
+
 def translate_run_async(coro):
+    """Wrapper sicuro Streamlit per coroutine async."""
     try:
         loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
+        # Streamlit loop attivo → crea task
         return asyncio.create_task(coro)
-    else:
+    except RuntimeError:
+        # Loop non attivo → run normale
         return asyncio.run(coro)
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
@@ -4025,29 +4035,29 @@ elif page == "Traduci":
         if st.button("🚀 Avvia traduzione"):
             progress_bar = st.progress(0)
             timer_placeholder = st.empty()
-    
-            with st.spinner("Traduzione in corso..."):
-                result = translate_run_async(
-                    translate_csv(
-                        df,
-                        columns,
-                        languages,
-                        progress_bar,
-                        timer_placeholder
-                    )
+        
+            task = translate_run_async(
+                translate_csv_safe(
+                    df,
+                    columns,
+                    languages,
+                    progress_bar,
+                    timer_placeholder
                 )
-    
-                if asyncio.isfuture(result):
-                    translated_df = asyncio.get_event_loop().run_until_complete(result)
-                else:
-                    translated_df = result
-    
-            st.success("✅ Traduzione completata")
-            st.dataframe(translated_df.head())
-    
-            st.download_button(
-                "📥 Scarica CSV tradotto",
-                translated_df.to_csv(index=False).encode("utf-8"),
-                "translated.csv",
-                "text/csv"
             )
+        
+            # se task async → attendi
+            if asyncio.isfuture(task):
+                translated_df = asyncio.get_event_loop().run_until_complete(task)
+            else:
+                translated_df = task
+        
+            if translated_df is not None:
+                st.success("✅ Traduzione completata")
+                st.dataframe(translated_df.head())
+                st.download_button(
+                    "📥 Scarica CSV tradotto",
+                    translated_df.to_csv(index=False).encode("utf-8"),
+                    "translated.csv",
+                    "text/csv"
+                )
