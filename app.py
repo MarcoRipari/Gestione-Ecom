@@ -1083,95 +1083,124 @@ def format_dropbox_date(dt):
 # Funzioni varie
 # ---------------------------
 async def translate_batch(batch_df, selected_cols, target_langs):
-    # Usiamo esplicitamente l'indice del DF come row_id
-    batch_data = []
-    for idx, row in batch_df.iterrows():
-        item = {"row_id": int(idx)} # Questo deve tornare indietro identico
-        for col in selected_cols:
-            item[col] = str(row[col]) if pd.notna(row[col]) else ""
-        batch_data.append(item)
+    """Traduzione di un batch con ID riga per allineamento."""
+    batch_data = [{"row_id": int(idx), **{col: row[col] for col in selected_cols}} 
+                  for idx, row in batch_df.iterrows()]
 
     prompt = (
         f"Traduci in {', '.join(target_langs)}. "
         "IMPORTANTE: Restituisci un JSON con chiave 'translations'. "
         "Ogni oggetto deve contenere il 'row_id' originale e le nuove chiavi 'Colonna_Lingua'."
+        "TERMINI OBBLIGATORI: la parola 'strappo' va tradotta così: -ES > cierre adherente -FR > scratch -EN > strap"
     )
     
     try:
         response = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Sei un traduttore preciso. Non saltare righe. Restituisci JSON."},
+                {"role": "system", "content": "Traduttore di catalogo calzature. Restituisci JSON puro."},
                 {"role": "user", "content": f"{prompt}\n\nDati:\n{json.dumps(batch_data)}"}
             ],
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            timeout=30.0 # Timeout per evitare blocchi infiniti
         )
-        res = json.loads(response.choices[0].message.content).get("translations", [])
-        return res
+        return json.loads(response.choices[0].message.content).get("translations", [])
     except Exception:
         return []
 
 @st.fragment
 def translation_interface(df, selected_cols, selected_langs):
-    # Inizializziamo lo stato per i risultati se non esiste
     if "final_df" not in st.session_state:
         st.session_state.final_df = None
 
-    st.info(f"Modalità Turbo: {len(df)} righe.")
-    
-    # Se abbiamo già un risultato, mostriamolo subito (evita che sparisca)
+    # Visualizzazione risultato se già presente
     if st.session_state.final_df is not None:
-        st.success("✅ Traduzione disponibile!")
+        st.success("✅ Tutte le righe sono state tradotte con successo!")
         st.dataframe(st.session_state.final_df.head())
         csv_data = st.session_state.final_df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Scarica CSV Tradotto", csv_data, "catalogo_turbo.csv", "text/csv")
-        if st.button("Reset / Nuova Traduzione"):
+        st.download_button("📥 Scarica CSV Completo", csv_data, "catalogo_completo.csv", "text/csv")
+        if st.button("Ricomincia da capo"):
             st.session_state.final_df = None
             st.rerun()
-        return # Esce così non mostra il pulsante "Avvia" se ha già finito
+        return
 
-    if st.button("🚀 AVVIA TRADUZIONE TURBO", use_container_width=True):
+    if st.button("🚀 AVVIA TRADUZIONE CON RECOVERY AUTOMATICO", use_container_width=True):
+        # Inizializziamo il dataframe di lavoro con le colonne di traduzione vuote
+        working_df = df.copy()
+        target_columns = [f"{col}_{lang}" for col in selected_cols for lang in selected_langs]
+        for c in target_columns:
+            if c not in working_df.columns:
+                working_df[c] = None
+
         progress_bar = st.progress(0.0)
         status_text = st.empty()
-        
-        async def run_turbo_process():
-            batch_size = 25
-            tasks = [translate_batch(df.iloc[i : i + batch_size], selected_cols, selected_langs) 
-                     for i in range(0, len(df), batch_size)]
+        attempt = 1
+
+        async def process_missing_rows(current_df):
+            mask_missing = current_df[target_columns].isnull().any(axis=1) | (current_df[target_columns] == "").any(axis=1)
+            missing_df = current_df[mask_missing]
             
-            all_results = []
+            if missing_df.empty:
+                return current_df, 0
+
+            batch_size = 20
+            tasks = [translate_batch(missing_df.iloc[i : i + batch_size], selected_cols, selected_langs) 
+                     for i in range(0, len(missing_df), batch_size)]
+            
+            results = []
             for i, task in enumerate(asyncio.as_completed(tasks)):
                 res = await task
-                all_results.extend(res)
-                progress_bar.progress((i + 1) / len(tasks))
-                status_text.text(f"⚡ Batch {i+1}/{len(tasks)} completati...")
-            return all_results
+                if res: # Controllo che il batch non sia vuoto
+                    results.extend(res)
+                progress_bar.progress(min((i + 1) / len(tasks), 1.0))
+            
+            if results:
+                res_df = pd.DataFrame(results)
+                if 'row_id' in res_df.columns:
+                    # Fix: Assicuriamoci che row_id sia intero e unico
+                    res_df['row_id'] = pd.to_numeric(res_df['row_id'], errors='coerce')
+                    res_df = res_df.dropna(subset=['row_id'])
+                    res_df['row_id'] = res_df['row_id'].astype(int)
+                    res_df = res_df.set_index('row_id')
+                    
+                    # Fix: Prendiamo solo le colonne che esistono effettivamente nei risultati E nei target
+                    cols_to_update = [c for c in res_df.columns if c in target_columns]
+                    
+                    if not cols_to_update:
+                        return current_df, len(missing_df)
 
-        with st.spinner("Traduzione in corso..."):
-            results = asyncio.run(run_turbo_process())
-        
-        if results:
-            # 1. Creiamo il DF dai risultati e puliamo i tipi
-            res_df = pd.DataFrame(results)
+                    res_df_to_apply = res_df[cols_to_update]
+                    res_df_to_apply = res_df_to_apply[~res_df_to_apply.index.duplicated(keep='first')]
+                    
+                    # Aggiornamento: update lavora per indice (row_id)
+                    current_df.update(res_df_to_apply)
             
-            if 'row_id' in res_df.columns:
-                # Assicuriamoci che row_id sia intero per matchare l'indice originale
-                res_df['row_id'] = pd.to_numeric(res_df['row_id'], errors='coerce')
-                res_df = res_df.dropna(subset=['row_id']).set_index('row_id')
+            # Ricontrolliamo quante righe mancano dopo l'update
+            new_mask = current_df[target_columns].isnull().any(axis=1) | (current_df[target_columns] == "").any(axis=1)
+            return current_df, new_mask.sum()
+
+        # CICLO DI RECOVERY: Continua finché ci sono righe mancanti
+        while True:
+            status_text.info(f"🔄 Tentativo {attempt}: Controllo righe mancanti...")
+            working_df, missing_count = asyncio.run(process_missing_rows(working_df))
+            
+            if missing_count == 0:
+                break
+            
+            # Se dopo un tentativo non è cambiato nulla, evitiamo loop infiniti
+            # (Ad esempio se l'API continua a fallire sulle stesse righe)
+            if attempt > 5: 
+                st.warning(f"Attenzione: alcune righe ({missing_count}) non sono state tradotte dopo 5 tentativi.")
+                break
                 
-                # 2. Identifichiamo solo le colonne tradotte effettive
-                valid_suffixes = [f"_{l}" for l in selected_langs]
-                cols_to_keep = [c for c in res_df.columns if any(c.endswith(s) for s in valid_suffixes)]
-                res_df_final = res_df[cols_to_keep]
-            
-                # 3. Rimuoviamo eventuali duplicati di indice se l'AI ha sbagliato
-                res_df_final = res_df_final[~res_df_final.index.duplicated(keep='first')]
-            
-                # 4. JOIN: usiamo 'left' per mantenere tutte le righe originali
-                # e incolliamo le traduzioni dove l'indice coincide
-                st.session_state.final_df = df.join(res_df_final, how='left')
-                
-                st.rerun()
+            status_text.warning(f"Rimanenti: {missing_count} righe. Lancio nuovo giro di riparazione...")
+            attempt += 1
+            # Un piccolo delay per non sovraccaricare l'API in caso di errori consecutivi
+            import time
+            time.sleep(1)
+
+        st.session_state.final_df = working_df
+        st.rerun()
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
