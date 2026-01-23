@@ -1082,96 +1082,80 @@ def format_dropbox_date(dt):
 # ---------------------------
 # Funzioni varie
 # ---------------------------
-# Mappatura per i suffissi delle colonne
-lang_map = {
-    "Inglese": "en",
-    "Francese": "fr",
-    "Tedesco": "de",
-    "Spagnolo": "es",
-    "Olandese": "nl"
-}
-
 async def translate_batch(batch_df, selected_cols, target_langs):
-    """
-    Invia un batch di righe includendo l'indice originale per l'allineamento.
-    """
-    # Prepariamo i dati includendo l'ID per non perdere l'ordine
     batch_data = []
     for idx, row in batch_df.iterrows():
-        item = {"row_id": idx}
+        item = {"row_id": int(idx)} # Assicuriamoci che sia serializzabile
         for col in selected_cols:
             item[col] = row[col]
         batch_data.append(item)
 
     prompt = (
-        f"Traduci i testi nelle seguenti lingue: {', '.join(target_langs)}. "
-        "Mantieni l'ID della riga ('row_id'). "
-        "Rispondi SOLO con un oggetto JSON avente una chiave 'translations' che contiene la lista dei risultati."
+        f"Traduci in: {', '.join(target_langs)}. "
+        "Restituisci un oggetto JSON con chiave 'translations' contenente la lista degli oggetti tradotti. "
+        "Mantieni 'row_id' invariato."
     )
     
     try:
         response = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Sei un traduttore esperto. Restituisci JSON strutturato."},
+                {"role": "system", "content": "Sei un traduttore esperto in JSON."},
                 {"role": "user", "content": f"{prompt}\n\nDati:\n{json.dumps(batch_data)}"}
             ],
             response_format={"type": "json_object"}
         )
-        raw_res = json.loads(response.choices[0].message.content)
-        return raw_res.get("translations", [])
+        return json.loads(response.choices[0].message.content).get("translations", [])
     except Exception as e:
-        st.error(f"Errore nel batch: {e}")
         return []
 
-# --- IL FIX PER L'ERRORE DI SINTASSI ---
-def run_translation_logic(df, selected_cols, selected_langs):
-    """
-    Funzione Sincrona che lancia il ciclo Asincrono.
-    """
-    async def wrapper():
-        batch_size = 15
-        tasks = []
-        all_results = []
-        
+# 3. FRAGMENT: Questa parte gestisce l'interfaccia della traduzione
+@st.fragment
+def translation_interface(df, selected_cols, selected_langs):
+    # Mostriamo il pulsante solo se abbiamo i dati necessari
+    st.write("### ⚙️ Configurazione completata")
+    st.info(f"Pronto a tradurre {len(df)} righe per le colonne: {', '.join(selected_cols)}")
+    
+    if st.button("🚀 AVVIA TRADUZIONE BATCH", use_container_width=True):
         progress_bar = st.progress(0)
         status = st.empty()
-
-        for i in range(0, len(df), batch_size):
-            batch_df = df.iloc[i:i+batch_size]
-            # Creiamo il task asincrono
-            tasks.append(translate_batch(batch_df, selected_cols, selected_langs))
-            
-        # Eseguiamo i task (puoi limitarli con un Semaphore se sono troppi)
-        completed_batches = await asyncio.gather(*tasks)
         
-        for batch_result in completed_batches:
-            all_results.extend(batch_result)
+        async def run_process():
+            batch_size = 20
+            all_results = []
+            total_rows = len(df)
             
-        return all_results
-
-    # Qui usiamo asyncio.run() per "entrare" nel mondo async dal mondo sync
-    return asyncio.run(wrapper())
-
-@st.fragment
-def translation_ui(df, selected_cols, selected_langs):
-    if st.button("🚀 Avvia Aggiornamento Batch"):
-        with st.spinner("Traduzione in corso..."):
-            # Chiamata alla logica di traduzione
-            results = run_translation_logic(df, selected_cols, selected_langs)
+            # Creazione dei task
+            tasks = []
+            for i in range(0, total_rows, batch_size):
+                batch_df = df.iloc[i : i + batch_size]
+                tasks.append(translate_batch(batch_df, selected_cols, selected_langs))
             
-            if results:
-                # Trasformiamo i risultati in DF e usiamo l'ID come indice per il merge
-                res_df = pd.json_normalize(results).set_index('row_id')
-                
-                # Uniamo i dati originali con le traduzioni basandoci sull'ID riga
+            # Esecuzione parallela
+            results_list = await asyncio.gather(*tasks)
+            for res in results_list:
+                all_results.extend(res)
+            return all_results
+
+        # Avvio del ciclo asincrono
+        with st.spinner("Lavoro in corso con GPT-4o-mini..."):
+            translated_results = asyncio.run(run_process())
+        
+        if translated_results:
+            # Creiamo il DF delle traduzioni e lo uniamo all'originale
+            res_df = pd.json_normalize(translated_results)
+            if 'row_id' in res_df.columns:
+                res_df.set_index('row_id', inplace=True)
+                # Uniamo le nuove colonne al dataframe originale
                 final_df = df.join(res_df)
                 
-                st.success("✅ Traduzione completata con successo!")
+                st.success("✅ Fatto!")
                 st.dataframe(final_df.head())
                 
                 csv = final_df.to_csv(index=False).encode('utf-8')
-                st.download_button("📥 Scarica CSV", csv, "export.csv", "text/csv")
+                st.download_button("📥 Scarica CSV Tradotto", csv, "traduzioni.csv", "text/csv")
+            else:
+                st.error("L'AI non ha restituito gli ID riga correttamente. Riprova.")
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
@@ -3946,18 +3930,17 @@ elif page == "Traduci":
     uploaded_file = st.file_uploader("Carica il tuo catalogo CSV", type=["csv"])
     
     if uploaded_file:
-        df = read_csv_auto_encoding(uploaded_file)
+        df_original = read_csv_auto_encoding(uploaded_file)
         st.write(f"Righe caricate: {len(df)}")
         
         col1, col2 = st.columns(2)
         with col1:
-            selected_cols = st.multiselect("Seleziona colonne da tradurre", df.columns)
+            cols = st.multiselect("Colonne da tradurre", df_original.columns)
         with col2:
-            selected_langs = st.multiselect("Lingue di destinazione", ["en", "fr", "de", "es", "en_us"])
-
-        if selected_cols and selected_langs:
+            langs = st.multiselect("Lingue target", ["en", "fr", "de", "es"])
+        
+        if cols and langs:
             if st.button("Traduci"):
                 st.divider()
-                # Chiamata al fragment
-                #translation_process(df, selected_cols, selected_langs)
-                translate_batch(df, selected_cols, selected_langs)
+                # IMPORTANTE: Chiamiamo la funzione fragment qui!
+                translation_interface(df_original, cols, langs)
