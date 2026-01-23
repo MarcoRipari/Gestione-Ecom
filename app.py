@@ -1189,14 +1189,14 @@ async def translate_term(client, term, target_langs):
 async def enrich_vocab(client, vocab, missing_terms, target_langs):
     for term in missing_terms:
         if term in MANUAL_TRANSLATIONS:
-            vocab[term] = {
-                lang: MANUAL_TRANSLATIONS[term].get(lang)
-                for lang in target_langs
-            }
+            vocab[term] = MANUAL_TRANSLATIONS[term]
             continue
 
-        translations = await translate_term(client, term, target_langs)
-        vocab[term] = translations
+        try:
+            translations = await translate_term(client, term, target_langs)
+            vocab[term] = translations
+        except Exception as e:
+            st.warning(f"Errore traduzione '{term}': {e}")
 
 
 # =========================
