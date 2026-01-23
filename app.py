@@ -1135,6 +1135,13 @@ Texts:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def translate_batch(texts: list[str], lang: str) -> list[str]:
+    """
+    Traduzione batch sicura:
+    - JSON parsing
+    - termini obbligatori applicati dopo la risposta
+    """
+    from __main__ import translate_apply_mandatory_terms  # assicuro che sia visibile
+
     response = await client.chat.completions.create(
         model=MODEL,
         messages=[{"role": "user", "content": translate_build_prompt(texts, lang)}],
@@ -1144,43 +1151,33 @@ async def translate_batch(texts: list[str], lang: str) -> list[str]:
 
     content = response.choices[0].message.content.strip()
 
-    # Rimuovo eventuali commenti o testo extra prima del JSON
     try:
-        # Se il modello risponde con singole virgolette, le converto in doppie
-        content = content.replace("'", '"')
-        translated = json.loads(content)
+        content_fixed = content.replace("'", '"')
+        translated = json.loads(content_fixed)
         if not isinstance(translated, list):
-            raise ValueError("OpenAI non ha restituito una lista JSON valida")
+            raise ValueError(f"OpenAI non ha restituito una lista JSON valida")
     except Exception as e:
         raise ValueError(f"Errore parsing OpenAI output: {e}\nOutput: {content}")
 
-    # Applico termini obbligatori
+    # Applicazione termini obbligatori
     return [translate_apply_mandatory_terms(t, lang) for t in translated]
 
-async def translate_column_unique(
-    unique_texts: list[str],
-    lang: str,
-    cache: dict,
-    progress_bar,
-    batch_counter,
-    total_batches
-):
-    semaphore = asyncio.Semaphore(TRANSLATE_MAX_CONCURRENT)
+async def translate_column_unique(unique_texts, lang, cache, progress_bar, batch_counter, total_batches):
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT)
 
     async def worker(batch):
         async with semaphore:
             translated = await translate_batch(batch, lang)
-
             for src, trg in zip(batch, translated):
-                trg = translate_apply_mandatory_terms(trg, lang)
                 cache[(src, lang)] = trg
 
+            # batch_counter mutabile passato come lista
             batch_counter[0] += 1
             progress_bar.progress(min(batch_counter[0] / total_batches, 1.0))
 
     tasks = []
-    for i in range(0, len(unique_texts), TRANSLATE_BATCH_SIZE):
-        tasks.append(worker(unique_texts[i:i + TRANSLATE_BATCH_SIZE]))
+    for i in range(0, len(unique_texts), BATCH_SIZE):
+        tasks.append(worker(unique_texts[i:i + BATCH_SIZE]))
 
     await asyncio.gather(*tasks)
 
