@@ -3954,8 +3954,9 @@ elif page == "Traduci":
             selected_cols = st.multiselect("Seleziona colonne da tradurre", df.columns)
         with col2:
             selected_langs = st.multiselect("Lingue di destinazione", ["en", "fr", "de", "es", "en_us"])
-            
-        if selected_cols and selected_langs:
+
+        if st.button("Traduci"):
+        #if selected_cols and selected_langs:
             st.divider()
             # Chiamata al fragment
             #translation_process(df, selected_cols, selected_langs)
