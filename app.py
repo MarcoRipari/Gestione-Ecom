@@ -1151,27 +1151,27 @@ def translation_interface(df, selected_cols, selected_langs):
             results = asyncio.run(run_turbo_process())
         
         if results:
-    # 1. Creiamo il DF dai risultati e puliamo i tipi
-    res_df = pd.DataFrame(results)
-    
-    if 'row_id' in res_df.columns:
-        # Assicuriamoci che row_id sia intero per matchare l'indice originale
-        res_df['row_id'] = pd.to_numeric(res_df['row_id'], errors='coerce')
-        res_df = res_df.dropna(subset=['row_id']).set_index('row_id')
-        
-        # 2. Identifichiamo solo le colonne tradotte effettive
-        valid_suffixes = [f"_{l}" for l in selected_langs]
-        cols_to_keep = [c for c in res_df.columns if any(c.endswith(s) for s in valid_suffixes)]
-        res_df_final = res_df[cols_to_keep]
-
-        # 3. Rimuoviamo eventuali duplicati di indice se l'AI ha sbagliato
-        res_df_final = res_df_final[~res_df_final.index.duplicated(keep='first')]
-
-        # 4. JOIN: usiamo 'left' per mantenere tutte le righe originali
-        # e incolliamo le traduzioni dove l'indice coincide
-        st.session_state.final_df = df.join(res_df_final, how='left')
-        
-        st.rerun()
+            # 1. Creiamo il DF dai risultati e puliamo i tipi
+            res_df = pd.DataFrame(results)
+            
+            if 'row_id' in res_df.columns:
+                # Assicuriamoci che row_id sia intero per matchare l'indice originale
+                res_df['row_id'] = pd.to_numeric(res_df['row_id'], errors='coerce')
+                res_df = res_df.dropna(subset=['row_id']).set_index('row_id')
+                
+                # 2. Identifichiamo solo le colonne tradotte effettive
+                valid_suffixes = [f"_{l}" for l in selected_langs]
+                cols_to_keep = [c for c in res_df.columns if any(c.endswith(s) for s in valid_suffixes)]
+                res_df_final = res_df[cols_to_keep]
+            
+                # 3. Rimuoviamo eventuali duplicati di indice se l'AI ha sbagliato
+                res_df_final = res_df_final[~res_df_final.index.duplicated(keep='first')]
+            
+                # 4. JOIN: usiamo 'left' per mantenere tutte le righe originali
+                # e incolliamo le traduzioni dove l'indice coincide
+                st.session_state.final_df = df.join(res_df_final, how='left')
+                
+                st.rerun()
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
