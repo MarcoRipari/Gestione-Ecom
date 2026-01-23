@@ -1116,10 +1116,17 @@ def safe_json_loads(text):
     try:
         return json.loads(text)
     except json.JSONDecodeError:
+        # cerca il primo blocco JSON {...}
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if match:
             return json.loads(match.group())
-        raise
+        # se non trova JSON valido, fallback con traduzione originale in tutte le lingue
+        return {lang: text for lang in ["en", "fr", "de", "es"]}
+
+def format_time(seconds):
+    m, s = divmod(int(seconds), 60)
+    return f"{m:02d}:{s:02d}"
+    
 # =========================
 # VOCABULARY
 # =========================
@@ -1163,40 +1170,93 @@ def vocab_to_df(vocab):
 # OPENAI TRANSLATION
 # =========================
 async def translate_term(client, term, target_langs):
-    prompt = f"""
-    Traduci la parola italiana \"{term}\" nelle seguenti lingue:
-    {", ".join(target_langs)}
-
-    Rispondi SOLO in JSON nel formato:
-    {{
-        "en": "...",
-        "fr": "...",
-        "de": "...",
-        "es": "..."
-    }}
     """
+    Traduci il testo italiano 'term' nelle lingue target_langs usando OpenAI Function Calling.
+    
+    Args:
+        client: async OpenAI client già inizializzato
+        term: stringa italiana da tradurre (parola o frase lunga)
+        target_langs: lista lingue da tradurre es. ["en", "fr", "de", "es"]
 
+    Returns:
+        dict: {"en": "...", "fr": "...", ...} con traduzioni
+    """
+    # messaggio principale
+    messages = [
+        {"role": "user", "content": f"Traduci fedelmente il seguente testo italiano:\n\"\"\"{term}\"\"\""}
+    ]
+
+    # definizione function_call dinamica in base alle lingue richieste
+    functions = [
+        {
+            "name": "translate_text",
+            "description": "Traduci il testo italiano nelle lingue specificate",
+            "parameters": {
+                "type": "object",
+                "properties": {lang: {"type": "string"} for lang in target_langs},
+                "required": target_langs
+            }
+        }
+    ]
+
+    # richiesta al modello con function calling
     response = await client.chat.completions.create(
         model=OPENAI_MODEL,
-        messages=[{"role": "user", "content": prompt}],
+        messages=messages,
+        functions=functions,
+        function_call={"name": "translate_text"},
         temperature=0
     )
 
-    content = response.choices[0].message.content.strip()
-    return safe_json_loads(content)
+    # parsing sicuro: GPT restituisce dict in function_call.arguments
+    func_call = response.choices[0].message.get("function_call")
+    if func_call and "arguments" in func_call:
+        return json.loads(func_call["arguments"])
+
+    # fallback: ritorna testo originale in tutte le lingue richieste
+    return {lang: term for lang in target_langs}
 
 
-async def enrich_vocab(client, vocab, missing_terms, target_langs):
-    for term in missing_terms:
-        if term in MANUAL_TRANSLATIONS:
-            vocab[term] = MANUAL_TRANSLATIONS[term]
+async def enrich_vocab_with_ui(
+    client,
+    vocab,
+    missing_terms,
+    target_langs,
+    progress_bar,
+    status_text,
+    timer_text
+):
+    total = len(missing_terms)
+    start_time = time.time()
+
+    for i, term in enumerate(missing_terms, start=1):
+        key = term.strip().lower()  # normalizzazione chiave
+
+        # TIMER E PROGRESS BAR
+        elapsed = time.time() - start_time
+        avg_time = elapsed / i
+        remaining = avg_time * (total - i)
+
+        progress_bar.progress(i / total)
+        status_text.text(f"🔤 Traduzione: {term} ({i}/{total})")
+        timer_text.text(
+            f"⏱️ Trascorso: {format_time(elapsed)} | "
+            f"Stimato: {format_time(remaining)}"
+        )
+
+        # OVERRIDE MANUALE
+        if key in MANUAL_TRANSLATIONS:
+            vocab[key] = {lang: MANUAL_TRANSLATIONS[key].get(lang, term) for lang in target_langs}
             continue
 
+        # CHIAMATA GPT FUNCTION CALL
         try:
             translations = await translate_term(client, term, target_langs)
-            vocab[term] = translations
+            vocab[key] = translations
         except Exception as e:
             st.warning(f"Errore traduzione '{term}': {e}")
+            # fallback: testo originale in tutte le lingue
+            vocab[key] = {lang: term for lang in target_langs}
 
 
 # =========================
@@ -4035,13 +4095,26 @@ elif page == "Traduci":
     
             if missing_terms:
                 with st.spinner("Traduzione OpenAI in corso..."):
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    timer_text = st.empty()
                     task = run_async(
-                        enrich_vocab(client, vocab, missing_terms, target_langs)
+                        enrich_vocab_with_ui(
+                            client,
+                            vocab,
+                            missing_terms,
+                            target_langs,
+                            progress_bar,
+                            status_text,
+                            timer_text
+                        )
                     )
                     
                     if asyncio.isfuture(task):
                         asyncio.get_event_loop().run_until_complete(task)
-    
+                    progress_bar.progress(1.0)
+                    status_text.text("✅ Traduzione completata")
+                    timer_text.text("")
             with st.spinner("Applicazione traduzioni al CSV..."):
                 df_out = apply_translations(df, cols_to_translate, target_langs, vocab)
     
