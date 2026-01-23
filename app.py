@@ -1082,136 +1082,141 @@ def format_dropbox_date(dt):
 # ---------------------------
 # Funzioni varie
 # ---------------------------
-async def translate_batch(batch_df, selected_cols, target_langs):
-    """Traduzione di un batch con ID riga per allineamento."""
-    batch_data = [{"row_id": int(idx), **{col: row[col] for col in selected_cols}} 
-                  for idx, row in batch_df.iterrows()]
+TRANSLATE_MODEL = "gpt-4o-mini"
+TRANSLATE_MAX_CONCURRENT = 10
+TRANSLATE_BATCH_SIZE = 20
 
-    prompt = (
-        f"Traduci in {', '.join(target_langs)}. "
-        "IMPORTANTE: Restituisci un JSON con chiave 'translations'. "
-        "Ogni oggetto deve contenere il 'row_id' originale e le nuove chiavi 'Colonna_Lingua'."
-        "TERMINI OBBLIGATORI: la parola 'strappo' va tradotta così: -ES > cierre adherente -FR > scratch -EN > strap"
+TRANSLATE_MANDATORY_TERMS = {
+    "strappo": {
+        "en": "strap",
+        "fr": "scratch",
+        "es": "cierre adherente"
+    }
+}
+
+client = AsyncOpenAI()
+
+# ----------------------------------------
+
+def translate_normalize(text: str) -> str:
+    return text.strip()
+
+def translate_text_hash(text: str) -> str:
+    return hashlib.md5(text.encode("utf-8")).hexdigest()
+
+def translate_apply_mandatory_terms(text: str, lang: str) -> str:
+    for src, translations in TRANSLATE_MANDATORY_TERMS.items():
+        if src.lower() in text.lower():
+            return translations[lang]
+    return text
+
+def translate_build_prompt(texts: list[str], lang: str) -> str:
+    rules = "\n".join(
+        [f'- "{k}" → "{v[lang]}"' for k, v in TRANSLATE_MANDATORY_TERMS.items()]
     )
-    
-    try:
-        response = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "Traduttore di catalogo calzature. Restituisci JSON puro."},
-                {"role": "user", "content": f"{prompt}\n\nDati:\n{json.dumps(batch_data)}"}
-            ],
-            response_format={"type": "json_object"},
-            timeout=30.0 # Timeout per evitare blocchi infiniti
-        )
-        return json.loads(response.choices[0].message.content).get("translations", [])
-    except Exception:
-        return []
 
-@st.fragment
-def translation_interface(df, selected_cols, selected_langs):
-    if "final_df" not in st.session_state:
-        st.session_state.final_df = None
+    return f"""
+Translate the following Italian texts into {lang.upper()}.
 
-    # Visualizzazione risultato se già presente
-    if st.session_state.final_df is not None:
-        st.success("✅ Tutte le righe sono state tradotte con successo!")
-        st.dataframe(st.session_state.final_df.head())
-        csv_data = st.session_state.final_df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Scarica CSV Completo", csv_data, "catalogo_completo.csv", "text/csv")
-        if st.button("Ricomincia da capo"):
-            st.session_state.final_df = None
-            st.rerun()
-        return
+STRICT RULES:
+- Do NOT skip any text
+- Keep formatting
+- Apply mandatory translations:
+{rules}
 
-    if st.button("🚀 AVVIA TRADUZIONE CON RECOVERY AUTOMATICO", use_container_width=True):
-        # Inizializziamo il dataframe di lavoro con le colonne di traduzione vuote
-        working_df = df.copy()
-        target_columns = [f"{col}_{lang}" for col in selected_cols for lang in selected_langs]
-        for c in target_columns:
-            if c not in working_df.columns:
-                working_df[c] = None
+Return ONLY a JSON array of translated strings, same order.
 
-        progress_bar = st.progress(0.0)
-        status_text = st.empty()
-        attempt = 1
+Texts:
+{texts}
+"""
 
-        async def process_missing_rows(current_df):
-            mask_missing = current_df[target_columns].isnull().any(axis=1) | (current_df[target_columns] == "").any(axis=1)
-            missing_df = current_df[mask_missing]
-            
-            if missing_df.empty:
-                return current_df, 0
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
+async def translate_batch(texts: list[str], lang: str) -> list[str]:
+    response = await client.chat.completions.create(
+        model=TRANSLATE_MODEL,
+        messages=[{"role": "user", "content": translate_build_prompt(texts, lang)}],
+        temperature=0
+    )
+    return eval(response.choices[0].message.content)
 
-            batch_size = 20
-            tasks = [translate_batch(missing_df.iloc[i : i + batch_size], selected_cols, selected_langs) 
-                     for i in range(0, len(missing_df), batch_size)]
-            
-            results = []
-            for i, task in enumerate(asyncio.as_completed(tasks)):
-                res = await task
-                if res: # Controllo che il batch non sia vuoto
-                    results.extend(res)
-                progress_bar.progress(min((i + 1) / len(tasks), 1.0))
-            
-            if results:
-                res_df = pd.DataFrame(results)
-                st.write("Debug: Colonne ricevute dall'AI:", list(res_df.columns))
-                st.write("Debug: Esempio Row ID ricevuto:", res_df['row_id'].iloc[0] if not res_df.empty else "Nessuno")
-                
-                # DEBUG: Vediamo cosa restituisce l'AI (solo in console/terminale)
-                # print(res_df.columns) 
+async def translate_column_unique(
+    unique_texts: list[str],
+    lang: str,
+    cache: dict,
+    progress_cb=None
+):
+    semaphore = asyncio.Semaphore(TRANSLATE_MAX_CONCURRENT)
 
-                if 'row_id' in res_df.columns:
-                    # 1. Forziamo row_id a intero e rimuoviamo errori
-                    res_df['row_id'] = pd.to_numeric(res_df['row_id'], errors='coerce')
-                    res_df = res_df.dropna(subset=['row_id'])
-                    res_df['row_id'] = res_df['row_id'].astype(int)
-                    
-                    # 2. Impostiamo l'indice
-                    res_df = res_df.set_index('row_id')
-                    
-                    # 3. Importante: Convertiamo l'indice del DF originale a intero per sicurezza
-                    current_df.index = current_df.index.astype(int)
-                    
-                    # 4. Filtriamo solo le colonne che ci servono
-                    cols_to_update = [c for c in res_df.columns if c in target_columns]
-                    
-                    if cols_to_update:
-                        res_df_to_apply = res_df[cols_to_update]
-                        # Rimuoviamo duplicati di indice nel caso l'AI abbia risposto due volte per la stessa riga
-                        res_df_to_apply = res_df_to_apply[~res_df_to_apply.index.duplicated(keep='first')]
-                        
-                        # USARE COMBINE_FIRST invece di UPDATE (più robusto con i tipi)
-                        current_df = res_df_to_apply.combine_first(current_df)
-            
-            # Ricalcolo rigoroso
-            # Controlliamo quante righe hanno ANCORA dei valori nulli nelle colonne target
-            still_missing = current_df[target_columns].isnull().any(axis=1).sum()
-            return current_df, still_missing
+    async def worker(batch):
+        async with semaphore:
+            translated = await translate_batch(batch, lang)
+            for src, trg in zip(batch, translated):
+                trg = translate_apply_mandatory_terms(trg, lang)
+                cache[(src, lang)] = trg
+                if progress_cb:
+                    progress_cb()
 
-        # CICLO DI RECOVERY: Continua finché ci sono righe mancanti
-        while True:
-            status_text.info(f"🔄 Tentativo {attempt}: Controllo righe mancanti...")
-            working_df, missing_count = asyncio.run(process_missing_rows(working_df))
-            
-            if missing_count == 0:
-                break
-            
-            # Se dopo un tentativo non è cambiato nulla, evitiamo loop infiniti
-            # (Ad esempio se l'API continua a fallire sulle stesse righe)
-            if attempt > 5: 
-                st.warning(f"Attenzione: alcune righe ({missing_count}) non sono state tradotte dopo 5 tentativi.")
-                break
-                
-            status_text.warning(f"Rimanenti: {missing_count} righe. Lancio nuovo giro di riparazione...")
-            attempt += 1
-            # Un piccolo delay per non sovraccaricare l'API in caso di errori consecutivi
-            import time
-            time.sleep(1)
+    tasks = []
+    for i in range(0, len(unique_texts), TRANSLATE_BATCH_SIZE):
+        batch = unique_texts[i:i + TRANSLATE_BATCH_SIZE]
+        tasks.append(worker(batch))
 
-        st.session_state.final_df = working_df
-        st.rerun()
+    await asyncio.gather(*tasks)
+
+def translate_validate_no_empty(df: pd.DataFrame, columns: list[str]):
+    for col in columns:
+        if df[col].isna().any() or (df[col].astype(str).str.strip() == "").any():
+            raise ValueError(f"❌ Colonna {col} contiene valori vuoti")
+
+async def translate_csv(
+    input_csv: str,
+    output_csv: str,
+    columns: list[str],
+    languages: list[str],
+    progress_cb=None,
+    timer_cb=None
+):
+    start_time = time.time()
+    df = pd.read_csv(input_csv)
+    cache = {}
+
+    total_tasks = 0
+    for col in columns:
+        unique = df[col].dropna().map(translate_normalize).unique().tolist()
+        total_tasks += len(unique) * len(languages)
+
+    done_tasks = 0
+
+    def internal_progress():
+        nonlocal done_tasks
+        done_tasks += 1
+        if progress_cb:
+            progress_cb(done_tasks, total_tasks)
+        if timer_cb:
+            timer_cb(time.time() - start_time)
+
+    for col in columns:
+        unique_texts = df[col].dropna().map(translate_normalize).unique().tolist()
+
+        for lang in languages:
+            await translate_column_unique(
+                unique_texts,
+                lang,
+                cache,
+                progress_cb=internal_progress
+            )
+
+            new_col = f"{col}_{lang}"
+            df[new_col] = df[col].map(
+                lambda x: cache[(translate_normalize(x), lang)]
+            )
+
+    translate_validate_no_empty(
+        df,
+        [f"{c}_{l}" for c in columns for l in languages]
+    )
+
+    df.to_csv(output_csv, index=False)
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
@@ -3981,24 +3986,62 @@ elif page == "Ferie - Report":
     st.markdown(ferie_report_df_styled.to_html(escape=False), unsafe_allow_html=True)
 
 elif page == "Traduci":
-    st.title("Excel Translator AI 🌍2")
+    st.set_page_config(layout="wide")
+    st.title("🌍 CSV Translator AI")
     
-    uploaded_file = st.file_uploader("Carica il tuo catalogo CSV", type=["csv"])
+    uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
     
     if uploaded_file:
-        if "last_file" not in st.session_state:
-            st.session_state.final_df = None
-            st.session_state.last_file = uploaded_file.name
-        df_original = read_csv_auto_encoding(uploaded_file)
-        st.write(f"Righe caricate: {len(df_original)}")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            cols = st.multiselect("Colonne da tradurre", df_original.columns)
-        with col2:
-            langs = st.multiselect("Lingue target", ["en", "fr", "de", "es"])
-        
-        if cols and langs:
-            st.divider()
-            # IMPORTANTE: Chiamiamo la funzione fragment qui!
-            translation_interface(df_original, cols, langs)
+        columns = st.multiselect(
+            "Seleziona colonne da tradurre",
+            options=None,
+            default=[]
+        )
+    
+        languages = st.multiselect(
+            "Seleziona lingue",
+            ["en", "fr", "de", "es"],
+            default=["en", "fr", "de", "es"]
+        )
+    
+        if not columns:
+            st.warning("Seleziona almeno una colonna")
+    
+        if st.button("🚀 Avvia traduzione"):
+            input_path = "input.csv"
+            output_path = "output.csv"
+    
+            with open(input_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+    
+            progress_bar = st.progress(0)
+            timer_text = st.empty()
+            status_text = st.empty()
+    
+            def ui_progress(done, total):
+                progress_bar.progress(min(done / total, 1.0))
+                status_text.info(f"Traduzioni: {done}/{total}")
+    
+            def ui_timer(seconds):
+                timer_text.write(f"⏱️ Tempo: {int(seconds)} sec")
+    
+            async def run_translation():
+                await translate_csv(
+                    input_csv=input_path,
+                    output_csv=output_path,
+                    columns=columns,
+                    languages=languages,
+                    progress_cb=ui_progress,
+                    timer_cb=ui_timer
+                )
+    
+            asyncio.run(run_translation())
+    
+            st.success("✅ Traduzione completata")
+    
+            with open(output_path, "rb") as f:
+                st.download_button(
+                    "⬇ Scarica CSV tradotto",
+                    f,
+                    file_name="output_tradotto.csv"
+                )
