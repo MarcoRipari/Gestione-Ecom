@@ -4146,10 +4146,25 @@ elif page == "Traduci":
                 ws.update([["IT","EN","FR","DE","ES"]] + vocab_to_rows(vocab))
     
             st.success("✅ Traduzione completata")
-    
+            csv_buffer = io.StringIO()
+            df_out.to_csv(csv_buffer, index=False)
+            csv_bytes = csv_buffer.getvalue().encode("utf-8")
+            
+            now = datetime.now(ZoneInfo("Europe/Rome"))
+            file_name = f"descrizioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.csv"
+            # Carico il file su dropbox
+            try:
+                file_bytes = mem_zip.getvalue()
+                folder_path = "/CATALOGO/TRADUZIONI"  # cartella su Dropbox
+                access_token = get_dropbox_access_token()
+                dbx = dropbox.Dropbox(access_token)
+                upload_to_dropbox(dbx, folder_path, file_name, csv_bytes)
+            except Exception as e:
+                st.error(f"❌ Errore durante l'upload su Dropbox: {e}")
+                            
             st.download_button(
                 "📥 Scarica CSV tradotto",
-                df_out.to_csv(index=False),
-                file_name="output_tradotto.csv",
+                data=csv_bytes,
+                file_name=file_name,
                 mime="text/csv"
             )
