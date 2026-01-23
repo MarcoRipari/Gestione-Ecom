@@ -3,7 +3,7 @@ from streamlit_option_menu import option_menu
 import pandas as pd
 import openai
 from openai import OpenAI
-from openai.error import OpenAIError
+from openai import OpenAIError
 import faiss
 import numpy as np
 import time
