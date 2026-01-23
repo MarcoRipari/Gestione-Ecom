@@ -4020,7 +4020,7 @@ elif page == "Traduci":
                 with st.spinner("Traduzione OpenAI in corso..."):
                     asyncio.run(
                         enrich_vocab(
-                            async_openai_client,
+                            client,
                             vocab,
                             missing_terms,
                             target_langs
