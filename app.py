@@ -1156,6 +1156,8 @@ def translation_interface(df, selected_cols, selected_langs):
             
             if results:
                 res_df = pd.DataFrame(results)
+                st.write("Debug: Colonne ricevute dall'AI:", list(res_df.columns))
+                st.write("Debug: Esempio Row ID ricevuto:", res_df['row_id'].iloc[0] if not res_df.empty else "Nessuno")
                 
                 # DEBUG: Vediamo cosa restituisce l'AI (solo in console/terminale)
                 # print(res_df.columns) 
