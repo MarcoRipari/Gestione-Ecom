@@ -1103,7 +1103,23 @@ MANUAL_TRANSLATIONS = {
 # =========================
 def normalize(text: str) -> str:
     return text.strip().lower()
+    
+def run_async(coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    else:
+        return loop.create_task(coro)
 
+def safe_json_loads(text):
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            return json.loads(match.group())
+        raise
 # =========================
 # VOCABULARY
 # =========================
@@ -1166,7 +1182,8 @@ async def translate_term(client, term, target_langs):
         temperature=0
     )
 
-    return json.loads(response.choices[0].message.content)
+    content = response.choices[0].message.content.strip()
+    return safe_json_loads(content)
 
 
 async def enrich_vocab(client, vocab, missing_terms, target_langs):
@@ -4018,14 +4035,12 @@ elif page == "Traduci":
     
             if missing_terms:
                 with st.spinner("Traduzione OpenAI in corso..."):
-                    asyncio.run(
-                        enrich_vocab(
-                            client,
-                            vocab,
-                            missing_terms,
-                            target_langs
-                        )
+                    task = run_async(
+                        enrich_vocab(client, vocab, missing_terms, target_langs)
                     )
+                    
+                    if asyncio.isfuture(task):
+                        asyncio.get_event_loop().run_until_complete(task)
     
             with st.spinner("Applicazione traduzioni al CSV..."):
                 df_out = apply_translations(df, cols_to_translate, target_langs, vocab)
