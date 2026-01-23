@@ -1152,7 +1152,8 @@ def worksheet_to_df(ws):
 def load_vocab(sheet_id, tab):
     ws = get_sheet(sheet_id, tab)
     df = worksheet_to_df(ws)
-
+    df.columns = [c.strip().lower() for c in df.columns]
+    
     vocab = {}
 
     if df.empty:
