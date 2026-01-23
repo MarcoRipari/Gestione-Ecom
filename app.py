@@ -1177,7 +1177,7 @@ async def translate_csv(
     timer_cb=None
 ):
     start_time = time.time()
-    df = pd.read_csv(input_csv)
+    df = read_csv_auto_encoding(input_csv)
     cache = {}
 
     total_tasks = 0
