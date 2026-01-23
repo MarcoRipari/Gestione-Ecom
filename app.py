@@ -3988,7 +3988,7 @@ elif page == "Traduci":
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
     
     if uploaded_file:
-        df_preview = st.read_csv(uploaded_file)
+        df_preview = read_csv_auto_encoding(uploaded_file)
         st.write("Anteprima CSV", df_preview.head())
     
         columns = st.multiselect(
