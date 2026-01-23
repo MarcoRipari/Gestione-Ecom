@@ -1094,8 +1094,6 @@ TRANSLATE_MANDATORY_TERMS = {
     }
 }
 
-client = AsyncOpenAI()
-
 # ---------------- UTILS ----------------
 
 def translate_normalize(text: str) -> str:
