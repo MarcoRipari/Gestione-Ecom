@@ -1083,100 +1083,74 @@ def format_dropbox_date(dt):
 # Funzioni varie
 # ---------------------------
 async def translate_batch(batch_df, selected_cols, target_langs):
-    # Prepariamo il batch di dati
-    batch_data = []
-    for idx, row in batch_df.iterrows():
-        item = {"row_id": int(idx)}
-        for col in selected_cols:
-            item[col] = row[col]
-        batch_data.append(item)
+    batch_data = [{"row_id": int(idx), **{col: row[col] for col in selected_cols}} 
+                  for idx, row in batch_df.iterrows()]
 
-    # Prompt ottimizzato per output "flat" (piatto)
     prompt = (
-        f"Traduci i testi nelle seguenti lingue: {', '.join(target_langs)}. "
-        "Per ogni colonna di input, crea nuove chiavi nel formato 'NomeColonna_Lingua'. "
-        "Esempio: se la colonna è 'Descrizione', crea 'Descrizione_en', 'Descrizione_de'. "
-        "Restituisci SOLO un oggetto JSON con chiave 'translations' contenente la lista dei risultati."
+        f"Traduci in {', '.join(target_langs)}. Usa chiavi piatte 'colonna_lingua'. "
+        "Restituisci JSON: {'translations': [...]}. Includi 'row_id'."
     )
     
     try:
         response = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Sei un traduttore esperto. Restituisci output JSON piatto."},
+                {"role": "system", "content": "Traduttore esperto JSON."},
                 {"role": "user", "content": f"{prompt}\n\nDati:\n{json.dumps(batch_data)}"}
             ],
             response_format={"type": "json_object"}
         )
-        res_json = json.loads(response.choices[0].message.content)
-        return res_json.get("translations", [])
-    except Exception as e:
-        st.error(f"Errore in un batch: {e}")
+        return json.loads(response.choices[0].message.content).get("translations", [])
+    except Exception:
         return []
 
-# 3. Interfaccia Fragment (Turbo Mode)
 @st.fragment
 def translation_interface(df, selected_cols, selected_langs):
-    st.info(f"Modalità Turbo: Elaborazione di {len(df)} righe in parallelo.")
+    # Inizializziamo lo stato per i risultati se non esiste
+    if "final_df" not in st.session_state:
+        st.session_state.final_df = None
+
+    st.info(f"Modalità Turbo: {len(df)} righe.")
     
+    # Se abbiamo già un risultato, mostriamolo subito (evita che sparisca)
+    if st.session_state.final_df is not None:
+        st.success("✅ Traduzione disponibile!")
+        st.dataframe(st.session_state.final_df.head())
+        csv_data = st.session_state.final_df.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Scarica CSV Tradotto", csv_data, "catalogo_turbo.csv", "text/csv")
+        if st.button("Reset / Nuova Traduzione"):
+            st.session_state.final_df = None
+            st.rerun()
+        return # Esce così non mostra il pulsante "Avvia" se ha già finito
+
     if st.button("🚀 AVVIA TRADUZIONE TURBO", use_container_width=True):
         progress_bar = st.progress(0.0)
         status_text = st.empty()
         
         async def run_turbo_process():
-            batch_size = 20 # Numero di righe per ogni chiamata API
-            tasks = []
+            batch_size = 25
+            tasks = [translate_batch(df.iloc[i : i + batch_size], selected_cols, selected_langs) 
+                     for i in range(0, len(df), batch_size)]
+            
             all_results = []
-            
-            # Creiamo tutti i task asincroni (uno per ogni batch)
-            for i in range(0, len(df), batch_size):
-                batch_df = df.iloc[i : i + batch_size]
-                tasks.append(translate_batch(batch_df, selected_cols, selected_langs))
-            
-            total_batches = len(tasks)
-            completed_batches = 0
-            
-            # Esecuzione parallela con aggiornamento UI immediato
-            for task in asyncio.as_completed(tasks):
-                batch_result = await task
-                all_results.extend(batch_result)
-                completed_batches += 1
-                
-                # Aggiornamento barra di progresso e testo
-                progress_percent = completed_batches / total_batches
-                progress_bar.progress(progress_percent)
-                status_text.text(f"⚡ Batch completati: {completed_batches} di {total_batches}")
-            
+            for i, task in enumerate(asyncio.as_completed(tasks)):
+                res = await task
+                all_results.extend(res)
+                progress_bar.progress((i + 1) / len(tasks))
+                status_text.text(f"⚡ Batch {i+1}/{len(tasks)} completati...")
             return all_results
 
-        with st.spinner("🚀 Motori accesi... Traduzione parallela in corso"):
-            final_results = asyncio.run(run_turbo_process())
+        with st.spinner("Traduzione in corso..."):
+            results = asyncio.run(run_turbo_process())
         
-        if final_results:
-            # Trasformazione in DataFrame
-            res_df = pd.DataFrame(final_results)
+        if results:
+            res_df = pd.DataFrame(results).set_index('row_id')
+            valid_suffixes = [f"_{l}" for l in selected_langs]
+            cols_to_keep = [c for c in res_df.columns if any(c.endswith(s) for s in valid_suffixes)]
             
-            if 'row_id' in res_df.columns:
-                res_df.set_index('row_id', inplace=True)
-                
-                # Pulizia: teniamo solo le colonne tradotte (quelle con il suffisso _lingua)
-                # Questo evita l'errore "columns overlap"
-                valid_suffixes = [f"_{l}" for l in selected_langs]
-                cols_to_keep = [c for c in res_df.columns if any(c.endswith(s) for s in valid_suffixes)]
-                res_df_final = res_df[cols_to_keep]
-                
-                # Uniamo le traduzioni al DataFrame originale
-                # Il join avviene sull'indice (row_id)
-                output_df = df.join(res_df_final)
-                
-                st.success(f"✅ Traduzione completata! Aggiunte {len(res_df_final.columns)} colonne.")
-                st.dataframe(output_df.head())
-                
-                # Export
-                csv_data = output_df.to_csv(index=False).encode('utf-8')
-                st.download_button("📥 Scarica CSV Tradotto", csv_data, "catalogo_turbo.csv", "text/csv")
-            else:
-                st.error("L'AI non ha restituito i row_id. Prova a ridurre la dimensione del batch.")
+            # Salviamo nello stato per non perdere i dati al termine del fragment
+            st.session_state.final_df = df.join(res_df[cols_to_keep])
+            st.rerun() # Forza il refresh del fragment per mostrare il download
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
@@ -3951,6 +3925,9 @@ elif page == "Traduci":
     uploaded_file = st.file_uploader("Carica il tuo catalogo CSV", type=["csv"])
     
     if uploaded_file:
+        if "last_file" not in st.session_state:
+            st.session_state.final_df = None
+            st.session_state.last_file = uploaded_file.name
         df_original = read_csv_auto_encoding(uploaded_file)
         st.write(f"Righe caricate: {len(df_original)}")
         
@@ -3961,7 +3938,6 @@ elif page == "Traduci":
             langs = st.multiselect("Lingue target", ["en", "fr", "de", "es"])
         
         if cols and langs:
-            if st.button("Traduci"):
-                st.divider()
-                # IMPORTANTE: Chiamiamo la funzione fragment qui!
-                translation_interface(df_original, cols, langs)
+            st.divider()
+            # IMPORTANTE: Chiamiamo la funzione fragment qui!
+            translation_interface(df_original, cols, langs)
