@@ -1126,6 +1126,19 @@ def safe_json_loads(text):
 def format_time(seconds):
     m, s = divmod(int(seconds), 60)
     return f"{m:02d}:{s:02d}"
+
+def vocab_to_rows(vocab):
+    rows = []
+    for it_key, langs in vocab.items():
+        row = [
+            it_key,
+            langs.get("en", ""),
+            langs.get("fr", ""),
+            langs.get("de", ""),
+            langs.get("es", "")
+        ]
+        rows.append(row)
+    return rows
     
 # =========================
 # VOCABULARY
@@ -4107,11 +4120,8 @@ elif page == "Traduci":
                 df_out = apply_translations(df, cols_to_translate, target_langs, vocab)
     
             with st.spinner("Aggiornamento vocabolario Google Sheet..."):
-                update_sheet(
-                    SHEET_ID,
-                    TAB_NAME,
-                    vocab_to_df(vocab)
-                )
+                ws = get_sheet(SHEET_ID, TAB_NAME)
+                ws.update([["IT","EN","FR","DE","ES"]] + vocab_to_rows(vocab))
     
             st.success("✅ Traduzione completata")
     
