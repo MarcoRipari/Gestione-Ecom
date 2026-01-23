@@ -4120,7 +4120,7 @@ elif page == "Traduci":
                 df_out = apply_translations(df, cols_to_translate, target_langs, vocab)
     
             with st.spinner("Aggiornamento vocabolario Google Sheet..."):
-                ws = get_sheet(SHEET_ID, TAB_NAME)
+                ws = get_sheet(TRANSLATION_SHEET_ID, TRANSLATION_TAB_NAME)
                 ws.update([["IT","EN","FR","DE","ES"]] + vocab_to_rows(vocab))
     
             st.success("✅ Traduzione completata")
