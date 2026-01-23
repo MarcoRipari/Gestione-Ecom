@@ -1083,178 +1083,126 @@ def format_dropbox_date(dt):
 # ---------------------------
 # Funzioni varie
 # ---------------------------
-TRANSLATE_MODEL = "gpt-4o-mini"
-TRANSLATE_BATCH_SIZE = 20
-TRANSLATE_MAX_CONCURRENT = 10
+AVAILABLE_LANGS = ["en", "fr", "de", "es"]
+OPENAI_MODEL = "gpt-4o-mini"
 
-TRANSLATE_MANDATORY_TERMS = {
+# =========================
+# MANUAL OVERRIDES
+# =========================
+MANUAL_TRANSLATIONS = {
     "strappo": {
-        "en": "strap",
+        "es": "cierre adherente",
         "fr": "scratch",
-        "es": "cierre adherente"
+        "en": "strap",
+        "de": "klettverschluss"
     }
 }
 
-# ================= UTILS =================
+# =========================
+# UTILS
+# =========================
+def normalize(text: str) -> str:
+    return text.strip().lower()
 
-def translate_normalize(text: str) -> str:
-    return str(text).strip()
+# =========================
+# VOCABULARY
+# =========================
+def load_vocab(sheet_id, tab):
+    df = get_sheet(sheet_id, tab)
+    vocab = {}
 
-def translate_hash(text: str) -> str:
-    return hashlib.md5(text.encode("utf-8")).hexdigest()
+    for _, row in df.iterrows():
+        it = normalize(row["it"])
+        vocab[it] = {
+            lang: row.get(lang)
+            for lang in AVAILABLE_LANGS
+            if lang in df.columns and pd.notna(row.get(lang))
+        }
 
-def translate_apply_mandatory_terms(text: str, lang: str) -> str:
-    for src, trg in TRANSLATE_MANDATORY_TERMS.items():
-        if src.lower() in text.lower():
-            return trg[lang]
-    return text
+    return vocab, df
 
-def translate_build_prompt(texts: list[str], lang: str) -> str:
-    glossary = "\n".join(
-        [f'- "{k}" → "{v[lang]}"' for k, v in TRANSLATE_MANDATORY_TERMS.items()]
-    )
 
-    return f"""
-Translate the following Italian texts into {lang.upper()}.
+def vocab_to_df(vocab):
+    rows = []
+    for it, langs in vocab.items():
+        row = {"it": it}
+        row.update(langs)
+        rows.append(row)
+    return pd.DataFrame(rows)
 
-STRICT RULES:
-- Translate ALL texts
-- NEVER skip a value
-- Keep formatting
-- Apply mandatory glossary strictly:
-{glossary}
 
-Return ONLY a JSON array of translated strings.
-Order MUST match input.
+# =========================
+# OPENAI TRANSLATION
+# =========================
+async def translate_term(client, term, target_langs):
+    prompt = f"""
+    Traduci la parola italiana \"{term}\" nelle seguenti lingue:
+    {", ".join(target_langs)}
 
-Texts:
-{texts}
-"""
-
-# ================= OPENAI =================
-
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
-async def translate_batch(texts: list[str], lang: str) -> list[str]:
+    Rispondi SOLO in JSON nel formato:
+    {{
+        "en": "...",
+        "fr": "...",
+        "de": "...",
+        "es": "..."
+    }}
     """
-    Traduzione batch sicura:
-    - JSON parsing
-    - termini obbligatori applicati dopo la risposta
-    """
-    from __main__ import translate_apply_mandatory_terms  # assicuro che sia visibile
 
     response = await client.chat.completions.create(
-        model=TRANSLATE_MODEL,
-        messages=[{"role": "user", "content": translate_build_prompt(texts, lang)}],
-        temperature=0,
-        request_timeout=30
+        model=OPENAI_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0
     )
 
-    content = response.choices[0].message.content.strip()
+    return json.loads(response.choices[0].message.content)
 
-    try:
-        content_fixed = content.replace("'", '"')
-        translated = json.loads(content_fixed)
-        if not isinstance(translated, list):
-            raise ValueError(f"OpenAI non ha restituito una lista JSON valida")
-    except Exception as e:
-        raise ValueError(f"Errore parsing OpenAI output: {e}\nOutput: {content}")
 
-    # Applicazione termini obbligatori
-    return [translate_apply_mandatory_terms(t, lang) for t in translated]
+async def enrich_vocab(client, vocab, missing_terms, target_langs):
+    for term in missing_terms:
+        if term in MANUAL_TRANSLATIONS:
+            vocab[term] = {
+                lang: MANUAL_TRANSLATIONS[term].get(lang)
+                for lang in target_langs
+            }
+            continue
 
-async def translate_column_unique(unique_texts, lang, cache, progress_bar, batch_counter, total_batches):
-    semaphore = asyncio.Semaphore(TRANSLATE_MAX_CONCURRENT)
+        translations = await translate_term(client, term, target_langs)
+        vocab[term] = translations
 
-    async def worker(batch):
-        async with semaphore:
-            translated = await translate_batch(batch, lang)
-            for src, trg in zip(batch, translated):
-                cache[(src, lang)] = trg
 
-            # batch_counter mutabile passato come lista
-            batch_counter[0] += 1
-            progress_bar.progress(min(batch_counter[0] / total_batches, 1.0))
-
-    tasks = []
-    for i in range(0, len(unique_texts), TRANSLATE_BATCH_SIZE):
-        tasks.append(worker(unique_texts[i:i + TRANSLATE_BATCH_SIZE]))
-
-    await asyncio.gather(*tasks)
-
-def translate_validate_no_empty(df: pd.DataFrame, columns: list[str]):
-    for col in columns:
-        if df[col].isna().any() or (df[col].astype(str).str.strip() == "").any():
-            raise ValueError(f"❌ Colonna {col} contiene celle vuote")
-
-# ================= MAIN ASYNC =================
-
-async def translate_csv(
-    df: pd.DataFrame,
-    columns: list[str],
-    languages: list[str],
-    progress_bar,
-    timer_placeholder
-) -> pd.DataFrame:
-
-    start_time = time.time()
-    cache = {}
-
-    # Calcolo batch totali (per progress bar accurata)
-    total_batches = 0
-    for col in columns:
-        unique_texts = df[col].dropna().map(translate_normalize).unique().tolist()
-        for _ in languages:
-            total_batches += max(1, len(unique_texts) // TRANSLATE_BATCH_SIZE + 1)
-
-    batch_counter = [0]
+# =========================
+# CSV TRANSLATION
+# =========================
+def extract_missing_terms(df, columns, vocab):
+    missing = set()
 
     for col in columns:
-        unique_texts = df[col].dropna().map(translate_normalize).unique().tolist()
+        for value in df[col].dropna():
+            key = normalize(str(value))
+            if key not in vocab and key not in MANUAL_TRANSLATIONS:
+                missing.add(key)
 
-        for lang in languages:
-            await translate_column_unique(
-                unique_texts,
-                lang,
-                cache,
-                progress_bar,
-                batch_counter,
-                total_batches
-            )
+    return missing
 
+
+def apply_translations(df, columns, langs, vocab):
+    for lang in langs:
+        for col in columns:
             new_col = f"{col}_{lang}"
-            df[new_col] = df[col].map(
-                lambda x: cache[(translate_normalize(x), lang)]
-            )
 
-    translate_validate_no_empty(
-        df,
-        [f"{c}_{l}" for c in columns for l in languages]
-    )
+            def translate_cell(val):
+                if pd.isna(val):
+                    return val
+                key = normalize(str(val))
 
-    elapsed = round(time.time() - start_time, 2)
-    timer_placeholder.success(f"⏱ Tempo totale: {elapsed}s")
+                if key in MANUAL_TRANSLATIONS:
+                    return MANUAL_TRANSLATIONS[key].get(lang, val)
+
+                return vocab.get(key, {}).get(lang, val)
+
+            df[new_col] = df[col].apply(translate_cell)
 
     return df
-
-async def translate_csv_safe(df, columns, languages, progress_bar, timer_placeholder):
-    try:
-        return await translate_csv(df, columns, languages, progress_bar, timer_placeholder)
-    except OpenAIError as e:
-        st.error(f"❌ Errore OpenAI: {e}")
-        return None
-    except Exception as e:
-        st.error(f"❌ Errore inaspettato: {e}")
-        return None
-
-def translate_run_async(coro):
-    """Wrapper sicuro Streamlit per coroutine async."""
-    try:
-        loop = asyncio.get_running_loop()
-        # Streamlit loop attivo → crea task
-        return asyncio.create_task(coro)
-    except RuntimeError:
-        # Loop non attivo → run normale
-        return asyncio.run(coro)
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
@@ -4024,52 +3972,61 @@ elif page == "Ferie - Report":
     st.markdown(ferie_report_df_styled.to_html(escape=False), unsafe_allow_html=True)
 
 elif page == "Traduci":
-    st.set_page_config(page_title="CSV Translator", layout="wide")
     st.title("🌍 CSV Translator Async")
     
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
-    
+
     if uploaded_file:
         df = read_csv_auto_encoding(uploaded_file)
-        st.dataframe(df.head())
     
-        columns = st.multiselect(
-            "Colonne da tradurre",
+        st.subheader("Seleziona colonne da tradurre")
+        cols_to_translate = st.multiselect(
+            "Colonne",
             df.columns.tolist()
         )
     
-        languages = st.multiselect(
+        st.subheader("Seleziona lingue")
+        target_langs = st.multiselect(
             "Lingue",
-            ["en", "fr", "de", "es"],
-            default=["en", "fr", "es"]
+            AVAILABLE_LANGS,
+            default=["en"]
         )
     
-        if st.button("🚀 Avvia traduzione"):
-            progress_bar = st.progress(0)
-            timer_placeholder = st.empty()
-        
-            task = translate_run_async(
-                translate_csv_safe(
-                    df,
-                    columns,
-                    languages,
-                    progress_bar,
-                    timer_placeholder
+        if st.button("🚀 Avvia traduzione") and cols_to_translate and target_langs:
+            with st.spinner("Caricamento vocabolario..."):
+                vocab, vocab_df = load_vocab(SHEET_ID, TAB_NAME)
+    
+            with st.spinner("Analisi termini mancanti..."):
+                missing_terms = extract_missing_terms(df, cols_to_translate, vocab)
+    
+            st.info(f"Termini da tradurre: {len(missing_terms)}")
+    
+            if missing_terms:
+                with st.spinner("Traduzione OpenAI in corso..."):
+                    asyncio.run(
+                        enrich_vocab(
+                            async_openai_client,
+                            vocab,
+                            missing_terms,
+                            target_langs
+                        )
+                    )
+    
+            with st.spinner("Applicazione traduzioni al CSV..."):
+                df_out = apply_translations(df, cols_to_translate, target_langs, vocab)
+    
+            with st.spinner("Aggiornamento vocabolario Google Sheet..."):
+                update_sheet(
+                    SHEET_ID,
+                    TAB_NAME,
+                    vocab_to_df(vocab)
                 )
+    
+            st.success("✅ Traduzione completata")
+    
+            st.download_button(
+                "📥 Scarica CSV tradotto",
+                df_out.to_csv(index=False),
+                file_name="output_tradotto.csv",
+                mime="text/csv"
             )
-        
-            # se task async → attendi
-            if asyncio.isfuture(task):
-                translated_df = asyncio.get_event_loop().run_until_complete(task)
-            else:
-                translated_df = task
-        
-            if translated_df is not None:
-                st.success("✅ Traduzione completata")
-                st.dataframe(translated_df.head())
-                st.download_button(
-                    "📥 Scarica CSV tradotto",
-                    translated_df.to_csv(index=False).encode("utf-8"),
-                    "translated.csv",
-                    "text/csv"
-                )
