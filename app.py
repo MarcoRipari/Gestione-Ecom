@@ -1137,7 +1137,6 @@ def translation_interface(df, selected_cols, selected_langs):
         attempt = 1
 
         async def process_missing_rows(current_df):
-            # Identifichiamo le righe dove almeno una colonna target è vuota o None
             mask_missing = current_df[target_columns].isnull().any(axis=1) | (current_df[target_columns] == "").any(axis=1)
             missing_df = current_df[mask_missing]
             
@@ -1151,22 +1150,43 @@ def translation_interface(df, selected_cols, selected_langs):
             results = []
             for i, task in enumerate(asyncio.as_completed(tasks)):
                 res = await task
-                results.extend(res)
-                # Progresso basato sulle righe mancanti
+                if res: # Controllo che il batch non sia vuoto
+                    results.extend(res)
                 progress_bar.progress(min((i + 1) / len(tasks), 1.0))
             
             if results:
                 res_df = pd.DataFrame(results)
+                
+                # DEBUG: Vediamo cosa restituisce l'AI (solo in console/terminale)
+                # print(res_df.columns) 
+
                 if 'row_id' in res_df.columns:
+                    # 1. Forziamo row_id a intero e rimuoviamo errori
                     res_df['row_id'] = pd.to_numeric(res_df['row_id'], errors='coerce')
-                    res_df = res_df.dropna(subset=['row_id']).set_index('row_id')
-                    # Teniamo solo le colonne tradotte
-                    res_df = res_df[[c for c in res_df.columns if c in target_columns]]
-                    res_df = res_df[~res_df.index.duplicated(keep='first')]
-                    # Aggiorniamo il dataframe originale con i nuovi dati
-                    current_df.update(res_df)
+                    res_df = res_df.dropna(subset=['row_id'])
+                    res_df['row_id'] = res_df['row_id'].astype(int)
+                    
+                    # 2. Impostiamo l'indice
+                    res_df = res_df.set_index('row_id')
+                    
+                    # 3. Importante: Convertiamo l'indice del DF originale a intero per sicurezza
+                    current_df.index = current_df.index.astype(int)
+                    
+                    # 4. Filtriamo solo le colonne che ci servono
+                    cols_to_update = [c for c in res_df.columns if c in target_columns]
+                    
+                    if cols_to_update:
+                        res_df_to_apply = res_df[cols_to_update]
+                        # Rimuoviamo duplicati di indice nel caso l'AI abbia risposto due volte per la stessa riga
+                        res_df_to_apply = res_df_to_apply[~res_df_to_apply.index.duplicated(keep='first')]
+                        
+                        # USARE COMBINE_FIRST invece di UPDATE (più robusto con i tipi)
+                        current_df = res_df_to_apply.combine_first(current_df)
             
-            return current_df, len(missing_df)
+            # Ricalcolo rigoroso
+            # Controlliamo quante righe hanno ANCORA dei valori nulli nelle colonne target
+            still_missing = current_df[target_columns].isnull().any(axis=1).sum()
+            return current_df, still_missing
 
         # CICLO DI RECOVERY: Continua finché ci sono righe mancanti
         while True:
