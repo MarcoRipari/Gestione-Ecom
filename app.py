@@ -3931,7 +3931,7 @@ elif page == "Traduci":
     
     if uploaded_file:
         df_original = read_csv_auto_encoding(uploaded_file)
-        st.write(f"Righe caricate: {len(df)}")
+        st.write(f"Righe caricate: {len(df_original)}")
         
         col1, col2 = st.columns(2)
         with col1:
