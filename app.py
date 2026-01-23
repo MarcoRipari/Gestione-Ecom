@@ -1143,7 +1143,7 @@ async def translate_batch(texts: list[str], lang: str) -> list[str]:
     from __main__ import translate_apply_mandatory_terms  # assicuro che sia visibile
 
     response = await client.chat.completions.create(
-        model=MODEL,
+        model=TRANSLATE_MODEL,
         messages=[{"role": "user", "content": translate_build_prompt(texts, lang)}],
         temperature=0,
         request_timeout=30
@@ -1163,7 +1163,7 @@ async def translate_batch(texts: list[str], lang: str) -> list[str]:
     return [translate_apply_mandatory_terms(t, lang) for t in translated]
 
 async def translate_column_unique(unique_texts, lang, cache, progress_bar, batch_counter, total_batches):
-    semaphore = asyncio.Semaphore(MAX_CONCURRENT)
+    semaphore = asyncio.Semaphore(TRANSLATE_MAX_CONCURRENT)
 
     async def worker(batch):
         async with semaphore:
@@ -1176,8 +1176,8 @@ async def translate_column_unique(unique_texts, lang, cache, progress_bar, batch
             progress_bar.progress(min(batch_counter[0] / total_batches, 1.0))
 
     tasks = []
-    for i in range(0, len(unique_texts), BATCH_SIZE):
-        tasks.append(worker(unique_texts[i:i + BATCH_SIZE]))
+    for i in range(0, len(unique_texts), TRANSLATE_BATCH_SIZE):
+        tasks.append(worker(unique_texts[i:i + TRANSLATE_BATCH_SIZE]))
 
     await asyncio.gather(*tasks)
 
