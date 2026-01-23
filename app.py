@@ -1136,11 +1136,26 @@ Texts:
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def translate_batch(texts: list[str], lang: str) -> list[str]:
     response = await client.chat.completions.create(
-        model=TRANSLATE_MODEL,
+        model=MODEL,
         messages=[{"role": "user", "content": translate_build_prompt(texts, lang)}],
-        temperature=0
+        temperature=0,
+        request_timeout=30
     )
-    return eval(response.choices[0].message.content)
+
+    content = response.choices[0].message.content.strip()
+
+    # Rimuovo eventuali commenti o testo extra prima del JSON
+    try:
+        # Se il modello risponde con singole virgolette, le converto in doppie
+        content = content.replace("'", '"')
+        translated = json.loads(content)
+        if not isinstance(translated, list):
+            raise ValueError("OpenAI non ha restituito una lista JSON valida")
+    except Exception as e:
+        raise ValueError(f"Errore parsing OpenAI output: {e}\nOutput: {content}")
+
+    # Applico termini obbligatori
+    return [translate_apply_mandatory_terms(t, lang) for t in translated]
 
 async def translate_column_unique(
     unique_texts: list[str],
