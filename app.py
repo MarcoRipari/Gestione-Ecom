@@ -1170,23 +1170,10 @@ def vocab_to_df(vocab):
 # OPENAI TRANSLATION
 # =========================
 async def translate_term(client, term, target_langs):
-    """
-    Traduci il testo italiano 'term' nelle lingue target_langs usando OpenAI Function Calling.
-    
-    Args:
-        client: async OpenAI client già inizializzato
-        term: stringa italiana da tradurre (parola o frase lunga)
-        target_langs: lista lingue da tradurre es. ["en", "fr", "de", "es"]
-
-    Returns:
-        dict: {"en": "...", "fr": "...", ...} con traduzioni
-    """
-    # messaggio principale
     messages = [
-        {"role": "user", "content": f"Traduci fedelmente il seguente testo italiano:\n\"\"\"{term}\"\"\""}
+        {"role": "user", "content": f"Traduci fedelmente il testo italiano:\n\"\"\"{term}\"\"\""}
     ]
 
-    # definizione function_call dinamica in base alle lingue richieste
     functions = [
         {
             "name": "translate_text",
@@ -1199,7 +1186,6 @@ async def translate_term(client, term, target_langs):
         }
     ]
 
-    # richiesta al modello con function calling
     response = await client.chat.completions.create(
         model=OPENAI_MODEL,
         messages=messages,
@@ -1208,12 +1194,14 @@ async def translate_term(client, term, target_langs):
         temperature=0
     )
 
-    # parsing sicuro: GPT restituisce dict in function_call.arguments
-    func_call = response.choices[0].message.get("function_call")
-    if func_call and "arguments" in func_call:
-        return json.loads(func_call["arguments"])
+    message = response.choices[0].message  # ChatCompletionMessage object
 
-    # fallback: ritorna testo originale in tutte le lingue richieste
+    # Accesso corretto a function_call
+    func_call = getattr(message, "function_call", None)
+    if func_call and hasattr(func_call, "arguments"):
+        return json.loads(func_call.arguments)
+
+    # fallback in caso di errore
     return {lang: term for lang in target_langs}
 
 
