@@ -3946,7 +3946,7 @@ elif page == "Traduci":
     uploaded_file = st.file_uploader("Carica il tuo catalogo CSV", type=["csv"])
     
     if uploaded_file:
-        df = pd.read_csv(uploaded_file)
+        df = read_csv_auto_encoding(uploaded_file)
         st.write(f"Righe caricate: {len(df)}")
         
         col1, col2 = st.columns(2)
