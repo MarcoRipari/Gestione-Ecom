@@ -3979,7 +3979,7 @@ elif page == "Ferie - Report":
     st.markdown(ferie_report_df_styled.to_html(escape=False), unsafe_allow_html=True)
 
 elif page == "Traduci":
-    st.title("Excel Translator AI 🌍")
+    st.title("Excel Translator AI 🌍2")
     
     uploaded_file = st.file_uploader("Carica il tuo catalogo CSV", type=["csv"])
     
