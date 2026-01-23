@@ -1107,19 +1107,31 @@ def normalize(text: str) -> str:
 # =========================
 # VOCABULARY
 # =========================
+def worksheet_to_df(ws):
+    records = ws.get_all_records()
+    if not records:
+        return pd.DataFrame()
+    return pd.DataFrame(records)
+    
 def load_vocab(sheet_id, tab):
-    df = get_sheet(sheet_id, tab)
+    ws = get_sheet(sheet_id, tab)
+    df = worksheet_to_df(ws)
+
     vocab = {}
 
+    if df.empty:
+        return vocab, ws
+
     for _, row in df.iterrows():
-        it = normalize(row["it"])
+        it = normalize(str(row["it"]))
+
         vocab[it] = {
             lang: row.get(lang)
-            for lang in AVAILABLE_LANGS
-            if lang in df.columns and pd.notna(row.get(lang))
+            for lang in row.index
+            if lang != "it" and pd.notna(row.get(lang))
         }
 
-    return vocab, df
+    return vocab, ws
 
 
 def vocab_to_df(vocab):
