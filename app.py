@@ -3995,7 +3995,7 @@ elif page == "Traduci":
         df_uploaded = read_csv_auto_encoding(uploaded_file)
         columns = st.multiselect(
             "Seleziona colonne da tradurre",
-            options=df_uploaded.columns().tolist(),
+            df_uploaded.columns().tolist(),
             default=[]
         )
     
