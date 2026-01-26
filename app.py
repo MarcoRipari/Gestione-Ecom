@@ -1158,7 +1158,8 @@ def append_vocab_rows(ws, rows):
             r.get("en", ""),
             r.get("fr", ""),
             r.get("de", ""),
-            r.get("es", "")
+            r.get("es", ""),
+            r.get("source_col", "")
         ])
 
     if values:
@@ -1274,7 +1275,8 @@ async def enrich_vocab_with_ui(
     buffer = []
     saved_count = 0
 
-    for i, term in enumerate(missing_terms, start=1):
+    #for i, term in enumerate(missing_terms, start=1):
+    for i, (term, col_name) in enumerate(missing_terms.items(), start=1):
         #key = term.strip().lower()  # normalizzazione chiave
         key = term.strip()
 
@@ -1307,7 +1309,8 @@ async def enrich_vocab_with_ui(
 
         buffer.append({
             "it": key,
-            **vocab[key]
+            **vocab[key],
+            "source_col": col_name
         })
         
         if len(buffer) >= SAVE_TRANSLATE_EVERY:
@@ -1325,13 +1328,14 @@ async def enrich_vocab_with_ui(
 # CSV TRANSLATION
 # =========================
 def extract_missing_terms(df, columns, vocab):
-    missing = set()
+    #missing = set()
+    missing = {}
 
     for col in columns:
         for value in df[col].dropna():
             key = str(value).strip()  # ✅ NON più .lower()
             if key not in vocab and key not in MANUAL_TRANSLATIONS:
-                missing.add(key)
+                missing[key] = col
 
     return missing
 
