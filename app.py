@@ -565,6 +565,7 @@ CONCEPT
 - I materiali devono essere citati in modo chiaro ma non tecnico
 - Gli aggettivi devono essere comuni, descrittivi, editoriali
 - Evita qualsiasi affermazione non visibile o non dichiarata
+- Non inserire la stagionalità del prodotto (il riferimento può essere solo sui sandali)
 
 ### TERMINI E CONCETTI VIETATI ###
 È vietato usare, anche in forma parafrasata:
@@ -585,6 +586,9 @@ Se un concetto non è descrivibile senza usare questi approcci, deve essere omes
 - Chiusura
 - Interni
 - Fondo
+
+### NORMALIZZAZIONE TIPO DI CALZATURA ###
+- "low shoe" → SEMPRE trasformato in "mocassini"
 
 ### OUTPUT ###
 Genera due testi distinti:
@@ -649,6 +653,7 @@ CONCEPT
   - fondo o suola (gomma ultra leggera, Vibram, megagrip, battistrada)
 - I materiali devono essere citati in modo esplicito
 - È ammessa la ripetizione di formule lessicali consolidate
+- Non inserire la stagionalità del prodotto (il riferimento può essere solo sui sandali)
 
 ### LESSICO GUIDA (AMMESSO E INCORAGGIATO) ###
 - ispirazione outdoor
@@ -1213,6 +1218,8 @@ async def translate_term(client, term, target_langs):
         {"role": "user", "content": f"""
         Traduci fedelmente il testo italiano nelle lingue: {', '.join(target_langs)}.
         Mantieni maiuscole e punteggiatura come nell'originale.
+        IMPORTANTE: Se il termine contiene un trattino, traduci ciascuna parte separatamente e mantieni il trattino.
+        
         Testo da tradurre:
         \"\"\"{term}\"\"\"
         
