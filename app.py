@@ -1328,7 +1328,7 @@ def extract_missing_terms(df, columns, vocab):
 
     for col in columns:
         for value in df[col].dropna():
-            key = normalize(str(value))
+            key = str(value).strip()  # ✅ NON più .lower()
             if key not in vocab and key not in MANUAL_TRANSLATIONS:
                 missing.add(key)
 
