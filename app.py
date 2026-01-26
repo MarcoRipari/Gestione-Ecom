@@ -674,6 +674,7 @@ CONCEPT
 - lacci tradizionali
 - sapientemente
 - assicura proprietà antibatteriche
+- bicolori
 
 ### LESSICO GUIDA (AMMESSO E INCORAGGIATO) ###
 - ispirazione outdoor
