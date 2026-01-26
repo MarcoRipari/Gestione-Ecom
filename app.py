@@ -675,6 +675,7 @@ CONCEPT
 - sapientemente
 - assicura proprietà antibatteriche
 - bicolori
+- "bicolore", utilizzabile solamente per il fondo se indicato.
 
 ### LESSICO GUIDA (AMMESSO E INCORAGGIATO) ###
 - ispirazione outdoor
@@ -702,7 +703,6 @@ CONCEPT
 - Mantieni la terminologia coerente con Flower Mountain
 - Ammessi: sneaker, hiking shoe, stivaletto, slip on, ecc. se presenti nelle INFO
 - "special case slippers" → SEMPRE trasformato in "ciabatte"
-- "bicolore" utilizzabile solamente per il fondo se indicato.
 
 ### OUTPUT ###
 Genera due testi per ciascuna lingua:
