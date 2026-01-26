@@ -1284,6 +1284,7 @@ async def enrich_vocab_with_ui(
         remaining = avg_time * (total - i)
 
         progress_bar.progress(i / total)
+        saved_badge.markdown(f"💾 **Salvate su Google:** {saved_count}")
         status_text.text(f"🔤 Traduzione: {term} ({i}/{total})")
         timer_text.text(
             f"⏱️ Trascorso: {format_time(elapsed)} | "
@@ -1312,7 +1313,7 @@ async def enrich_vocab_with_ui(
         if len(buffer) >= SAVE_TRANSLATE_EVERY:
             append_vocab_rows(ws, buffer)
             saved_count += len(buffer)
-            saved_badge.markdown(f"💾 **Salvate su Google:** {saved_count}")
+            #saved_badge.markdown(f"💾 **Salvate su Google:** {saved_count}")
             buffer.clear()
 
     if buffer:
