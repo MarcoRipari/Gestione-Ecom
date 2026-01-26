@@ -1275,7 +1275,8 @@ async def enrich_vocab_with_ui(
     saved_count = 0
 
     for i, term in enumerate(missing_terms, start=1):
-        key = term.strip().lower()  # normalizzazione chiave
+        #key = term.strip().lower()  # normalizzazione chiave
+        key = term.strip()
 
         # TIMER E PROGRESS BAR
         elapsed = time.time() - start_time
@@ -1283,7 +1284,6 @@ async def enrich_vocab_with_ui(
         remaining = avg_time * (total - i)
 
         progress_bar.progress(i / total)
-        saved_badge.markdown("💾 **Salvate su Google:** 0")
         status_text.text(f"🔤 Traduzione: {term} ({i}/{total})")
         timer_text.text(
             f"⏱️ Trascorso: {format_time(elapsed)} | "
