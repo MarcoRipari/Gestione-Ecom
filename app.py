@@ -1213,12 +1213,19 @@ def vocab_to_df(vocab):
 # =========================
 # OPENAI TRANSLATION
 # =========================
-async def translate_term(client, term, target_langs):
+async def translate_term(client, term, target_langs, col_name):
+    important_note = ""
+    if col_name and "colore" in col_name.lower():
+        important_note = (
+            "IMPORTANTE: Se il termine contiene un trattino, "
+            "traduci ciascuna parte separatamente e mantieni il trattino.\n"
+        )
+        
     messages = [
         {"role": "user", "content": f"""
         Traduci fedelmente il testo italiano nelle lingue: {', '.join(target_langs)}.
         Mantieni maiuscole e punteggiatura come nell'originale.
-        IMPORTANTE: Se il termine contiene un trattino, traduci ciascuna parte separatamente e mantieni il trattino.
+        {important_nome}
         
         Testo da tradurre:
         \"\"\"{term}\"\"\"
@@ -1307,7 +1314,7 @@ async def enrich_vocab_with_ui(
 
         # CHIAMATA GPT FUNCTION CALL
         try:
-            translations = await translate_term(client, term, target_langs)
+            translations = await translate_term(client, term, target_langs, col_name)
             vocab[key] = translations
         except Exception as e:
             st.warning(f"Errore traduzione '{term}': {e}")
