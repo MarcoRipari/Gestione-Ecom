@@ -1184,7 +1184,7 @@ def load_vocab(sheet_id, tab):
         return vocab, ws
 
     for _, row in df.iterrows():
-        it = normalize(str(row["it"]))
+        it = str(row["it"]).strip()
 
         vocab[it] = {
             lang: row.get(lang)
@@ -1344,7 +1344,7 @@ def apply_translations(df, columns, langs, vocab):
             def translate_cell(val):
                 if pd.isna(val):
                     return val
-                key = normalize(str(val))
+                key = str(val).strip()
 
                 if key in MANUAL_TRANSLATIONS:
                     return MANUAL_TRANSLATIONS[key].get(lang, val)
