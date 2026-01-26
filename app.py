@@ -575,6 +575,14 @@ CONCEPT
 - linguaggio tecnico o ingegneristico
 - claim esplicativi (es. “garantisce”, “assicura”, “offre il massimo di”)
 - spiegazioni funzionali del comfort
+- Allure
+- Freschezza urbana
+- Charme contemporaneo
+- Spirito disinvolto
+- Dinamismo urbano
+- Semplicità contemporanea
+- Una rivisitazione contemporanea del classico
+- Emerge come un'icona di stile
 
 Se un concetto non è descrivibile senza usare questi approcci, deve essere omesso.
 
