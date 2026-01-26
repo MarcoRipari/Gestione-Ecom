@@ -1217,7 +1217,7 @@ async def translate_term(client, term, target_langs, col_name):
     important_note = ""
     if col_name and "colore" in col_name.lower():
         important_note = (
-            "IMPORTANTE: Se il termine contiene un trattino, "
+            "IMPORTANTE: Il termine è un colore o una combinazione di colori, se contiene un trattino, "
             "traduci ciascuna parte separatamente e mantieni il trattino.\n"
         )
         
@@ -1261,7 +1261,7 @@ async def translate_term(client, term, target_langs, col_name):
         function_call={"name": "translate_text"},
         temperature=0
     )
-
+    st.write(messages)
     message = response.choices[0].message  # ChatCompletionMessage object
 
     # Accesso corretto a function_call
@@ -1319,7 +1319,8 @@ async def enrich_vocab_with_ui(
         except Exception as e:
             st.warning(f"Errore traduzione '{term}': {e}")
             # fallback: testo originale in tutte le lingue
-            vocab[key] = {lang: term for lang in target_langs}
+            #vocab[key] = {lang: term for lang in target_langs}
+            vocab[key] = {lang: "" for lang in target_langs}
 
         buffer.append({
             "it": key,
