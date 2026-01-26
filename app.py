@@ -1261,7 +1261,7 @@ async def translate_term(client, term, target_langs, col_name):
         function_call={"name": "translate_text"},
         temperature=0
     )
-    st.write(messages)
+
     message = response.choices[0].message  # ChatCompletionMessage object
 
     # Accesso corretto a function_call
