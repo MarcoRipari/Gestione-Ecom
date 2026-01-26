@@ -583,6 +583,7 @@ CONCEPT
 - Semplicità contemporanea
 - Una rivisitazione contemporanea del classico
 - Emerge come un'icona di stile
+- Armonie metriche
 
 Se un concetto non è descrivibile senza usare questi approcci, deve essere omesso.
 
