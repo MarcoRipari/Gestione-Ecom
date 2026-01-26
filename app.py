@@ -664,6 +664,17 @@ CONCEPT
 - È ammessa la ripetizione di formule lessicali consolidate
 - Non inserire la stagionalità del prodotto (il riferimento può essere solo sui sandali)
 
+### TERMINI E CONCETTI VIETATI ###
+È vietato usare, anche in forma parafrasata:
+
+- Vocazione
+- La chiusura è affidata a
+- costruzione minimale
+- classici lacci
+- lacci tradizionali
+- sapientemente
+- assicura proprietà antibatteriche
+
 ### LESSICO GUIDA (AMMESSO E INCORAGGIATO) ###
 - ispirazione outdoor
 - vocazione sportiva
@@ -689,6 +700,7 @@ CONCEPT
 - Usa esclusivamente il tipo di calzatura fornito
 - Mantieni la terminologia coerente con Flower Mountain
 - Ammessi: sneaker, hiking shoe, stivaletto, slip on, ecc. se presenti nelle INFO
+- "special case slippers" → SEMPRE trasformato in "ciabatte"
 
 ### OUTPUT ###
 Genera due testi per ciascuna lingua:
