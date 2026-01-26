@@ -1309,7 +1309,7 @@ async def enrich_vocab_with_ui(
             **vocab[key]
         })
         
-        if len(buffer) >= SAVE_EVERY:
+        if len(buffer) >= SAVE_TRANSLATE_EVERY:
             append_vocab_rows(ws, buffer)
             saved_count += len(buffer)
             saved_badge.markdown(f"💾 **Salvate su Google:** {saved_count}")
