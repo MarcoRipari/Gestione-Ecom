@@ -1230,7 +1230,7 @@ async def translate_term(client, term, target_langs):
     functions = [
         {
             "name": "translate_text",
-            "description": "Traduci il testo italiano nelle lingue specificate",
+            "description": "Traduci il testo italiano nelle lingue specificate, mantenendo maiuscole, punteggiatura e nomi propri",
             "parameters": {
                 "type": "object",
                 "properties": {lang: {"type": "string"} for lang in target_langs},
