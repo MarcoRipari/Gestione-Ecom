@@ -1313,7 +1313,7 @@ async def enrich_vocab_with_ui(
         if len(buffer) >= SAVE_TRANSLATE_EVERY:
             append_vocab_rows(ws, buffer)
             saved_count += len(buffer)
-            #saved_badge.markdown(f"💾 **Salvate su Google:** {saved_count}")
+            saved_badge.markdown(f"💾 **Salvate su Google:** {saved_count}")
             buffer.clear()
 
     if buffer:
@@ -4159,9 +4159,10 @@ elif page == "Traduci":
                 with st.spinner("Traduzione OpenAI in corso..."):
                     ws = get_sheet(TRANSLATION_SHEET_ID, TRANSLATION_TAB_NAME)
                     progress_bar = st.progress(0)
+                    saved_badge = st.empty()
                     status_text = st.empty()
                     timer_text = st.empty()
-                    saved_badge = st.empty()
+
                     task = run_async(
                         enrich_vocab_with_ui(
                             client,
