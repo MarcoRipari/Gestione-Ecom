@@ -697,9 +697,10 @@ CONCEPT
 - Non usare linguaggio lifestyle generico
 
 ### NORMALIZZAZIONE TIPO DI CALZATURA ###
-- Usa esclusivamente il tipo di calzatura fornito, tranne per "special case slippers" → SEMPRE trasformato in "ciabatte"
+- Usa esclusivamente il tipo di calzatura fornito.
 - Mantieni la terminologia coerente con Flower Mountain
 - Ammessi: sneaker, hiking shoe, stivaletto, slip on, ecc. se presenti nelle INFO
+- "special case slippers" → SEMPRE trasformato in "ciabatte"
 
 ### OUTPUT ###
 Genera due testi per ciascuna lingua:
