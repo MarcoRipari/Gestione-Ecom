@@ -1085,7 +1085,7 @@ def format_dropbox_date(dt):
 # ---------------------------
 AVAILABLE_LANGS = ["en", "fr", "de", "es"]
 OPENAI_MODEL = "gpt-4o-mini"
-SAVE_TRANSALTE_EVERY = 25  # batch size consigliato
+SAVE_TRANSLATE_EVERY = 25  # batch size consigliato
 
 # =========================
 # MANUAL OVERRIDES
