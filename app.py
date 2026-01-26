@@ -1211,7 +1211,7 @@ async def translate_term(client, term, target_langs):
     messages = [
         {"role": "user", "content": f"""
         Traduci fedelmente il testo italiano nelle lingue: {', '.join(target_langs)}.
-        
+        Mantieni maiuscole e punteggiatura come nell'originale.
         Testo da tradurre:
         \"\"\"{term}\"\"\"
         
