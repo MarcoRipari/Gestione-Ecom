@@ -4131,6 +4131,7 @@ elif page == "Traduci":
 
     if uploaded_file:
         df = read_csv_auto_encoding(uploaded_file)
+        st.write(df)
     
         st.subheader("Seleziona colonne da tradurre")
         cols_to_translate = st.multiselect(
