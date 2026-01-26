@@ -1085,6 +1085,7 @@ def format_dropbox_date(dt):
 # ---------------------------
 AVAILABLE_LANGS = ["en", "fr", "de", "es"]
 OPENAI_MODEL = "gpt-4o-mini"
+SAVE_TRANSALTE_EVERY = 25  # batch size consigliato
 
 # =========================
 # MANUAL OVERRIDES
@@ -1145,7 +1146,24 @@ def vocab_to_rows(vocab):
         ]
         rows.append(row)
     return rows
-    
+
+def append_vocab_rows(ws, rows):
+    """
+    rows = lista di dict {"it": ..., "en": ..., "fr": ..., "de": ..., "es": ...}
+    """
+    values = []
+    for r in rows:
+        values.append([
+            r.get("it", ""),
+            r.get("en", ""),
+            r.get("fr", ""),
+            r.get("de", ""),
+            r.get("es", "")
+        ])
+
+    if values:
+        ws.append_rows(values, value_input_option="RAW")
+        
 # =========================
 # VOCABULARY
 # =========================
@@ -1247,10 +1265,14 @@ async def enrich_vocab_with_ui(
     target_langs,
     progress_bar,
     status_text,
-    timer_text
+    timer_text,
+    ws,
+    saved_badge
 ):
     total = len(missing_terms)
     start_time = time.time()
+    buffer = []
+    saved_count = 0
 
     for i, term in enumerate(missing_terms, start=1):
         key = term.strip().lower()  # normalizzazione chiave
@@ -1261,6 +1283,7 @@ async def enrich_vocab_with_ui(
         remaining = avg_time * (total - i)
 
         progress_bar.progress(i / total)
+        saved_badge.markdown("💾 **Salvate su Google:** 0")
         status_text.text(f"🔤 Traduzione: {term} ({i}/{total})")
         timer_text.text(
             f"⏱️ Trascorso: {format_time(elapsed)} | "
@@ -1281,6 +1304,21 @@ async def enrich_vocab_with_ui(
             # fallback: testo originale in tutte le lingue
             vocab[key] = {lang: term for lang in target_langs}
 
+        buffer.append({
+            "it": key,
+            **vocab[key]
+        })
+        
+        if len(buffer) >= SAVE_EVERY:
+            append_vocab_rows(ws, buffer)
+            saved_count += len(buffer)
+            saved_badge.markdown(f"💾 **Salvate su Google:** {saved_count}")
+            buffer.clear()
+
+    if buffer:
+        append_vocab_rows(ws, buffer)
+        saved_count += len(buffer)
+        saved_badge.markdown(f"💾 **Salvate su Google:** {saved_count}")
 
 # =========================
 # CSV TRANSLATION
@@ -4118,9 +4156,11 @@ elif page == "Traduci":
     
             if missing_terms:
                 with st.spinner("Traduzione OpenAI in corso..."):
+                    ws = get_sheet(TRANSLATION_SHEET_ID, TRANSLATION_TAB_NAME)
                     progress_bar = st.progress(0)
                     status_text = st.empty()
                     timer_text = st.empty()
+                    saved_badge = st.empty()
                     task = run_async(
                         enrich_vocab_with_ui(
                             client,
@@ -4129,7 +4169,9 @@ elif page == "Traduci":
                             target_langs,
                             progress_bar,
                             status_text,
-                            timer_text
+                            timer_text,
+                            ws,
+                            saved_badge
                         )
                     )
                     
@@ -4140,10 +4182,6 @@ elif page == "Traduci":
                     timer_text.text("")
             with st.spinner("Applicazione traduzioni al CSV..."):
                 df_out = apply_translations(df, cols_to_translate, target_langs, vocab)
-    
-            with st.spinner("Aggiornamento vocabolario Google Sheet..."):
-                ws = get_sheet(TRANSLATION_SHEET_ID, TRANSLATION_TAB_NAME)
-                ws.update([["IT","EN","FR","DE","ES"]] + vocab_to_rows(vocab))
     
             st.success("✅ Traduzione completata")
             csv_buffer = io.StringIO()
