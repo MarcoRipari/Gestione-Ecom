@@ -1382,24 +1382,52 @@ def extract_missing_terms(df, columns, vocab):
     return missing
 
 
+def replace_lang_in_col(col_name: str, lang: str) -> str:
+    return re.sub(r"\([^)]*\)", f"({lang})", col_name)
+
+
 def apply_translations(df, columns, langs, vocab):
+    """
+    Ritorna un dict {lang: df_tradotto}
+    """
+    dfs_by_lang = {}
+
     for lang in langs:
+        df_lang = df.copy()
+
         for col in columns:
-            new_col = f"{col}_{lang}"
+            if col not in df_lang.columns:
+                continue
 
-            def translate_cell(val):
-                if pd.isna(val):
-                    return val
-                key = str(val).strip()
+            col_idx = df_lang.columns.get_loc(col)
 
-                if key in MANUAL_TRANSLATIONS:
-                    return MANUAL_TRANSLATIONS[key].get(lang, val)
+            # elimina la colonna successiva (se esiste)
+            if col_idx + 1 < len(df_lang.columns):
+                df_lang.drop(
+                    columns=[df_lang.columns[col_idx + 1]],
+                    inplace=True
+                )
 
-                return vocab.get(key, {}).get(lang, val)
+            # traduzione celle
+            translated_series = df_lang[col].apply(
+                lambda val: (
+                    vocab.get(str(val).strip(), {}).get(lang, val)
+                    if pd.notna(val) else val
+                )
+            )
 
-            df[new_col] = df[col].apply(translate_cell)
+            new_col_name = replace_lang_in_col(col, lang)
 
-    return df
+            # inserisce subito dopo la colonna originale
+            df_lang.insert(
+                loc=col_idx + 1,
+                column=new_col_name,
+                value=translated_series
+            )
+
+        dfs_by_lang[lang] = df_lang
+
+    return dfs_by_lang
         
 def read_csv_auto_encoding(uploaded_file, separatore=None):
     raw_data = uploaded_file.read()
@@ -4191,15 +4219,6 @@ elif page == "Traduci":
             AVAILABLE_LANGS,
             default=AVAILABLE_LANGS
         )
-
-        if st.button("Test"):
-            cols_to_rename = [4, 6, 8, 10, 12, 14, 16]
-            for lang in target_langs:
-                for col_idx in cols_to_rename:
-                    old_name = df.columns[col_idx]
-                    new_name = re.sub(r"\([^)]*\)", f"({lang})", old_name)
-                    st.write(f"{old_name} -> {new_name}")
-                    #df_new.rename(columns={old_name: "nuovo_nome"}, inplace=True)
     
         if st.button("🚀 Avvia traduzione") and cols_to_translate and target_langs:
             with st.spinner("Caricamento vocabolario..."):
