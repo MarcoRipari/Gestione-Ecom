@@ -1129,7 +1129,7 @@ MANUAL_TRANSLATIONS = {
 MANUAL_TRANSLATIONS_PROMPT = """
 IMPORTANTE:
 Alcune parole devono seguire regole fisse:
-- "strappo" -> {"en": "strap", "fr": "scratch", "es": "cierre adherente"}
+- "strappo" -> {"en": "strap", "fr": "scratch", "es": "cierre adherente", "de": "klettverschluss"}
 - "sneakers" -> {"en": "sneakers", "fr": "sneakers", "es": "sneakers"}
 """
 
