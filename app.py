@@ -1438,8 +1438,12 @@ def apply_translations(df, columns, langs, vocab):
                 # se la colonna (it) non esiste, fallback: copia valore
                 if it_col in df_lang.columns:
                     df_lang[col] = df_lang[it_col].apply(
-                        lambda val: vocab.get(str(val).strip(), {}).get(lang, val) if pd.notna(val) else val
+                        lambda val: (
+                            vocab.get(str(val).strip(), {}).get(lang, val)
+                            if pd.notna(val) else val
+                        )
                     )
+                )
                 else:
                     df_lang[col] = df_lang[col]
 
