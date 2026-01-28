@@ -1381,49 +1381,51 @@ def extract_missing_terms(df, columns, vocab):
 
     return missing
 
+LANG_RE = re.compile(r"\(([^)]+)\)$")
 
-def replace_lang_in_col(col_name: str, lang: str) -> str:
-    return re.sub(r"\([^)]*\)", f"({lang})", col_name)
+def get_base_name(col):
+    # "Variante (it)" -> "Variante"
+    return LANG_RE.sub("", col).strip()
 
+def get_lang(col):
+    m = LANG_RE.search(col)
+    return m.group(1).lower() if m else None
 
 def apply_translations(df, columns, langs, vocab):
     """
-    Ritorna un dict {lang: df_tradotto}
+    Ritorna dict {lang: df}
     """
     dfs_by_lang = {}
+
+    # colonne base selezionate (Variante, Colore)
+    selected_bases = {get_base_name(c) for c in columns}
 
     for lang in langs:
         df_lang = df.copy()
 
-        for col in columns:
-            if col not in df_lang.columns:
+        for col in df.columns:
+            col_lang = get_lang(col)
+            base = get_base_name(col)
+
+            # salta colonne senza lingua o colonne (it)
+            if not col_lang or col_lang == "it":
                 continue
 
-            col_idx = df_lang.columns.get_loc(col)
-
-            # elimina la colonna successiva (se esiste)
-            if col_idx + 1 < len(df_lang.columns):
-                df_lang.drop(
-                    columns=[df_lang.columns[col_idx + 1]],
-                    inplace=True
+            # se è una colonna selezionata → traduci
+            if base in selected_bases:
+                df_lang[col] = df[col.replace(f"({col_lang})", "(it)")].apply(
+                    lambda val: (
+                        vocab.get(str(val).strip(), {}).get(lang, val)
+                        if pd.notna(val) else val
+                    )
                 )
+            else:
+                # altrimenti lascia il contenuto originale
+                df_lang[col] = df[col]
 
-            # traduzione celle
-            translated_series = df_lang[col].apply(
-                lambda val: (
-                    vocab.get(str(val).strip(), {}).get(lang, val)
-                    if pd.notna(val) else val
-                )
-            )
-
-            new_col_name = replace_lang_in_col(col, lang)
-
-            # inserisce subito dopo la colonna originale
-            df_lang.insert(
-                loc=col_idx + 1,
-                column=new_col_name,
-                value=translated_series
-            )
+            # rinomina SEMPRE la lingua della colonna
+            new_col = re.sub(LANG_RE, f"({lang})", col)
+            df_lang.rename(columns={col: new_col}, inplace=True)
 
         dfs_by_lang[lang] = df_lang
 
