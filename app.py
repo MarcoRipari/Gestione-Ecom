@@ -4191,6 +4191,15 @@ elif page == "Traduci":
             AVAILABLE_LANGS,
             default=AVAILABLE_LANGS
         )
+
+        if st.button("Test"):
+            for lang in target_langs:
+                lang_cols = [
+                    col for col in cols_to_translate
+                    if col.endswith(lang_suffix)
+                ]
+
+            st.write(lang_cols)
     
         if st.button("🚀 Avvia traduzione") and cols_to_translate and target_langs:
             with st.spinner("Caricamento vocabolario..."):
@@ -4230,7 +4239,8 @@ elif page == "Traduci":
                     timer_text.text("")
             with st.spinner("Applicazione traduzioni al CSV..."):
                 df_out = apply_translations(df, cols_to_translate, target_langs, vocab)
-    
+
+                
             st.success("✅ Traduzione completata")
             csv_buffer = io.StringIO()
             df_out.to_csv(csv_buffer, index=False)
