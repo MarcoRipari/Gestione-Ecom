@@ -4222,7 +4222,7 @@ elif page == "Traduci":
     TRANSLATION_SHEET_ID = "1wS65klpyHNft8UpJAE1x1yIVa1_8ZRLftFnUBgW_f6o"
     TRANSLATION_TAB_NAME = "Traduzioni"
 
-    st.title("🌍 CSV Translator Async")
+    st.title("🌍 CSV Translator Async2")
     
     uploaded_file = st.file_uploader("Carica CSV", type=["csv"])
 
