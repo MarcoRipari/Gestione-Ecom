@@ -4280,7 +4280,7 @@ elif page == "Traduci":
             #csv_bytes = csv_buffer.getvalue().encode("utf-8")
             
             now = datetime.now(ZoneInfo("Europe/Rome"))
-            file_name = f"descrizioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.csv"
+            file_name = f"descrizioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
             # Carico il file su dropbox
             try:
                 folder_path = "/CATALOGO/TRADUZIONI"  # cartella su Dropbox
