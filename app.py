@@ -463,6 +463,7 @@ CONCEPT
 - Gli aggettivi possono essere usati se comuni e descrittivi
 - Vietati: effetto usato, effetto vissuto, trattato, lavorato, lavato, spazzolato, vintage
 - Non inserire la stagionalità del prodotto (il riferimento può essere solo sui sandali)
+- NON usare abbreviazioni, ellissi o forme contratte (es. niente “-sohle”, “-lining”, ecc.)
 
 ### TERMINI VIETATI (NON DEVONO MAI COMPARIRE) ###
 È vietato usare, anche in forma simile, parafrasata o con sinonimi diretti, i seguenti concetti o formulazioni:
@@ -566,6 +567,7 @@ CONCEPT
 - Gli aggettivi devono essere comuni, descrittivi, editoriali
 - Evita qualsiasi affermazione non visibile o non dichiarata
 - Non inserire la stagionalità del prodotto (il riferimento può essere solo sui sandali)
+- NON usare abbreviazioni, ellissi o forme contratte (es. niente “-sohle”, “-lining”, ecc.)
 
 ### TERMINI E CONCETTI VIETATI ###
 È vietato usare, anche in forma parafrasata:
@@ -663,6 +665,7 @@ CONCEPT
 - I materiali devono essere citati in modo esplicito
 - È ammessa la ripetizione di formule lessicali consolidate
 - Non inserire la stagionalità del prodotto (il riferimento può essere solo sui sandali)
+- NON usare abbreviazioni, ellissi o forme contratte (es. niente “-sohle”, “-lining”, ecc.)
 
 ### TERMINI E CONCETTI VIETATI ###
 È vietato usare, anche in forma parafrasata:
@@ -1246,8 +1249,9 @@ async def translate_term(client, term, target_langs, col_name):
         
     messages = [
         {"role": "user", "content": f"""
-        Traduci fedelmente il testo italiano nelle lingue: {', '.join(target_langs)}.
+        Traduci questo testo italiano nelle lingue: {', '.join(target_langs)}.
         Mantieni maiuscole e punteggiatura come nell'originale.
+        NON usare abbreviazioni, ellissi o forme contratte (es. niente “-sohle”, “-lining”, ecc.)
         {important_note}
         
         Testo da tradurre:
