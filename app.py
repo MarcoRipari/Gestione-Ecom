@@ -1443,7 +1443,6 @@ def apply_translations(df, columns, langs, vocab):
                             if pd.notna(val) else val
                         )
                     )
-                )
                 else:
                     df_lang[col] = df_lang[col]
 
