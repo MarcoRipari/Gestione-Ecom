@@ -4193,13 +4193,13 @@ elif page == "Traduci":
         )
 
         if st.button("Test"):
+            cols_to_rename = [4, 6, 8, 10, 12, 14, 16]
             for lang in target_langs:
-                lang_cols = [
-                    col for col in cols_to_translate
-                    if col.endswith(lang_suffix)
-                ]
-
-            st.write(lang_cols)
+                for col_idx in cols_to_rename:
+                    old_name = df.columns[col_idx]
+                    new_name = re.sub(r"\([^)]*\)", f"({lang})", old_name)
+                    st.write(f"{old_name} -> {new_name}")
+                    #df_new.rename(columns={old_name: "nuovo_nome"}, inplace=True)
     
         if st.button("🚀 Avvia traduzione") and cols_to_translate and target_langs:
             with st.spinner("Caricamento vocabolario..."):
