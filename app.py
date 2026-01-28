@@ -4257,13 +4257,27 @@ elif page == "Traduci":
                     status_text.text("✅ Traduzione completata")
                     timer_text.text("")
             with st.spinner("Applicazione traduzioni al CSV..."):
-                df_out = apply_translations(df, cols_to_translate, target_langs, vocab)
+                dfs_by_lang = apply_translations(df, cols_to_translate, target_langs, vocab)
 
                 
             st.success("✅ Traduzione completata")
-            csv_buffer = io.StringIO()
-            df_out.to_csv(csv_buffer, index=False)
-            csv_bytes = csv_buffer.getvalue().encode("utf-8")
+            
+            zip_buffer = BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+                for lang, df_lang in dfs_by_lang.items():
+                    csv_buffer = io.StringIO()
+                    df_lang.to_csv(csv_buffer, index=False)
+            
+                    zipf.writestr(
+                        f"descrizioni_{lang}.csv",
+                        csv_buffer.getvalue()
+                    )
+            
+            zip_buffer.seek(0)
+            
+            #csv_buffer = io.StringIO()
+            #df_out.to_csv(csv_buffer, index=False)
+            #csv_bytes = csv_buffer.getvalue().encode("utf-8")
             
             now = datetime.now(ZoneInfo("Europe/Rome"))
             file_name = f"descrizioni_{now.strftime('%d-%m-%Y_%H-%M-%S')}.csv"
@@ -4272,13 +4286,13 @@ elif page == "Traduci":
                 folder_path = "/CATALOGO/TRADUZIONI"  # cartella su Dropbox
                 access_token = get_dropbox_access_token()
                 dbx = dropbox.Dropbox(access_token)
-                upload_to_dropbox(dbx, folder_path, file_name, csv_bytes)
+                upload_to_dropbox(dbx, folder_path, file_name, zip_buffer.getvalue())
             except Exception as e:
                 st.error(f"❌ Errore durante l'upload su Dropbox: {e}")
                             
             st.download_button(
-                "📥 Scarica CSV tradotto",
-                data=csv_bytes,
+                "📦 Scarica ZIP traduzioni",
+                data=zip_buffer,
                 file_name=file_name,
-                mime="text/csv"
+                mime="application/zip"
             )
