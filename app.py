@@ -1383,50 +1383,80 @@ def extract_missing_terms(df, columns, vocab):
 
 LANG_RE = re.compile(r"\(([^)]+)\)$")
 
-
 def get_base_name(col):
     # "Variante (it)" -> "Variante"
     return LANG_RE.sub("", col).strip()
-
 
 def get_lang(col):
     m = LANG_RE.search(col)
     return m.group(1).lower() if m else None
 
-
 def apply_translations(df, columns, langs, vocab):
     """
     Ritorna dict {lang: df}
+    - Esclude righe che nel CSV originale hanno valore popolato nella colonna dopo
+      una colonna selezionata (it)
     """
     dfs_by_lang = {}
 
-    # colonne base selezionate (Variante, Colore)
+    # colonne base selezionate (Variante, Colore, ecc.)
     selected_bases = {get_base_name(c) for c in columns}
 
+    # ------------------------
+    # TROVA RIGHE DA ESCLUDERE
+    # ------------------------
+    rows_to_drop = set()
+    col_list = list(df.columns)
+    for idx, col in enumerate(col_list):
+        base = get_base_name(col)
+        lang = get_lang(col)
+
+        # solo colonne selezionate (it)
+        if base in selected_bases and lang == "it":
+            # colonna successiva
+            if idx + 1 < len(col_list):
+                next_col = col_list[idx + 1]
+                next_lang = get_lang(next_col)
+                # se la colonna successiva NON-it e popolata → scarta riga
+                if next_lang != "it":
+                    populated_rows = df[next_col].notna() & (df[next_col].astype(str).str.strip() != "")
+                    rows_to_drop.update(df.index[populated_rows])
+
+    # ------------------------
+    # CREAZIONE CSV PER OGNI LINGUA
+    # ------------------------
     for lang in langs:
         df_lang = df.copy()
 
-        for col in df.columns:
+        # elimina righe da scartare
+        if rows_to_drop:
+            df_lang.drop(index=list(rows_to_drop), inplace=True)
+
+        # traduzioni e rinomina colonne
+        for col in df_lang.columns:
             col_lang = get_lang(col)
             base = get_base_name(col)
 
-            # salta colonne senza lingua o colonne (it)
+            # colonne senza lingua o colonne (it) → lasciale così
             if not col_lang or col_lang == "it":
                 continue
 
-            # se è una colonna selezionata → traduci
+            # colonne selezionate → traduci
             if base in selected_bases:
-                df_lang[col] = df[col.replace(f"({col_lang})", "(it)")].apply(
-                    lambda val: (
-                        vocab.get(str(val).strip(), {}).get(lang, val)
-                        if pd.notna(val) else val
-                    )
-                )
+                it_col = col.replace(f"({col_lang})", "(it)")
+                if it_col in df_lang.columns:
+                    def translate_cell(val):
+                        if pd.isna(val):
+                            return ""
+                        key = str(val).strip()
+                        return vocab.get(key, {}).get(lang, key)
+                    df_lang[col] = df_lang[it_col].apply(translate_cell)
+                else:
+                    df_lang[col] = df_lang[col].fillna("")
             else:
-                # altrimenti lascia il contenuto originale
-                df_lang[col] = df[col]
+                df_lang[col] = df_lang[col]
 
-            # rinomina SEMPRE la lingua della colonna
+            # rinomina colonna con lingua corrente
             new_col = re.sub(LANG_RE, f"({lang})", col)
             df_lang.rename(columns={col: new_col}, inplace=True)
 
