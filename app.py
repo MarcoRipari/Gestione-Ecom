@@ -671,7 +671,6 @@ Descrivi, seguendo l’ordine tipico Flower Mountain:
 
 ### TERMINI E CONCETTI VIETATI ###
 È vietato usare, anche in forma parafrasata:
-
 - Vocazione
 - La chiusura è affidata a
 - costruzione minimale
@@ -685,6 +684,8 @@ Descrivi, seguendo l’ordine tipico Flower Mountain:
 - ispirata / ispirato
 - ispira / ispirare
 - riferimenti espliciti al marchio
+- Flower Mountain
+- Stagione del prodotto (il riferimento può essere solo sui sandali/ciabatte)
 
 ### LESSICO GUIDA (AMMESSO E INCORAGGIATO) ###
 - mondo outdoor
