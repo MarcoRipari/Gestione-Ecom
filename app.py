@@ -635,13 +635,19 @@ CONCEPT
 {concept}
 
 *** Regole del concept ***
-- può ispirare l’apertura del testo
-- non deve essere citato esplicitamente
-- può suggerire il mondo di riferimento (outdoor / sportivo / urbano)
-- non deve introdurre storytelling emotivo o metaforico
+- Serve esclusivamente come orientamento interno
+- Non deve tradursi in formule testuali ricorrenti
+- Non deve generare riferimenti espliciti a ispirazione
+- Deve emergere indirettamente da materiali, costruzione e utilizzo
 
 ### STILE ###
-- Apertura: descrittiva, assertiva (es. ispirazione outdoor, vocazione sportiva)
+- Apertura: descrittiva e assertiva
+- Vietato aprire il testo con riferimenti a “ispirazione”
+- L’apertura deve seguire uno dei seguenti pattern Flower Mountain:
+  - “Sneaker / Sandalo / Hiking shoe + con / dalla + tomaia…”
+  - “Nuova versione / Interpretazione / Evoluzione di…”
+  - “Progettata per… / Pensata per…”
+  - “Sportiva nelle forme / Linee audaci / Design tecnico…”
 - Tono: tecnico–editoriale, brand–driven
 - Linguaggio chiaro e dichiarativo
 - Ammesse valutazioni soft (es. “ideale”, “perfetta”, “assicura”)
@@ -655,13 +661,14 @@ CONCEPT
 ### CONTENUTO ###
 - Usa esclusivamente le informazioni presenti nelle INFO ARTICOLO
 - Usa il tipo di calzatura fornito
-- Descrivi, seguendo l’ordine tipico Flower Mountain:
-  - ispirazione del modello
-  - tomaia (materiali e costruzione overlapping se presente)
-  - dettagli iconici (occhielli, nastri, loop, traforature)
-  - chiusura (lacci trekking, quick stop se presente)
-  - fodera e soletta (specificare materiali e trattamento se dichiarato)
-  - fondo o suola (gomma ultra leggera, Vibram, megagrip, battistrada)
+Descrivi, seguendo l’ordine tipico Flower Mountain:
+    - carattere del modello e destinazione d’uso (senza usare il termine “ispirazione”)
+    - tomaia (materiali e costruzione overlapping se presente)
+    - dettagli iconici (occhielli, nastri, loop, traforature)
+    - chiusura (lacci trekking, quick stop se presente)
+    - fodera e soletta (specificare materiali e trattamento se dichiarato)
+    - fondo o suola (gomma ultra leggera, Vibram, megagrip, battistrada)
+
 - I materiali devono essere citati in modo esplicito
 - È ammessa la ripetizione di formule lessicali consolidate
 - Non inserire la stagionalità del prodotto (il riferimento può essere solo sui sandali)
@@ -679,9 +686,14 @@ CONCEPT
 - assicura proprietà antibatteriche
 - bicolori
 - "bicolore", utilizzabile solamente per il fondo se indicato.
+- ispirazione
+- ispirata / ispirato
+- ispira / ispirare
 
 ### LESSICO GUIDA (AMMESSO E INCORAGGIATO) ###
-- ispirazione outdoor
+- mondo outdoor
+- utilizzo outdoor
+- carattere outdoor
 - vocazione sportiva
 - design
 - performance
@@ -716,17 +728,21 @@ Genera due testi per ciascuna lingua:
 {sim_text}
 
 *** Uso delle descrizioni di riferimento ***
-- tono
-- lessico ricorrente
-- struttura narrativa
-- ordine degli elementi
+- Replicare struttura sintattica e ritmo
+- Riutilizzare formule verbali consolidate
+- Privilegiare costruzioni già presenti nello storico
+- In caso di conflitto, lo stile delle descrizioni di riferimento ha priorità
 
 ### CONTROLLO FINALE ###
-Il testo deve:
-- sembrare scritto per un catalogo ufficiale Flower Mountain
-- essere coerente con altri modelli simili
-- poter essere riutilizzato su più varianti colore
-- privilegiare coerenza e riconoscibilità rispetto all’unicità
+> Verifica che “ispirazione” e derivati NON siano presenti
+    Se presenti, riscrivere la frase mantenendo il contenuto tecnico
+
+> Il testo deve:
+    - sembrare scritto per un catalogo ufficiale Flower Mountain
+    - essere coerente con altri modelli simili
+    - poter essere riutilizzato su più varianti colore
+    - privilegiare coerenza e riconoscibilità rispetto all’unicità
+    In caso contrario, riscrivere il testo mantenendo contenuto e ordine degli elementi.
 """
     return prompt
 
