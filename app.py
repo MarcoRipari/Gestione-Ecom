@@ -643,11 +643,6 @@ CONCEPT
 ### STILE ###
 - Apertura: descrittiva e assertiva
 - Vietato aprire il testo con riferimenti a “ispirazione”
-- L’apertura deve seguire uno dei seguenti pattern Flower Mountain:
-  - “Sneaker / Sandalo / Hiking shoe + con / dalla + tomaia…”
-  - “Nuova versione / Interpretazione / Evoluzione di…”
-  - “Progettata per… / Pensata per…”
-  - “Sportiva nelle forme / Linee audaci / Design tecnico…”
 - Tono: tecnico–editoriale, brand–driven
 - Linguaggio chiaro e dichiarativo
 - Ammesse valutazioni soft (es. “ideale”, “perfetta”, “assicura”)
