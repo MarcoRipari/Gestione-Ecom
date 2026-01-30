@@ -684,6 +684,7 @@ Descrivi, seguendo l’ordine tipico Flower Mountain:
 - ispirazione
 - ispirata / ispirato
 - ispira / ispirare
+- riferimenti espliciti al marchio
 
 ### LESSICO GUIDA (AMMESSO E INCORAGGIATO) ###
 - mondo outdoor
