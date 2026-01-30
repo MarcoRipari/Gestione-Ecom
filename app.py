@@ -625,7 +625,7 @@ Il testo deve:
             prompt = f"""
 Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
 
-Le descrizioni devono riprodurre il linguaggio di un catalogo ufficiale Flower Mountain: tecnico, descrittivo, identitario, con struttura riconoscibile e lessico ricorrente.
+Le descrizioni devono riprodurre il linguaggio di un catalogo ufficiale Flower Mountain: tecnico, descrittivo, con struttura riconoscibile e lessico ricorrente.
 
 ### INFO PRODOTTO ###
 {product_info}
