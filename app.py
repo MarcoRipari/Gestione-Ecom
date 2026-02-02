@@ -3504,7 +3504,7 @@ elif page == "Giacenze - Importa":
             st.write(df_input)
 
         # --- Colonne numeriche ---
-        numeric_cols_info = { "D": "0", "L": "000", "N": "0", "O": "0" }
+        numeric_cols_info = { "D": "0", "M": "000", "O": "0", "P": "0" }
         for i in range(17, 32):  # Q-AE
             col_letter = gspread.utils.rowcol_to_a1(1, i)[:-1]
             numeric_cols_info[col_letter] = "0"
