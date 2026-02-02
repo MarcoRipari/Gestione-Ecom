@@ -763,7 +763,7 @@ CONCEPT
 ### STILE ###
 - Apertura: evocativa e dichiarativa
 - Vietato aprire il testo con riferimenti a “ispirazione”
-- Tono: fashion–editoriale, metropolitano, premium
+- Tono: fashion–editoriale, premium, urbano
 - Linguaggio fluido e descrittivo
 - Ammesse valutazioni soft (es. “raffinata”, “essenziale”, “intramontabile”, “ideale”)
 - Ammessi riferimenti a:
@@ -811,7 +811,8 @@ Descrivi, seguendo l’ordine tipico Candice Cooper:
 - design intramontabile
 - raffinatezza
 - essenziale
-- metropolitano / city chic
+- urbano
+- city chic
 - glamour
 - vintage reinterpretato
 - materiali sofisticati
