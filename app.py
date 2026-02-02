@@ -741,6 +741,129 @@ Genera due testi per ciascuna lingua:
     - privilegiare coerenza e riconoscibilità rispetto all’unicità
     In caso contrario, riscrivere il testo mantenendo contenuto e ordine degli elementi.
 """
+        elif marchio == "CC":
+            prompt = f"""
+Scrivi due descrizioni per una calzatura da vendere online (e-commerce), coerenti con le INFO ARTICOLO, in ciascuna delle seguenti lingue: {lang_list}.
+
+Le descrizioni devono riprodurre il linguaggio di un catalogo ufficiale Candice Cooper: fashion–editoriale, metropolitano, raffinato, con struttura riconoscibile e lessico ricorrente.
+
+### INFO PRODOTTO ###
+{product_info}
+{image_line}
+
+CONCEPT
+{concept}
+
+*** Regole del concept ***
+- Serve esclusivamente come orientamento interno
+- Non deve tradursi in formule testuali ricorrenti
+- Non deve generare riferimenti espliciti a ispirazioni, epoche o storytelling
+- Deve emergere indirettamente da materiali, costruzione, dettagli e posizionamento del modello
+
+### STILE ###
+- Apertura: evocativa e dichiarativa
+- Vietato aprire il testo con riferimenti a “ispirazione”
+- Tono: fashion–editoriale, metropolitano, premium
+- Linguaggio fluido e descrittivo
+- Ammesse valutazioni soft (es. “raffinata”, “essenziale”, “intramontabile”, “ideale”)
+- Ammessi riferimenti a:
+  - contesto urbano
+  - glamour metropolitano
+  - rilettura contemporanea di modelli iconici
+- Frasi complete
+- Nessuna formattazione
+
+### CONTENUTO ###
+- Usa esclusivamente le informazioni presenti nelle INFO ARTICOLO
+- Usa il tipo di calzatura fornito
+
+Descrivi, seguendo l’ordine tipico Candice Cooper:
+    - carattere del modello e posizionamento estetico
+    - tomaia (materiali, lavorazioni, finiture)
+    - dettagli distintivi (rinforzi, bordo, impunture, piping, traforature, inserti)
+    - chiusura (lacci, fibbia, zip, slip on se presente)
+    - fodera e soletta (materiali, estraibilità, comfort)
+    - fondo o suola (gomma, profilo che risale il tallone, disegno se dichiarato)
+
+- I materiali devono essere citati in modo esplicito
+- È ammessa la ripetizione di formule lessicali consolidate
+- Non inserire stagionalità del prodotto
+- NON usare abbreviazioni, ellissi o forme contratte
+
+### TERMINI E CONCETTI VIETATI ###
+È vietato usare, anche in forma parafrasata:
+- vocazione
+- performance
+- mondo outdoor
+- utilizzo outdoor
+- tecnico / tecnicità
+- costruzione minimale
+- sapientemente
+- assicura proprietà antibatteriche (se non esplicitamente dichiarate)
+- ispirazione
+- ispirata / ispirato
+- ispira / ispirare
+- riferimenti espliciti ad altri marchi
+- Flower Mountain
+- stagionalità del prodotto
+
+### LESSICO GUIDA (AMMESSO E INCORAGGIATO) ###
+- design intramontabile
+- raffinatezza
+- essenziale
+- metropolitano / city chic
+- glamour
+- vintage reinterpretato
+- materiali sofisticati
+- pelle / suede / velour / vitello
+- pelle tamponata / invecchiata / metallizzata / laminata (se presenti)
+- comfort
+- calzata confortevole
+- soletta interna estraibile / ergonomica (se dichiarato)
+- suola in gomma
+- profilo che risale il tallone
+- bordo avvolgente
+- impunture a vista
+- rinforzi su punta e tallone
+
+### LIMITI ###
+- Non introdurre informazioni non presenti nelle INFO ARTICOLO
+- Non inventare trattamenti, lavorazioni o certificazioni
+- Non usare metafore o storytelling emozionale
+- Non descrivere abbinamenti di abbigliamento
+- Non usare linguaggio lifestyle generico
+
+### NORMALIZZAZIONE TIPO DI CALZATURA ###
+- Usa esclusivamente il tipo di calzatura fornito
+- Mantieni terminologia coerente con Candice Cooper
+- Ammessi: sneaker, sneaker low rise, sneaker mid rise, sandalo, ballerina, mocassino, stivaletto, slip on se presenti nelle INFO
+- “special case slippers” → SEMPRE trasformato in “ciabatte”
+
+### OUTPUT ###
+Genera due testi per ciascuna lingua:
+- desc_lunga: {desc_lunga_length} parole
+- desc_breve: {desc_breve_length} parole
+
+### DESCRIZIONI DI RIFERIMENTO ###
+{sim_text}
+
+*** Uso delle descrizioni di riferimento ***
+- Replicare struttura sintattica e ritmo
+- Riutilizzare formule verbali consolidate
+- Privilegiare costruzioni già presenti nello storico
+- In caso di conflitto, lo stile delle descrizioni di riferimento ha priorità
+
+### CONTROLLO FINALE ###
+> Verifica che “ispirazione” e derivati NON siano presenti  
+  Se presenti, riscrivere la frase mantenendo il contenuto descrittivo
+
+> Il testo deve:
+    - sembrare scritto per un catalogo ufficiale Candice Cooper
+    - risultare coerente con altri modelli della collezione
+    - poter essere riutilizzato su più varianti colore
+    - privilegiare coerenza editoriale e riconoscibilità rispetto all’unicità
+    In caso contrario, riscrivere il testo mantenendo contenuto e ordine degli elementi.
+"""
     return prompt
 
 client = AsyncOpenAI(api_key=openai.api_key)
