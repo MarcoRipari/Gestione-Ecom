@@ -759,6 +759,9 @@ CONCEPT
 - Non deve tradursi in formule testuali ricorrenti
 - Non deve generare riferimenti espliciti a ispirazioni, epoche o storytelling
 - Deve emergere indirettamente da materiali, costruzione, dettagli e posizionamento del modello
+- Il posizionamento urbano deve emergere indirettamente
+  attraverso materiali, proporzioni, finiture e utilizzo quotidiano
+- Evitare l’uso esplicito e ripetuto dei termini “metropolitano” e derivati
 
 ### STILE ###
 - Apertura: evocativa e dichiarativa
