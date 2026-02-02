@@ -804,7 +804,7 @@ Descrivi, seguendo l’ordine tipico Candice Cooper:
 - ispirata / ispirato
 - ispira / ispirare
 - riferimenti espliciti ad altri marchi
-- Flower Mountain
+- Candice Cooper
 - stagionalità del prodotto
 
 ### LESSICO GUIDA (AMMESSO E INCORAGGIATO) ###
